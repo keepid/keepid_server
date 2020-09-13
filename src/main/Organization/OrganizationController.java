@@ -1,10 +1,13 @@
 package Organization;
 
+import Activity.ActivityController;
+import Activity.CreateOrgActivity;
 import Bug.BugController;
 import Logger.LogFactory;
 import Security.EmailExceptions;
 import Security.EmailUtil;
 import Security.SecurityUtils;
+import User.IpObject;
 import User.User;
 import User.UserMessage;
 import User.UserType;
@@ -32,6 +35,8 @@ public class OrganizationController {
 
   Logger logger;
   MongoDatabase db;
+  ActivityController activityController;
+
   public static final String newOrgTestURL =
       Objects.requireNonNull(System.getenv("NEW_ORG_TESTURL"));
   public static final String newOrgActualURL =
@@ -40,11 +45,12 @@ public class OrganizationController {
   public OrganizationController(MongoDatabase db) {
     this.db = db;
     LogFactory l = new LogFactory();
+    activityController = new ActivityController(db);
     logger = l.createLogger("OrgController");
   }
 
   public Handler organizationSignupValidator =
-      ctx -> {
+        ctx -> {
         logger.info("Starting organizationSignupValidator");
         JSONObject req = new JSONObject(ctx.body());
 
@@ -94,7 +100,8 @@ public class OrganizationController {
         logger.info("Done with organizationSignupValidator");
       };
 
-  // Takes in a json object specifying usertypes and orgnames
+  // Takes in a json object specifying
+  // s and orgnames
   //
   //  {userTypes : [],
   //  organizations : []}
@@ -246,8 +253,7 @@ public class OrganizationController {
         ctx.json(ret.toString());
       };
 
-  public Handler enrollOrganization(SecurityUtils securityUtils) {
-    return ctx -> {
+  public Handler enrollOrganization = ctx -> {
       logger.info("Starting enrollOrganization handler");
       JSONObject req = new JSONObject(ctx.body());
 
@@ -308,6 +314,8 @@ public class OrganizationController {
                 username,
                 password,
                 userLevel);
+        CreateOrgActivity createOrgActivity = new CreateOrgActivity(user, org);
+        activityController.addActivity(createOrgActivity);
       } catch (ValidationException ve) {
         logger.error("Could not create user and/or org");
         ctx.json(ve.getJSON().toString());
@@ -330,7 +338,7 @@ public class OrganizationController {
         ctx.json(UserMessage.USERNAME_ALREADY_EXISTS.toJSON().toString());
       } else {
         logger.info("Org and User are OK, hashing password");
-        String passwordHash = securityUtils.hashPassword(password);
+        String passwordHash = SecurityUtils.hashPassword(password);
         if (passwordHash == null) {
           ctx.json(OrgEnrollmentStatus.PASS_HASH_FAILURE.toJSON().toString());
           return;
@@ -338,8 +346,10 @@ public class OrganizationController {
 
         logger.info("Setting password and inserting user and org into Mongo");
         user.setPassword(passwordHash);
-        userCollection.insertOne(user);
 
+        List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
+        user.setLogInHistory(logInInfo);
+        userCollection.insertOne(user);
         orgCollection.insertOne(org);
         logger.info("Notifying Slack about new org");
         HttpResponse posted = makeBotMessage(org);
@@ -356,7 +366,6 @@ public class OrganizationController {
         logger.info("Done with enrollOrganization");
       }
     };
-  }
 
   private HttpResponse makeBotMessage(Organization org) {
     JSONArray blocks = new JSONArray();
@@ -397,8 +406,7 @@ public class OrganizationController {
          ]
       }
   */
-  public Handler inviteUsers(SecurityUtils securityUtils, EmailUtil emailUtil) {
-    return ctx -> {
+  public Handler inviteUsers = ctx -> {
       logger.info("Starting inviteUsers handler");
       JSONObject req = new JSONObject(ctx.body());
       JSONArray people = req.getJSONArray("data");
@@ -459,16 +467,23 @@ public class OrganizationController {
         String id = RandomStringUtils.random(25, 48, 122, true, true, null, new SecureRandom());
         int expirationTime = 604800000; // 7 days
         String jwt =
-            securityUtils.createOrgJWT(
+            SecurityUtils.createOrgJWT(
                 id, sender, firstName, lastName, role, "Invite User to Org", org, expirationTime);
 
         // NEED TO UPDATE URL IN JWT TO ORG INVITE WEBSITE
         try {
           String emailJWT =
-              emailUtil.getOrganizationInviteEmail(
+              EmailUtil.getOrganizationInviteEmail(
                   "https://keep.id/create-user/" + jwt, sender, firstName + " " + lastName);
-          emailUtil.sendEmail(
+          EmailUtil.sendEmail(
               "Keep ID", email, sender + " has Invited you to Join their Organization", emailJWT);
+          //          switch (role) {
+          //            case: "Worker":
+          //              CreateWorkerActivity c = new CreateWorkerActivity()
+          //              break;
+          //            default:
+          //              throw new IllegalStateException("Unexpected value: " + role);
+          //          }
         } catch (EmailExceptions e) {
           logger.error("Email exception caught");
           ctx.json(e.toJSON().toString());
@@ -480,4 +495,3 @@ public class OrganizationController {
       logger.info("Done with inviteUsers");
     };
   }
-}
