@@ -69,8 +69,7 @@ public class GetUserInfoService implements Service {
   }
 
   public InputStream getUserPfp() {
-    Objects.requireNonNull(user);
-    Bson filter = Filters.eq("metadata.owner", user.getUsername());
+    Bson filter = Filters.eq("metadata.owner", username);
     GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
     GridFSFile grid_out = gridBucket.find(filter).first();
     if (grid_out == null || grid_out.getMetadata() == null) {
@@ -90,7 +89,7 @@ public class GetUserInfoService implements Service {
             .metadata(
                 new Document("type", "pfp")
                     .append("upload_date", String.valueOf(LocalDate.now()))
-                    .append("owner", user.getUsername()));
+                    .append("owner", username));
     gridBucket.uploadFromStream(fileName, content, options);
   }
 

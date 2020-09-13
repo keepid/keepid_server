@@ -36,16 +36,17 @@ public class UserController {
   public Handler uploadPfp =
       ctx -> {
         String username = ctx.sessionAttribute("username");
+        logger.info(username + " is Attempting to upload a profile picture");
         UploadedFile file = ctx.uploadedFile("file");
         GetUserInfoService service = new GetUserInfoService(db, logger, username);
         service.uploadPfp(file);
+        logger.info(username + " has successfully uploaded a profile picture");
         ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
       };
 
   public Handler loadPfp =
       ctx -> {
         String username = ctx.sessionAttribute("username");
-        UploadedFile file = ctx.uploadedFile("file");
         GetUserInfoService service = new GetUserInfoService(db, logger, username);
         InputStream pfp = service.getUserPfp();
         ctx.header("Content-Type", "application/pfp");

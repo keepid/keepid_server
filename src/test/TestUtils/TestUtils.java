@@ -233,6 +233,23 @@ public class TestUtils {
               TestUtils.hashPassword("client2BSM"),
               UserType.Client);
 
+      User cathy =
+          new User(
+              "Cathy",
+              "Chen",
+              "09-26-2000",
+              "cathy@gmail.com",
+              "5128390522",
+              "Broad Street Ministry",
+              "311 Broad Street",
+              "Philadelphia",
+              "PA",
+              "19104",
+              false,
+              "cathyAsClient",
+              TestUtils.hashPassword("cathyAsClient"),
+              UserType.Client);
+
       /* ******************** YMCA **************************** */
       Organization ymca =
           new Organization(
@@ -664,7 +681,8 @@ public class TestUtils {
               passwordResetTest,
               logInHistoryTest,
               createAdminOwner,
-              createdAdmin));
+              createdAdmin,
+              cathy));
 
       // Add the 2FA tokens to the test database
       MongoCollection<Tokens> tokenCollection = testDB.getCollection("tokens", Tokens.class);
@@ -710,7 +728,7 @@ public class TestUtils {
   }
 
   public static JSONObject responseStringToJSON(String response) {
-    if(response.charAt(0) == '"'){
+    if (response.charAt(0) == '"') {
       String strippedResponse = response.substring(1, response.length() - 1).replace("\\", "");
       return new JSONObject(strippedResponse);
     }
