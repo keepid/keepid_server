@@ -1,6 +1,5 @@
 package Config;
 
-import Activity.ActivityController;
 import Bug.BugController;
 import Logger.LogFactory;
 import Organization.OrganizationController;
@@ -34,7 +33,6 @@ public class AppConfig {
     AccountSecurityController accountSecurityController = new AccountSecurityController(db);
     PdfController pdfController = new PdfController(db);
     BugController bugController = new BugController(db);
-    ActivityController activityController = new ActivityController(db);
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -82,7 +80,6 @@ public class AppConfig {
 
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
-    app.post("/get-all-activities", activityController.findMyActivities);
 
     return app;
   }

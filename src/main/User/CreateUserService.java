@@ -1,13 +1,12 @@
 package User;
 
-import Activity.*;
 import Config.Message;
 import Config.Service;
 import Security.SecurityUtils;
 import Validation.ValidationException;
 import com.mongodb.client.MongoCollection;
-import org.slf4j.Logger;
 import com.mongodb.client.MongoDatabase;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +20,7 @@ public class CreateUserService implements Service {
   String organizationName;
   String sessionUsername;
   String firstName;
-  String lastName ;
+  String lastName;
   String birthDate;
   String email;
   String phone;
@@ -34,12 +33,26 @@ public class CreateUserService implements Service {
   String password;
   UserType userType;
   Message response;
-  ActivityController activityController;
 
-  public CreateUserService(MongoDatabase db, Logger logger, UserType sessionUserLevel, String organizationName,
-                           String sessionUsername, String firstName, String lastName, String birthDate, String email,
-                           String phone, String address, String city,  String state, String zipcode,
-                           Boolean twoFactorOn, String username, String password, UserType userType){
+  public CreateUserService(
+      MongoDatabase db,
+      Logger logger,
+      UserType sessionUserLevel,
+      String organizationName,
+      String sessionUsername,
+      String firstName,
+      String lastName,
+      String birthDate,
+      String email,
+      String phone,
+      String address,
+      String city,
+      String state,
+      String zipcode,
+      Boolean twoFactorOn,
+      String username,
+      String password,
+      UserType userType) {
     this.db = db;
     this.logger = logger;
     this.sessionUserLevel = sessionUserLevel;
@@ -58,11 +71,15 @@ public class CreateUserService implements Service {
     this.username = username;
     this.password = password;
     this.userType = userType;
-    activityController = new ActivityController(db);
   }
 
   // for testing
-  CreateUserService(MongoDatabase db, Logger logger, User user, String sessionUsername, UserType sessionUserLevel){
+  CreateUserService(
+      MongoDatabase db,
+      Logger logger,
+      User user,
+      String sessionUsername,
+      UserType sessionUserLevel) {
     this.sessionUserLevel = sessionUserLevel;
     this.organizationName = user.getOrganization();
     this.sessionUsername = sessionUsername;
@@ -95,21 +112,22 @@ public class CreateUserService implements Service {
     // create user object
     User user;
     try {
-      user = new User(
-                      firstName,
-                      lastName,
-                      birthDate,
-                      email,
-                      phone,
-                      organizationName,
-                      address,
-                      city,
-                      state,
-                      zipcode,
-                      twoFactorOn,
-                      username,
-                      password,
-                      userType);
+      user =
+          new User(
+              firstName,
+              lastName,
+              birthDate,
+              email,
+              phone,
+              organizationName,
+              address,
+              city,
+              state,
+              zipcode,
+              twoFactorOn,
+              username,
+              password,
+              userType);
     } catch (ValidationException ve) {
       logger.error("Validation exception");
       return ve;
@@ -118,8 +136,8 @@ public class CreateUserService implements Service {
     if ((user.getUserType() == UserType.Director
             || user.getUserType() == UserType.Admin
             || user.getUserType() == UserType.Worker)
-            && sessionUserLevel != UserType.Admin
-            && sessionUserLevel != UserType.Director) {
+        && sessionUserLevel != UserType.Admin
+        && sessionUserLevel != UserType.Director) {
       logger.error("Cannot enroll ADMIN/DIRECTOR as NON-ADMIN/NON-DIRECTOR");
       return UserMessage.NONADMIN_ENROLL_ADMIN;
     }
@@ -153,25 +171,6 @@ public class CreateUserService implements Service {
     userCollection.insertOne(user);
     User sessionUser = userCollection.find(eq("username", sessionUsername)).first();
 
-    // create activity
-    switch (user.getUserType()) {
-      case Worker:
-        CreateWorkerActivity act = new CreateWorkerActivity(sessionUser, user);
-        activityController.addActivity(act);
-        break;
-      case Director:
-        CreateDirectorActivity dir = new CreateDirectorActivity(sessionUser, user);
-        activityController.addActivity(dir);
-        break;
-      case Admin:
-        CreateAdminActivity adm = new CreateAdminActivity(sessionUser, user);
-        activityController.addActivity(adm);
-        break;
-      case Client:
-        CreateClientActivity cli = new CreateClientActivity(sessionUser, user);
-        activityController.addActivity(cli);
-        break;
-    }
     logger.info("Successfully created user, " + user.getUsername());
     return UserMessage.ENROLL_SUCCESS;
   }

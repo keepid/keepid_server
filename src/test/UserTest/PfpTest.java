@@ -4,6 +4,7 @@ import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,10 +30,10 @@ public class PfpTest {
     TestUtils.setUpTestDB();
   }
 
-  //  @AfterClass
-  //  public static void tearDown() {
-  //    TestUtils.tearDownTestDB();
-  //  }
+  @AfterClass
+  public static void tearDown() {
+    TestUtils.tearDownTestDB();
+  }
 
   @Test
   public void uploadValidPDFTestExists() {
