@@ -54,8 +54,8 @@ public class PfpTest {
   }
 
   public static HttpResponse getPfp() {
-
     HttpResponse get = Unirest.post(TestUtils.getServerUrl() + "/load-pfp").asBytes();
+    assert (get.isSuccess());
     return get;
   }
 }
