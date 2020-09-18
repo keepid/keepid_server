@@ -54,9 +54,8 @@ public class PfpTest {
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static HttpResponse getPfp() {
+  public static void getPfp() {
     HttpResponse get = Unirest.post(TestUtils.getServerUrl() + "/load-pfp").asBytes();
     assert (get.isSuccess());
-    return get;
   }
 }
