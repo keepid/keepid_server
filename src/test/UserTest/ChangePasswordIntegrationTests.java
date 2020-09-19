@@ -23,7 +23,6 @@ import java.security.SecureRandom;
 import java.util.Objects;
 
 import static com.mongodb.client.model.Filters.eq;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +54,10 @@ public class ChangePasswordIntegrationTests {
     Objects.requireNonNull(user);
     Argon2 argon2 = Argon2Factory.create();
     char[] possiblePasswordArr = possiblePassword.toCharArray();
-    String passwordHash = user.getPassword();
+    String passwordHash = null;
+    if (user != null) {
+      passwordHash = user.getPassword();
+    }
 
     return argon2.verify(passwordHash, possiblePasswordArr);
   }

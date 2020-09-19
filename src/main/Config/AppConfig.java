@@ -5,6 +5,8 @@ import Logger.LogFactory;
 import Organization.OrganizationController;
 import PDF.PdfController;
 import Security.AccountSecurityController;
+import Security.EmailUtil;
+import Security.SecurityUtils;
 import User.UserController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
@@ -24,6 +26,8 @@ public class AppConfig {
     setApplicationHeaders(app);
 
     /* Utilities to pass to route handlers */
+    SecurityUtils securityUtils = new SecurityUtils();
+    EmailUtil emailUtil = new EmailUtil();
     LogFactory l = new LogFactory();
     l.createLogger();
 
@@ -45,14 +49,16 @@ public class AppConfig {
     app.post("/fill-application", pdfController.fillPDFForm);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
-    app.post("/login", userController.loginUser);
+    app.post("/login", userController.loginUser(securityUtils, emailUtil));
     app.post("/generate-username", userController.generateUniqueUsername);
     app.post("/create-user-validator", userController.createUserValidator);
-    app.post("/create-user", userController.createNewUser);
+    app.post("/create-user", userController.createNewUser(securityUtils));
+    app.post("/create-invited-user", userController.createNewInvitedUser(securityUtils));
     app.get("/logout", userController.logout);
-    app.post("/forgot-password", accountSecurityController.forgotPassword);
-    app.post("/change-password", accountSecurityController.changePassword);
-    app.post("/reset-password", accountSecurityController.resetPassword);
+    app.post(
+        "/forgot-password", accountSecurityController.forgotPassword(securityUtils, emailUtil));
+    app.post("/change-password", accountSecurityController.changePasswordIn(securityUtils));
+    app.post("/reset-password", accountSecurityController.resetPassword(securityUtils));
     app.get("/get-user-info", userController.getUserInfo);
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
@@ -64,12 +70,13 @@ public class AppConfig {
 
     /* -------------- ORGANIZATION SIGN UP ------------------ */
     app.post("/organization-signup-validator", orgController.organizationSignupValidator);
-    app.post("/organization-signup", orgController.enrollOrganization);
+    app.post("/organization-signup", orgController.enrollOrganization(securityUtils));
 
-    app.post("/invite-user", orgController.inviteUsers);
+    app.post("/invite-user", orgController.inviteUsers(securityUtils, emailUtil));
 
     /* -------------- ACCOUNT SETTINGS ------------------ */
-    app.post("/change-account-setting", accountSecurityController.changeAccountSetting);
+    app.post(
+        "/change-account-setting", accountSecurityController.changeAccountSetting(securityUtils));
     app.post("/change-two-factor-setting", accountSecurityController.change2FASetting);
 
     /* -------------- SUBMIT BUG------------------ */
@@ -125,7 +132,7 @@ public class AppConfig {
 
               config.enableCorsForAllOrigins(); // enable cors for all origins
 
-              config.enableDevLogging(); // enable extensive development logging for
+              //              config.enableDevLogging(); // enable extensive development logging for
               // http and
               // websocket
               config.enforceSsl =
