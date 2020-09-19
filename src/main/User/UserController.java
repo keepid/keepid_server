@@ -1,21 +1,43 @@
 package User;
 
 import Bug.BugController;
-import Config.Message;
 import Logger.LogFactory;
+import Security.EmailExceptions;
+import Security.EmailUtil;
+import Security.SecurityUtils;
+import Security.Tokens;
 import Validation.ValidationException;
+import Validation.ValidationUtils;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.gridfs.GridFSBucket;
+import com.mongodb.client.gridfs.GridFSBuckets;
+import com.mongodb.client.gridfs.model.GridFSFile;
+import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.ReplaceOptions;
+import io.ipinfo.api.IPInfo;
+import io.ipinfo.api.errors.RateLimitedException;
+import io.ipinfo.api.model.IPResponse;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
+import kong.unirest.Unirest;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.combine;
@@ -24,13 +46,37 @@ import static com.mongodb.client.model.Updates.set;
 public class UserController {
   Logger logger;
   MongoDatabase db;
-  BugController bugController;
+  BugController bugController = new BugController(db);
 
   public UserController(MongoDatabase db) {
     this.db = db;
     LogFactory l = new LogFactory();
-    this.bugController = new BugController(db);
     logger = l.createLogger("UserController");
+  }
+
+  public InputStream getUserPfp(String username) {
+    Bson filter = Filters.eq("metadata.owner", username);
+    GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
+    GridFSFile grid_out = gridBucket.find(filter).first();
+    if (grid_out == null || grid_out.getMetadata() == null) {
+      return null;
+    }
+    InputStream pfp = gridBucket.openDownloadStream(grid_out.getObjectId());
+    return pfp;
+  }
+
+  public void uploadPfp(UploadedFile file, String username) {
+    String fileName = file.getFilename();
+    InputStream content = file.getContent();
+    GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
+    GridFSUploadOptions options =
+        new GridFSUploadOptions()
+            .chunkSizeBytes(100000)
+            .metadata(
+                new Document("type", "pfp")
+                    .append("upload_date", String.valueOf(LocalDate.now()))
+                    .append("owner", username));
+    gridBucket.uploadFromStream(fileName, content, options);
   }
 
   public Handler uploadPfp =
@@ -38,8 +84,7 @@ public class UserController {
         String username = ctx.sessionAttribute("username");
         logger.info(username + " is Attempting to upload a profile picture");
         UploadedFile file = ctx.uploadedFile("file");
-        GetUserInfoService service = new GetUserInfoService(db, logger, username);
-        service.uploadPfp(file);
+        uploadPfp(file, username);
         logger.info(username + " has successfully uploaded a profile picture");
         ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
       };
@@ -47,48 +92,166 @@ public class UserController {
   public Handler loadPfp =
       ctx -> {
         String username = ctx.sessionAttribute("username");
-        GetUserInfoService service = new GetUserInfoService(db, logger, username);
-        InputStream pfp = service.getUserPfp();
+        InputStream pfp = getUserPfp(username);
         ctx.header("Content-Type", "application/pfp");
         ctx.result(pfp);
       };
 
-  public Handler loginUser =
-      ctx -> {
-        ctx.req.getSession().invalidate();
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        String password = req.getString("password");
-        String ip = ctx.ip();
-        String userAgent = ctx.userAgent();
-        logger.info("Attempting to login " + username);
+  public Handler loginUser(SecurityUtils securityUtils, EmailUtil emailUtil) {
+    return ctx -> {
+      ctx.req.getSession().invalidate();
+      JSONObject req = new JSONObject(ctx.body());
+      JSONObject res = new JSONObject();
+      String username = req.getString("username");
+      String password = req.getString("password");
+      String ip = ctx.ip();
+      logger.info("Attempting to login " + username);
 
-        LoginService loginService = new LoginService(db, logger, username, password, ip, userAgent);
-        Message response = loginService.executeAndGetResponse();
-        logger.info(response.toString() + response.getErrorDescription());
-        JSONObject responseJSON = response.toJSON();
-        if (response == UserMessage.AUTH_SUCCESS) {
-          responseJSON.put("userRole", loginService.getUserRole());
-          responseJSON.put("organization", loginService.getOrganization());
-          responseJSON.put("firstName", loginService.getFirstName());
-          responseJSON.put("lastName", loginService.getLastName());
-          responseJSON.put("twoFactorOn", loginService.isTwoFactorOn());
+      res.put("userRole", "");
+      res.put("organization", "");
+      res.put("firstName", "");
+      res.put("lastName", "");
 
-          ctx.sessionAttribute("privilegeLevel", loginService.getUserRole());
-          ctx.sessionAttribute("orgName", loginService.getOrganization());
-          ctx.sessionAttribute("username", loginService.getUsername());
-          ctx.sessionAttribute("fullName", loginService.getFullName());
-        } else {
-          responseJSON.put("userRole", "");
-          responseJSON.put("organization", "");
-          responseJSON.put("firstName", "");
-          responseJSON.put("lastName", "");
-          responseJSON.put("twoFactorOn", "");
-        }
-        ctx.result(responseJSON.toString());
-      };
+      if (!ValidationUtils.isValidUsername(username)
+          || !ValidationUtils.isValidPassword(password)) {
+        logger.error("Invalid username and/or password");
+        res.put("status", UserMessage.AUTH_FAILURE.getErrorName());
+        ctx.json(res.toString());
+        return;
+      }
 
-  //  UNUSED
+      MongoCollection<User> userCollection = db.getCollection("user", User.class);
+      User user = userCollection.find(eq("username", username)).first();
+      if (user == null) {
+        logger.error("Could not find user, " + username);
+        res.put("status", UserMessage.AUTH_FAILURE.getErrorName());
+        ctx.json(res.toString());
+        return;
+      }
+
+      SecurityUtils.PassHashEnum verifyPasswordStatus =
+          securityUtils.verifyPassword(password, user.getPassword());
+
+      if (verifyPasswordStatus == SecurityUtils.PassHashEnum.ERROR) {
+        logger.error("Failed to hash password");
+        res.put("status", UserMessage.HASH_FAILURE.getErrorName());
+        ctx.json(res.toString());
+      } else if (verifyPasswordStatus == SecurityUtils.PassHashEnum.FAILURE) {
+        logger.error("Incorrect password");
+        res.put("status", UserMessage.AUTH_FAILURE.getErrorName());
+        ctx.json(res.toString());
+        return;
+      }
+
+      UserType userLevel = user.getUserType();
+      Boolean twoFactorOn = user.getTwoFactorOn();
+
+      if (twoFactorOn
+          && (userLevel == UserType.Director
+              || userLevel == UserType.Admin
+              || userLevel == UserType.Worker)) {
+        logger.info("Two factor authentication process");
+        String randCode = String.format("%06d", new Random().nextInt(999999));
+        long nowMillis = System.currentTimeMillis();
+        long expMillis = 300000;
+        Date expDate = new Date(nowMillis + expMillis);
+        Thread emailThread =
+            new Thread(
+                () -> {
+                  try {
+                    String emailContent = emailUtil.getVerificationCodeEmail(randCode);
+                    emailUtil.sendEmail(
+                        "Keep Id", user.getEmail(), "Keepid Verification Code", emailContent);
+
+                    MongoCollection<Tokens> tokenCollection =
+                        db.getCollection("tokens", Tokens.class);
+                    tokenCollection.replaceOne(
+                        eq("username", username),
+                        new Tokens()
+                            .setUsername(username)
+                            .setTwoFactorCode(randCode)
+                            .setTwoFactorExp(expDate),
+                        new ReplaceOptions().upsert(true));
+                  } catch (EmailExceptions e) {
+                    logger.error("Could not send email");
+                    ctx.json(e.toJSON().toString());
+                    return;
+                  } catch (UnsupportedEncodingException e) {
+                    logger.error("Unsupported encoding");
+                    e.printStackTrace();
+                    JSONObject serverErrorJSON =
+                        UserMessage.SERVER_ERROR.toJSON("Unsupported email encoding");
+                    ctx.json(res.put("status", serverErrorJSON.getString("status")).toString());
+                    return;
+                  }
+                });
+        emailThread.start();
+
+        res.put("status", UserMessage.TOKEN_ISSUED.getErrorName());
+        res.put("userRole", user.getUserType());
+        res.put("organization", user.getOrganization());
+        res.put("firstName", user.getFirstName());
+        res.put("lastName", user.getLastName());
+        res.put("twoFactorOn", twoFactorOn);
+        ctx.json(res.toString());
+        logger.info("Two Factor email sent to " + user.getEmail());
+        return;
+      }
+
+      String fullName = user.getFirstName() + " " + user.getLastName();
+      ctx.sessionAttribute("privilegeLevel", user.getUserType());
+      ctx.sessionAttribute("orgName", user.getOrganization());
+      ctx.sessionAttribute("username", username);
+      ctx.sessionAttribute("fullName", fullName);
+
+      res.put("status", UserMessage.AUTH_SUCCESS.getErrorName());
+      res.put("userRole", user.getUserType());
+      res.put("organization", user.getOrganization());
+      res.put("firstName", user.getFirstName());
+      res.put("lastName", user.getLastName());
+      res.put("twoFactorOn", twoFactorOn);
+      List<IpObject> loginList = user.getLogInHistory();
+      if (null == loginList) {
+        loginList = new ArrayList<IpObject>(1000);
+      }
+      if (loginList.size() >= 1000) {
+        loginList.remove(0);
+      }
+      logger.info("Trying to add login to login history");
+      IpObject thisLogin = new IpObject();
+      ZonedDateTime d = ZonedDateTime.now();
+      String formattedDate =
+          d.format(DateTimeFormatter.ofPattern("MM/dd/YYYY, HH:mm")) + " Local Time";
+      thisLogin.setDate(formattedDate);
+      thisLogin.setIp(ip);
+      Boolean isMobile = ctx.userAgent().contains("Mobi");
+      String device = isMobile ? "Mobile" : "Computer";
+      thisLogin.setDevice(device);
+      IPInfo ipInfo = IPInfo.builder().setToken(System.getenv("IPINFO_TOKEN")).build();
+      try {
+        IPResponse response = ipInfo.lookupIP(ip);
+        thisLogin.setLocation(
+            response.getPostal() + ", " + response.getCity() + "," + response.getRegion());
+      } catch (RateLimitedException ex) {
+        logger.error("Failed to retrieve login location due to limited rates for IPInfo.com");
+        thisLogin.setLocation("Unknown");
+        JSONObject body = new JSONObject();
+        body.put(
+            "text",
+            "You are receiving this because we have arrived at maximum amount of IP "
+                + "lookups we are allowed for our free plan.");
+        Unirest.post(BugController.bugReportActualURL).body(body.toString()).asEmpty();
+      }
+      loginList.add(thisLogin);
+      Bson filter = eq("username", username);
+      Bson update = set("logInHistory", loginList);
+      userCollection.updateOne(filter, update);
+      logger.info("Added login to login history");
+      ctx.json(res.toString());
+      logger.info("Login Successful!");
+    };
+  }
+
   public Handler generateUniqueUsername =
       ctx -> {
         logger.info("Starting generateUniqueUsername Handler");
@@ -129,7 +292,7 @@ public class UserController {
 
         if (userType == null) {
           logger.error("userType is null");
-          ctx.result(UserMessage.INVALID_PRIVILEGE_TYPE.toJSON().toString());
+          ctx.json(UserMessage.INVALID_PRIVILEGE_TYPE.toJSON().toString());
           return;
         }
 
@@ -138,7 +301,7 @@ public class UserController {
 
         if (existingUser != null) {
           logger.error("Username already exists");
-          ctx.result(UserMessage.USERNAME_ALREADY_EXISTS.toJSON().toString());
+          ctx.json(UserMessage.USERNAME_ALREADY_EXISTS.toJSON().toString());
           return;
         }
 
@@ -160,48 +323,58 @@ public class UserController {
               password,
               userType);
           logger.info("Validating user success");
-          ctx.result(
-              UserValidationMessage.toUserMessageJSON(UserValidationMessage.VALID).toString());
+          ctx.json(UserValidationMessage.toUserMessageJSON(UserValidationMessage.VALID).toString());
         } catch (ValidationException ve) {
           logger.error("Validation exception");
-          ctx.result(ve.getJSON().toString());
+          ctx.json(ve.getJSON().toString());
         }
       };
 
-  public Handler createNewUser =
-      ctx -> {
-        logger.info("Starting createNewUser handler");
-        JSONObject req = new JSONObject(ctx.body());
-        UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
-        String organizationName = ctx.sessionAttribute("orgName");
-        String sessionUsername = ctx.sessionAttribute("username");
-        String firstName = req.getString("firstname").strip();
-        String lastName = req.getString("lastname").strip();
-        String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("email").toLowerCase().strip();
-        String phone = req.getString("phonenumber").strip();
-        String address = req.getString("address").strip();
-        String city = req.getString("city").strip();
-        String state = req.getString("state").strip();
-        String zipcode = req.getString("zipcode").strip();
-        Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-        String username = req.getString("username").strip();
-        String password = req.getString("password").strip();
-        String userTypeString = req.getString("personRole").strip();
-        UserType userType = UserType.userTypeFromString(userTypeString);
+  public Handler createNewUser(SecurityUtils securityUtils) {
+    return ctx -> {
+      logger.info("Starting createNewUser handler");
+      JSONObject req = new JSONObject(ctx.body());
 
-        CreateUserService createUserService =
-            new CreateUserService(
-                db,
-                logger,
-                sessionUserLevel,
-                organizationName,
-                sessionUsername,
+      UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
+      String organizationName = ctx.sessionAttribute("orgName");
+
+      if (sessionUserLevel == null) {
+        logger.error("Token failure");
+        ctx.json(UserMessage.SESSION_TOKEN_FAILURE.toJSON().toString());
+        return;
+      }
+
+      String firstName = req.getString("firstname").toUpperCase().strip();
+      String lastName = req.getString("lastname").toUpperCase().strip();
+      String birthDate = req.getString("birthDate").strip();
+      String email = req.getString("email").toLowerCase().strip();
+      String phone = req.getString("phonenumber").strip();
+      String address = req.getString("address").toUpperCase().strip();
+      String city = req.getString("city").toUpperCase().strip();
+      String state = req.getString("state").toUpperCase().strip();
+      String zipcode = req.getString("zipcode").strip();
+      Boolean twoFactorOn = req.getBoolean("twoFactorOn");
+      String username = req.getString("username").strip();
+      String password = req.getString("password").strip();
+      String userTypeString = req.getString("personRole").strip();
+      UserType userType = UserType.userTypeFromString(userTypeString);
+
+      if (userType == null) {
+        logger.error("Invalid privilege type");
+        ctx.json(UserMessage.INVALID_PRIVILEGE_TYPE.toJSON().toString());
+        return;
+      }
+
+      User user;
+      try {
+        user =
+            new User(
                 firstName,
                 lastName,
                 birthDate,
                 email,
                 phone,
+                organizationName,
                 address,
                 city,
                 state,
@@ -210,9 +383,51 @@ public class UserController {
                 username,
                 password,
                 userType);
-        Message response = createUserService.executeAndGetResponse();
-        ctx.result(response.toJSON().toString());
-      };
+      } catch (ValidationException ve) {
+        logger.error("Validation exception");
+        ctx.json(ve.getJSON().toString());
+        return;
+      }
+
+      if ((user.getUserType() == UserType.Director
+              || user.getUserType() == UserType.Admin
+              || user.getUserType() == UserType.Worker)
+          && sessionUserLevel != UserType.Admin
+          && sessionUserLevel != UserType.Director) {
+        logger.error("Cannot enroll ADMIN/DIRECTOR as NON-ADMIN/NON-DIRECTOR");
+        ctx.json(UserMessage.NONADMIN_ENROLL_ADMIN.toJSON().toString());
+        return;
+      }
+
+      if (user.getUserType() == UserType.Client && sessionUserLevel == UserType.Client) {
+        logger.error("Cannot enroll CLIENT as CLIENT");
+        ctx.json(UserMessage.CLIENT_ENROLL_CLIENT.toJSON().toString());
+        return;
+      }
+
+      MongoCollection<User> userCollection = db.getCollection("user", User.class);
+      User existingUser = userCollection.find(eq("username", user.getUsername())).first();
+
+      if (existingUser != null) {
+        logger.error("Username already exists");
+        ctx.json(UserMessage.USERNAME_ALREADY_EXISTS.toJSON().toString());
+        return;
+      }
+
+      String hash = securityUtils.hashPassword(password);
+      if (hash == null) {
+        logger.error("Could not has password");
+        ctx.json(UserMessage.HASH_FAILURE.toJSON().toString());
+        return;
+      }
+      List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
+      user.setLogInHistory(logInInfo);
+      user.setPassword(hash);
+      userCollection.insertOne(user);
+      ctx.json(UserMessage.ENROLL_SUCCESS.toJSON().toString());
+      logger.info("Successfully created user, " + user.getUsername());
+    };
+  }
 
   public Handler createNewInvitedUser(SecurityUtils securityUtils) {
     return ctx -> {
@@ -292,7 +507,7 @@ public class UserController {
       ctx -> {
         ctx.req.getSession().invalidate();
         logger.info("Signed out");
-        ctx.result(UserMessage.SUCCESS.toJSON().toString());
+        ctx.json(UserMessage.SUCCESS.toJSON().toString());
       };
 
   public Handler getUserInfo =
@@ -300,25 +515,30 @@ public class UserController {
         logger.info("Started getUserInfo handler");
         JSONObject res = new JSONObject();
         String username = ctx.sessionAttribute("username");
-        GetUserInfoService infoService = new GetUserInfoService(db, logger, username);
-        Message response = infoService.executeAndGetResponse();
-        if (response != UserMessage.SUCCESS) { // if fail return
-          ctx.result(response.toJSON().toString());
+        MongoCollection<User> userCollection = db.getCollection("user", User.class);
+        User user = userCollection.find(eq("username", username)).first();
+        if (user != null) {
+          res.put("userRole", user.getUserType());
+          res.put("organization", user.getOrganization());
+          res.put("firstName", user.getFirstName());
+          res.put("lastName", user.getLastName());
+          res.put("birthDate", user.getBirthDate());
+          res.put("address", user.getAddress());
+          res.put("city", user.getCity());
+          res.put("state", user.getState());
+          res.put("zipcode", user.getZipcode());
+          res.put("email", user.getEmail());
+          res.put("phone", user.getPhone());
+          res.put("twoFactorOn", user.getTwoFactorOn());
+          res.put("username", username);
+          res.put("status", UserMessage.SUCCESS.getErrorName());
+          ctx.json(res.toString());
+          logger.info("Successfully got user info");
         } else {
-          JSONObject userInfo = infoService.getUserFields(); // get user info here
-          JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
-          ctx.result(mergedInfo.toString());
+          ctx.json(UserMessage.SESSION_TOKEN_FAILURE.toJSON().toString());
+          logger.error("Session Token Failure");
         }
       };
-
-  private JSONObject mergeJSON(
-      JSONObject object1, JSONObject object2) { // helper function to merge 2 json objects
-    JSONObject merged = new JSONObject(object1, JSONObject.getNames(object1));
-    for (String key : JSONObject.getNames(object2)) {
-      merged.put(key, object2.get(key));
-    }
-    return merged;
-  }
 
   public Handler getMembers =
       ctx -> {
@@ -500,7 +720,7 @@ public class UserController {
         ctx.json(UserMessage.SUCCESS.toJSON().toString());
       };
 
-  private static JSONArray getPage(JSONArray elements, int pageStartIndex, int pageEndIndex) {
+  private JSONArray getPage(JSONArray elements, int pageStartIndex, int pageEndIndex) {
     JSONArray page = new JSONArray();
     if (elements.length() > pageStartIndex && pageStartIndex >= 0) {
       if (pageEndIndex > elements.length()) {

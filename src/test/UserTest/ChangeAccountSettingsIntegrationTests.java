@@ -14,7 +14,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static com.mongodb.client.model.Filters.eq;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -96,7 +95,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "firstName", newFirstName));
   }
@@ -122,7 +121,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "lastName", newLastName));
   }
@@ -148,7 +147,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "birthDate", newBirthDate));
   }
@@ -174,7 +173,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "phone", newPhone));
   }
@@ -200,7 +199,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "email", newEmail));
   }
@@ -226,7 +225,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "address", newAddress));
   }
@@ -252,7 +251,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "city", newCity));
   }
@@ -278,7 +277,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "state", newState));
   }
@@ -304,7 +303,7 @@ public class ChangeAccountSettingsIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changeAccountSetting.handle(ctx);
+    asc.changeAccountSetting(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectAttribute(username, "zipcode", newZipcode));
   }

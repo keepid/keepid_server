@@ -1,9 +1,8 @@
 package Security;
 
-import Config.Message;
 import org.json.JSONObject;
 
-public enum EmailMessages implements Message {
+public enum EmailMessages {
   EMAIL_DOM_NOT_FOUND("EMAIL_DOM_NOT_FOUND: Can't locate target email in html"),
   HTML_NOT_FOUND("HTML_NOT_FOUND: Can't locate html needed for email"),
   RECEIVER_DOM_NOT_FOUND("RECEIVER_DOM_NOT_FOUND: Can't locate target name in html"),

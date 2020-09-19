@@ -20,7 +20,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.security.SecureRandom;
-import java.util.Objects;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.mockito.Mockito.mock;
@@ -51,7 +50,7 @@ public class ChangePasswordIntegrationTests {
   private boolean isCorrectPassword(String username, String possiblePassword) {
     MongoCollection<User> userCollection = db.getCollection("user", User.class);
     User user = userCollection.find(eq("username", username)).first();
-    Objects.requireNonNull(user);
+
     Argon2 argon2 = Argon2Factory.create();
     char[] possiblePasswordArr = possiblePassword.toCharArray();
     String passwordHash = null;
@@ -75,7 +74,7 @@ public class ChangePasswordIntegrationTests {
     String id = RandomStringUtils.random(25, 48, 122, true, true, null, new SecureRandom());
     int expirationTime = 7200000; // 2 hours
     String jwt =
-        SecurityUtils
+        (new SecurityUtils())
             .createJWT(id, "KeepID", username, "Password Reset Confirmation", expirationTime);
 
     MongoCollection<Tokens> tokenCollection = db.getCollection("tokens", Tokens.class);
@@ -89,7 +88,7 @@ public class ChangePasswordIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.resetPassword.handle(ctx);
+    asc.resetPassword(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectPassword(username, newPassword));
   }
@@ -107,7 +106,7 @@ public class ChangePasswordIntegrationTests {
     String id = RandomStringUtils.random(25, 48, 122, true, true, null, new SecureRandom());
     int expirationTime = 7200000; // 2 hours
     String jwt =
-        SecurityUtils
+        (new SecurityUtils())
             .createJWT(id, "KeepID", username, "Password Reset Confirmation", expirationTime);
 
     MongoCollection<Tokens> tokenCollection = db.getCollection("tokens", Tokens.class);
@@ -121,7 +120,7 @@ public class ChangePasswordIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.resetPassword.handle(ctx);
+    asc.resetPassword(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectPassword(username, newPassword));
   }
@@ -149,7 +148,7 @@ public class ChangePasswordIntegrationTests {
     when(ctx.sessionAttribute("username")).thenReturn(username);
 
     AccountSecurityController asc = new AccountSecurityController(db);
-    asc.changePassword.handle(ctx);
+    asc.changePasswordIn(new SecurityUtils()).handle(ctx);
 
     assert (isCorrectPassword(username, newPassword));
   }
@@ -172,7 +171,7 @@ public class ChangePasswordIntegrationTests {
 
     UserMessage result =
         AccountSecurityController.changePassword(
-            username, newPassword, oldPassword, db);
+            username, newPassword, oldPassword, db, new SecurityUtils());
 
     assert (result == UserMessage.AUTH_SUCCESS);
   }

@@ -51,7 +51,7 @@ public class EmailUtil {
           + File.separator
           + "organizationInviteEmail.html";
 
-  public static void sendEmail(String senderName, String recipientEmail, String subject, String message)
+  public void sendEmail(String senderName, String recipientEmail, String subject, String message)
       throws EmailExceptions, UnsupportedEncodingException {
 
     // Set SMTP server properties.
@@ -94,7 +94,7 @@ public class EmailUtil {
     }
   }
 
-  public static String getVerificationCodeEmail(String verificationCode) throws EmailExceptions {
+  public String getVerificationCodeEmail(String verificationCode) throws EmailExceptions {
     File verificationCodeEmail = new File(verificationCodeEmailPath);
     try {
       Document htmlDoc = Jsoup.parse(verificationCodeEmail, "UTF-8");
@@ -113,7 +113,7 @@ public class EmailUtil {
     return null;
   }
 
-  public static String getPasswordResetEmail(String jwt) throws EmailExceptions {
+  public String getPasswordResetEmail(String jwt) throws EmailExceptions {
     File passwordResetEmail = new File(passwordResetLinkEmailPath);
     try {
       Document htmlDoc = Jsoup.parse(passwordResetEmail, "UTF-8");
@@ -132,7 +132,7 @@ public class EmailUtil {
     return null;
   }
 
-  public static String getOrganizationInviteEmail(String jwt, String inviter, String receiver)
+  public String getOrganizationInviteEmail(String jwt, String inviter, String receiver)
       throws EmailExceptions {
     try {
       File organizationInviteEmail = new File(organizationInviteEmailPath);
