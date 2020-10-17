@@ -193,6 +193,22 @@ public class UserController {
           ctx.result(mergedInfo.toString());
         }
       };
+  public Handler getUserProfileInfo =
+      ctx -> {
+        logger.info("Started getUserProfileInfo handler");
+        JSONObject req = new JSONObject(ctx.body());
+        String username = req.getString("username");
+
+        GetUserInfoService infoService = new GetUserInfoService(db, logger, username);
+        Message response = infoService.executeAndGetResponse();
+        if (response != UserMessage.SUCCESS) { // if fail return
+          ctx.result(response.toJSON().toString());
+        } else {
+          JSONObject userInfo = infoService.getUserFields(); // get user info here
+          JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
+          ctx.result(mergedInfo.toString());
+        }
+      };
 
   public Handler getMembers =
       ctx -> {
