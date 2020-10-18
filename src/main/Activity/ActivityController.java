@@ -53,6 +53,31 @@ public class ActivityController {
         res.put("allActivities", allAct);
         ctx.json(res.toString());
       };
+
+  public Handler findProfileActivities =
+      ctx -> {
+        JSONObject res = new JSONObject();
+        JSONObject req = new JSONObject(ctx.body());
+        String username = req.getString("username");
+        MongoCollection<Document> a = db.getCollection("activity", Document.class);
+        MongoCursor<Document> cu = a.find().iterator();
+        JSONArray allAct = new JSONArray();
+        while (cu.hasNext()) {
+          Document total = cu.next();
+          Document owner = (Document) total.get("owner");
+          if (username.equals(owner.get("username"))) {
+            List<String> temp = total.getList("type", String.class);
+            String t = temp.get(temp.size() - 1);
+            JSONObject activity = new JSONObject();
+            activity.append("type", t);
+            String info = total.toJson();
+            activity.append("info", info);
+            allAct.put(activity);
+          }
+        }
+        res.put("allActivities", allAct);
+        ctx.json(res.toString());
+      };
   /*
    Request body should contain the type of activity you are looking for. Message me for a complete list.
   */

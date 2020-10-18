@@ -92,6 +92,7 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+    app.post("/get-profile-activities", activityController.findProfileActivities);
 
     return app;
   }
