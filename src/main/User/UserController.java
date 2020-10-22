@@ -7,9 +7,20 @@ import Security.EncryptionUtils;
 import User.Services.*;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.gridfs.GridFSBucket;
+import com.mongodb.client.gridfs.GridFSBuckets;
+import com.mongodb.client.gridfs.model.GridFSFile;
+import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import com.mongodb.client.model.Filters;
 import io.javalin.http.Handler;
+import io.javalin.http.UploadedFile;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.json.JSONObject;
 import org.slf4j.Logger;
+
+import java.io.InputStream;
+import java.time.LocalDate;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -27,6 +38,53 @@ public class UserController {
     this.bugController = new BugController(db);
     logger = (new LogFactory()).createLogger("UserController");
   }
+
+  public InputStream getUserPfp(String username) {
+    Bson filter = Filters.eq("metadata.owner", username);
+    GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
+    GridFSFile grid_out = gridBucket.find(filter).first();
+    if (grid_out == null || grid_out.getMetadata() == null) {
+      return null;
+    }
+    InputStream pfp = gridBucket.openDownloadStream(grid_out.getObjectId());
+    return pfp;
+  }
+
+  public void uploadPfp(UploadedFile file, String username) {
+    String fileName = file.getFilename();
+    InputStream content = file.getContent();
+    GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
+    GridFSUploadOptions options =
+        new GridFSUploadOptions()
+            .chunkSizeBytes(100000)
+            .metadata(
+                new Document("type", "pfp")
+                    .append("upload_date", String.valueOf(LocalDate.now()))
+                    .append("owner", username));
+    gridBucket.uploadFromStream(fileName, content, options);
+  }
+
+  public Handler uploadPfp =
+      ctx -> {
+        // String username = ctx.sessionAttribute("username");
+        JSONObject req = new JSONObject(ctx.body());
+        String username = req.getString("username");
+        logger.info(username + " is Attempting to upload a profile picture");
+        UploadedFile file = ctx.uploadedFile("file");
+        uploadPfp(file, username);
+        logger.info(username + " has successfully uploaded a profile picture");
+        ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
+      };
+
+  public Handler loadPfp =
+      ctx -> {
+        // String username = ctx.sessionAttribute("username");
+        JSONObject req = new JSONObject(ctx.body());
+        String username = req.getString("username");
+        InputStream pfp = getUserPfp(username);
+        ctx.header("Content-Type", "application/pfp");
+        ctx.result(pfp);
+      };
 
   public Handler loginUser =
       ctx -> {
