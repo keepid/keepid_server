@@ -40,6 +40,7 @@ public class UserController {
   }
 
   public InputStream getUserPfp(String username) {
+    logger.info("Starting getUserPfp");
     Bson filter = Filters.eq("metadata.owner", username);
     GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
     GridFSFile grid_out = gridBucket.find(filter).first();
@@ -71,6 +72,7 @@ public class UserController {
         String username = req.getString("username");
         logger.info(username + " is Attempting to upload a profile picture");
         UploadedFile file = ctx.uploadedFile("file");
+        System.out.print(file);
         uploadPfp(file, username);
         logger.info(username + " has successfully uploaded a profile picture");
         ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
@@ -79,11 +81,17 @@ public class UserController {
   public Handler loadPfp =
       ctx -> {
         // String username = ctx.sessionAttribute("username");
+        logger.info("Starting loadPfp");
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
         InputStream pfp = getUserPfp(username);
         ctx.header("Content-Type", "application/pfp");
-        ctx.result(pfp);
+        if (pfp != null) {
+          ctx.result(pfp);
+        } else {
+          logger.info("Null pfp");
+          ctx.json(UserMessage.USER_NOT_FOUND.toJSON("No PFP found for user").toString());
+        }
       };
 
   public Handler loginUser =

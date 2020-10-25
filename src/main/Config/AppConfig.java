@@ -69,6 +69,8 @@ public class AppConfig {
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.get("/get-user-info", userController.getUserInfo);
     app.post("/get-user-profile-info", userController.getUserProfileInfo);
+    app.post("/upload-pfp", userController.uploadPfp);
+    app.post("/load-pfp", userController.loadPfp);
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -138,7 +140,7 @@ public class AppConfig {
 
               config.enableCorsForAllOrigins(); // enable cors for all origins
 
-              //              config.enableDevLogging(); // enable extensive development logging for
+              config.enableDevLogging(); // enable extensive development logging for
               // http and
               // websocket
               config.enforceSsl =
