@@ -67,15 +67,17 @@ public class UserController {
 
   public Handler uploadPfp =
       ctx -> {
-        // String username = ctx.sessionAttribute("username");
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        logger.info(username + " is Attempting to upload a profile picture");
+        String username = ctx.formParam("username");
+        logger.info(username + " is attempting to upload a profile picture");
         UploadedFile file = ctx.uploadedFile("file");
-        System.out.print(file);
-        uploadPfp(file, username);
-        logger.info(username + " has successfully uploaded a profile picture");
-        ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
+        if (file == null | username == null) {
+          ctx.json(UserMessage.EMPTY_FIELD.toJSON("Null Value").toString());
+          logger.info("Null Photo or Username Value");
+        } else {
+          uploadPfp(file, username);
+          logger.info(username + " has successfully uploaded a profile picture");
+          ctx.json(UserMessage.SUCCESS.toJSON("Profile Picture Uploaded Successfully").toString());
+        }
       };
 
   public Handler loadPfp =
@@ -88,6 +90,7 @@ public class UserController {
         ctx.header("Content-Type", "application/pfp");
         if (pfp != null) {
           ctx.result(pfp);
+          ctx.json(UserMessage.SUCCESS.toJSON("Profile Photo Found").toString());
         } else {
           logger.info("Null pfp");
           ctx.json(UserMessage.USER_NOT_FOUND.toJSON("No PFP found for user").toString());

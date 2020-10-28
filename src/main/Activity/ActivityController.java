@@ -69,11 +69,14 @@ public class ActivityController {
             List<String> temp = total.getList("type", String.class);
             String t = temp.get(temp.size() - 1);
             JSONObject activity = new JSONObject();
+
             if (t.equals("LoginActivity")) {
               activity.append("type", "Logged In");
             } else {
               activity.append("type", t);
             }
+
+            // activity.append("type", t);
             String info = total.toJson();
             activity.append("info", info);
             allAct.put(activity);
