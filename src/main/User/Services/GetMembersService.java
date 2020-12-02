@@ -2,12 +2,11 @@ package User.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,7 +18,7 @@ import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.combine;
 
 public class GetMembersService implements Service {
-  MongoDatabase db;
+  UserDao userDao;
   Logger logger;
   private String orgName;
   private UserType privilegeLevel;
@@ -31,7 +30,7 @@ public class GetMembersService implements Service {
   private int numReturnedElements;
 
   public GetMembersService(
-      MongoDatabase db,
+      UserDao userDao,
       Logger logger,
       String searchValue,
       String orgName,
@@ -39,7 +38,7 @@ public class GetMembersService implements Service {
       String listType,
       int currentPage,
       int itemsPerPage) {
-    this.db = db;
+    this.userDao = userDao;
     this.logger = logger;
     this.searchValue = searchValue;
     this.orgName = orgName;
@@ -64,8 +63,11 @@ public class GetMembersService implements Service {
     Objects.requireNonNull(orgName);
     Objects.requireNonNull(privilegeLevel);
     Objects.requireNonNull(listType);
-    String[] nameSearchSplit = searchValue.split(" ");
-    MongoCollection<User> userCollection = db.getCollection("user", User.class);
+    if (searchValue.trim().isBlank()) {
+      return UserMessage.USER_NOT_FOUND;
+    }
+    String[] nameSearchSplit = searchValue.trim().split(" ");
+
     Bson orgNameMatch = eq("organization", orgName);
     Bson filter;
 
