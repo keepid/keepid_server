@@ -1,6 +1,7 @@
 package User;
 
 import Config.Message;
+import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Logger.LogFactory;
 import User.Services.*;
@@ -11,9 +12,11 @@ import org.slf4j.Logger;
 public class UserController {
   Logger logger;
   UserDao userDao;
+  TokenDao tokenDao;
 
-  public UserController(UserDao userDao) {
+  public UserController(UserDao userDao, TokenDao tokenDao) {
     this.userDao = userDao;
+    this.tokenDao = tokenDao;
     LogFactory l = new LogFactory();
     logger = l.createLogger("UserController");
     logger = (new LogFactory()).createLogger("UserController");
@@ -30,7 +33,7 @@ public class UserController {
         logger.info("Attempting to login " + username);
 
         LoginService loginService =
-            new LoginService(userDao, logger, username, password, ip, userAgent);
+            new LoginService(userDao, tokenDao, logger, username, password, ip, userAgent);
         Message response = loginService.executeAndGetResponse();
         logger.info(response.toString() + response.getErrorDescription());
         JSONObject responseJSON = response.toJSON();
@@ -183,8 +186,9 @@ public class UserController {
         JSONObject res = new JSONObject();
 
         String searchValue = req.getString("name").trim();
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+        // TODO(xander) put back in ctx?
+        String orgName = req.getString("orgName");
+        UserType privilegeLevel = UserType.userTypeFromString(req.getString("privilegeLevel"));
         String listType = req.getString("listType").toUpperCase();
         int currentPage = req.getInt("currentPage");
         int itemsPerPage = req.getInt("itemsPerPage");
