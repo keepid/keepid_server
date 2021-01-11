@@ -107,6 +107,7 @@ public class ActivityTest {
     TestUtils.login("createAdminOwner", "login-history-test");
     HttpResponse<String> findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities").asString();
+    System.out.print(findResponse.getBody());
     assert (findResponse.getBody().contains(LoginActivity.class.getSimpleName()));
     TestUtils.logout();
   }

@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.Objects;
 
+import static com.mongodb.client.model.Filters.eq;
+
 public class FindActivityService implements Service {
   MongoDatabase db;
   Logger logger;
@@ -30,7 +32,7 @@ public class FindActivityService implements Service {
   public Message executeAndGetResponse() {
     findActivity = new JSONObject();
     MongoCollection<Document> a = db.getCollection("activity", Document.class);
-    MongoCursor<Document> cu = a.find().iterator();
+    MongoCursor<Document> cu = a.find(eq("owner", username)).iterator();
     JSONArray allAct = new JSONArray();
     while (cu.hasNext()) {
       Document total = cu.next();

@@ -1,6 +1,7 @@
 package Config;
 
 import Activity.ActivityController;
+import Billing.BillingController;
 import Issue.IssueController;
 import Logger.LogFactory;
 import Organization.OrganizationController;
@@ -45,6 +46,7 @@ public class AppConfig {
     PdfController pdfController = new PdfController(db);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(db);
+    BillingController billingController = new BillingController();
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -94,7 +96,10 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
-
+    /* --------------- Billing FUNCTIONALITY ------------- */
+    app.post("/create-checkout-session", billingController.startSession);
+    app.post("/customer-portal", billingController.openPortal);
+    app.post("/webhook", billingController.handleWebhook);
     return app;
   }
 
