@@ -127,7 +127,6 @@ public class GetQuestionsPDFService implements Service {
         }
       }
     }
-    fieldsJSON.removeIf(field -> field == null);
     responseJSON.put("fields", fieldsJSON);
     this.applicationInformation = responseJSON;
 
@@ -249,16 +248,16 @@ public class GetQuestionsPDFService implements Service {
       int fieldNumLines,
       String fieldQuestion) {
 
-    // TODO: Move into getTextField(), since only textFields can be autofilled right now
-    // Parse field matching directions in the field name
     boolean fieldIsMatched = false;
+
+    // TODO: Generalize to multiple field types - only textFields can be autofilled right now
+    // Parse field matching directives in the field name
     String[] splitFieldName = fieldName.split(":");
-    if (splitFieldName.length == 1) {
-      // No annotation for matched field
-    } else if (splitFieldName.length == 2) {
+    if (splitFieldName.length == 2) {
       // Annotation for matched field
       String fieldNameBase = splitFieldName[0];
       String fieldDirective = splitFieldName[1];
+
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
       fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
 
@@ -266,28 +265,25 @@ public class GetQuestionsPDFService implements Service {
         // Make it a date field that can be selected by the client
         fieldType = "DateField";
       } else if (fieldDirective.equals("currentDate")) {
-        // Make it a date field with the current date that cannot be changed
+        // Make it a date field with the current date that cannot be changed (value set on frontend)
         fieldType = "DateField";
         fieldIsMatched = true;
       } else if (fieldDirective.equals("signature")) {
         // Signatures not handled in first round of form completion
-        return null;
+        fieldType = "SignatureField";
       } else if (this.userInfo.has(fieldDirective)) {
-        // Field has a matched database variable
-        fieldDefaultValue = this.userInfo.getString(fieldDirective);
+        // Field has a matched database variable, so make that the autofilled value
         fieldIsMatched = true;
+        fieldDefaultValue = this.userInfo.getString(fieldDirective);
       } else {
-        // Match not found
+        // Match not found - treat as normal field
         logger.error("Error in Annotation for Field: " + fieldName + " - Directive not Understood");
-        return null;
       }
-    } else {
-      // Error in annotation - treat as normal without annotation
+    } else if (splitFieldName.length > 2) {
+      // Error in annotation, invalid format - treat as normal field
       logger.error("Error in Annotation for Field: " + fieldName + " - Invalid Format");
-      return null;
     }
 
-    // If no errors in matching, return a fieldJSON
     JSONObject fieldJSON = new JSONObject();
     fieldJSON.put("fieldName", fieldName);
     fieldJSON.put("fieldType", fieldType);
