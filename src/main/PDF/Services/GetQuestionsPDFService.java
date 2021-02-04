@@ -7,8 +7,12 @@ import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
+import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,9 +20,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class GetQuestionsPDFService implements Service {
   public static final int DEFAULT_FIELD_NUM_LINES = 3;
@@ -81,7 +83,7 @@ public class GetQuestionsPDFService implements Service {
     PDDocument pdfDocument = PDDocument.load(inputStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     JSONObject responseJSON = new JSONObject();
-    List<JSONObject> fieldsJSON = new LinkedList<>();
+    Map<PDRectangle, JSONObject> fieldsJSON = new HashMap<>();
 
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {
@@ -102,6 +104,7 @@ public class GetQuestionsPDFService implements Service {
 
     while (!fields.isEmpty()) {
       PDField field = fields.remove(0);
+      PDRectangle fieldRectangle = getFieldRectangle(field);
       if (field instanceof PDNonTerminalField) {
         // If the field has children, continue recursing
         List<PDField> childrenFields = ((PDNonTerminalField) field).getChildren();
@@ -110,23 +113,24 @@ public class GetQuestionsPDFService implements Service {
         // If the field is a leaf, then get the relevant data and return it
         if (field instanceof PDButton) {
           if (field instanceof PDCheckBox) {
-            fieldsJSON.add(getCheckBox((PDCheckBox) field));
+            fieldsJSON.put(fieldRectangle, getCheckBox((PDCheckBox) field));
           } else if (field instanceof PDPushButton) {
             // Do not do anything for a push button, as we don't need to support them right now
           } else if (field instanceof PDRadioButton) {
-            fieldsJSON.add(getRadioButton((PDRadioButton) field));
+            fieldsJSON.put(fieldRectangle, getRadioButton((PDRadioButton) field));
           }
         } else if (field instanceof PDVariableText) {
           if (field instanceof PDChoice) {
-            fieldsJSON.add(getChoiceField((PDChoice) field));
+            fieldsJSON.put(fieldRectangle, getChoiceField((PDChoice) field));
           } else if (field instanceof PDTextField) {
-            fieldsJSON.add(getTextField((PDTextField) field));
+            fieldsJSON.put(fieldRectangle, getTextField((PDTextField) field));
           }
         } else if (field instanceof PDSignatureField) {
           // Do nothing, as signatures are dealt with in findSignatureFields
         }
       }
     }
+    orderFields(fieldsJSON);
     responseJSON.put("fields", fieldsJSON);
     this.applicationInformation = responseJSON;
 
@@ -295,4 +299,17 @@ public class GetQuestionsPDFService implements Service {
     fieldJSON.put("fieldQuestion", fieldQuestion);
     return fieldJSON;
   }
+
+  // Source:
+  // https://stackoverflow.com/questions/14868059/how-to-get-the-position-of-a-field-using-pdfbox
+  private PDRectangle getFieldRectangle(PDField field) {
+    COSDictionary fieldDict = field.getCOSObject();
+    COSArray fieldAreaArray = (COSArray) fieldDict.getDictionaryObject(COSName.RECT);
+    return new PDRectangle(fieldAreaArray);
+  }
+
+  // Order fields based on bounding rectangle location.
+  // Note: Only works if equals() in map only checks object reference equality,
+  // else there could be problems with two rectangles with the same location
+  private void orderFields(Map<PDRectangle, JSONObject> fieldsJSON) {}
 }
