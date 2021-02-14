@@ -1,31 +1,28 @@
 package User;
 
 import Config.Message;
-import Issue.IssueController;
+import Database.Token.TokenDao;
+import Database.User.UserDao;
 import Logger.LogFactory;
-import Security.EncryptionUtils;
 import User.Services.*;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
-import static com.mongodb.client.model.Filters.eq;
-
 public class UserController {
   Logger logger;
   MongoDatabase db;
-  EncryptionUtils encryptionUtils;
-  IssueController issueController;
+  UserDao userDao;
+  TokenDao tokenDao;
 
-  public UserController(MongoDatabase db) {
+  public UserController(UserDao userDao, TokenDao tokenDao, MongoDatabase db) {
+    this.userDao = userDao;
+    this.tokenDao = tokenDao;
     this.db = db;
     LogFactory l = new LogFactory();
     logger = l.createLogger("UserController");
-    this.encryptionUtils = EncryptionUtils.getInstance();
-    this.issueController = new IssueController(db);
     logger = (new LogFactory()).createLogger("UserController");
   }
 
@@ -39,7 +36,8 @@ public class UserController {
         String userAgent = ctx.userAgent();
         logger.info("Attempting to login " + username);
 
-        LoginService loginService = new LoginService(db, logger, username, password, ip, userAgent);
+        LoginService loginService =
+            new LoginService(userDao, tokenDao, logger, username, password, ip, userAgent);
         Message response = loginService.executeAndGetResponse();
         logger.info(response.toString() + response.getErrorDescription());
         JSONObject responseJSON = response.toJSON();
@@ -64,23 +62,15 @@ public class UserController {
         ctx.result(responseJSON.toString());
       };
 
-  //  UNUSED
-  public Handler generateUniqueUsername =
+  public Handler authenticateUser =
       ctx -> {
-        logger.info("Starting generateUniqueUsername Handler");
+        String sessionUsername = ctx.sessionAttribute("username");
         JSONObject req = new JSONObject(ctx.body());
-        JSONObject res = new JSONObject();
-
-        MongoCollection<User> userCollection = db.getCollection("user", User.class);
         String username = req.getString("username");
-        String candidateUsername = username;
-        int i = 0;
-        while (userCollection.find(eq("username", candidateUsername)).first() != null && i < 1000) {
-          i++;
-          candidateUsername = username + "-" + i;
-        }
-        ctx.json(res.put("username", candidateUsername).toString());
-        logger.info("Username successfully generated");
+        AuthenticateUserService authenticateUserService =
+            new AuthenticateUserService(userDao, logger, username, sessionUsername);
+        Message response = authenticateUserService.executeAndGetResponse();
+        ctx.result(response.toResponseString());
       };
 
   public Handler usernameExists =
@@ -88,7 +78,7 @@ public class UserController {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
         CheckUsernameExistsService checkUsernameExistsService =
-            new CheckUsernameExistsService(db, logger, username);
+            new CheckUsernameExistsService(userDao, logger, username);
         ctx.result(checkUsernameExistsService.executeAndGetResponse().toResponseString());
       };
 
@@ -114,9 +104,11 @@ public class UserController {
         String userTypeString = req.getString("personRole").strip();
         UserType userType = UserType.userTypeFromString(userTypeString);
 
+        logger.info(sessionUserLevel + " " + organizationName + " " + firstName);
+
         CreateUserService createUserService =
             new CreateUserService(
-                db,
+                userDao,
                 logger,
                 sessionUserLevel,
                 organizationName,
@@ -160,7 +152,7 @@ public class UserController {
 
         CreateUserService createUserService =
             new CreateUserService(
-                db,
+                userDao,
                 logger,
                 UserType.Director,
                 organizationName,
@@ -192,9 +184,15 @@ public class UserController {
   public Handler getUserInfo =
       ctx -> {
         logger.info("Started getUserInfo handler");
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        GetUserInfoService infoService = new GetUserInfoService(db, logger, username);
+        String username;
+        try {
+          JSONObject req = new JSONObject(ctx.body());
+          username = req.getString("username");
+        } catch (Exception e) {
+          logger.info("Username not passed in request, using ctx username");
+          username = ctx.sessionAttribute("username");
+        }
+        GetUserInfoService infoService = new GetUserInfoService(userDao, logger, username);
         Message response = infoService.executeAndGetResponse();
         if (response != UserMessage.SUCCESS) { // if fail return
           ctx.result(response.toJSON().toString());
@@ -217,10 +215,11 @@ public class UserController {
         String listType = req.getString("listType").toUpperCase();
 
         GetMembersService getMembersService =
-            new GetMembersService(db, logger, searchValue, orgName, privilegeLevel, listType);
+            new GetMembersService(userDao, logger, searchValue, orgName, privilegeLevel, listType);
         Message message = getMembersService.executeAndGetResponse();
         if (message == UserMessage.SUCCESS) {
-          res.put("people", getMembersService.getPeople());
+          res.put("people", getMembersService.getPeoplePage());
+          res.put("numPeople", getMembersService.getNumReturnedElements());
           ctx.result(mergeJSON(res, message.toJSON()).toString());
         } else {
           ctx.result(message.toResponseString());
@@ -244,7 +243,8 @@ public class UserController {
       ctx -> {
         logger.info("Started getLogInHistory handler");
         String username = ctx.sessionAttribute("username");
-        LoginHistoryService loginHistoryService = new LoginHistoryService(db, logger, username);
+        LoginHistoryService loginHistoryService =
+            new LoginHistoryService(userDao, logger, username);
         Message responseMessage = loginHistoryService.executeAndGetResponse();
         JSONObject res = responseMessage.toJSON();
         if (responseMessage == UserMessage.SUCCESS) {

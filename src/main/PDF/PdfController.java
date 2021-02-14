@@ -1,13 +1,19 @@
 package PDF;
 
 import Config.Message;
+import Database.User.UserDao;
 import Logger.LogFactory;
 import PDF.Services.*;
+import Security.EncryptionController;
+import User.User;
+import User.UserMessage;
 import User.UserType;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
@@ -15,61 +21,161 @@ import java.io.InputStream;
 import java.util.Objects;
 
 import static User.UserController.mergeJSON;
+import static com.mongodb.client.model.Filters.eq;
 
 public class PdfController {
   private MongoDatabase db;
+  private UserDao userDao;
   private Logger logger;
+  private EncryptionController encryptionController;
 
-  public PdfController(MongoDatabase db) {
+  public PdfController(MongoDatabase db, UserDao userDao) {
     this.db = db;
+    this.userDao = userDao;
     LogFactory l = new LogFactory();
     this.logger = l.createLogger("PdfController");
+    try {
+      this.encryptionController = new EncryptionController(db);
+    } catch (Exception e) {
+
+    }
   }
 
   /*
   REQUIRES JSON Body with:
     - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
     - "fileId": String giving id of file to be deleted
+    - OPTIONAL- "targetUser": User whose file you want to access.
+        - If left empty, defaults to original username.
   */
   public Handler pdfDelete =
       ctx -> {
+        String username;
+        String orgName;
+        UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
-        String fileIDStr = req.getString("fileId");
-        String username = ctx.sessionAttribute("username");
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType userType = ctx.sessionAttribute("privilegeLevel");
+        User check = userCheck(ctx.body());
+        if (check == null && req.has("targetUser")) {
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+        } else {
+          // TODO(xander) make this less hacky. Checks if client is in same org as worker.
+          boolean orgFlag;
+          if (check != null && req.has("targetUser")) {
+            logger.info("Target user found");
+            username = check.getUsername();
+            orgName = check.getOrganization();
+            userType = check.getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            // User is in same org as themselves
+            orgFlag = true;
+          }
 
-        DeletePDFService deletePDFService =
-            new DeletePDFService(db, logger, username, orgName, userType, pdfType, fileIDStr);
-        ctx.result(deletePDFService.executeAndGetResponse().toResponseString());
+          if (orgFlag) {
+            PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
+            String fileIDStr = req.getString("fileId");
+
+            DeletePDFService deletePDFService =
+                new DeletePDFService(db, logger, username, orgName, userType, pdfType, fileIDStr);
+            ctx.result(deletePDFService.executeAndGetResponse().toResponseString());
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
+        }
       };
 
   /*
   REQUIRES JSON Body:
     - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
     - "fileId": String giving id of file to be downloaded
+    - OPTIONAL- "targetUser": User whose file you want to access.
+        - If left empty, defaults to original username.
   */
   public Handler pdfDownload =
       ctx -> {
-        String username = ctx.sessionAttribute("username");
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType userType = ctx.sessionAttribute("privilegeLevel");
+        String username;
+        String orgName;
+        UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        String fileIDStr = req.getString("fileId");
-
-        String pdfTypeString = req.getString("pdfType");
-        PDFType pdfType = PDFType.createFromString(pdfTypeString);
-        DownloadPDFService downloadPDFService =
-            new DownloadPDFService(db, logger, username, orgName, userType, fileIDStr, pdfType);
-        Message response = downloadPDFService.executeAndGetResponse();
-        if (response == PdfMessage.SUCCESS) {
-          ctx.header("Content-Type", "application/pdf");
-          ctx.result(downloadPDFService.getInputStream());
+        User check = userCheck(ctx.body());
+        if (check == null && req.has("targetUser")) {
+          logger.info("Target User not Found");
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
-          ctx.result(response.toResponseString());
+          // TODO(xander) make this less hacky. Checks if client is in same org as worker.
+          boolean orgFlag;
+          if (check != null && req.has("targetUser")) {
+            logger.info("Target user found");
+            username = check.getUsername();
+            orgName = check.getOrganization();
+            userType = check.getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+
+          if (orgFlag) {
+            String fileIDStr = req.getString("fileId");
+
+            String pdfTypeString = req.getString("pdfType");
+            PDFType pdfType = PDFType.createFromString(pdfTypeString);
+            DownloadPDFService downloadPDFService =
+                new DownloadPDFService(
+                    db,
+                    logger,
+                    username,
+                    orgName,
+                    userType,
+                    fileIDStr,
+                    pdfType,
+                    encryptionController);
+            Message response = downloadPDFService.executeAndGetResponse();
+            if (response == PdfMessage.SUCCESS) {
+              ctx.header("Content-Type", "application/pdf");
+              ctx.result(downloadPDFService.getInputStream());
+            } else {
+              ctx.result(response.toResponseString());
+            }
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
         }
       };
+
+  //  public User userCheck(JSONObject req) {
+  //    String username;
+  //    User user = null;
+  //    if (req != null && req.has("targetUser")) {
+  //      username = req.getString("targetUser");
+  //      MongoCollection<User> userCollection = this.db.getCollection("user", User.class);
+  //      user = userCollection.find(eq("username", username)).first();
+  //    }
+  //    return user;
+  //  }
+
+  public User userCheck(String req) {
+    logger.info("userCheck Helper started");
+    String username;
+    User user = null;
+    try {
+      JSONObject reqJson = new JSONObject(req);
+      if (reqJson.has("targetUser")) {
+        username = reqJson.getString("targetUser");
+        MongoCollection<User> userCollection = this.db.getCollection("user", User.class);
+        user = userCollection.find(eq("username", username)).first();
+      }
+    } catch (JSONException e) {
+
+    }
+    logger.info("userCheck done");
+    return user;
+  }
 
   /*
   REQUIRES JSON Body:
@@ -77,25 +183,56 @@ public class PdfController {
       - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
       - if "pdfType" is "FORM"
         - "annotated": boolean for retrieving EITHER annotated forms OR unannotated forms
+      - OPTIONAL- "targetUser": User whose file you want to access.
+        - If left empty, defaults to original username.
   */
   public Handler pdfGetDocuments =
       ctx -> {
-        String username = ctx.sessionAttribute("username");
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType userType = ctx.sessionAttribute("privilegeLevel");
-        JSONObject req = new JSONObject(ctx.body());
-        PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
-        boolean annotated = false;
-        if (pdfType == PDFType.FORM) {
-          annotated = Objects.requireNonNull(req.getBoolean("annotated"));
-        }
-        GetFilesInformationPDFService getFilesInformationPDFService =
-            new GetFilesInformationPDFService(
-                db, logger, username, orgName, userType, pdfType, annotated);
-        Message response = getFilesInformationPDFService.executeAndGetResponse();
-        JSONObject responseJSON = response.toJSON();
-        if (response == PdfMessage.SUCCESS) {
-          responseJSON.put("documents", getFilesInformationPDFService.getFiles());
+        logger.info("Starting pdfGetDocuments");
+        String username;
+        String orgName;
+        UserType userType;
+        String reqBody = ctx.body();
+        JSONObject req = new JSONObject(reqBody);
+        JSONObject responseJSON;
+        User check = userCheck(ctx.body());
+        if (check == null && req.has("targetUser")) {
+          logger.info("Target User not Found");
+          responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
+        } else {
+          // TODO(xander) make this less hacky. Checks if client is in same org as worker.
+          boolean orgFlag;
+          if (check != null && req.has("targetUser")) {
+            logger.info("Target user found");
+            username = check.getUsername();
+            orgName = check.getOrganization();
+            userType = check.getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+          if (orgFlag) {
+            // System.out.println(username + ", " + orgName + ", " + userType.toString());
+            PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
+            boolean annotated = false;
+            if (pdfType == PDFType.FORM) {
+              annotated = Objects.requireNonNull(req.getBoolean("annotated"));
+            }
+            GetFilesInformationPDFService getFilesInformationPDFService =
+                new GetFilesInformationPDFService(
+                    db, logger, username, orgName, userType, pdfType, annotated);
+            Message response = getFilesInformationPDFService.executeAndGetResponse();
+            responseJSON = response.toJSON();
+
+            if (response == PdfMessage.SUCCESS) {
+              responseJSON.put("documents", getFilesInformationPDFService.getFiles());
+            }
+          } else {
+            responseJSON = UserMessage.CROSS_ORG_ACTION_DENIED.toJSON();
+          }
         }
         ctx.result(responseJSON.toString());
       };
@@ -104,43 +241,81 @@ public class PdfController {
   REQUIRES 2 fields in HTTP Request
     - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
     - "file": the PDF file to be uploaded
+  Additional support for uploading on behalf of another user, JSON body:
+    - "targetUser": the user the file is being uploaded for
    */
   public Handler pdfUpload =
       ctx -> {
-        String username = ctx.sessionAttribute("username");
-        String organizationName = ctx.sessionAttribute("orgName");
-        UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+        logger.info("pdfUpload");
+        String username;
+        String organizationName;
+        UserType privilegeLevel;
+        Message response;
         UploadedFile file = ctx.uploadedFile("file");
-        if (file == null) {
-          ctx.result(PdfMessage.INVALID_PDF.toResponseString());
-        } else {
-          PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-          // TODO: Replace with a title that is retrieved from the client (optionally)
-          String title = null;
-          try {
-            InputStream content = file.getContent();
-            PDDocument pdfDocument = PDDocument.load(content);
-            title = getPDFTitle(file.getFilename(), pdfDocument);
-            content.reset();
-            pdfDocument.close();
-          } catch (Exception exception) {
-            ctx.result(PdfMessage.INVALID_PDF.toResponseString());
-          }
-
-          UploadPDFService uploadService =
-              new UploadPDFService(
-                  db,
-                  logger,
-                  username,
-                  organizationName,
-                  privilegeLevel,
-                  pdfType,
-                  file.getFilename(),
-                  title,
-                  file.getContentType(),
-                  file.getContent());
-          ctx.result(uploadService.executeAndGetResponse().toResponseString());
+        JSONObject req;
+        String body = ctx.body();
+        try {
+          req = new JSONObject(body);
+        } catch (JSONException e) {
+          req = null;
         }
+        User check = userCheck(body);
+        if (req != null && req.has("targetUser") && check == null) {
+          logger.info("Target User could not be found in the database");
+          response = UserMessage.USER_NOT_FOUND;
+        } else {
+          boolean orgFlag;
+          if (req != null && req.has("targetUser") && check != null) {
+            logger.info("Target User found, setting parameters.");
+            username = check.getUsername();
+            organizationName = check.getOrganization();
+            privilegeLevel = check.getUserType();
+            orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            organizationName = ctx.sessionAttribute("orgName");
+            privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+          // System.out.println(username + ", " + organizationName + ", " + privilegeLevel);
+
+          if (orgFlag) {
+            if (file == null) {
+              logger.info("File is null, invalid pdf");
+              response = PdfMessage.INVALID_PDF;
+            } else {
+              PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
+              // TODO: Replace with a title that is retrieved from the client (optionally)
+              String title = null;
+              try {
+                InputStream content = file.getContent();
+                PDDocument pdfDocument = PDDocument.load(content);
+                title = getPDFTitle(file.getFilename(), pdfDocument);
+                content.reset();
+                pdfDocument.close();
+              } catch (Exception exception) {
+                ctx.result(PdfMessage.INVALID_PDF.toResponseString());
+              }
+              UploadPDFService uploadService =
+                  new UploadPDFService(
+                      db,
+                      logger,
+                      username,
+                      organizationName,
+                      privilegeLevel,
+                      pdfType,
+                      file.getFilename(),
+                      title,
+                      file.getContentType(),
+                      file.getContent(),
+                      encryptionController);
+              response = uploadService.executeAndGetResponse();
+            }
+          } else {
+            response = UserMessage.CROSS_ORG_ACTION_DENIED;
+          }
+        }
+        ctx.result(response.toResponseString());
       };
 
   /*
@@ -166,7 +341,8 @@ public class PdfController {
                 fileIDStr,
                 file.getFilename(),
                 file.getContentType(),
-                file.getContent());
+                file.getContent(),
+                encryptionController);
         ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };
 
@@ -198,7 +374,8 @@ public class PdfController {
                 file.getFilename(),
                 file.getContentType(),
                 file.getContent(),
-                signature.getContent());
+                signature.getContent(),
+                encryptionController);
         ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };
 
@@ -221,12 +398,13 @@ public class PdfController {
                 organizationName,
                 privilegeLevel,
                 applicationId,
-                PDFType.FORM);
+                PDFType.FORM,
+                encryptionController);
         Message responseDownload = downloadPDFService.executeAndGetResponse();
         if (responseDownload == PdfMessage.SUCCESS) {
           InputStream inputStream = downloadPDFService.getInputStream();
           GetQuestionsPDFService getQuestionsPDFService =
-              new GetQuestionsPDFService(db, logger, privilegeLevel, username, inputStream);
+              new GetQuestionsPDFService(userDao, logger, privilegeLevel, username, inputStream);
           Message response = getQuestionsPDFService.executeAndGetResponse();
           if (response == PdfMessage.SUCCESS) {
             JSONObject information = getQuestionsPDFService.getApplicationInformation();
@@ -266,7 +444,8 @@ public class PdfController {
                 organizationName,
                 privilegeLevel,
                 applicationId,
-                PDFType.FORM);
+                PDFType.FORM,
+                encryptionController);
         Message responseDownload = downloadPDFService.executeAndGetResponse();
         if (responseDownload == PdfMessage.SUCCESS) {
           InputStream inputStream = downloadPDFService.getInputStream();

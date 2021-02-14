@@ -1,6 +1,11 @@
 package Config;
 
 import Activity.ActivityController;
+import Admin.AdminController;
+import Database.Token.TokenDao;
+import Database.Token.TokenDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import Issue.IssueController;
 import Logger.LogFactory;
 import Organization.OrganizationController;
@@ -22,6 +27,8 @@ public class AppConfig {
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
+    UserDao userDao = UserDaoFactory.create(deploymentLevel);
+    TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
 
@@ -40,11 +47,13 @@ public class AppConfig {
 
     // We need to instantiate the controllers with the database.
     OrganizationController orgController = new OrganizationController(db);
-    UserController userController = new UserController(db);
-    AccountSecurityController accountSecurityController = new AccountSecurityController(db);
-    PdfController pdfController = new PdfController(db);
+    UserController userController = new UserController(userDao, tokenDao, db);
+    AccountSecurityController accountSecurityController =
+        new AccountSecurityController(userDao, tokenDao);
+    PdfController pdfController = new PdfController(db, userDao);
     IssueController issueController = new IssueController(db);
-    ActivityController activityController = new ActivityController(db);
+    ActivityController activityController = new ActivityController();
+    AdminController adminController = new AdminController(userDao, db);
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -60,7 +69,7 @@ public class AppConfig {
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
-    app.post("/generate-username", userController.generateUniqueUsername);
+    app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
     app.get("/logout", userController.logout);
@@ -90,6 +99,8 @@ public class AppConfig {
 
     /* -------------- ADMIN DASHBOARD ------------------ */
     app.post("/get-usertype-count", orgController.findMembersOfOrgs);
+    app.post("/test-delete-org", adminController.testDeleteOrg);
+    app.post("/delete-org", adminController.deleteOrg);
 
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
@@ -139,12 +150,10 @@ public class AppConfig {
 
               config.enableCorsForAllOrigins(); // enable cors for all origins
 
-              //              config.enableDevLogging(); // enable extensive development logging for
+              config.enableDevLogging(); // enable extensive development logging for
               // http and
               // websocket
-              config.enforceSsl =
-                  false; // redirect http traffic to https (default is false) -- setting to true
-              // breaks our code for now
+              config.enforceSsl = false;
               // log a warning if user doesn't start javalin instance (default is true)
               config.logIfServerNotStarted = true;
               config.showJavalinBanner = false;
