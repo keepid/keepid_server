@@ -63,7 +63,7 @@ public class AppConfig {
     app.post("/upload-signed-pdf", pdfController.pdfSignedUpload);
     app.post("/download", pdfController.pdfDownload);
     app.post("/delete-document/", pdfController.pdfDelete);
-    app.post("/get-documents", pdfController.pdfGetDocuments);
+    app.post("/get-documents", pdfController.pdfGetFilesInformation);
     app.post("/get-application-questions", pdfController.getApplicationQuestions);
     app.post("/fill-application", pdfController.fillPDFForm);
 

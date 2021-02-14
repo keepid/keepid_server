@@ -3,6 +3,7 @@ package PDF.Services;
 import Config.Message;
 import Config.Service;
 import PDF.PDFType;
+import PDF.PdfController;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
@@ -18,7 +19,6 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.time.LocalDate;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -30,7 +30,6 @@ public class UploadAnnotatedPDFService implements Service {
   UserType privilegeLevel;
   String fileIDStr;
   String filename;
-  String title;
   String fileContentType;
   InputStream fileStream;
   MongoDatabase db;
@@ -45,7 +44,6 @@ public class UploadAnnotatedPDFService implements Service {
       UserType privilegeLevel,
       String fileIDStr,
       String filename,
-      String title,
       String fileContentType,
       InputStream fileStream,
       EncryptionController encryptionController) {
@@ -56,7 +54,6 @@ public class UploadAnnotatedPDFService implements Service {
     this.privilegeLevel = privilegeLevel;
     this.fileIDStr = fileIDStr;
     this.filename = filename;
-    this.title = title;
     this.fileContentType = fileContentType;
     this.fileStream = fileStream;
     this.encryptionController = encryptionController;
@@ -95,6 +92,12 @@ public class UploadAnnotatedPDFService implements Service {
       return PdfMessage.NO_SUCH_FILE;
     }
 
+    // Make metadata parameters the same as before
+    String upload_date = grid_out.getMetadata().getString("upload_date");
+    String uploader = grid_out.getMetadata().getString("uploader");
+    String organizationName = grid_out.getMetadata().getString("organizationName");
+    String title = PdfController.getPDFTitle(filename, fileStream, PDFType.FORM);
+
     gridBucket.delete(fileID);
     InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
     GridFSUploadOptions options =
@@ -102,7 +105,8 @@ public class UploadAnnotatedPDFService implements Service {
             .chunkSizeBytes(CHUNK_SIZE_BYTES)
             .metadata(
                 new Document("type", "pdf")
-                    .append("upload_date", String.valueOf(LocalDate.now()))
+                    .append("upload_date", upload_date)
+                    .append("title", title)
                     .append("annotated", true)
                     .append("uploader", uploader)
                     .append("organizationName", organizationName));

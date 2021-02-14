@@ -3,6 +3,7 @@ package PDF.Services;
 import Config.Message;
 import Config.Service;
 import PDF.PDFType;
+import PDF.PdfController;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
@@ -25,7 +26,6 @@ public class UploadPDFService implements Service {
   String organizationName;
   UserType privilegeLevel;
   String filename;
-  String title;
   String fileContentType;
   InputStream fileStream;
   PDFType pdfType;
@@ -41,7 +41,6 @@ public class UploadPDFService implements Service {
       UserType privilegeLevel,
       PDFType pdfType,
       String filename,
-      String title,
       String fileContentType,
       InputStream fileStream,
       EncryptionController encryptionController) {
@@ -52,7 +51,6 @@ public class UploadPDFService implements Service {
     this.privilegeLevel = privilegeLevel;
     this.pdfType = pdfType;
     this.filename = filename;
-    this.title = title;
     this.fileContentType = fileContentType;
     this.fileStream = fileStream;
     this.encryptionController = encryptionController;
@@ -88,6 +86,7 @@ public class UploadPDFService implements Service {
   }
 
   public Message mongodbUpload() throws GeneralSecurityException, IOException {
+    String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     GridFSUploadOptions options;
@@ -110,7 +109,7 @@ public class UploadPDFService implements Service {
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("title", filename)
+                      .append("title", title)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
     }

@@ -187,9 +187,9 @@ public class PdfController {
       - OPTIONAL- "targetUser": User whose file you want to access.
         - If left empty, defaults to original username.
   */
-  public Handler pdfGetDocuments =
+  public Handler pdfGetFilesInformation =
       ctx -> {
-        logger.info("Starting pdfGetDocuments");
+        logger.info("Starting pdfGetFilesInformation");
         String username;
         String orgName;
         UserType userType;
@@ -284,8 +284,6 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              InputStream content = file.getContent();
-              String title = getPDFTitle(file.getFilename(), content, pdfType);
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -295,7 +293,6 @@ public class PdfController {
                       privilegeLevel,
                       pdfType,
                       file.getFilename(),
-                      title,
                       file.getContentType(),
                       file.getContent(),
                       encryptionController);
@@ -318,23 +315,25 @@ public class PdfController {
         String username = ctx.sessionAttribute("username");
         String organizationName = ctx.sessionAttribute("orgName");
         UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
-        UploadedFile file = ctx.uploadedFile("file");
-        String fileIDStr = ctx.formParam("fileId");
-        String title = getPDFTitle(file.getFilename(), file.getContent(), PDFType.FORM);
-        UploadAnnotatedPDFService uploadService =
-            new UploadAnnotatedPDFService(
-                db,
-                logger,
-                username,
-                organizationName,
-                privilegeLevel,
-                fileIDStr,
-                file.getFilename(),
-                title,
-                file.getContentType(),
-                file.getContent(),
-                encryptionController);
-        ctx.result(uploadService.executeAndGetResponse().toResponseString());
+        if (privilegeLevel != UserType.Developer) {
+          ctx.result(PdfMessage.INSUFFICIENT_PRIVILEGE.toResponseString());
+        } else {
+          UploadedFile file = ctx.uploadedFile("file");
+          String fileIDStr = ctx.formParam("fileId");
+          UploadAnnotatedPDFService uploadService =
+              new UploadAnnotatedPDFService(
+                  db,
+                  logger,
+                  username,
+                  organizationName,
+                  privilegeLevel,
+                  fileIDStr,
+                  file.getFilename(),
+                  file.getContentType(),
+                  file.getContent(),
+                  encryptionController);
+          ctx.result(uploadService.executeAndGetResponse().toResponseString());
+        }
       };
 
   /*
