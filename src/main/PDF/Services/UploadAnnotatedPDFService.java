@@ -30,6 +30,7 @@ public class UploadAnnotatedPDFService implements Service {
   UserType privilegeLevel;
   String fileIDStr;
   String filename;
+  String title;
   String fileContentType;
   InputStream fileStream;
   MongoDatabase db;
@@ -44,6 +45,7 @@ public class UploadAnnotatedPDFService implements Service {
       UserType privilegeLevel,
       String fileIDStr,
       String filename,
+      String title,
       String fileContentType,
       InputStream fileStream,
       EncryptionController encryptionController) {
@@ -54,6 +56,7 @@ public class UploadAnnotatedPDFService implements Service {
     this.privilegeLevel = privilegeLevel;
     this.fileIDStr = fileIDStr;
     this.filename = filename;
+    this.title = title;
     this.fileContentType = fileContentType;
     this.fileStream = fileStream;
     this.encryptionController = encryptionController;
@@ -74,14 +77,7 @@ public class UploadAnnotatedPDFService implements Service {
           || privilegeLevel == UserType.Developer)) {
 
         try {
-          return mongodbUploadAnnotatedForm(
-              uploader,
-              organizationName,
-              filename,
-              fileIDStr,
-              fileStream,
-              db,
-              encryptionController);
+          return mongodbUploadAnnotatedForm();
         } catch (Exception e) {
           return PdfMessage.ENCRYPTION_ERROR;
         }
@@ -91,26 +87,16 @@ public class UploadAnnotatedPDFService implements Service {
     }
   }
 
-  public static PdfMessage mongodbUploadAnnotatedForm(
-      String uploader,
-      String organizationName,
-      String filename,
-      String fileIDStr,
-      InputStream inputStream,
-      MongoDatabase db,
-      EncryptionController encryptionController)
-      throws IOException, GeneralSecurityException {
+  public PdfMessage mongodbUploadAnnotatedForm() throws IOException, GeneralSecurityException {
     ObjectId fileID = new ObjectId(fileIDStr);
     GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.FORM.toString());
     GridFSFile grid_out = gridBucket.find(eq("_id", fileID)).first();
-    inputStream = encryptionController.encryptFile(inputStream, uploader);
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
-      gridBucket.delete(fileID);
-    }
 
+    gridBucket.delete(fileID);
+    InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
     GridFSUploadOptions options =
         new GridFSUploadOptions()
             .chunkSizeBytes(CHUNK_SIZE_BYTES)

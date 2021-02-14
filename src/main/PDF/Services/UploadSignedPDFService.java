@@ -90,7 +90,7 @@ public class UploadSignedPDFService implements Service {
               || privilegeLevel == UserType.Admin)) {
         try {
           InputStream signedPDF = signPDF(uploader, fileStream, signatureFileStream);
-          return mongodbUpload(uploader, organizationName, filename, signedPDF, pdfType, db);
+          return mongodbUpload(signedPDF);
         } catch (GeneralSecurityException | IOException e) {
           return PdfMessage.ENCRYPTION_ERROR;
         }
@@ -100,16 +100,9 @@ public class UploadSignedPDFService implements Service {
     }
   }
 
-  public Message mongodbUpload(
-      String uploader,
-      String organizationName,
-      String filename,
-      InputStream inputStream,
-      PDFType pdfType,
-      MongoDatabase db)
-      throws GeneralSecurityException, IOException {
+  public Message mongodbUpload(InputStream signedPDF) throws GeneralSecurityException, IOException {
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    inputStream = encryptionController.encryptFile(inputStream, uploader);
+    InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
 
     GridFSUploadOptions options;
     if (pdfType == PDFType.FORM) {

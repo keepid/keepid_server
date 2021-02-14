@@ -77,8 +77,7 @@ public class UploadPDFService implements Service {
               || privilegeLevel == UserType.Admin
               || privilegeLevel == UserType.Developer)) {
         try {
-          return mongodbUpload(
-              uploader, organizationName, filename, title, fileStream, pdfType, db);
+          return mongodbUpload();
         } catch (GeneralSecurityException | IOException e) {
           return PdfMessage.SERVER_ERROR;
         }
@@ -88,16 +87,8 @@ public class UploadPDFService implements Service {
     }
   }
 
-  public Message mongodbUpload(
-      String uploader,
-      String organizationName,
-      String filename,
-      String title,
-      InputStream inputStream,
-      PDFType pdfType,
-      MongoDatabase db)
-      throws GeneralSecurityException, IOException {
-    inputStream = encryptionController.encryptFile(inputStream, uploader);
+  public Message mongodbUpload() throws GeneralSecurityException, IOException {
+    InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     GridFSUploadOptions options;
     if (pdfType == PDFType.FORM) {
@@ -119,6 +110,7 @@ public class UploadPDFService implements Service {
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("title", filename)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
     }

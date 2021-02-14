@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
@@ -215,7 +216,6 @@ public class PdfController {
             orgFlag = true;
           }
           if (orgFlag) {
-            // System.out.println(username + ", " + orgName + ", " + userType.toString());
             PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
             boolean annotated = false;
             if (pdfType == PDFType.FORM) {
@@ -277,7 +277,6 @@ public class PdfController {
             privilegeLevel = ctx.sessionAttribute("privilegeLevel");
             orgFlag = true;
           }
-          // System.out.println(username + ", " + organizationName + ", " + privilegeLevel);
 
           if (orgFlag) {
             if (file == null) {
@@ -285,17 +284,8 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              // TODO: Replace with a title that is retrieved from the client (optionally)
-              String title = null;
-              try {
-                InputStream content = file.getContent();
-                PDDocument pdfDocument = PDDocument.load(content);
-                title = getPDFTitle(file.getFilename(), pdfDocument);
-                content.reset();
-                pdfDocument.close();
-              } catch (Exception exception) {
-                ctx.result(PdfMessage.INVALID_PDF.toResponseString());
-              }
+              InputStream content = file.getContent();
+              String title = getPDFTitle(file.getFilename(), content, pdfType);
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -328,9 +318,9 @@ public class PdfController {
         String username = ctx.sessionAttribute("username");
         String organizationName = ctx.sessionAttribute("orgName");
         UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
-
         UploadedFile file = ctx.uploadedFile("file");
         String fileIDStr = ctx.formParam("fileId");
+        String title = getPDFTitle(file.getFilename(), file.getContent(), PDFType.FORM);
         UploadAnnotatedPDFService uploadService =
             new UploadAnnotatedPDFService(
                 db,
@@ -340,6 +330,7 @@ public class PdfController {
                 privilegeLevel,
                 fileIDStr,
                 file.getFilename(),
+                title,
                 file.getContentType(),
                 file.getContent(),
                 encryptionController);
@@ -463,12 +454,22 @@ public class PdfController {
         }
       };
 
-  public static String getPDFTitle(String fileName, PDDocument pdfDocument) {
-    String title = fileName;
-    pdfDocument.setAllSecurityToBeRemoved(true);
-    String titleTmp = pdfDocument.getDocumentInformation().getTitle();
-    if (titleTmp != null) {
-      title = titleTmp;
+  // TODO: Allow title that is retrieved from the client (optionally)
+  public static String getPDFTitle(String fileName, InputStream content, PDFType pdfType) {
+    String title;
+    if (pdfType == PDFType.FORM) {
+      try {
+        PDDocument pdfDocument = PDDocument.load(content);
+        pdfDocument.setAllSecurityToBeRemoved(true);
+        String titleTmp = pdfDocument.getDocumentInformation().getTitle();
+        title = titleTmp != null ? titleTmp : fileName;
+        content.reset();
+        pdfDocument.close();
+      } catch (IOException exception) {
+        title = fileName;
+      }
+    } else {
+      title = fileName;
     }
     return title;
   }
