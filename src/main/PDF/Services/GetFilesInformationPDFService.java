@@ -74,7 +74,13 @@ public class GetFilesInformationPDFService implements Service {
         filter = Filters.eq("metadata.uploader", username);
         return mongodbGetAllFiles(filter);
       } else if (pdfType == PDFType.FORM) {
-        filter = and(eq("metadata.organizationName", orgName), eq("metadata.annotated", annotated));
+        if (userType == UserType.Developer) {
+          // Getting forms that are not annotated yet
+          filter = eq("metadata.annotated", annotated);
+        } else {
+          filter =
+              and(eq("metadata.organizationName", orgName), eq("metadata.annotated", annotated));
+        }
         return mongodbGetAllFiles(filter);
       } else {
         return PdfMessage.INSUFFICIENT_PRIVILEGE;
