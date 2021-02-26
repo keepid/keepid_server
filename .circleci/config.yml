@@ -14,6 +14,9 @@ jobs:
           name: cloning github
           command: 'git clone https://github.com/keepid/keepid_server.git; cd keepid_server'
       - run:
+          name: going in
+          command: 'cd keepid_server'
+      - run:
           name: listing all
           command: 'ls -a'
       - run:
