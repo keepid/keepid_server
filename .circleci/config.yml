@@ -12,16 +12,7 @@ jobs:
     steps:
       - run:
           name: cloning github
-          command: 'git clone https://github.com/keepid/keepid_server.git; cd keepid_server'
-      - run:
-          name: going in
-          command: 'cd keepid_server'
-      - run:
-          name: listing all
-          command: 'ls -a'
-      - run:
-          name: Generate google credentials json
-          command: 'sh ./credential-generate.sh'
+          command: 'git clone https://github.com/keepid/keepid_server.git;cd keepid_server;ls -a;sh ./credential-generate.sh'
       - run:
           command: 'mvn test -B'
       - slack/notify:
