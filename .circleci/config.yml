@@ -12,7 +12,8 @@ jobs:
       - run:
           name: Generate google credentials json
           command: 'sh credential-generate.sh'
-      - maven/test:
+      - run:
+          command: 'mvn test -B'
       - slack/notify:
           event: fail
           template: basic_fail_1
