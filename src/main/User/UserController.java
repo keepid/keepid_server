@@ -1,9 +1,11 @@
 package User;
 
 import Config.Message;
+import Config.MongoTestConfig;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import User.Services.*;
+import com.google.inject.Inject;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -16,10 +18,11 @@ public class UserController {
   UserDao userDao;
   TokenDao tokenDao;
 
-  public UserController(UserDao userDao, TokenDao tokenDao, MongoDatabase db) {
+  @Inject
+  public UserController(UserDao userDao, TokenDao tokenDao, MongoTestConfig mongoTestConfig) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
-    this.db = db;
+    this.db = mongoTestConfig.getDatabase();
   }
 
   public Handler loginUser =

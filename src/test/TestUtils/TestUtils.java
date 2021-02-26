@@ -1,6 +1,6 @@
 package TestUtils;
 
-import Config.AppConfig;
+import Config.AppConfigV2;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Organization.Organization;
@@ -14,6 +14,8 @@ import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.JsonKeysetReader;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.integration.gcpkms.GcpKmsClient;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -64,7 +66,9 @@ public class TestUtils {
         System.err.println(e.getStackTrace());
         System.exit(0);
       }
-      app = AppConfig.appFactory(DeploymentLevel.TEST);
+      Injector injector = Guice.createInjector(new TestModule());
+      AppConfigV2 appConfigV2 = injector.getInstance(AppConfigV2.class);
+      app = appConfigV2.appFactory(DeploymentLevel.TEST);
     }
   }
 

@@ -1,10 +1,9 @@
 package Database.Organization;
 
-import Config.DeploymentLevel;
-import Config.MongoConfig;
+import Config.MongoTestConfig;
 import Organization.Organization;
+import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
@@ -14,16 +13,14 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.eq;
 
 public class OrgDaoImpl implements OrgDao {
-  private MongoCollection<Organization> orgCollection;
+  private final MongoCollection<Organization> orgCollection;
   private static final String ORG_ID_KEY = "_id";
   private static final String ORG_NAME_KEY = "orgName";
 
-  public OrgDaoImpl(DeploymentLevel deploymentLevel) {
-    MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
-    if (db == null) {
-      throw new IllegalStateException("DB cannot be null");
-    }
-    orgCollection = db.getCollection("organization", Organization.class);
+  @Inject
+  public OrgDaoImpl(MongoTestConfig mongoTestConfig) {
+    this.orgCollection =
+        mongoTestConfig.getDatabase().getCollection("organization", Organization.class);
   }
 
   @Override

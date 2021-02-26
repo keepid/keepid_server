@@ -14,5 +14,7 @@ public interface UserDao extends Dao<User> {
 
   void delete(String username);
 
+  void deleteAllFromOrg(String orgName);
+
   void resetPassword(User user, String newpassword);
 }

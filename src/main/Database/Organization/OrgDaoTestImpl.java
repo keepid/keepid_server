@@ -1,6 +1,5 @@
 package Database.Organization;
 
-import Config.DeploymentLevel;
 import Organization.Organization;
 import org.bson.types.ObjectId;
 
@@ -9,11 +8,7 @@ import java.util.*;
 public class OrgDaoTestImpl implements OrgDao {
   Map<String, Organization> orgMap;
 
-  public OrgDaoTestImpl(DeploymentLevel deploymentLevel) {
-    if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
-      throw new IllegalStateException(
-          "Should not run in memory test database in production or staging");
-    }
+  public OrgDaoTestImpl() {
     orgMap = new LinkedHashMap<>();
   }
 

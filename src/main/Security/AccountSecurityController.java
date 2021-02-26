@@ -5,6 +5,7 @@ import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Security.Services.*;
 import User.UserMessage;
+import com.google.inject.Inject;
 import io.javalin.http.Handler;
 import org.json.JSONObject;
 
@@ -13,6 +14,7 @@ public class AccountSecurityController {
   private TokenDao tokenDao;
   private EncryptionUtils encryptionUtils;
 
+  @Inject
   public AccountSecurityController(UserDao userDao, TokenDao tokenDao) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;

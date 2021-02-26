@@ -1,8 +1,7 @@
 package DatabaseTest.Token;
 
-import Config.DeploymentLevel;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoFactory;
+import Database.Token.TokenDaoTestImpl;
 import Security.Tokens;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -20,7 +19,7 @@ public class TokenDaoImplUnitTests {
   public void initialize() {
     TestUtils.startServer();
     TestUtils.setUpTestDB();
-    this.tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+    this.tokenDao = new TokenDaoTestImpl();
   }
 
   @AfterClass

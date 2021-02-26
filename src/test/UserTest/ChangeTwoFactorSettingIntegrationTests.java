@@ -3,9 +3,9 @@ package UserTest;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoFactory;
+import Database.Token.TokenDaoTestImpl;
 import Database.User.UserDao;
-import Database.User.UserDaoFactory;
+import Database.User.UserDaoTestImpl;
 import Security.AccountSecurityController;
 import TestUtils.TestUtils;
 import User.User;
@@ -26,8 +26,8 @@ import static org.mockito.Mockito.when;
 public class ChangeTwoFactorSettingIntegrationTests {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-  UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
-  TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+  UserDao userDao = new UserDaoTestImpl();
+  TokenDao tokenDao = new TokenDaoTestImpl();
 
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {

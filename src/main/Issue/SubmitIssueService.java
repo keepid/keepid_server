@@ -1,10 +1,9 @@
 package Issue;
 
 import Config.Message;
-import Config.Service;
+import Database.Report.ReportDao;
 import Validation.ValidationUtils;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.google.inject.Inject;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.slf4j.Slf4j;
@@ -14,21 +13,16 @@ import org.json.JSONObject;
 import static Issue.IssueController.issueReportActualURL;
 
 @Slf4j
-public class SubmitIssueService implements Service {
-  MongoDatabase db;
-  String title;
-  String description;
-  String email;
+public class SubmitIssueService {
 
-  public SubmitIssueService(
-      MongoDatabase db, String issueTitle, String issueDescription, String issueEmail) {
-    this.db = db;
-    this.title = issueTitle;
-    this.description = issueDescription;
-    this.email = issueEmail;
+  ReportDao reportDao;
+
+  @Inject
+  public SubmitIssueService(ReportDao reportDao) {
+    this.reportDao = reportDao;
   }
 
-  public Message executeAndGetResponse() {
+  public Message executeAndGetResponse(String title, String description, String email) {
     log.info("Checking for empty fields");
     if (title == null || title.isEmpty()) {
       log.error("Empty issue title");
@@ -72,10 +66,8 @@ public class SubmitIssueService implements Service {
             .body(input.toString())
             .asEmpty();
     log.info("Trying to add issueReport to database");
-    MongoCollection<IssueReport> issueReportCollection =
-        db.getCollection("IssueReport", IssueReport.class);
     IssueReport issueReport = new IssueReport(title, description, email);
-    issueReportCollection.insertOne(issueReport);
+    reportDao.save(issueReport);
     if (!posted.isSuccess()) {
       log.error("Posing on Slack failed");
       return IssueReportMessage.SLACK_FAILED;

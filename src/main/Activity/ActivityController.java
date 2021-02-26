@@ -1,28 +1,26 @@
 package Activity;
 
-import Config.DeploymentLevel;
-import Config.Message;
-import Config.MongoConfig;
-import User.UserMessage;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import Database.Activity.ActivityDao;
+import com.google.inject.Inject;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
+import java.util.List;
+
 @Slf4j
 public class ActivityController {
-  MongoDatabase db;
+  ActivityDao activityDao;
 
-  public ActivityController() {
-    this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+  @Inject
+  public ActivityController(ActivityDao activityDao) {
+    this.activityDao = activityDao;
   }
 
   public void addActivity(Activity activity) {
     String type = activity.getType().get(activity.getType().size() - 1);
     log.info("Trying to add an activity of type " + type);
-    MongoCollection<Activity> act = db.getCollection("activity", Activity.class);
-    act.insertOne(activity);
+    activityDao.save(activity);
     log.info("Successfully added an activity of type " + type);
   }
 
@@ -30,13 +28,7 @@ public class ActivityController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
-        FindActivityService fas = new FindActivityService(db, username);
-        Message responseMessage = fas.executeAndGetResponse();
-        JSONObject res = responseMessage.toJSON();
-        if (responseMessage == UserMessage.SUCCESS) {
-          res.put("username", fas.getUsername());
-          res.put("activities", fas.getActivitiesArray());
-        }
+        List<Activity> res = activityDao.getAllFromUser(username);
         ctx.result(res.toString());
       };
 }

@@ -1,6 +1,5 @@
 package Database.Token;
 
-import Config.DeploymentLevel;
 import Security.Tokens;
 import org.bson.types.ObjectId;
 
@@ -9,11 +8,7 @@ import java.util.*;
 public class TokenDaoTestImpl implements TokenDao {
   Map<String, Tokens> tokenMap;
 
-  public TokenDaoTestImpl(DeploymentLevel deploymentLevel) {
-    if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
-      throw new IllegalStateException(
-          "Should not run in memory test database in production or staging");
-    }
+  public TokenDaoTestImpl() {
     tokenMap = new LinkedHashMap<>();
   }
 

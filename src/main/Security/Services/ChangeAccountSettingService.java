@@ -4,6 +4,7 @@ import Activity.ActivityController;
 import Activity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDaoTestImpl;
 import Database.User.UserDao;
 import Security.SecurityUtils;
 import User.User;
@@ -54,7 +55,7 @@ public class ChangeAccountSettingService implements Service {
     }
     JSONObject userAsJson = user.serialize();
     String old = userAsJson.get(key).toString();
-    ActivityController activityController = new ActivityController();
+    ActivityController activityController = new ActivityController(new ActivityDaoTestImpl());
     ChangeUserAttributesActivity act = new ChangeUserAttributesActivity(user, key, old, value);
     activityController.addActivity(act);
     switch (key) {

@@ -1,6 +1,5 @@
 package Database.User;
 
-import Config.DeploymentLevel;
 import User.User;
 import org.bson.types.ObjectId;
 
@@ -9,11 +8,7 @@ import java.util.*;
 public class UserDaoTestImpl implements UserDao {
   Map<String, User> userMap;
 
-  public UserDaoTestImpl(DeploymentLevel deploymentLevel) {
-    if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
-      throw new IllegalStateException(
-          "Should not run in memory test database in production or staging");
-    }
+  public UserDaoTestImpl() {
     userMap = new LinkedHashMap<>();
   }
 
@@ -62,6 +57,15 @@ public class UserDaoTestImpl implements UserDao {
   @Override
   public void delete(User user) {
     userMap.remove(user.getUsername());
+  }
+
+  @Override
+  public void deleteAllFromOrg(String orgName) {
+    for (User user : userMap.values()) {
+      if (user.getOrganization().equals(orgName)) {
+        userMap.remove(user.getUsername());
+      }
+    }
   }
 
   @Override

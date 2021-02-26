@@ -1,10 +1,9 @@
 package Database.Token;
 
-import Config.DeploymentLevel;
-import Config.MongoConfig;
+import Config.MongoTestConfig;
 import Security.Tokens;
+import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.types.ObjectId;
 
@@ -17,12 +16,9 @@ import static com.mongodb.client.model.Filters.eq;
 public class TokenDaoImpl implements TokenDao {
   private MongoCollection<Tokens> tokenCollection;
 
-  public TokenDaoImpl(DeploymentLevel deploymentLevel) {
-    MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
-    if (db == null) {
-      throw new IllegalStateException("DB cannot be null");
-    }
-    tokenCollection = db.getCollection("tokens", Tokens.class);
+  @Inject
+  public TokenDaoImpl(MongoTestConfig mongoTestConfig) {
+    this.tokenCollection = mongoTestConfig.getDatabase().getCollection("tokens", Tokens.class);
   }
 
   @Override

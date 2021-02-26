@@ -2,51 +2,67 @@ package Config;
 
 import Activity.ActivityController;
 import Admin.AdminController;
-import Database.Token.TokenDao;
-import Database.Token.TokenDaoFactory;
-import Database.User.UserDao;
-import Database.User.UserDaoFactory;
 import Issue.IssueController;
+import Organization.OrgControllerV2;
 import Organization.OrganizationController;
+import PDF.DocumentControllerV2;
 import PDF.PdfController;
 import Security.AccountSecurityController;
 import Security.EncryptionUtils;
 import User.UserController;
-import com.mongodb.client.MongoDatabase;
+import User.UserControllerV2;
+import com.google.inject.Inject;
 import io.javalin.Javalin;
 
-public class AppConfig {
+import static io.javalin.apibuilder.ApiBuilder.crud;
+
+public class AppConfigV2 {
   public static Long ASYNC_TIME_OUT = 10L;
   public static int SERVER_PORT = Integer.parseInt(System.getenv("PORT"));
   public static int SERVER_TEST_PORT = Integer.parseInt(System.getenv("TEST_PORT"));
 
-  public static Javalin appFactory(DeploymentLevel deploymentLevel) {
+  private final UserControllerV2 userControllerV2;
+  private final OrgControllerV2 orgControllerV2;
+  private final DocumentControllerV2 documentControllerV2;
+  private final PdfController pdfController;
+  private final UserController userController;
+  private final OrganizationController orgController;
+  private final AccountSecurityController accountSecurityController;
+  private final IssueController issueController;
+  private final AdminController adminController;
+  private final ActivityController activityController;
+
+  @Inject
+  public AppConfigV2(
+      UserControllerV2 userControllerV2,
+      OrgControllerV2 orgControllerV2,
+      DocumentControllerV2 documentControllerV2,
+      PdfController pdfController,
+      UserController userController,
+      OrganizationController orgController,
+      AccountSecurityController accountSecurityController,
+      IssueController issueController,
+      AdminController adminController,
+      ActivityController activityController) {
+    this.userControllerV2 = userControllerV2;
+    this.orgControllerV2 = orgControllerV2;
+    this.documentControllerV2 = documentControllerV2;
+    this.pdfController = pdfController;
+    this.userController = userController;
+    this.orgController = orgController;
+    this.accountSecurityController = accountSecurityController;
+    this.issueController = issueController;
+    this.adminController = adminController;
+    this.activityController = activityController;
+  }
+
+  public Javalin appFactory(DeploymentLevel deploymentLevel) {
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
-    Javalin app = AppConfig.createJavalinApp(deploymentLevel);
+    Javalin app = createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
-    UserDao userDao = UserDaoFactory.create(deploymentLevel);
-    TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
-    MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
 
     EncryptionUtils.initialize();
-    //    try {
-    //      encryptionController = new EncryptionController(db);
-    //    } catch (GeneralSecurityException | IOException e) {
-    //      System.err.println(e.getStackTrace());
-    //      System.exit(0);
-    //      return null;
-    //    }
-
-    // We need to instantiate the controllers with the database.
-    OrganizationController orgController = new OrganizationController(db);
-    UserController userController = new UserController(userDao, tokenDao, db);
-    AccountSecurityController accountSecurityController =
-        new AccountSecurityController(userDao, tokenDao);
-    PdfController pdfController = new PdfController(db, userDao);
-    IssueController issueController = new IssueController(db);
-    ActivityController activityController = new ActivityController();
-    AdminController adminController = new AdminController(userDao, db);
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -88,7 +104,7 @@ public class AppConfig {
     app.post("/change-two-factor-setting", accountSecurityController.change2FASetting);
 
     /* -------------- SUBMIT BUG------------------ */
-    app.post("/submit-issue", issueController.submitIssue);
+    app.post("/submit-issue", issueController::submitIssue);
 
     /* -------------- ADMIN DASHBOARD ------------------ */
     app.post("/get-usertype-count", orgController.findMembersOfOrgs);
@@ -99,10 +115,26 @@ public class AppConfig {
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
 
+    /* --------------- PRODUCTION TOOLING ------------- */
+    app.routes(
+        () -> {
+          crud("organizations/:organizationID", orgControllerV2);
+        });
+
+    app.routes(
+        () -> {
+          crud("users/:username", userControllerV2);
+        });
+
+    app.routes(
+        () -> {
+          crud("users/:username/documents/:documentId", documentControllerV2);
+        });
+
     return app;
   }
 
-  public static void setApplicationHeaders(Javalin app) {
+  public void setApplicationHeaders(Javalin app) {
     app.before(
         ctx -> {
           ctx.header("Content-Security-Policy", "script-src 'self' 'unsafe-inline';");
@@ -114,7 +146,7 @@ public class AppConfig {
         });
   }
 
-  public static Javalin createJavalinApp(DeploymentLevel deploymentLevel) {
+  public Javalin createJavalinApp(DeploymentLevel deploymentLevel) {
     int port;
     switch (deploymentLevel) {
       case STAGING:

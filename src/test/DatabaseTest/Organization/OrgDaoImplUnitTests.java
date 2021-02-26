@@ -1,8 +1,7 @@
 package DatabaseTest.Organization;
 
-import Config.DeploymentLevel;
 import Database.Organization.OrgDao;
-import Database.Organization.OrgDaoFactory;
+import Database.Organization.OrgDaoTestImpl;
 import Organization.Organization;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -20,7 +19,7 @@ public class OrgDaoImplUnitTests {
   public void initialize() {
     TestUtils.startServer();
     TestUtils.setUpTestDB();
-    this.orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    this.orgDao = new OrgDaoTestImpl();
   }
 
   @After

@@ -1,8 +1,7 @@
 package DatabaseTest.Organization;
 
-import Config.DeploymentLevel;
 import Database.Organization.OrgDao;
-import Database.Organization.OrgDaoFactory;
+import Database.Organization.OrgDaoTestImpl;
 import Organization.Organization;
 import TestUtils.EntityFactory;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +16,7 @@ public class OrgDaoTestImplUnitTests {
 
   @Before
   public void initialize() {
-    this.orgDao = OrgDaoFactory.create(DeploymentLevel.IN_MEMORY);
+    this.orgDao = new OrgDaoTestImpl();
   }
 
   @After

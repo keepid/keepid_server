@@ -2,6 +2,8 @@ package Organization;
 
 import Validation.ValidationException;
 import Validation.ValidationUtils;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
@@ -10,6 +12,8 @@ import java.util.Date;
 import java.util.Objects;
 
 @Slf4j
+@Setter
+@Getter
 public class Organization {
   private ObjectId id;
 
@@ -84,102 +88,6 @@ public class Organization {
     this.orgEmail = orgEmail;
     this.orgPhoneNumber = orgPhoneNumber;
     this.creationDate = date;
-  }
-
-  /** **************** GETTERS ********************* */
-  public ObjectId getId() {
-    return this.id;
-  }
-
-  public String getOrgName() {
-    return this.orgName;
-  }
-
-  public String getOrgWebsite() {
-    return this.orgWebsite;
-  }
-
-  public String getOrgEIN() {
-    return this.orgEIN;
-  }
-
-  public String getOrgStreetAddress() {
-    return this.orgStreetAddress;
-  }
-
-  public String getOrgCity() {
-    return this.orgCity;
-  }
-
-  public String getOrgState() {
-    return this.orgState;
-  }
-
-  public String getOrgZipcode() {
-    return this.orgZipcode;
-  }
-
-  public String getOrgEmail() {
-    return this.orgEmail;
-  }
-
-  public String getOrgPhoneNumber() {
-    return this.orgPhoneNumber;
-  }
-
-  public Date getCreationDate() {
-    return this.creationDate;
-  }
-
-  /** **************** SETTERS ********************* */
-  public Organization setOrgName(String orgName) {
-    this.orgName = orgName;
-    return this;
-  }
-
-  public Organization setOrgWebsite(String website) {
-    this.orgWebsite = website;
-    return this;
-  }
-
-  public Organization setOrgEIN(String ein) {
-    this.orgEIN = ein;
-    return this;
-  }
-
-  public Organization setOrgStreetAddress(String address) {
-    this.orgStreetAddress = address;
-    return this;
-  }
-
-  public Organization setOrgCity(String city) {
-    this.orgCity = city;
-    return this;
-  }
-
-  public Organization setOrgState(String state) {
-    this.orgState = state;
-    return this;
-  }
-
-  public Organization setOrgZipcode(String zipcode) {
-    this.orgZipcode = zipcode;
-    return this;
-  }
-
-  public Organization setOrgEmail(String email) {
-    this.orgEmail = email;
-    return this;
-  }
-
-  public Organization setOrgPhoneNumber(String phoneNumber) {
-    this.orgPhoneNumber = phoneNumber;
-    return this;
-  }
-
-  public Organization setCreationDate(Date creationDate) {
-    this.creationDate = creationDate;
-    return this;
   }
 
   private static OrganizationValidationMessage isValid(

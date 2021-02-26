@@ -1,12 +1,14 @@
 package PDF;
 
 import Config.Message;
+import Config.MongoTestConfig;
 import Database.User.UserDao;
 import PDF.Services.*;
 import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
 import User.UserType;
+import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
@@ -28,9 +30,10 @@ public class PdfController {
   private UserDao userDao;
   private EncryptionController encryptionController;
 
-  public PdfController(MongoDatabase db, UserDao userDao) {
-    this.db = db;
+  @Inject
+  public PdfController(UserDao userDao, MongoTestConfig mongoTestConfig) {
     this.userDao = userDao;
+    this.db = mongoTestConfig.getDatabase();
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {

@@ -72,7 +72,6 @@ public class CreateUserService implements Service {
     this.username = username;
     this.password = password;
     this.userType = userType;
-    activityController = new ActivityController();
   }
 
   // for testing

@@ -1,8 +1,7 @@
 package DatabaseTest.Token;
 
-import Config.DeploymentLevel;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoFactory;
+import Database.Token.TokenDaoTestImpl;
 import Security.Tokens;
 import TestUtils.EntityFactory;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +16,7 @@ public class TokenDaoTestImplUnitTests {
 
   @Before
   public void initialize() {
-    this.tokenDao = TokenDaoFactory.create(DeploymentLevel.IN_MEMORY);
+    this.tokenDao = new TokenDaoTestImpl();
   }
 
   @After

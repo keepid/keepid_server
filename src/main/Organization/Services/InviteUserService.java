@@ -7,7 +7,6 @@ import Security.EmailMessages;
 import Security.EmailUtil;
 import Security.SecurityUtils;
 import User.UserMessage;
-import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
@@ -18,13 +17,11 @@ import java.security.SecureRandom;
 
 @Slf4j
 public class InviteUserService implements Service {
-  MongoDatabase db;
   JSONArray people;
   String sender;
   String orgName;
 
-  public InviteUserService(MongoDatabase db, JSONArray people, String sender, String orgName) {
-    this.db = db;
+  public InviteUserService(JSONArray people, String sender, String orgName) {
     this.people = people;
     this.sender = sender;
     this.orgName = orgName;

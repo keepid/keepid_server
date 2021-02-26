@@ -1,8 +1,7 @@
 package DatabaseTest.User;
 
-import Config.DeploymentLevel;
 import Database.User.UserDao;
-import Database.User.UserDaoFactory;
+import Database.User.UserDaoTestImpl;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
@@ -19,7 +18,7 @@ public class UserDaoImplUnitTests {
   public void initialize() {
     TestUtils.startServer();
     TestUtils.setUpTestDB();
-    this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    this.userDao = new UserDaoTestImpl();
   }
 
   @After

@@ -4,9 +4,9 @@ import Activity.Activity;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoFactory;
+import Database.Token.TokenDaoTestImpl;
 import Database.User.UserDao;
-import Database.User.UserDaoFactory;
+import Database.User.UserDaoTestImpl;
 import Organization.Organization;
 import PDF.PDFType;
 import PDF.Services.UploadPDFService;
@@ -44,8 +44,8 @@ import static org.mockito.Mockito.when;
 public class AdminControllerTest {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-  UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
-  TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+  UserDao userDao = new UserDaoTestImpl();
+  TokenDao tokenDao = new TokenDaoTestImpl();
 
   public static String resourcesFolderPath =
       Paths.get("").toAbsolutePath().toString()

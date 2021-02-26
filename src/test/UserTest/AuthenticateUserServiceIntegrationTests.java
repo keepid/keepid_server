@@ -1,8 +1,7 @@
 package UserTest;
 
-import Config.DeploymentLevel;
 import Database.User.UserDao;
-import Database.User.UserDaoFactory;
+import Database.User.UserDaoTestImpl;
 import TestUtils.EntityFactory;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -21,7 +20,7 @@ public class AuthenticateUserServiceIntegrationTests {
   public void configureDatabase() {
     startServer();
     // NEVER USE DEPLOYMENT LEVEL HIGHER THAN TEST
-    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    userDao = new UserDaoTestImpl();
   }
 
   @After

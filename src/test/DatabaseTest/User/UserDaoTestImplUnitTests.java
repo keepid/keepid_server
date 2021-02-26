@@ -1,8 +1,7 @@
 package DatabaseTest.User;
 
-import Config.DeploymentLevel;
 import Database.User.UserDao;
-import Database.User.UserDaoFactory;
+import Database.User.UserDaoTestImpl;
 import TestUtils.EntityFactory;
 import User.User;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +16,7 @@ public class UserDaoTestImplUnitTests {
 
   @Before
   public void initialize() {
-    this.userDao = UserDaoFactory.create(DeploymentLevel.IN_MEMORY);
+    this.userDao = new UserDaoTestImpl();
   }
 
   @After

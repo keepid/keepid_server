@@ -1,10 +1,9 @@
 package Database.User;
 
-import Config.DeploymentLevel;
-import Config.MongoConfig;
+import Config.MongoTestConfig;
 import User.User;
+import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
@@ -15,14 +14,11 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.eq;
 
 public class UserDaoImpl implements UserDao {
-  private MongoCollection<User> userCollection;
+  private final MongoCollection<User> userCollection;
 
-  public UserDaoImpl(DeploymentLevel deploymentLevel) {
-    MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
-    if (db == null) {
-      throw new IllegalStateException("DB cannot be null");
-    }
-    userCollection = db.getCollection("user", User.class);
+  @Inject
+  public UserDaoImpl(MongoTestConfig mongoTestConfig) {
+    this.userCollection = mongoTestConfig.getDatabase().getCollection("user", User.class);
   }
 
   @Override
@@ -68,6 +64,11 @@ public class UserDaoImpl implements UserDao {
   @Override
   public void update(User user) {
     userCollection.replaceOne(eq("username", user.getUsername()), user);
+  }
+
+  @Override
+  public void deleteAllFromOrg(String orgName) {
+    userCollection.deleteMany(eq("organization", orgName));
   }
 
   @Override
