@@ -10,8 +10,10 @@ jobs:
       - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
       - run:
+          command: 'chmod +x ./credential-generate.sh'
+      - run:
           name: Generate google credentials json
-          command: 'sh credential-generate.sh'
+          command: 'sh ./credential-generate.sh'
       - run:
           command: 'mvn test -B'
       - slack/notify:
