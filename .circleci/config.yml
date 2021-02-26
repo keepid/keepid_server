@@ -11,7 +11,8 @@ jobs:
       - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
       - run:
-          command: 'ls -a'
+          name: cloning github
+          command: 'git clone https://github.com/keepid/keepid_server.git'
       - run:
           name: Generate google credentials json
           command: 'sh ./credential-generate.sh'
