@@ -530,7 +530,6 @@ public class PdfControllerIntegrationTests {
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
     JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
     String downId = getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
-    // String fileId = getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
     assertThat(fileId).isEqualTo(downId);
     TestUtils.logout();
   }
