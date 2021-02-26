@@ -10,10 +10,8 @@ jobs:
       - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
       - run:
-          command: 'ls -a'
-      - run:
           name: Generate google credentials json
-          command: 'sh <parameters.app_src_directory>/credential-generate.sh'
+          command: 'sh ~/project/credential-generate.sh'
   notify:
     docker: # executor type
       - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
