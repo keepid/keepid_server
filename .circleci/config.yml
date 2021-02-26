@@ -5,28 +5,27 @@ orbs:
   slack: circleci/slack@4.3.0
 
 jobs:
-  build: # name of your job
+  test: # name of your job
+    working_directory: ~/project/
     docker: # executor type
       - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
       - run:
+          command: 'ls -a'
+      - run:
           name: Generate google credentials json
-          command: 'sh ~/project/credential-generate.sh'
-  notify:
-    docker: # executor type
-      - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
-    steps:
-    - slack/notify:
-        event: fail
-        template: basic_fail_1
-    - slack/notify:
-        event: pass
-        template: basic_success_1
+          command: 'sh ./credential-generate.sh'
+      - run:
+          command: 'mvn test -B'
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: basic_success_1
 
 workflows:
   test_keepid_staging:
     jobs:
-      - build
-      - maven/test
-      - notify:
+      - test:
           context: Keep.id Slack
