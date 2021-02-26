@@ -12,7 +12,7 @@ jobs:
     steps:
       - run:
           name: cloning github
-          command: 'git clone https://github.com/keepid/keepid_server.git'
+          command: 'git clone https://github.com/keepid/keepid_server.git; cd keepid_server'
       - run:
           name: listing all
           command: 'ls -a'
