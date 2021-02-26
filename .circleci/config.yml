@@ -1,4 +1,5 @@
 version: 2.1
+
 executors:
   j13:
     docker:
@@ -6,6 +7,7 @@ executors:
   j15:
     docker:
       - image: 'cimg/openjdk:15.0'
+
 orbs:
   maven: circleci/maven@1.1.1
   slack: circleci/slack@4.3.0
@@ -16,16 +18,17 @@ jobs:
       - run:
           name: Generate google credentials json
           command: 'sh credential-generate.sh'
-      - maven/test # checkout, build, test, and upload test results
+      - maven/test: # checkout, build, test, and upload test results
+          executor: j15
       - slack/notify:
           event: fail
           template: basic_fail_1
       - slack/notify:
           event: pass
           template: basic_success_1
+
 workflows:
   test_keepid_staging:
     jobs:
-      - check-build
       - test:
           context: Keep.id Slack
