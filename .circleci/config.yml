@@ -1,13 +1,26 @@
 version: 2.1
 
 orbs:
-  maven: circleci/maven@1.1.0
+  maven: circleci/maven@1.1.1
   slack: circleci/slack@4.3.0
+  shellcheck: circleci/shellcheck@x.y.z
+
 jobs:
-  notify:
-    docker:
-      - image: 'cimg/base:stable'
+  check-build:
     steps:
+      - shellcheck/check # job defined within the orb so no further config necessary
+      - build-job:
+          requires:
+            - shellcheck/check # only run build-job once shellcheck has run
+          filters:
+            branches:
+              only: master # only run build-job on master branch
+  test:
+    steps:
+      - run:
+          name: Generate google credentials json
+          command: 'sh credential-generate.sh'
+      - maven/test # checkout, build, test, and upload test results
       - slack/notify:
           event: fail
           template: basic_fail_1
@@ -15,7 +28,8 @@ jobs:
           event: pass
           template: basic_success_1
 workflows:
-  maven_test:
+  test_keepid_staging:
     jobs:
-      - maven/test: # checkout, build, test, and upload test results
+      - check-build
+      - test:
           context: Keep.id Slack
