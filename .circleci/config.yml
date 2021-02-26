@@ -13,7 +13,9 @@ orbs:
   slack: circleci/slack@4.3.0
 
 jobs:
-  test:
+  test: # name of your job
+    docker: # executor type
+      - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
       - run:
           name: Generate google credentials json
