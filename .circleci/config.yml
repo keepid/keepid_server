@@ -1,20 +1,16 @@
 version: 2.1
-
+executors:
+  j13:
+    docker:
+      - image: 'cimg/openjdk:13.0'
+  j15:
+    docker:
+      - image: 'cimg/openjdk:15.0'
 orbs:
   maven: circleci/maven@1.1.1
   slack: circleci/slack@4.3.0
-  shellcheck: circleci/shellcheck@x.y.z
 
 jobs:
-  check-build:
-    steps:
-      - shellcheck/check # job defined within the orb so no further config necessary
-      - build-job:
-          requires:
-            - shellcheck/check # only run build-job once shellcheck has run
-          filters:
-            branches:
-              only: master # only run build-job on master branch
   test:
     steps:
       - run:
