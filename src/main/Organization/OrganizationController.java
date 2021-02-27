@@ -40,11 +40,6 @@ public class OrganizationController {
     this.activityController = activityController;
   }
 
-  public Handler findMembersOfOrgs =
-      ctx -> {
-        ctx.result("Not Implemented");
-      };
-
   public Handler listOrgs =
       ctx -> {
         List<Organization> orgList = orgDao.getAll();

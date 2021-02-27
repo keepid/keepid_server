@@ -2,23 +2,13 @@ package OrgTests;
 
 import TestUtils.TestUtils;
 import kong.unirest.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
 
 public class NewOrgTest {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   // Again, I commented out the part below as it would notify the slack channel about the new

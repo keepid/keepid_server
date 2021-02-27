@@ -7,7 +7,6 @@ import com.mongodb.client.MongoDatabase;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,12 +28,6 @@ public class PfpTestIntegration {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);

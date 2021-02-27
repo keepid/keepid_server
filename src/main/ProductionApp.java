@@ -1,7 +1,7 @@
 import Config.AppConfigV2;
 import Config.DeploymentLevel;
-import Organization.OrgModule;
-import User.UserModule;
+import Database.Organization.OrgModule;
+import Database.User.UserModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 

@@ -25,7 +25,6 @@ import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.bson.Document;
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AdminControllerTest {
+public class AdminControllerIntegrationTest {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
   UserDao userDao = new UserDaoTestImpl();
@@ -59,12 +58,6 @@ public class AdminControllerTest {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   @BeforeEach
@@ -116,19 +109,6 @@ public class AdminControllerTest {
     gridBucket.uploadFromStream(fileName, file, options);
 
     TestUtils.logout();
-  }
-
-  @Test
-  public void testTestUtil() {
-    JSONObject body = new JSONObject();
-    body.put("orgName", "Broad Street Ministry");
-    HttpResponse actualResponse =
-        Unirest.post(TestUtils.getServerUrl() + "/test-delete-org")
-            .header("Accept", "*/*")
-            .header("Content-Type", "text/plain")
-            .body(body.toString())
-            .asString();
-    assertEquals(200, actualResponse.getStatus());
   }
 
   @Test

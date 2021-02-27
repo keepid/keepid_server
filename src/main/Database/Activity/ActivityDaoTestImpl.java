@@ -1,18 +1,17 @@
 package Database.Activity;
 
 import Activity.Activity;
-import Organization.Organization;
-import lombok.NoArgsConstructor;
 import org.bson.types.ObjectId;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
-@NoArgsConstructor
 public class ActivityDaoTestImpl implements ActivityDao {
 
-  Map<String, Organization> orgMap;
+  Map<String, Activity> activityMap;
+
+  public ActivityDaoTestImpl() {
+    activityMap = new HashMap<String, Activity>();
+  }
 
   @Override
   public Optional<Activity> get(ObjectId id) {
@@ -26,7 +25,7 @@ public class ActivityDaoTestImpl implements ActivityDao {
 
   @Override
   public List<Activity> getAllFromUser(String username) {
-    return null;
+    return Collections.singletonList(activityMap.get(username));
   }
 
   @Override

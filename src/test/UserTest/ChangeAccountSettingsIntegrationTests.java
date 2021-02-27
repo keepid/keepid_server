@@ -16,7 +16,6 @@ import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,12 +35,6 @@ public class ChangeAccountSettingsIntegrationTests {
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   // Make sure to enable .env file configurations for these tests

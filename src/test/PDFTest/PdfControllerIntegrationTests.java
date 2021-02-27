@@ -9,7 +9,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +29,7 @@ import static org.junit.Assert.fail;
 
 public class PdfControllerIntegrationTests {
   private static EncryptionUtils encryptionUtils;
-  public static String username = "adminBSM";;
+  public static String username = "adminBSM";
 
   public static String currentPDFFolderPath =
       Paths.get("").toAbsolutePath().toString()
@@ -53,12 +52,6 @@ public class PdfControllerIntegrationTests {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   @Test

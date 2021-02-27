@@ -1,7 +1,5 @@
-package Organization;
+package Database.Organization;
 
-import Database.Organization.OrgDao;
-import Database.Organization.OrgDaoImpl;
 import com.google.inject.AbstractModule;
 
 public class OrgModule extends AbstractModule {

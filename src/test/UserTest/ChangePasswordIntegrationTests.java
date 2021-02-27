@@ -20,7 +20,6 @@ import com.mongodb.client.MongoDatabase;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import io.javalin.http.Context;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -37,12 +36,6 @@ public class ChangePasswordIntegrationTests {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
   }
 
   Context ctx = mock(Context.class);

@@ -1,6 +1,5 @@
 package PDFTest;
 
-import Security.EncryptionUtils;
 import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -158,12 +157,9 @@ public class PdfControllerIntegrationTestHelperMethods {
   public static String uploadFileAndGetFileId(File file, String pdfType)
       throws IOException, GeneralSecurityException {
     // upload file
-    EncryptionUtils encryptionUtils = TestUtils.getEncryptionUtils();
     InputStream fileStream = FileUtils.openInputStream(file);
 
     File tmp = File.createTempFile("test1", "tmp");
-    FileUtils.copyInputStreamToFile(
-        encryptionUtils.encryptFile(fileStream, PdfControllerIntegrationTests.username), tmp);
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .header("Content-Disposition", "attachment")

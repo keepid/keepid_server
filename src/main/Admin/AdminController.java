@@ -7,7 +7,7 @@ import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoDatabase;
-import io.javalin.http.Handler;
+import io.javalin.http.Context;
 import org.json.JSONObject;
 
 public class AdminController {
@@ -25,32 +25,31 @@ public class AdminController {
     this.db = mongoTestConfig.getDatabase();
   }
 
-  public Handler deleteOrg =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String orgName = req.getString("orgName");
+  public void deleteOrg(Context ctx) {
+    JSONObject req = new JSONObject(ctx.body());
+    String orgName = req.getString("orgName");
 
-        JSONObject responseBuilder = new JSONObject();
-        Message responseMessage;
+    JSONObject responseBuilder = new JSONObject();
+    Message responseMessage;
 
-        // Delete orgs
-        orgDao.delete(orgName);
+    // Delete orgs
+    orgDao.delete(orgName);
 
-        // Delete users
-        userDao.deleteAllFromOrg(orgName);
+    // Delete users
+    userDao.deleteAllFromOrg(orgName);
 
-        // TODO(xander) enable
-        //         Delete files
-        DeleteFileService files = new DeleteFileService(db, orgName);
-        responseMessage = files.executeAndGetResponse();
-        if (responseMessage != AdminMessages.SUCCESS) {
-          ctx.result(responseMessage.toJSON().toString());
-          return;
-        }
+    // TODO(xander) enable
+    //         Delete files
+    //    DeleteFileService files = new DeleteFileService(db, orgName);
+    //    responseMessage = files.executeAndGetResponse();
+    //    if (responseMessage != AdminMessages.SUCCESS) {
+    //      ctx.result(responseMessage.toJSON().toString());
+    //      return;
+    //    }
 
-        // Delete activities
-        activityDao.deleteAllFromOrg(orgName);
+    // Delete activities
+    activityDao.deleteAllFromOrg(orgName);
 
-        ctx.result(responseBuilder.toString());
-      };
+    ctx.result(responseBuilder.toString());
+  }
 }

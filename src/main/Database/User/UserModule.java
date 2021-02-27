@@ -1,7 +1,5 @@
-package User;
+package Database.User;
 
-import Database.User.UserDao;
-import Database.User.UserDaoImpl;
 import com.google.inject.AbstractModule;
 
 public class UserModule extends AbstractModule {

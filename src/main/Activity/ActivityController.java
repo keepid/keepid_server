@@ -2,7 +2,7 @@ package Activity;
 
 import Database.Activity.ActivityDao;
 import com.google.inject.Inject;
-import io.javalin.http.Handler;
+import io.javalin.http.Context;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
@@ -18,17 +18,15 @@ public class ActivityController {
   }
 
   public void addActivity(Activity activity) {
-    String type = activity.getType().get(activity.getType().size() - 1);
-    log.info("Trying to add an activity of type " + type);
+    String type = activity.getType().stream().findFirst().orElse("UNKNOWN");
+    log.debug("Adding an activity of type " + type);
     activityDao.save(activity);
-    log.info("Successfully added an activity of type " + type);
   }
 
-  public Handler findMyActivities =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        List<Activity> res = activityDao.getAllFromUser(username);
-        ctx.result(res.toString());
-      };
+  public void findMyActivities(Context ctx) {
+    JSONObject req = new JSONObject(ctx.body());
+    String username = req.getString("username");
+    List<Activity> res = activityDao.getAllFromUser(username);
+    ctx.result(res.toString());
+  }
 }

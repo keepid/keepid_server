@@ -1,90 +1,89 @@
 package DatabaseTest.User;
 
+import Config.MongoTestConfig;
 import Database.User.UserDao;
-import Database.User.UserDaoTestImpl;
+import Database.User.UserDaoImpl;
 import TestUtils.EntityFactory;
-import TestUtils.TestUtils;
 import User.User;
-import org.junit.After;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.eq;
+import static org.mockito.Mockito.*;
 
 public class UserDaoImplUnitTests {
-  public UserDao userDao;
+
+  private MongoTestConfig mongoTestConfig;
+  private MongoDatabase mongoDatabase;
+  private MongoCollection<User> mongoCollection;
+  private UserDao userDao;
 
   @Before
   public void initialize() {
-    TestUtils.startServer();
-    TestUtils.setUpTestDB();
-    this.userDao = new UserDaoTestImpl();
-  }
-
-  @After
-  public void reset() {
-    userDao.clear();
+    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoDatabase = mock(MongoDatabase.class);
+    mongoCollection = mock(MongoCollection.class);
+    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoDatabase.getCollection("user", User.class)).thenReturn(mongoCollection);
+    userDao = new UserDaoImpl(mongoTestConfig);
   }
 
   @Test
   public void save() {
-    String testUsername = "username1";
+    String testUsername = "user1";
     User user = EntityFactory.createUser().withUsername(testUsername).build();
     userDao.save(user);
-    assertTrue(userDao.get(testUsername).isPresent());
-    assertEquals(userDao.get(testUsername).get().getUsername(), user.getUsername());
-    assertEquals(userDao.get(testUsername).get().getAddress(), user.getAddress());
-    assertEquals(userDao.get(testUsername).get().getBirthDate(), user.getBirthDate());
-    assertEquals(userDao.get(testUsername).get().getCity(), user.getCity());
-    assertEquals(userDao.get(testUsername).get().getState(), user.getState());
+    verify(mongoCollection).insertOne(user);
   }
 
   @Test
   public void get() {
-    String testUsername = "username1";
+    FindIterable iterable = mock(FindIterable.class);
+    String testUsername = "user1";
     User user = EntityFactory.createUser().withUsername(testUsername).buildAndPersist(userDao);
-    assertTrue(userDao.get(testUsername).isPresent());
-    assertEquals(userDao.get(testUsername).get().getUsername(), user.getUsername());
-    assertEquals(userDao.get(testUsername).get().getAddress(), user.getAddress());
-    assertEquals(userDao.get(testUsername).get().getBirthDate(), user.getBirthDate());
-    assertEquals(userDao.get(testUsername).get().getCity(), user.getCity());
-    assertEquals(userDao.get(testUsername).get().getState(), user.getState());
+    when(mongoCollection.find(eq("username", testUsername))).thenReturn(iterable);
+    when(iterable.first()).thenReturn(user);
+    userDao.get(testUsername);
+    verify(mongoCollection).find(eq("username", testUsername));
   }
 
   @Test
   public void deleteByUsername() {
-    String testUsername = "username1";
+    String testUsername = "user1";
     EntityFactory.createUser().withUsername(testUsername).buildAndPersist(userDao);
-    assertTrue(userDao.get(testUsername).isPresent());
     userDao.delete(testUsername);
-    assertFalse(userDao.get(testUsername).isPresent());
+    verify(mongoCollection).deleteOne(eq("username", testUsername));
   }
 
   @Test
   public void size() {
-    userDao.clear();
-    EntityFactory.createUser().withUsername("username1").buildAndPersist(userDao);
-    EntityFactory.createUser().withUsername("username2").buildAndPersist(userDao);
-    EntityFactory.createUser().withUsername("username3").buildAndPersist(userDao);
-    assertEquals(3, userDao.size());
+    when(mongoCollection.countDocuments()).thenReturn(3L);
+    int result = userDao.size();
+    assert result == 3;
   }
 
   @Test
   public void clear() {
-    EntityFactory.createUser().withUsername("username1").buildAndPersist(userDao);
-    EntityFactory.createUser().withUsername("username2").buildAndPersist(userDao);
-    EntityFactory.createUser().withUsername("username3").buildAndPersist(userDao);
-    assertTrue(userDao.size() > 0);
     userDao.clear();
-    assertEquals(0, userDao.size());
+    verify(mongoCollection).drop();
   }
 
   @Test
   public void getAll() {
-    userDao.clear();
-    User user1 = EntityFactory.createUser().withUsername("username1").buildAndPersist(userDao);
-    User user2 = EntityFactory.createUser().withUsername("username2").buildAndPersist(userDao);
-    User user3 = EntityFactory.createUser().withUsername("username3").buildAndPersist(userDao);
-    assertEquals(3, userDao.getAll().size());
+    String testUsername = "user1";
+    List<User> userList =
+        Collections.singletonList(
+            EntityFactory.createUser().withUsername(testUsername).buildAndPersist(userDao));
+    FindIterable iterable = mock(FindIterable.class);
+    when(mongoCollection.find()).thenReturn(iterable);
+    when(iterable.into(new ArrayList())).thenReturn(userList);
+    userDao.getAll();
   }
 }

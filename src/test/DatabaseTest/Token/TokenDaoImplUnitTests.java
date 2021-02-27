@@ -1,83 +1,90 @@
 package DatabaseTest.Token;
 
+import Config.MongoTestConfig;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoTestImpl;
+import Database.Token.TokenDaoImpl;
 import Security.Tokens;
 import TestUtils.EntityFactory;
-import TestUtils.TestUtils;
-import com.google.common.collect.ImmutableList;
-import org.junit.AfterClass;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.eq;
+import static org.mockito.Mockito.*;
 
 public class TokenDaoImplUnitTests {
-  public TokenDao tokenDao;
+
+  private MongoTestConfig mongoTestConfig;
+  private MongoDatabase mongoDatabase;
+  private MongoCollection<Tokens> mongoCollection;
+  private TokenDao tokenDao;
 
   @Before
   public void initialize() {
-    TestUtils.startServer();
-    TestUtils.setUpTestDB();
-    this.tokenDao = new TokenDaoTestImpl();
-  }
-
-  @AfterClass
-  public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoDatabase = mock(MongoDatabase.class);
+    mongoCollection = mock(MongoCollection.class);
+    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoDatabase.getCollection("tokens", Tokens.class)).thenReturn(mongoCollection);
+    tokenDao = new TokenDaoImpl(mongoTestConfig);
   }
 
   @Test
   public void save() {
-    String testUsername = "username1";
-    Tokens token = EntityFactory.createTokens().withUsername(testUsername).build();
-    tokenDao.save(token);
+    String testUsername = "user1";
+    Tokens tokens = EntityFactory.createTokens().withUsername(testUsername).build();
+    tokenDao.save(tokens);
+    verify(mongoCollection).insertOne(tokens);
   }
 
   @Test
   public void get() {
-    String testUsername = "username1";
-    Tokens token =
+    FindIterable iterable = mock(FindIterable.class);
+    String testUsername = "user1";
+    Tokens tokens =
         EntityFactory.createTokens().withUsername(testUsername).buildAndPersist(tokenDao);
-    assertTrue(tokenDao.get(testUsername).isPresent());
-    assertEquals(tokenDao.get(testUsername).get().getUsername(), token.getUsername());
+    when(mongoCollection.find(eq("username", testUsername))).thenReturn(iterable);
+    when(iterable.first()).thenReturn(tokens);
+    tokenDao.get(testUsername);
+    verify(mongoCollection).find(eq("username", testUsername));
   }
 
   @Test
   public void deleteByUsername() {
-    String testUsername = "username1";
+    String testUsername = "user1";
     EntityFactory.createTokens().withUsername(testUsername).buildAndPersist(tokenDao);
     tokenDao.delete(testUsername);
-    assertFalse(tokenDao.get(testUsername).isPresent());
+    verify(mongoCollection).deleteOne(eq("username", testUsername));
   }
 
   @Test
   public void size() {
-    tokenDao.clear();
-    EntityFactory.createTokens().withUsername("username1").buildAndPersist(tokenDao);
-    EntityFactory.createTokens().withUsername("username2").buildAndPersist(tokenDao);
-    EntityFactory.createTokens().withUsername("username3").buildAndPersist(tokenDao);
-    assertEquals(3, tokenDao.size());
+    when(mongoCollection.countDocuments()).thenReturn(3L);
+    int result = tokenDao.size();
+    assert result == 3;
   }
 
   @Test
   public void clear() {
-    EntityFactory.createTokens().withUsername("username1").buildAndPersist(tokenDao);
-    EntityFactory.createTokens().withUsername("username2").buildAndPersist(tokenDao);
-    EntityFactory.createTokens().withUsername("username3").buildAndPersist(tokenDao);
     tokenDao.clear();
-    assertEquals(0, tokenDao.size());
+    verify(mongoCollection).drop();
   }
 
   @Test
   public void getAll() {
-    tokenDao.clear();
-    Tokens token1 =
-        EntityFactory.createTokens().withUsername("username1").buildAndPersist(tokenDao);
-    Tokens token2 =
-        EntityFactory.createTokens().withUsername("username2").buildAndPersist(tokenDao);
-    Tokens token3 =
-        EntityFactory.createTokens().withUsername("username3").buildAndPersist(tokenDao);
-    assertEquals(ImmutableList.of(token1, token2, token3), tokenDao.getAll());
+    String testUsername = "user1";
+    List<Tokens> tokensList =
+        Collections.singletonList(
+            EntityFactory.createTokens().withUsername(testUsername).buildAndPersist(tokenDao));
+    FindIterable iterable = mock(FindIterable.class);
+    when(mongoCollection.find()).thenReturn(iterable);
+    when(iterable.into(new ArrayList())).thenReturn(tokensList);
+    tokenDao.getAll();
   }
 }

@@ -1,30 +1,39 @@
 package DatabaseTest.Organization;
 
+import Config.MongoTestConfig;
 import Database.Organization.OrgDao;
-import Database.Organization.OrgDaoTestImpl;
+import Database.Organization.OrgDaoImpl;
 import Organization.Organization;
 import TestUtils.EntityFactory;
-import TestUtils.TestUtils;
-import com.google.common.collect.ImmutableList;
-import org.junit.After;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static com.mongodb.client.model.Filters.eq;
+import static org.mockito.Mockito.*;
 
 public class OrgDaoImplUnitTests {
-  public OrgDao orgDao;
+
+  private MongoTestConfig mongoTestConfig;
+  private MongoDatabase mongoDatabase;
+  private MongoCollection<Organization> mongoCollection;
+  private OrgDao orgDao;
 
   @Before
   public void initialize() {
-    TestUtils.startServer();
-    TestUtils.setUpTestDB();
-    this.orgDao = new OrgDaoTestImpl();
-  }
-
-  @After
-  public void reset() {
-    orgDao.clear();
+    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoDatabase = mock(MongoDatabase.class);
+    mongoCollection = mock(MongoCollection.class);
+    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoDatabase.getCollection("organization", Organization.class))
+        .thenReturn(mongoCollection);
+    orgDao = new OrgDaoImpl(mongoTestConfig);
   }
 
   @Test
@@ -32,57 +41,51 @@ public class OrgDaoImplUnitTests {
     String testOrgName = "org1";
     Organization organization = EntityFactory.createOrganization().withOrgName(testOrgName).build();
     orgDao.save(organization);
-    assertTrue(orgDao.get(testOrgName).isPresent());
-    assertEquals(orgDao.get(testOrgName).get(), organization);
+    verify(mongoCollection).insertOne(organization);
   }
 
   @Test
   public void get() {
+    FindIterable iterable = mock(FindIterable.class);
     String testOrgName = "org1";
     Organization organization =
         EntityFactory.createOrganization().withOrgName(testOrgName).buildAndPersist(orgDao);
-    assertTrue(orgDao.get(testOrgName).isPresent());
-    assertEquals(orgDao.get(testOrgName).get(), organization);
+    when(mongoCollection.find(eq("orgName", testOrgName))).thenReturn(iterable);
+    when(iterable.first()).thenReturn(organization);
+    orgDao.get(testOrgName);
+    verify(mongoCollection).find(eq("orgName", testOrgName));
   }
 
   @Test
   public void deleteByUsername() {
     String testOrgName = "org1";
     EntityFactory.createOrganization().withOrgName(testOrgName).buildAndPersist(orgDao);
-    assertTrue(orgDao.get(testOrgName).isPresent());
     orgDao.delete(testOrgName);
-    assertFalse(orgDao.get(testOrgName).isPresent());
+    verify(mongoCollection).deleteOne(eq("orgName", testOrgName));
   }
 
   @Test
   public void size() {
-    orgDao.clear();
-    EntityFactory.createOrganization().withOrgName("org1").buildAndPersist(orgDao);
-    EntityFactory.createOrganization().withOrgName("org2").buildAndPersist(orgDao);
-    EntityFactory.createOrganization().withOrgName("org3").buildAndPersist(orgDao);
-    assertEquals(3, orgDao.size());
+    when(mongoCollection.countDocuments()).thenReturn(3L);
+    int result = orgDao.size();
+    assert result == 3;
   }
 
   @Test
   public void clear() {
     orgDao.clear();
-    EntityFactory.createOrganization().withOrgName("org1").buildAndPersist(orgDao);
-    EntityFactory.createOrganization().withOrgName("org2").buildAndPersist(orgDao);
-    EntityFactory.createOrganization().withOrgName("org3").buildAndPersist(orgDao);
-    assertEquals(3, orgDao.size());
-    orgDao.clear();
-    assertEquals(0, orgDao.size());
+    verify(mongoCollection).drop();
   }
 
   @Test
   public void getAll() {
-    orgDao.clear();
-    Organization org1 =
-        EntityFactory.createOrganization().withOrgName("org1").buildAndPersist(orgDao);
-    Organization org2 =
-        EntityFactory.createOrganization().withOrgName("org2").buildAndPersist(orgDao);
-    Organization org3 =
-        EntityFactory.createOrganization().withOrgName("org3").buildAndPersist(orgDao);
-    assertEquals(ImmutableList.of(org1, org2, org3), orgDao.getAll());
+    String testOrgName = "org1";
+    List<Organization> orgList =
+        Collections.singletonList(
+            EntityFactory.createOrganization().withOrgName(testOrgName).buildAndPersist(orgDao));
+    FindIterable iterable = mock(FindIterable.class);
+    when(mongoCollection.find()).thenReturn(iterable);
+    when(iterable.into(new ArrayList())).thenReturn(orgList);
+    orgDao.getAll();
   }
 }
