@@ -1,5 +1,6 @@
 package PDFTest;
 
+import PDF.PDFType;
 import PDF.PdfController;
 import Security.EncryptionUtils;
 import TestUtils.TestUtils;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.Iterator;
@@ -401,6 +403,36 @@ public class PdfControllerIntegrationTests {
   }
 
   @Test
+  public void getBirthCertificateQuestionsTest() throws IOException, GeneralSecurityException {
+    TestUtils.login(username, username);
+    // when running entire file, other documents interfere with retrieving the form.
+    clearAllDocuments();
+
+    File applicationPDF =
+        new File(
+            resourcesFolderPath
+                + File.separator
+                + "Ann_Too_Pennsylvania_Birth_Certificate_Form_Current.pdf");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+
+    JSONObject body = new JSONObject();
+    body.put("applicationId", fileId);
+    HttpResponse<String> applicationsQuestionsResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-application-questions")
+            .body(body.toString())
+            .asString();
+    JSONObject applicationsQuestionsResponseJSON =
+        TestUtils.responseStringToJSON(applicationsQuestionsResponse.getBody());
+
+    System.out.println(applicationsQuestionsResponseJSON);
+
+    assertThat(applicationsQuestionsResponseJSON.getString("status")).isEqualTo("SUCCESS");
+
+    // delete(fileId, "FORM");
+    TestUtils.logout();
+  }
+
+  @Test
   public void getApplicationQuestionBlankPDFTest() throws IOException, GeneralSecurityException {
     TestUtils.login(username, username);
     // when running entire file, other documents interfere with retrieving the form.
@@ -704,18 +736,18 @@ public class PdfControllerIntegrationTests {
   public void getPDFTitleTest1() throws IOException {
     String fileName = "Ann_Too_Pennsylvania_Birth_Certificate.pdf";
     File applicationPDF = new File(resourcesFolderPath + File.separator + fileName);
-    PDDocument pdfDocument = PDDocument.load(FileUtils.openInputStream(applicationPDF));
+    InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
     assertEquals(
         "Pennsylvania - Application for a Birth Certificate",
-        PdfController.getPDFTitle(fileName, pdfDocument));
+        PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
   }
 
   @Test // Test without any title in document
   public void getPDFTitleTest2() throws IOException {
     String fileName = "library-card-application.pdf";
     File applicationPDF = new File(resourcesFolderPath + File.separator + fileName);
-    PDDocument pdfDocument = PDDocument.load(FileUtils.openInputStream(applicationPDF));
-    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument));
+    InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
+    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
   }
 
   @BeforeEach

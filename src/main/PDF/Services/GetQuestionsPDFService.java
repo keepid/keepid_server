@@ -106,38 +106,34 @@ public class GetQuestionsPDFService implements Service {
         List<PDField> childrenFields = ((PDNonTerminalField) field).getChildren();
         fields.addAll(childrenFields);
       } else {
+        JSONObject fieldJSON = null;
         // If the field is a leaf, then get the relevant data and return it
         if (field instanceof PDButton) {
           if (field instanceof PDCheckBox) {
-            fieldsJSON.add(getCheckBox((PDCheckBox) field));
+            fieldJSON = getCheckBox((PDCheckBox) field);
           } else if (field instanceof PDPushButton) {
-            // Do not do anything for a push button, as we don't need to support them right now
+            // Do nothing for a push button, as we don't need to support them right now
           } else if (field instanceof PDRadioButton) {
-            fieldsJSON.add(getRadioButton((PDRadioButton) field));
+            fieldJSON = getRadioButton((PDRadioButton) field);
           }
         } else if (field instanceof PDVariableText) {
           if (field instanceof PDChoice) {
-            fieldsJSON.add(getChoiceField((PDChoice) field));
+            fieldJSON = getChoiceField((PDChoice) field);
           } else if (field instanceof PDTextField) {
-            fieldsJSON.add(getTextField((PDTextField) field));
+            fieldJSON = getTextField((PDTextField) field);
           }
         } else if (field instanceof PDSignatureField) {
           // Do nothing, as signatures are dealt with in findSignatureFields
         }
-      }
-    }
 
-    // Error if one or more fields not annotated correctly - will list all the field errors
-    boolean annotationsSuccessful = true;
-    PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
-    for (JSONObject field : fieldsJSON) {
-      if (!field.get("fieldStatus").equals(successStatus)) {
-        annotationsSuccessful = false;
-        annotationError.addErrorSubMessage(field.getString("fieldStatus"));
+        // Check for an annotation error - if so, then return error with field name
+        if (fieldJSON != null && !fieldJSON.get("fieldStatus").equals(successStatus)) {
+          PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
+          System.out.println(fieldJSON.getString("fieldStatus"));
+          annotationError.addErrorSubMessage(fieldJSON.getString("fieldStatus"));
+          return annotationError;
+        }
       }
-    }
-    if (!annotationsSuccessful) {
-      return annotationError;
     }
 
     Collections.sort(fieldsJSON, Comparator.comparing(a -> a.getString("fieldOrdering")));
@@ -267,7 +263,7 @@ public class GetQuestionsPDFService implements Service {
     // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
     if (splitFieldName.length != 2 || splitFieldName.length != 3) {
-      String fieldStatus = "Invalid Number of Colons for Field " + fieldName;
+      String fieldStatus = "Invalid Number of Colons for Field '" + fieldName + "'";
       fieldJSON.put("fieldStatus", fieldStatus);
       return fieldJSON;
     } else {
@@ -295,7 +291,7 @@ public class GetQuestionsPDFService implements Service {
           fieldIsMatched = true;
           fieldDefaultValue = this.userInfo.getString(fieldDirective);
         } else {
-          String fieldStatus = "Field Directive not Understood for Field " + fieldName;
+          String fieldStatus = "Field Directive not Understood for Field '" + fieldName + "'";
           fieldJSON.put("fieldStatus", fieldStatus);
           return fieldJSON;
         }

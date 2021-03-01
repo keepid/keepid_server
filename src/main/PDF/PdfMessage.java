@@ -48,6 +48,6 @@ public enum PdfMessage implements Message {
   }
 
   public void addErrorSubMessage(String errorMessage) {
-    this.errorMessage += ":" + errorMessage;
+    this.errorMessage += " - " + errorMessage;
   }
 }
