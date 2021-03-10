@@ -12,7 +12,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import java.util.Objects;
 
 public class MongoTestConfig {
-  public static final String MONGO_DB_STAGING = "test-db";
+  public static final String MONGO_DB_STAGING = "staging-db";
   public static final String MONGO_URI = Objects.requireNonNull(System.getenv("MONGO_URI"));
   private final MongoClient mongoClient;
 
