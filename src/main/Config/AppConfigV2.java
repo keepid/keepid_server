@@ -11,12 +11,11 @@ import Security.AccountSecurityController;
 import Security.EncryptionUtils;
 import User.UserController;
 import User.UserControllerV2;
+import com.google.inject.Inject;
 import io.javalin.Javalin;
-import lombok.RequiredArgsConstructor;
 
 import static io.javalin.apibuilder.ApiBuilder.crud;
 
-@RequiredArgsConstructor
 public class AppConfigV2 {
   public static Long ASYNC_TIME_OUT = 10L;
   public static int SERVER_PORT = Integer.parseInt(System.getenv("PORT"));
@@ -32,30 +31,30 @@ public class AppConfigV2 {
   private final IssueController issueController;
   private final AdminController adminController;
   private final ActivityController activityController;
-  //
-  //  @Inject
-  //  public AppConfigV2(
-  //      UserControllerV2 userControllerV2,
-  //      OrgControllerV2 orgControllerV2,
-  //      DocumentControllerV2 documentControllerV2,
-  //      PdfController pdfController,
-  //      UserController userController,
-  //      OrganizationController orgController,
-  //      AccountSecurityController accountSecurityController,
-  //      IssueController issueController,
-  //      AdminController adminController,
-  //      ActivityController activityController) {
-  //    this.userControllerV2 = userControllerV2;
-  //    this.orgControllerV2 = orgControllerV2;
-  //    this.documentControllerV2 = documentControllerV2;
-  //    this.pdfController = pdfController;
-  //    this.userController = userController;
-  //    this.orgController = orgController;
-  //    this.accountSecurityController = accountSecurityController;
-  //    this.issueController = issueController;
-  //    this.adminController = adminController;
-  //    this.activityController = activityController;
-  //  }
+
+  @Inject
+  public AppConfigV2(
+      UserControllerV2 userControllerV2,
+      OrgControllerV2 orgControllerV2,
+      DocumentControllerV2 documentControllerV2,
+      PdfController pdfController,
+      UserController userController,
+      OrganizationController orgController,
+      AccountSecurityController accountSecurityController,
+      IssueController issueController,
+      AdminController adminController,
+      ActivityController activityController) {
+    this.userControllerV2 = userControllerV2;
+    this.orgControllerV2 = orgControllerV2;
+    this.documentControllerV2 = documentControllerV2;
+    this.pdfController = pdfController;
+    this.userController = userController;
+    this.orgController = orgController;
+    this.accountSecurityController = accountSecurityController;
+    this.issueController = issueController;
+    this.adminController = adminController;
+    this.activityController = activityController;
+  }
 
   public Javalin appFactory(DeploymentLevel deploymentLevel) {
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");

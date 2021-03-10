@@ -53,29 +53,22 @@ public class TestUtils {
   }
 
   // TODO(xander) fix
-  void SignInUser() {
+  static void SignInUser() {
     JSONObject body = new JSONObject();
     body.put("password", "password");
     body.put("username", "username");
     body.put("privilegeLevel", UserType.Worker.toString());
-
-    UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
-    String organizationName = ctx.sessionAttribute("orgName");
-    String sessionUsername = ctx.sessionAttribute("username");
-    String firstName = req.getString("firstname").strip();
-    String lastName = req.getString("lastname").strip();
-    String birthDate = req.getString("birthDate").strip();
-    String email = req.getString("email").toLowerCase().strip();
-    String phone = req.getString("phonenumber").strip();
-    String address = req.getString("address").strip();
-    String city = req.getString("city").strip();
-    String state = req.getString("state").strip();
-    String zipcode = req.getString("zipcode").strip();
-    Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-    String username = req.getString("username").strip();
-    String password = req.getString("password").strip();
-    String userTypeString = req.getString("personRole").strip();
-    UserType userType = UserType.userTypeFromString(userTypeString);
+    body.put("firstname", "asdf");
+    body.put("lastname", "asdf");
+    body.put("birthDate", "01/02/1991");
+    body.put("email", "asdf@as.com");
+    body.put("phonenumber", "1112221122");
+    body.put("address", "asdf");
+    body.put("city", "asdf");
+    body.put("state", "IL");
+    body.put("zipcode", "12112");
+    body.put("twoFactorOn", "asdf");
+    body.put("personRole", UserType.Client.toString());
 
     HttpResponse<String> loginResponse =
         Unirest.post(SERVER_TEST_URL + "/create-user").body(body.toString()).asString();
