@@ -1,7 +1,7 @@
 package AdminTest;
 
 import Admin.AdminController;
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.Activity.ActivityDao;
 import Database.Organization.OrgDao;
 import Database.User.UserDao;
@@ -16,13 +16,13 @@ public class AdminControllerUnitTest {
   private UserDao userDao = mock(UserDao.class);
   private ActivityDao activityDao = mock(ActivityDao.class);
   private OrgDao orgDao = mock(OrgDao.class);
-  private MongoTestConfig mongoTestConfig = mock(MongoTestConfig.class);
+  private MongoStagingConfig mongoStagingConfig = mock(MongoStagingConfig.class);
   private Context ctx = mock(Context.class);
   private AdminController testSubject;
 
   @Before
   public void setup() {
-    testSubject = new AdminController(userDao, activityDao, orgDao, mongoTestConfig);
+    testSubject = new AdminController(userDao, activityDao, orgDao, mongoStagingConfig);
   }
 
   @Test

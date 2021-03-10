@@ -1,6 +1,6 @@
 package Database.Report;
 
-import Config.MongoTestConfig;
+import Database.MongoConfig;
 import Issue.IssueReport;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
@@ -13,9 +13,9 @@ public class ReportDaoImpl implements ReportDao {
   private MongoCollection<IssueReport> issueReportMongoCollection;
 
   @Inject
-  public ReportDaoImpl(MongoTestConfig mongoTestConfig) {
+  public ReportDaoImpl(MongoConfig mongoConfig) {
     this.issueReportMongoCollection =
-        mongoTestConfig.getDatabase().getCollection("IssueReport", IssueReport.class);
+        mongoConfig.getDatabase().getCollection("IssueReport", IssueReport.class);
   }
 
   @Override

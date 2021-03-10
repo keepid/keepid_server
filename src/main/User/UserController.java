@@ -1,7 +1,7 @@
 package User;
 
 import Config.Message;
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import User.Services.*;
@@ -19,10 +19,10 @@ public class UserController {
   TokenDao tokenDao;
 
   @Inject
-  public UserController(UserDao userDao, TokenDao tokenDao, MongoTestConfig mongoTestConfig) {
+  public UserController(UserDao userDao, TokenDao tokenDao, MongoStagingConfig mongoStagingConfig) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
-    this.db = mongoTestConfig.getDatabase();
+    this.db = mongoStagingConfig.getDatabase();
   }
 
   public Handler loginUser =

@@ -12,6 +12,7 @@ import User.User;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Context;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -31,6 +32,12 @@ public class ChangeTwoFactorSettingIntegrationTests {
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
+    TestUtils.setUpTestDB();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    TestUtils.tearDownTestDB();
   }
 
   // Make sure to enable .env file configurations for these tests

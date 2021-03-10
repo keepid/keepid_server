@@ -1,6 +1,6 @@
 package Database.Token;
 
-import Config.MongoTestConfig;
+import Database.MongoConfig;
 import Security.Tokens;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
@@ -17,8 +17,8 @@ public class TokenDaoImpl implements TokenDao {
   private MongoCollection<Tokens> tokenCollection;
 
   @Inject
-  public TokenDaoImpl(MongoTestConfig mongoTestConfig) {
-    this.tokenCollection = mongoTestConfig.getDatabase().getCollection("tokens", Tokens.class);
+  public TokenDaoImpl(MongoConfig mongoConfig) {
+    this.tokenCollection = mongoConfig.getDatabase().getCollection("tokens", Tokens.class);
   }
 
   @Override

@@ -1,6 +1,6 @@
 package DatabaseTest.Token;
 
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoImpl;
 import Security.Tokens;
@@ -20,19 +20,19 @@ import static org.mockito.Mockito.*;
 
 public class TokenDaoImplUnitTests {
 
-  private MongoTestConfig mongoTestConfig;
+  private MongoStagingConfig mongoStagingConfig;
   private MongoDatabase mongoDatabase;
   private MongoCollection<Tokens> mongoCollection;
   private TokenDao tokenDao;
 
   @Before
   public void initialize() {
-    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoStagingConfig = mock(MongoStagingConfig.class);
     mongoDatabase = mock(MongoDatabase.class);
     mongoCollection = mock(MongoCollection.class);
-    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoStagingConfig.getDatabase()).thenReturn(mongoDatabase);
     when(mongoDatabase.getCollection("tokens", Tokens.class)).thenReturn(mongoCollection);
-    tokenDao = new TokenDaoImpl(mongoTestConfig);
+    tokenDao = new TokenDaoImpl(mongoStagingConfig);
   }
 
   @Test

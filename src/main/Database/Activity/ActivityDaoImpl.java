@@ -1,7 +1,7 @@
 package Database.Activity;
 
 import Activity.Activity;
-import Config.MongoTestConfig;
+import Database.MongoConfig;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -15,14 +15,13 @@ public class ActivityDaoImpl implements ActivityDao {
   private final MongoCollection<Activity> activityCollection;
 
   @Inject
-  public ActivityDaoImpl(MongoTestConfig mongoTestConfig) {
-    this.activityCollection =
-        mongoTestConfig.getDatabase().getCollection("activity", Activity.class);
+  public ActivityDaoImpl(MongoConfig mongoConfig) {
+    this.activityCollection = mongoConfig.getDatabase().getCollection("activity", Activity.class);
   }
 
   @Override
   public Optional<Activity> get(ObjectId id) {
-    return null;
+    return Optional.ofNullable(activityCollection.find(Filters.eq("_id", id)).first());
   }
 
   @Override

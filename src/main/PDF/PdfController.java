@@ -1,7 +1,7 @@
 package PDF;
 
 import Config.Message;
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.User.UserDao;
 import PDF.Services.*;
 import Security.EncryptionController;
@@ -31,9 +31,9 @@ public class PdfController {
   private EncryptionController encryptionController;
 
   @Inject
-  public PdfController(UserDao userDao, MongoTestConfig mongoTestConfig) {
+  public PdfController(UserDao userDao, MongoStagingConfig mongoStagingConfig) {
     this.userDao = userDao;
-    this.db = mongoTestConfig.getDatabase();
+    this.db = mongoStagingConfig.getDatabase();
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {

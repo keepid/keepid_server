@@ -1,6 +1,6 @@
 package Database.Organization;
 
-import Config.MongoTestConfig;
+import Database.MongoConfig;
 import Organization.Organization;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
@@ -18,9 +18,9 @@ public class OrgDaoImpl implements OrgDao {
   private static final String ORG_NAME_KEY = "orgName";
 
   @Inject
-  public OrgDaoImpl(MongoTestConfig mongoTestConfig) {
+  public OrgDaoImpl(MongoConfig mongoConfig) {
     this.orgCollection =
-        mongoTestConfig.getDatabase().getCollection("organization", Organization.class);
+        mongoConfig.getDatabase().getCollection("organization", Organization.class);
   }
 
   @Override

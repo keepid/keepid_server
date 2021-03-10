@@ -1,6 +1,6 @@
 package DatabaseTest.User;
 
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.User.UserDao;
 import Database.User.UserDaoImpl;
 import TestUtils.EntityFactory;
@@ -20,19 +20,19 @@ import static org.mockito.Mockito.*;
 
 public class UserDaoImplUnitTests {
 
-  private MongoTestConfig mongoTestConfig;
+  private MongoStagingConfig mongoStagingConfig;
   private MongoDatabase mongoDatabase;
   private MongoCollection<User> mongoCollection;
   private UserDao userDao;
 
   @Before
   public void initialize() {
-    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoStagingConfig = mock(MongoStagingConfig.class);
     mongoDatabase = mock(MongoDatabase.class);
     mongoCollection = mock(MongoCollection.class);
-    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoStagingConfig.getDatabase()).thenReturn(mongoDatabase);
     when(mongoDatabase.getCollection("user", User.class)).thenReturn(mongoCollection);
-    userDao = new UserDaoImpl(mongoTestConfig);
+    userDao = new UserDaoImpl(mongoStagingConfig);
   }
 
   @Test

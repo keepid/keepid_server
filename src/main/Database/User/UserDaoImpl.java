@@ -1,6 +1,6 @@
 package Database.User;
 
-import Config.MongoTestConfig;
+import Database.MongoConfig;
 import User.User;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoCollection;
@@ -17,8 +17,8 @@ public class UserDaoImpl implements UserDao {
   private final MongoCollection<User> userCollection;
 
   @Inject
-  public UserDaoImpl(MongoTestConfig mongoTestConfig) {
-    this.userCollection = mongoTestConfig.getDatabase().getCollection("user", User.class);
+  public UserDaoImpl(MongoConfig mongoConfig) {
+    this.userCollection = mongoConfig.getDatabase().getCollection("user", User.class);
   }
 
   @Override

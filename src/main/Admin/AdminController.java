@@ -1,7 +1,7 @@
 package Admin;
 
 import Config.Message;
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.Activity.ActivityDao;
 import Database.Organization.OrgDao;
 import Database.User.UserDao;
@@ -18,11 +18,14 @@ public class AdminController {
 
   @Inject
   public AdminController(
-      UserDao userDao, ActivityDao activityDao, OrgDao orgDao, MongoTestConfig mongoTestConfig) {
+      UserDao userDao,
+      ActivityDao activityDao,
+      OrgDao orgDao,
+      MongoStagingConfig mongoStagingConfig) {
     this.userDao = userDao;
     this.activityDao = activityDao;
     this.orgDao = orgDao;
-    this.db = mongoTestConfig.getDatabase();
+    this.db = mongoStagingConfig.getDatabase();
   }
 
   public void deleteOrg(Context ctx) {

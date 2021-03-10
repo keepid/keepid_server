@@ -1,6 +1,6 @@
 package DatabaseTest.Organization;
 
-import Config.MongoTestConfig;
+import Config.MongoStagingConfig;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoImpl;
 import Organization.Organization;
@@ -20,20 +20,20 @@ import static org.mockito.Mockito.*;
 
 public class OrgDaoImplUnitTests {
 
-  private MongoTestConfig mongoTestConfig;
+  private MongoStagingConfig mongoStagingConfig;
   private MongoDatabase mongoDatabase;
   private MongoCollection<Organization> mongoCollection;
   private OrgDao orgDao;
 
   @Before
   public void initialize() {
-    mongoTestConfig = mock(MongoTestConfig.class);
+    mongoStagingConfig = mock(MongoStagingConfig.class);
     mongoDatabase = mock(MongoDatabase.class);
     mongoCollection = mock(MongoCollection.class);
-    when(mongoTestConfig.getDatabase()).thenReturn(mongoDatabase);
+    when(mongoStagingConfig.getDatabase()).thenReturn(mongoDatabase);
     when(mongoDatabase.getCollection("organization", Organization.class))
         .thenReturn(mongoCollection);
-    orgDao = new OrgDaoImpl(mongoTestConfig);
+    orgDao = new OrgDaoImpl(mongoStagingConfig);
   }
 
   @Test

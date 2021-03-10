@@ -1,5 +1,6 @@
 package Config;
 
+import Database.MongoConfig;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
@@ -11,12 +12,12 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 
 import java.util.Objects;
 
-public class MongoTestConfig {
+public class MongoStagingConfig implements MongoConfig {
   public static final String MONGO_DB_STAGING = "staging-db";
   public static final String MONGO_URI = Objects.requireNonNull(System.getenv("MONGO_URI"));
   private final MongoClient mongoClient;
 
-  public MongoTestConfig() {
+  public MongoStagingConfig() {
     this.mongoClient = startConnection();
   }
 
@@ -35,6 +36,7 @@ public class MongoTestConfig {
     return MongoClients.create(clientSettings);
   }
 
+  @Override
   public MongoDatabase getDatabase() {
     if (mongoClient == null) {
       throw new IllegalStateException("Please start a client before getting a database");

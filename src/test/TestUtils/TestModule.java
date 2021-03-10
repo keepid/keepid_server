@@ -1,24 +1,26 @@
 package TestUtils;
 
 import Database.Activity.ActivityDao;
-import Database.Activity.ActivityDaoTestImpl;
+import Database.Activity.ActivityDaoImpl;
+import Database.MongoConfig;
 import Database.Organization.OrgDao;
-import Database.Organization.OrgDaoTestImpl;
+import Database.Organization.OrgDaoImpl;
 import Database.Report.ReportDao;
-import Database.Report.ReportDaoTestImpl;
+import Database.Report.ReportDaoImpl;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoTestImpl;
+import Database.Token.TokenDaoImpl;
 import Database.User.UserDao;
-import Database.User.UserDaoTestImpl;
+import Database.User.UserDaoImpl;
 import com.google.inject.AbstractModule;
 
 public class TestModule extends AbstractModule {
   @Override
   protected void configure() {
-    bind(OrgDao.class).to(OrgDaoTestImpl.class);
-    bind(UserDao.class).to(UserDaoTestImpl.class);
-    bind(TokenDao.class).to(TokenDaoTestImpl.class);
-    bind(ActivityDao.class).to(ActivityDaoTestImpl.class);
-    bind(ReportDao.class).to(ReportDaoTestImpl.class);
+    bind(OrgDao.class).to(OrgDaoImpl.class);
+    bind(UserDao.class).to(UserDaoImpl.class);
+    bind(TokenDao.class).to(TokenDaoImpl.class);
+    bind(ActivityDao.class).to(ActivityDaoImpl.class);
+    bind(ReportDao.class).to(ReportDaoImpl.class);
+    bind(MongoConfig.class).to(MongoTestConfig.class);
   }
 }

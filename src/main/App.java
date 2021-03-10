@@ -1,6 +1,7 @@
 import Config.AppConfigV2;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityModule;
+import Database.MongoStagingModule;
 import Database.Organization.OrgModule;
 import Database.Report.ReportModule;
 import Database.Token.TokenModule;
@@ -16,7 +17,8 @@ public class App {
             new OrgModule(),
             new TokenModule(),
             new ReportModule(),
-            new ActivityModule());
+            new ActivityModule(),
+            new MongoStagingModule());
     AppConfigV2 appConfigV2 = injector.getInstance(AppConfigV2.class);
     appConfigV2.appFactory(DeploymentLevel.STAGING);
   }
