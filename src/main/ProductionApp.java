@@ -9,6 +9,6 @@ public class ProductionApp {
   public static void main(String[] args) {
     Injector injector = Guice.createInjector(new UserModule(), new OrgModule());
     AppConfigV2 appConfigV2 = injector.getInstance(AppConfigV2.class);
-    appConfigV2.appFactory(DeploymentLevel.TEST);
+    appConfigV2.appFactory(DeploymentLevel.PRODUCTION);
   }
 }
