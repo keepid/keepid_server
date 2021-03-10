@@ -99,6 +99,24 @@ public class AppConfig {
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
 
+    /* --------------- PRODUCTION TOOLNG ------------- */
+    app.get("/organizations", (ctx) -> {});
+    app.post("/organizations", (ctx) -> {});
+    app.get("/organizations/:orgId", (ctx) -> {});
+    app.put("/organizations/:orgId", (ctx) -> {});
+    app.delete("/organizations/:orgId", (ctx) -> {});
+    app.get("/organizations/:orgId/users", (ctx) -> {});
+
+    app.get("/users", (ctx) -> {});
+    app.get("/users/:username", (ctx) -> {});
+    app.put("/users/:username", (ctx) -> {});
+    app.delete("/users/:username", (ctx) -> {});
+
+    app.get("/users/:username/documents", (ctx) -> {});
+    app.post("/users/:username/documents", (ctx) -> {});
+    app.get("/users/:username/documents/:documentId", (ctx) -> {});
+    app.delete("/users/:username/documents/:documentId", (ctx) -> {});
+
     return app;
   }
 
