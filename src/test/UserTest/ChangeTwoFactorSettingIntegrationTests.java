@@ -2,11 +2,14 @@ package UserTest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoImpl;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoTestImpl;
+import Database.Token.TokenDaoImpl;
 import Database.User.UserDao;
-import Database.User.UserDaoTestImpl;
+import Database.User.UserDaoImpl;
 import Security.AccountSecurityController;
+import TestUtils.MongoTestConfig;
 import TestUtils.TestUtils;
 import User.User;
 import com.mongodb.client.MongoCollection;
@@ -18,6 +21,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Objects;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.mockito.Mockito.mock;
@@ -26,8 +30,10 @@ import static org.mockito.Mockito.when;
 public class ChangeTwoFactorSettingIntegrationTests {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-  UserDao userDao = new UserDaoTestImpl();
-  TokenDao tokenDao = new TokenDaoTestImpl();
+  MongoTestConfig mongoTestConfig = new MongoTestConfig();
+  UserDao userDao = new UserDaoImpl(mongoTestConfig);
+  TokenDao tokenDao = new TokenDaoImpl(mongoTestConfig);
+  ActivityDao activityDao = new ActivityDaoImpl(mongoTestConfig);
 
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
@@ -49,14 +55,14 @@ public class ChangeTwoFactorSettingIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
     when(ctx.sessionAttribute("username")).thenReturn("settings-test-2fa");
 
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
+    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
     asc.change2FASetting.handle(ctx);
 
     // Check that setting was changed
     MongoCollection<User> userCollection = db.getCollection("user", User.class);
     User user = userCollection.find(eq("username", "settings-test-2fa")).first();
 
-    assert (user.getTwoFactorOn() == true);
+    assert (Objects.requireNonNull(user).getTwoFactorOn());
   }
 
   @Test
@@ -66,13 +72,13 @@ public class ChangeTwoFactorSettingIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
     when(ctx.sessionAttribute("username")).thenReturn("settings-test-2fa");
 
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
+    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
     asc.change2FASetting.handle(ctx);
 
     // Check that setting was changed
     MongoCollection<User> userCollection = db.getCollection("user", User.class);
     User user = userCollection.find(eq("username", "settings-test-2fa")).first();
 
-    assert (user.getTwoFactorOn() == false);
+    assert (!Objects.requireNonNull(user).getTwoFactorOn());
   }
 }

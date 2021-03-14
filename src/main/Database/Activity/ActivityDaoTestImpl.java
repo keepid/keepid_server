@@ -15,36 +15,61 @@ public class ActivityDaoTestImpl implements ActivityDao {
 
   @Override
   public Optional<Activity> get(ObjectId id) {
-    return null;
+    for (Activity activity : activityMap.values()) {
+      if (activity.getId().equals(id)) {
+        return Optional.of(activity);
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
   public List<Activity> getAll() {
-    return null;
+    return new ArrayList<Activity>(activityMap.values());
   }
 
   @Override
   public List<Activity> getAllFromUser(String username) {
-    return Collections.singletonList(activityMap.get(username));
+    List<Activity> result = new ArrayList<>();
+    for (Activity activity : activityMap.values()) {
+      if (activity.getOwner().getUsername().equals(username)) {
+        result.add(activity);
+      }
+    }
+    return result;
   }
 
   @Override
   public int size() {
-    return 1;
+    return activityMap.size();
   }
 
   @Override
-  public void save(Activity activity) {}
+  public void save(Activity activity) {
+    activityMap.put(activity.getId().toString(), activity);
+  }
 
   @Override
-  public void update(Activity activity) {}
+  public void update(Activity activity) {
+    activityMap.put(activity.getId().toString(), activity);
+  }
 
   @Override
-  public void delete(Activity activity) {}
+  public void delete(Activity activity) {
+    activityMap.remove(activity.getId().toString());
+  }
 
   @Override
-  public void deleteAllFromOrg(String orgName) {}
+  public void deleteAllFromOrg(String orgName) {
+    for (Activity activity : activityMap.values()) {
+      if (activity.getOwner().getOrganization().equals(orgName)) {
+        activityMap.remove(activity.getId().toString());
+      }
+    }
+  }
 
   @Override
-  public void clear() {}
+  public void clear() {
+    activityMap.clear();
+  }
 }

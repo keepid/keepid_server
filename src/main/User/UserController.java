@@ -2,6 +2,7 @@ package User;
 
 import Config.Message;
 import Config.MongoStagingConfig;
+import Database.Activity.ActivityDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import User.Services.*;
@@ -17,11 +18,17 @@ public class UserController {
   MongoDatabase db;
   UserDao userDao;
   TokenDao tokenDao;
+  ActivityDao activityDao;
 
   @Inject
-  public UserController(UserDao userDao, TokenDao tokenDao, MongoStagingConfig mongoStagingConfig) {
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      ActivityDao activityDao,
+      MongoStagingConfig mongoStagingConfig) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
+    this.activityDao = activityDao;
     this.db = mongoStagingConfig.getDatabase();
   }
 
@@ -36,7 +43,7 @@ public class UserController {
         log.info("Attempting to login " + username);
 
         LoginService loginService =
-            new LoginService(userDao, tokenDao, username, password, ip, userAgent);
+            new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
         Message response = loginService.executeAndGetResponse();
         log.info(response.toString() + response.getErrorDescription());
         JSONObject responseJSON = response.toJSON();

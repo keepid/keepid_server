@@ -1,6 +1,7 @@
 package Security;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Security.Services.*;
@@ -12,12 +13,14 @@ import org.json.JSONObject;
 public class AccountSecurityController {
   private UserDao userDao;
   private TokenDao tokenDao;
+  private ActivityDao activityDao;
   private EncryptionUtils encryptionUtils;
 
   @Inject
-  public AccountSecurityController(UserDao userDao, TokenDao tokenDao) {
+  public AccountSecurityController(UserDao userDao, TokenDao tokenDao, ActivityDao activityDao) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
+    this.activityDao = activityDao;
     this.encryptionUtils = EncryptionUtils.getInstance();
   }
 
@@ -50,7 +53,7 @@ public class AccountSecurityController {
         String key = req.getString("key");
         String value = req.getString("value");
         ChangeAccountSettingService changeAccountSettingService =
-            new ChangeAccountSettingService(userDao, username, password, key, value);
+            new ChangeAccountSettingService(userDao, activityDao, username, password, key, value);
         ctx.result(changeAccountSettingService.executeAndGetResponse().toResponseString());
       };
 

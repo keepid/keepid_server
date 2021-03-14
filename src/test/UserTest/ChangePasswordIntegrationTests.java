@@ -4,14 +4,15 @@ import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
 import Database.Token.TokenDao;
-import Database.Token.TokenDaoTestImpl;
+import Database.Token.TokenDaoImpl;
 import Database.User.UserDao;
-import Database.User.UserDaoTestImpl;
+import Database.User.UserDaoImpl;
 import Security.SecurityUtils;
 import Security.Services.ChangePasswordService;
 import Security.Services.ForgotPasswordService;
 import Security.Services.ResetPasswordService;
 import Security.Tokens;
+import TestUtils.MongoTestConfig;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserMessage;
@@ -47,8 +48,9 @@ public class ChangePasswordIntegrationTests {
 
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-  UserDao userDao = new UserDaoTestImpl();
-  TokenDao tokenDao = new TokenDaoTestImpl();
+  MongoTestConfig mongoTestConfig = new MongoTestConfig();
+  UserDao userDao = new UserDaoImpl(mongoTestConfig);
+  TokenDao tokenDao = new TokenDaoImpl(mongoTestConfig);
 
   // Make sure to enable .env file configurations for these tests
 

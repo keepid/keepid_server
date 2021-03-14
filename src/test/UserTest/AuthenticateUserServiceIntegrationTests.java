@@ -1,26 +1,35 @@
 package UserTest;
 
 import Database.User.UserDao;
-import Database.User.UserDaoTestImpl;
 import TestUtils.EntityFactory;
+import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static TestUtils.TestUtils.*;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+
+import static TestUtils.TestUtils.getServerUrl;
+import static TestUtils.TestUtils.responseStringToJSON;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuthenticateUserServiceIntegrationTests {
   UserDao userDao;
 
-  @Before
-  public void configureDatabase() {
-    startServer();
-    // NEVER USE DEPLOYMENT LEVEL HIGHER THAN TEST
-    userDao = new UserDaoTestImpl();
+  @BeforeClass
+  public static void setUp() throws GeneralSecurityException, IOException {
+    TestUtils.startServer();
+    TestUtils.setUpTestDB();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    TestUtils.tearDownTestDB();
   }
 
   @After

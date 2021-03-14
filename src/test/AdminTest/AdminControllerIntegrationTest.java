@@ -3,6 +3,8 @@ package AdminTest;
 import Activity.Activity;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoTestImpl;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoTestImpl;
 import Database.User.UserDao;
@@ -45,6 +47,7 @@ public class AdminControllerIntegrationTest {
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
   UserDao userDao = new UserDaoTestImpl();
   TokenDao tokenDao = new TokenDaoTestImpl();
+  ActivityDao activityDao = new ActivityDaoTestImpl();
 
   public static String resourcesFolderPath =
       Paths.get("").toAbsolutePath().toString()
@@ -76,7 +79,7 @@ public class AdminControllerIntegrationTest {
     when(ctx.sessionAttribute("orgName")).thenReturn(org.getOrgName());
     when(ctx.sessionAttribute("privilegeLevel")).thenReturn(user.getUserType());
 
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
+    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
     asc.changeAccountSetting.handle(ctx);
 
     TestUtils.login("admin-test", "admin-test");

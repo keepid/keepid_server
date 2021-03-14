@@ -4,7 +4,7 @@ import Activity.ActivityController;
 import Activity.LoginActivity;
 import Config.Message;
 import Config.Service;
-import Database.Activity.ActivityDaoTestImpl;
+import Database.Activity.ActivityDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Issue.IssueController;
@@ -44,6 +44,7 @@ public class LoginService implements Service {
   public LoginService(
       UserDao userDao,
       TokenDao tokenDao,
+      ActivityDao activityDao,
       String username,
       String password,
       String ip,
@@ -54,7 +55,7 @@ public class LoginService implements Service {
     this.password = password;
     this.ip = ip;
     this.userAgent = userAgent;
-    activityController = new ActivityController(new ActivityDaoTestImpl());
+    this.activityController = new ActivityController(activityDao);
   }
 
   // the execute function will handle all business logic

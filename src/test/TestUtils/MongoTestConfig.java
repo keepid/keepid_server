@@ -13,7 +13,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import java.util.Objects;
 
 public class MongoTestConfig implements MongoConfig {
-  public static final String MONGO_DB_STAGING = "test-db";
+  public static final String MONGO_DB_TEST = "test-db";
   public static final String MONGO_URI = Objects.requireNonNull(System.getenv("MONGO_URI"));
   private final MongoClient mongoClient;
 
@@ -41,6 +41,6 @@ public class MongoTestConfig implements MongoConfig {
     if (mongoClient == null) {
       throw new IllegalStateException("Please start a client before getting a database");
     }
-    return mongoClient.getDatabase(MONGO_DB_STAGING);
+    return mongoClient.getDatabase(MONGO_DB_TEST);
   }
 }

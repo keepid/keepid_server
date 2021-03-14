@@ -1,6 +1,9 @@
 package Activity;
 
 import User.User;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
@@ -8,6 +11,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@Builder
+@AllArgsConstructor
 public class Activity {
   private ObjectId id;
 

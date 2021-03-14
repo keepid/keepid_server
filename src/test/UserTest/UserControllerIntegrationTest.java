@@ -4,16 +4,26 @@ import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UserControllerIntegrationTest {
 
   @BeforeClass
-  public static void setUp() {
+  public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
+    TestUtils.setUpTestDB();
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    TestUtils.tearDownTestDB();
   }
 
   @Test

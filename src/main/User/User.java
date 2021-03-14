@@ -2,6 +2,8 @@ package User;
 
 import Validation.ValidationException;
 import Validation.ValidationUtils;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
@@ -12,6 +14,8 @@ import java.util.List;
 import java.util.Objects;
 
 @Slf4j
+@Builder
+@AllArgsConstructor
 public class User {
   private ObjectId id;
 
