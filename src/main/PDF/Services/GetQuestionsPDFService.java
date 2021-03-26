@@ -129,17 +129,44 @@ public class GetQuestionsPDFService implements Service {
         // Check for an annotation error - if so, then return error with field name
         if (fieldJSON != null && !fieldJSON.get("fieldStatus").equals(successStatus)) {
           PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
-          System.out.println(fieldJSON.getString("fieldStatus"));
           annotationError.addErrorSubMessage(fieldJSON.getString("fieldStatus"));
           return annotationError;
         }
       }
     }
 
+    // Replace fieldLinkedTo with the actual field name it is linked to (currently ordering index)
+    for (JSONObject fieldJSON : fieldsJSON) {
+      if (!fieldJSON.getString("fieldLinkage").equals("None")) {
+        String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedTo");
+
+        // Find the linked field name by the ordering index
+        String fieldLinkedToFieldName = null;
+        Iterator<JSONObject> fieldIterator = fieldsJSON.iterator();
+        while (fieldIterator.hasNext() && fieldLinkedToFieldName == null) {
+          JSONObject field = fieldIterator.next();
+          if (field.getString("fieldOrdering").equals(fieldLinkedToFieldOrdering)) {
+            fieldLinkedToFieldName = field.getString("fieldName");
+          }
+        }
+
+        if (fieldLinkedToFieldName == null) {
+          PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
+          annotationError.addErrorSubMessage(
+              "Field Linkage Directive not Understood for Field '"
+                  + fieldJSON.getString("fieldName")
+                  + "'");
+          return annotationError;
+        }
+        fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
+      }
+    }
+
+    // Sort fields by their ordering index
     Collections.sort(fieldsJSON, Comparator.comparing(a -> a.getString("fieldOrdering")));
+
     responseJSON.put("fields", fieldsJSON);
     this.applicationInformation = responseJSON;
-
     pdfDocument.close();
     return PdfMessage.SUCCESS;
   }
@@ -281,9 +308,11 @@ public class GetQuestionsPDFService implements Service {
         if (fieldDirective.startsWith("+")) {
           // Positively linked field
           fieldLinkageType = "Positive";
+          fieldLinkedTo = fieldDirective.substring(1);
         } else if (fieldDirective.startsWith("-")) {
           // Negatively linked field
           fieldLinkageType = "Negative";
+          fieldLinkedTo = fieldDirective.substring(1);
         } else if (fieldDirective.equals("anyDate")) {
           // Make it a date field that can be selected by the client
           fieldType = "DateField";
