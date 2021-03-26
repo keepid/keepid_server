@@ -262,12 +262,14 @@ public class GetQuestionsPDFService implements Service {
 
     // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
-    if (splitFieldName.length != 2 || splitFieldName.length != 3) {
-      String fieldStatus = "Invalid Number of Colons for Field '" + fieldName + "'";
-      fieldJSON.put("fieldStatus", fieldStatus);
+    if (splitFieldName.length != 2 && splitFieldName.length != 3) {
+      fieldJSON.put("fieldStatus", "Invalid Number of Colons for Field '" + fieldName + "'");
       return fieldJSON;
     } else {
       boolean fieldIsMatched = false;
+      String fieldLinkageType = "None"; // None, Positive, Negative
+      String fieldLinkedTo = ""; // Field name it is linked to
+
       String fieldOrdering = splitFieldName[0];
       String fieldNameBase = splitFieldName[1];
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
@@ -276,7 +278,13 @@ public class GetQuestionsPDFService implements Service {
       if (splitFieldName.length == 3) {
         // Annotation for matched field - has directive at the end
         String fieldDirective = splitFieldName[2];
-        if (fieldDirective.equals("anyDate")) {
+        if (fieldDirective.startsWith("+")) {
+          // Positively linked field
+          fieldLinkageType = "Positive";
+        } else if (fieldDirective.startsWith("-")) {
+          // Negatively linked field
+          fieldLinkageType = "Negative";
+        } else if (fieldDirective.equals("anyDate")) {
           // Make it a date field that can be selected by the client
           fieldType = "DateField";
         } else if (fieldDirective.equals("currentDate")) {
@@ -306,6 +314,8 @@ public class GetQuestionsPDFService implements Service {
       fieldJSON.put("fieldNumLines", fieldNumLines);
       fieldJSON.put("fieldIsMatched", fieldIsMatched);
       fieldJSON.put("fieldQuestion", fieldQuestion);
+      fieldJSON.put("fieldLinkageType", fieldLinkageType);
+      fieldJSON.put("fieldLinkedTo", fieldLinkedTo);
       fieldJSON.put("fieldStatus", successStatus);
       return fieldJSON;
     }

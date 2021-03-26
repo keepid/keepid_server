@@ -409,10 +409,7 @@ public class PdfControllerIntegrationTests {
     clearAllDocuments();
 
     File applicationPDF =
-        new File(
-            resourcesFolderPath
-                + File.separator
-                + "Ann_Too_Pennsylvania_Birth_Certificate_Form_Current.pdf");
+        new File(resourcesFolderPath + File.separator + "Pennsylvania_Birth_Certificate_Form.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
 
     JSONObject body = new JSONObject();
