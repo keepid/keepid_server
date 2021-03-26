@@ -133,7 +133,8 @@ public class GetQuestionsPDFService implements Service {
 
     // Replace fieldLinkedTo with the actual field name it is linked to (currently ordering index)
     for (JSONObject fieldJSON : fieldsJSON) {
-      if (!fieldJSON.getString("fieldLinkedTo").equals("None")) {
+      if (!fieldJSON.getString("fieldLinkageType").equals("NONE")) {
+        String fieldName = fieldJSON.getString("fieldName");
         String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedTo");
 
         // Find the linked field name by the ordering index
@@ -147,20 +148,24 @@ public class GetQuestionsPDFService implements Service {
         }
 
         if (fieldLinkedToFieldName == null) {
-          String fieldName = fieldJSON.getString("fieldName");
           return new PdfAnnotationError(
-              "Field Linkage Directive not Understood for Field '" + fieldName + "'");
+              "Field Directive not Understood for Field '" + fieldName + "'");
         }
         fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
       }
     }
 
     // Sort fields by their ordering index
-    Collections.sort(fieldsJSON, Comparator.comparing(a -> a.getString("fieldOrdering")));
+    try {
+      fieldsJSON.sort(new FieldOrderingComparator());
+    } catch (IllegalArgumentException exception) {
+      return new PdfAnnotationError(
+          "Field Orderings for Two Fields Are the Same: " + exception.getMessage());
+    }
 
+    pdfDocument.close();
     responseJSON.put("fields", fieldsJSON);
     this.applicationInformation = responseJSON;
-    pdfDocument.close();
     return PdfMessage.SUCCESS;
   }
 
@@ -287,10 +292,16 @@ public class GetQuestionsPDFService implements Service {
       return fieldJSON;
     } else {
       boolean fieldIsMatched = false;
-      String fieldLinkageType = "None"; // None, Positive, Negative
+      String fieldLinkageType = "NONE"; // None, Positive, Negative
       String fieldLinkedTo = ""; // Field name it is linked to
 
       String fieldOrdering = splitFieldName[0];
+      if (!fieldOrdering.matches("[0-9.]*")) {
+        // Field ordering has invalid character
+        String fieldStatus = "Invalid Field Ordering for Field '" + fieldName + "'";
+        fieldJSON.put("fieldStatus", fieldStatus);
+        return fieldJSON;
+      }
       String fieldNameBase = splitFieldName[1];
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
       fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
@@ -300,11 +311,11 @@ public class GetQuestionsPDFService implements Service {
         String fieldDirective = splitFieldName[2];
         if (fieldDirective.startsWith("+")) {
           // Positively linked field
-          fieldLinkageType = "Positive";
+          fieldLinkageType = "POSITIVE";
           fieldLinkedTo = fieldDirective.substring(1);
         } else if (fieldDirective.startsWith("-")) {
           // Negatively linked field
-          fieldLinkageType = "Negative";
+          fieldLinkageType = "NEGATIVE";
           fieldLinkedTo = fieldDirective.substring(1);
         } else if (fieldDirective.equals("anyDate")) {
           // Make it a date field that can be selected by the client
@@ -340,6 +351,41 @@ public class GetQuestionsPDFService implements Service {
       fieldJSON.put("fieldLinkedTo", fieldLinkedTo);
       fieldJSON.put("fieldStatus", successStatus);
       return fieldJSON;
+    }
+  }
+
+  private class FieldOrderingComparator implements Comparator<JSONObject> {
+    @Override
+    public int compare(JSONObject fieldJSON1, JSONObject fieldJSON2)
+        throws IllegalArgumentException {
+      String fieldOrdering1 = fieldJSON1.getString("fieldOrdering");
+      String fieldOrdering2 = fieldJSON2.getString("fieldOrdering");
+      String[] splitFieldOrdering1 = fieldOrdering1.split("\\.");
+      String[] splitFieldOrdering2 = fieldOrdering2.split("\\.");
+
+      int i = 0;
+      while (i < splitFieldOrdering1.length && i < splitFieldOrdering2.length) {
+        int ordering1 = Integer.parseInt(splitFieldOrdering1[i]);
+        int ordering2 = Integer.parseInt(splitFieldOrdering2[i]);
+
+        System.out.println(ordering1 + " " + ordering2);
+
+        if (ordering1 > ordering2) {
+          return 1;
+        } else if (ordering1 < ordering2) {
+          return -1;
+        } // otherwise keep checking next subsection ordering
+
+        i++;
+      }
+
+      // If they are both are the same or cannot be compared, through IllegalArgumentException
+      throw new IllegalArgumentException(
+          "'"
+              + fieldJSON1.getString("fieldName")
+              + "' and '"
+              + fieldJSON2.getString("fieldName")
+              + "'");
     }
   }
 }
