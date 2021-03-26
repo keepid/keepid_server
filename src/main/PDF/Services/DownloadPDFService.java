@@ -95,8 +95,7 @@ public class DownloadPDFService implements Service {
       }
     } else if (pdfType == PDFType.FORM) {
       if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
-        this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
+        this.inputStream = gridBucket.openDownloadStream(id);
         return PdfMessage.SUCCESS;
       }
     }

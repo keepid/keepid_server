@@ -3,6 +3,7 @@ package PDF.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import PDF.PdfAnnotationError;
 import PDF.PdfMessage;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
@@ -16,9 +17,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class GetQuestionsPDFService implements Service {
@@ -55,7 +54,8 @@ public class GetQuestionsPDFService implements Service {
         if (privilegeLevel == UserType.Client
             || privilegeLevel == UserType.Worker
             || privilegeLevel == UserType.Director
-            || privilegeLevel == UserType.Admin) {
+            || privilegeLevel == UserType.Admin
+            || privilegeLevel == UserType.Developer) {
           try {
             return getFieldInformation();
           } catch (IOException e) {
@@ -125,16 +125,15 @@ public class GetQuestionsPDFService implements Service {
 
         // Check for an annotation error - if so, then return error with field name
         if (fieldJSON != null && !fieldJSON.get("fieldStatus").equals(successStatus)) {
-          PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
-          annotationError.addErrorSubMessage(fieldJSON.getString("fieldStatus"));
-          return annotationError;
+          return new PdfAnnotationError(fieldJSON.getString("fieldStatus"));
         }
+        fieldsJSON.add(fieldJSON);
       }
     }
 
     // Replace fieldLinkedTo with the actual field name it is linked to (currently ordering index)
     for (JSONObject fieldJSON : fieldsJSON) {
-      if (!fieldJSON.getString("fieldLinkage").equals("None")) {
+      if (!fieldJSON.getString("fieldLinkedTo").equals("None")) {
         String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedTo");
 
         // Find the linked field name by the ordering index
@@ -148,12 +147,9 @@ public class GetQuestionsPDFService implements Service {
         }
 
         if (fieldLinkedToFieldName == null) {
-          PdfMessage annotationError = PdfMessage.ANNOTATION_ERROR;
-          annotationError.addErrorSubMessage(
-              "Field Linkage Directive not Understood for Field '"
-                  + fieldJSON.getString("fieldName")
-                  + "'");
-          return annotationError;
+          String fieldName = fieldJSON.getString("fieldName");
+          return new PdfAnnotationError(
+              "Field Linkage Directive not Understood for Field '" + fieldName + "'");
         }
         fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
       }

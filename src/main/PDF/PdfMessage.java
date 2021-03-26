@@ -12,8 +12,7 @@ public enum PdfMessage implements Message {
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE;Privilege level too low."),
   SUCCESS("SUCCESS;Success."),
   NO_SUCH_FILE("NO_SUCH_FILE;PDF does not exist"),
-  ENCRYPTION_ERROR("ENCRYPTION_ERROR;Error encrypting/decrypting"),
-  ANNOTATION_ERROR("ANNOTATION_ERROR;Error in annotation for field");
+  ENCRYPTION_ERROR("ENCRYPTION_ERROR;Error encrypting/decrypting");
 
   private String errorMessage;
 
@@ -45,9 +44,5 @@ public enum PdfMessage implements Message {
     res.put("status", getErrorName());
     res.put("message", message);
     return res;
-  }
-
-  public void addErrorSubMessage(String errorMessage) {
-    this.errorMessage += " - " + errorMessage;
   }
 }

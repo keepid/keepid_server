@@ -2,8 +2,8 @@ package PDF.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.User.UserDao;
 import PDF.PDFType;
-import PDF.PdfController;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
@@ -31,11 +31,13 @@ public class UploadAnnotatedPDFService implements Service {
   String filename;
   String fileContentType;
   InputStream fileStream;
+  UserDao userDao;
   MongoDatabase db;
   EncryptionController encryptionController;
 
   public UploadAnnotatedPDFService(
       MongoDatabase db,
+      UserDao userDao,
       String uploaderUsername,
       String organizationName,
       UserType privilegeLevel,
@@ -45,6 +47,7 @@ public class UploadAnnotatedPDFService implements Service {
       InputStream fileStream,
       EncryptionController encryptionController) {
     this.db = db;
+    this.userDao = userDao;
     this.uploader = uploaderUsername;
     this.organizationName = organizationName;
     this.privilegeLevel = privilegeLevel;
@@ -63,12 +66,7 @@ public class UploadAnnotatedPDFService implements Service {
         && !fileContentType.equals("application/octet-stream")) {
       return PdfMessage.INVALID_PDF;
     } else {
-      if ((privilegeLevel == UserType.Client
-          || privilegeLevel == UserType.Worker
-          || privilegeLevel == UserType.Director
-          || privilegeLevel == UserType.Admin
-          || privilegeLevel == UserType.Developer)) {
-
+      if (privilegeLevel == UserType.Developer) {
         try {
           return mongodbUploadAnnotatedForm();
         } catch (Exception e) {
@@ -80,7 +78,7 @@ public class UploadAnnotatedPDFService implements Service {
     }
   }
 
-  public PdfMessage mongodbUploadAnnotatedForm() throws IOException, GeneralSecurityException {
+  public Message mongodbUploadAnnotatedForm() throws IOException, GeneralSecurityException {
     ObjectId fileID = new ObjectId(fileIDStr);
     GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.FORM.toString());
     GridFSFile grid_out = gridBucket.find(eq("_id", fileID)).first();
@@ -88,24 +86,25 @@ public class UploadAnnotatedPDFService implements Service {
       return PdfMessage.NO_SUCH_FILE;
     }
 
-    // Make metadata parameters the same as before
-    String upload_date = grid_out.getMetadata().getString("upload_date");
-    String uploader = grid_out.getMetadata().getString("uploader");
-    String organizationName = grid_out.getMetadata().getString("organizationName");
-    String title = PdfController.getPDFTitle(filename, fileStream, PDFType.FORM);
+    // Make sure form is properly annotated
+    GetQuestionsPDFService getQuestionsPDFService =
+        new GetQuestionsPDFService(userDao, privilegeLevel, uploader, fileStream);
+    Message response = getQuestionsPDFService.executeAndGetResponse();
+    if (response != PdfMessage.SUCCESS) {
+      return response;
+    }
 
+    // Make metadata parameters the same as before
+    Document previousMetadata = grid_out.getMetadata();
+    previousMetadata.put("annotated", true);
     gridBucket.delete(fileID);
-    InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
+
+    // Forms don't need to be encrypted
+    // InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
+    InputStream inputStream = fileStream;
+
     GridFSUploadOptions options =
-        new GridFSUploadOptions()
-            .chunkSizeBytes(CHUNK_SIZE_BYTES)
-            .metadata(
-                new Document("type", "pdf")
-                    .append("upload_date", upload_date)
-                    .append("title", title)
-                    .append("annotated", true)
-                    .append("uploader", uploader)
-                    .append("organizationName", organizationName));
+        new GridFSUploadOptions().chunkSizeBytes(CHUNK_SIZE_BYTES).metadata(previousMetadata);
     gridBucket.uploadFromStream(filename, inputStream, options);
     return PdfMessage.SUCCESS;
   }

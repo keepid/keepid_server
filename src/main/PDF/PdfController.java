@@ -35,7 +35,7 @@ public class PdfController {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-
+      log.error(e.getMessage());
     }
   }
 
@@ -312,6 +312,7 @@ public class PdfController {
           UploadAnnotatedPDFService uploadService =
               new UploadAnnotatedPDFService(
                   db,
+                  userDao,
                   username,
                   organizationName,
                   privilegeLevel,

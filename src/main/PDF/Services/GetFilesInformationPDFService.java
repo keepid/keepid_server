@@ -97,7 +97,7 @@ public class GetFilesInformationPDFService implements Service {
               .put("uploader", uploaderUsername)
               .put("organizationName", grid_out.getMetadata().getString("organizationName"))
               .put("id", grid_out.getId().asObjectId().getValue().toString())
-              .put("uploadDate", grid_out.getUploadDate().toString())
+              .put("uploadDate", grid_out.getMetadata().getString("upload_date"))
               .put("annotated", annotated);
       fileMetadata.put("filename", grid_out.getMetadata().getString("title"));
       if (pdfType.equals(PDFType.FORM)) {
