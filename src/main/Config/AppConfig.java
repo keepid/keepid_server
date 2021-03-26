@@ -7,7 +7,6 @@ import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Issue.IssueController;
-import Logger.LogFactory;
 import Organization.OrganizationController;
 import PDF.PdfController;
 import Security.AccountSecurityController;
@@ -15,8 +14,6 @@ import Security.EncryptionUtils;
 import User.UserController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
-import io.javalin.core.compression.Brotli;
-import io.javalin.core.compression.Gzip;
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -31,10 +28,6 @@ public class AppConfig {
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
-
-    /* Utilities to pass to route handlers */
-    LogFactory l = new LogFactory();
-    l.createLogger();
 
     EncryptionUtils.initialize();
     //    try {
@@ -140,9 +133,6 @@ public class AppConfig {
               config.asyncRequestTimeout =
                   ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
               config.autogenerateEtags = false; // auto generate etags (default is false)
-              config.compressionStrategy(
-                  new Brotli(4),
-                  new Gzip(6)); // set the compression strategy and levels - since 3.2.0
               config.contextPath = "/"; // context path for the http servlet (default is "/")
               config.defaultContentType =
                   "text/plain"; // content type to use if no content type is set (default is
