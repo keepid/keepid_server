@@ -2,6 +2,7 @@ package Config;
 
 import Activity.ActivityController;
 import Admin.AdminController;
+import Billing.BillingController;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -47,6 +48,8 @@ public class AppConfig {
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
+    BillingController billingController = new BillingController();
+
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -99,6 +102,10 @@ public class AppConfig {
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
 
+    /* -------------- Billing ----------------- */
+    app.post("/create-customer", billingController.createCustomer);
+    app.post("/create-subscription", billingController.createSubscription);
+    app.post("/cancel-subscription", billingController.cancelSubscription);
     return app;
   }
 
