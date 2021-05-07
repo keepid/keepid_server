@@ -69,12 +69,14 @@ public class BillingController {
             SubscriptionCreateParams.builder()
                 .addItem(
                     SubscriptionCreateParams.Item.builder()
-                        .setPrice("price_1IdhgUGrHSIfLf0x2iofVmJV") // found on dashboard in product
+                        .setPrice(priceId) // found on dashboard in product
                         .build())
                 .setCustomer(customer.getId())
+                .setCollectionMethod(SubscriptionCreateParams.CollectionMethod.CHARGE_AUTOMATICALLY)
                 .addAllExpand(Arrays.asList("latest_invoice.payment_intent"))
                 .build();
         Subscription subscription = Subscription.create(subCreateParams);
+        log.info("Returning the subscription object to the frontned: {}", subscription);
         ctx.result(subscription.toJson());
       };
 
