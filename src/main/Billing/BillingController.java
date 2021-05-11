@@ -4,6 +4,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.CardException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentMethod;
+import com.stripe.model.StripeObject;
 import com.stripe.model.Subscription;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.PaymentMethodAttachParams;
@@ -76,8 +77,12 @@ public class BillingController {
                 .addAllExpand(Arrays.asList("latest_invoice.payment_intent"))
                 .build();
         Subscription subscription = Subscription.create(subCreateParams);
-        log.info("Returning the subscription object to the frontned: {}", subscription);
-        ctx.result(subscription.toJson());
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("subscriptionId", subscription.getId());
+        responseData.put(
+            "clientSecret",
+            subscription.getLatestInvoiceObject().getPaymentIntentObject().getClientSecret());
+        ctx.result(StripeObject.PRETTY_PRINT_GSON.toJson(responseData));
       };
 
   public Handler cancelSubscription =
