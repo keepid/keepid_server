@@ -24,9 +24,13 @@ public class BillingController {
       ctx -> {
         ctx.req.getSession().invalidate();
         log.info("Attempting to create a customer");
+        JSONObject req = new JSONObject(ctx.body());
+        String customerName = req.getString("customerName");
+        String customerEmail = req.getString("customerEmail");
         Stripe.apiKey = apiKey;
         Map<String, Object> params = new HashMap<>();
-        params.put("description", "Test Customer");
+        params.put("name", customerName);
+        params.put("email", customerEmail);
         Customer customer = Customer.create(params);
         log.info("Created customer");
         ctx.result(customer.toJson());
