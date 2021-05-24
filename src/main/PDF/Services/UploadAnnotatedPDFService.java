@@ -12,9 +12,11 @@ import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
@@ -86,9 +88,15 @@ public class UploadAnnotatedPDFService implements Service {
       return PdfMessage.NO_SUCH_FILE;
     }
 
+    // Copy input stream since get questions consumes it
+    ByteArrayOutputStream byteArrayStream = new ByteArrayOutputStream();
+    fileStream.transferTo(byteArrayStream);
+    InputStream fileStreamCopy = new ByteArrayInputStream(byteArrayStream.toByteArray());
+    fileStream = new ByteArrayInputStream(byteArrayStream.toByteArray());
+
     // Make sure form is properly annotated
     GetQuestionsPDFService getQuestionsPDFService =
-        new GetQuestionsPDFService(userDao, privilegeLevel, uploader, fileStream);
+        new GetQuestionsPDFService(userDao, privilegeLevel, uploader, fileStreamCopy);
     Message response = getQuestionsPDFService.executeAndGetResponse();
     if (response != PdfMessage.SUCCESS) {
       return response;

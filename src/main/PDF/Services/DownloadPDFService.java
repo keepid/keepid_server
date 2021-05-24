@@ -11,6 +11,7 @@ import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.model.Filters;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Objects;
 
+@Slf4j
 public class DownloadPDFService implements Service {
   MongoDatabase db;
   private String username;
@@ -53,6 +55,7 @@ public class DownloadPDFService implements Service {
     if (privilegeLevel == UserType.Client
         || privilegeLevel == UserType.Worker
         || privilegeLevel == UserType.Director
+        || privilegeLevel == UserType.Developer
         || privilegeLevel == UserType.Admin) {
       try {
         return download();

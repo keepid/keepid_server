@@ -11,6 +11,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 
+@Slf4j
 public class UploadPDFService implements Service {
   public static final int CHUNK_SIZE_BYTES = 100000;
 

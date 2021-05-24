@@ -98,8 +98,9 @@ public class GetFilesInformationPDFService implements Service {
               .put("organizationName", grid_out.getMetadata().getString("organizationName"))
               .put("id", grid_out.getId().asObjectId().getValue().toString())
               .put("uploadDate", grid_out.getMetadata().getString("upload_date"))
-              .put("annotated", annotated);
-      fileMetadata.put("filename", grid_out.getMetadata().getString("title"));
+              .put("annotated", annotated)
+              .put("filename", grid_out.getMetadata().getString("title"));
+      System.out.println(grid_out.getMetadata().getString("title"));
       if (pdfType.equals(PDFType.FORM)) {
         fileMetadata.put("annotated", grid_out.getMetadata().getBoolean("annotated"));
       }

@@ -59,6 +59,7 @@ public class GetQuestionsPDFService implements Service {
           try {
             return getFieldInformation();
           } catch (IOException e) {
+            log.info(e.getMessage());
             return PdfMessage.SERVER_ERROR;
           }
         } else {
@@ -133,25 +134,28 @@ public class GetQuestionsPDFService implements Service {
 
     // Replace fieldLinkedTo with the actual field name it is linked to (currently ordering index)
     for (JSONObject fieldJSON : fieldsJSON) {
-      if (!fieldJSON.getString("fieldLinkageType").equals("NONE")) {
+      if (!fieldJSON.getString("fieldLinkage").equals("NONE")) {
         String fieldName = fieldJSON.getString("fieldName");
-        String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedTo");
+        String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedToName");
 
         // Find the linked field name by the ordering index
-        String fieldLinkedToFieldName = null;
+        String fieldLinkedToName = null;
+        String fieldLinkedToType = null;
         Iterator<JSONObject> fieldIterator = fieldsJSON.iterator();
-        while (fieldIterator.hasNext() && fieldLinkedToFieldName == null) {
+        while (fieldIterator.hasNext() && fieldLinkedToName == null) {
           JSONObject field = fieldIterator.next();
           if (field.getString("fieldOrdering").equals(fieldLinkedToFieldOrdering)) {
-            fieldLinkedToFieldName = field.getString("fieldName");
+            fieldLinkedToName = field.getString("fieldName");
+            fieldLinkedToType = field.getString("fieldType");
           }
         }
 
-        if (fieldLinkedToFieldName == null) {
+        if (fieldLinkedToName == null || fieldLinkedToType == null) {
           return new PdfAnnotationError(
               "Field Directive not Understood for Field '" + fieldName + "'");
         }
-        fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
+        fieldJSON.put("fieldLinkedToName", fieldLinkedToName);
+        fieldJSON.put("fieldLinkedToType", fieldLinkedToType);
       }
     }
 
@@ -172,33 +176,19 @@ public class GetQuestionsPDFService implements Service {
   private JSONObject getTextField(PDTextField field) {
     String fieldName = field.getFullyQualifiedName();
     String fieldType;
-    String fieldQuestion;
+    String fieldDefaultValue = "";
     if (field.isReadOnly()) {
       fieldType = "ReadOnlyField";
-      fieldQuestion = field.getPartialName();
-      String fieldValue = field.getValue();
-      if (fieldValue != null && !fieldValue.equals("")) {
-        fieldQuestion += ": " + fieldValue;
-      }
     } else if (field.isMultiline()) {
       fieldType = "MultilineTextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
     } else {
       fieldType = "TextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
     }
     JSONArray fieldValueOptions = new JSONArray();
-    String fieldDefaultValue = "";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     return createFieldJSONEntry(
-        fieldName,
-        fieldType,
-        fieldValueOptions,
-        fieldDefaultValue,
-        fieldIsRequired,
-        numLines,
-        fieldQuestion);
+        fieldName, fieldType, fieldValueOptions, fieldDefaultValue, fieldIsRequired, numLines);
   }
 
   private JSONObject getCheckBox(PDCheckBox field) {
@@ -209,15 +199,8 @@ public class GetQuestionsPDFService implements Service {
     Boolean fieldDefaultValue = Boolean.FALSE;
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
-    String fieldQuestion = "Please Select: " + field.getPartialName();
     return createFieldJSONEntry(
-        fieldName,
-        fieldType,
-        fieldValueOptions,
-        fieldDefaultValue,
-        fieldIsRequired,
-        numLines,
-        fieldQuestion);
+        fieldName, fieldType, fieldValueOptions, fieldDefaultValue, fieldIsRequired, numLines);
   }
 
   private JSONObject getRadioButton(PDRadioButton field) {
@@ -230,20 +213,13 @@ public class GetQuestionsPDFService implements Service {
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = 2 + fieldValueOptions.length();
-    String fieldQuestion = "Please Select One Option for: " + field.getPartialName();
     return createFieldJSONEntry(
-        fieldName,
-        fieldType,
-        fieldValueOptions,
-        fieldDefaultValue,
-        fieldIsRequired,
-        numLines,
-        fieldQuestion);
+        fieldName, fieldType, fieldValueOptions, fieldDefaultValue, fieldIsRequired, numLines);
   }
 
   private JSONObject getChoiceField(PDChoice field) {
     String fieldName = field.getFullyQualifiedName();
-    String fieldType, fieldQuestion;
+    String fieldType;
     if (field instanceof PDComboBox) {
       fieldType = "ComboBox";
     } else {
@@ -256,22 +232,8 @@ public class GetQuestionsPDFService implements Service {
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = fieldValueOptions.length() + 2;
-    if (field.isMultiSelect()) {
-      fieldQuestion =
-          "Please Select Option(s) for: "
-              + field.getPartialName()
-              + " (you can select multiple options with CTRL)";
-    } else {
-      fieldQuestion = "Please Select an Option for: " + field.getPartialName();
-    }
     return createFieldJSONEntry(
-        fieldName,
-        fieldType,
-        fieldValueOptions,
-        fieldDefaultValue,
-        fieldIsRequired,
-        numLines,
-        fieldQuestion);
+        fieldName, fieldType, fieldValueOptions, fieldDefaultValue, fieldIsRequired, numLines);
   }
 
   private JSONObject createFieldJSONEntry(
@@ -280,11 +242,9 @@ public class GetQuestionsPDFService implements Service {
       JSONArray fieldValueOptions,
       Object fieldDefaultValue,
       boolean fieldIsRequired,
-      int fieldNumLines,
-      String fieldQuestion) {
+      int fieldNumLines) {
 
     JSONObject fieldJSON = new JSONObject();
-
     // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
     if (splitFieldName.length != 2 && splitFieldName.length != 3) {
@@ -292,8 +252,9 @@ public class GetQuestionsPDFService implements Service {
       return fieldJSON;
     } else {
       boolean fieldIsMatched = false;
-      String fieldLinkageType = "NONE"; // None, Positive, Negative
-      String fieldLinkedTo = ""; // Field name it is linked to
+      String fieldLinkage = "NONE"; // None, Positive, Negative
+      String fieldLinkedToName = ""; // Field name it is linked to
+      String fieldLinkedToType = "";
 
       String fieldOrdering = splitFieldName[0];
       if (!fieldOrdering.matches("[0-9.]*")) {
@@ -302,21 +263,19 @@ public class GetQuestionsPDFService implements Service {
         fieldJSON.put("fieldStatus", fieldStatus);
         return fieldJSON;
       }
-      String fieldNameBase = splitFieldName[1];
-      // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
-      fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
 
+      String fieldNameBase = splitFieldName[1];
       if (splitFieldName.length == 3) {
         // Annotation for matched field - has directive at the end
         String fieldDirective = splitFieldName[2];
         if (fieldDirective.startsWith("+")) {
           // Positively linked field
-          fieldLinkageType = "POSITIVE";
-          fieldLinkedTo = fieldDirective.substring(1);
+          fieldLinkage = "POSITIVE";
+          fieldLinkedToName = fieldDirective.substring(1);
         } else if (fieldDirective.startsWith("-")) {
           // Negatively linked field
-          fieldLinkageType = "NEGATIVE";
-          fieldLinkedTo = fieldDirective.substring(1);
+          fieldLinkage = "NEGATIVE";
+          fieldLinkedToName = fieldDirective.substring(1);
         } else if (fieldDirective.equals("anyDate")) {
           // Make it a date field that can be selected by the client
           fieldType = "DateField";
@@ -338,7 +297,9 @@ public class GetQuestionsPDFService implements Service {
         }
       }
 
+      String fieldQuestion = getFieldQuestion(fieldType, fieldNameBase);
       fieldJSON.put("fieldName", fieldName);
+      fieldJSON.put("fieldNameBase", fieldNameBase);
       fieldJSON.put("fieldOrdering", fieldOrdering);
       fieldJSON.put("fieldType", fieldType);
       fieldJSON.put("fieldValueOptions", fieldValueOptions);
@@ -347,11 +308,40 @@ public class GetQuestionsPDFService implements Service {
       fieldJSON.put("fieldNumLines", fieldNumLines);
       fieldJSON.put("fieldIsMatched", fieldIsMatched);
       fieldJSON.put("fieldQuestion", fieldQuestion);
-      fieldJSON.put("fieldLinkageType", fieldLinkageType);
-      fieldJSON.put("fieldLinkedTo", fieldLinkedTo);
+      fieldJSON.put("fieldLinkage", fieldLinkage);
+      fieldJSON.put("fieldLinkedToName", fieldLinkedToName);
+      fieldJSON.put("fieldLinkedToType", fieldLinkedToType);
       fieldJSON.put("fieldStatus", successStatus);
       return fieldJSON;
     }
+  }
+
+  private String getFieldQuestion(String fieldType, String fieldName) {
+    String fieldQuestion;
+    if (fieldType.equals("ReadOnlyField")) {
+      fieldQuestion = fieldName += ": ";
+    } else if (fieldType.equals("MultilineTextField")) {
+      fieldQuestion = "Please Enter Your: " + fieldName;
+    } else if (fieldType.equals("TextField")) {
+      fieldQuestion = "Please Enter Your: " + fieldName;
+    } else if (fieldType.equals("CheckBox")) {
+      fieldQuestion = "Please Select: " + fieldName;
+    } else if (fieldType.equals("RadioButton")) {
+      fieldQuestion = "Please Select One Option for: " + fieldName;
+    } else if (fieldType.equals("ComboBox")) {
+      fieldQuestion = "Please Select One Option for: " + fieldName;
+    } else if (fieldType.equals("ListBox")) {
+      fieldQuestion =
+          "Please Select Option(s) for: "
+              + fieldName
+              + " (you can select multiple options with CTRL)";
+    } else if (fieldType.equals("SignatureField")) {
+      fieldQuestion = "";
+    } else {
+      // Should never be reachable - so we will return a blank question
+      fieldQuestion = "";
+    }
+    return fieldQuestion;
   }
 
   private class FieldOrderingComparator implements Comparator<JSONObject> {
@@ -367,9 +357,6 @@ public class GetQuestionsPDFService implements Service {
       while (i < splitFieldOrdering1.length && i < splitFieldOrdering2.length) {
         int ordering1 = Integer.parseInt(splitFieldOrdering1[i]);
         int ordering2 = Integer.parseInt(splitFieldOrdering2[i]);
-
-        System.out.println(ordering1 + " " + ordering2);
-
         if (ordering1 > ordering2) {
           return 1;
         } else if (ordering1 < ordering2) {

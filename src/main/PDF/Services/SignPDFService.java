@@ -7,9 +7,6 @@ import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.gridfs.GridFSBucket;
-import com.mongodb.client.gridfs.GridFSBuckets;
-import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
@@ -18,19 +15,17 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleS
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
-import org.bson.Document;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
-public class UploadSignedPDFService implements Service {
+public class SignPDFService implements Service {
   public static final int CHUNK_SIZE_BYTES = 100000;
 
   String uploader;
@@ -40,11 +35,12 @@ public class UploadSignedPDFService implements Service {
   String fileContentType;
   InputStream fileStream;
   InputStream signatureFileStream;
+  InputStream signedPDF;
   PDFType pdfType;
   MongoDatabase db;
   EncryptionController encryptionController;
 
-  public UploadSignedPDFService(
+  public SignPDFService(
       MongoDatabase db,
       String uploaderUsername,
       String organizationName,
@@ -85,9 +81,9 @@ public class UploadSignedPDFService implements Service {
               || privilegeLevel == UserType.Director
               || privilegeLevel == UserType.Admin)) {
         try {
-          InputStream signedPDF = signPDF(uploader, fileStream, signatureFileStream);
-          return mongodbUpload(signedPDF);
-        } catch (GeneralSecurityException | IOException e) {
+          signPDF(uploader, fileStream, signatureFileStream);
+          return PdfMessage.SUCCESS;
+        } catch (IOException e) {
           return PdfMessage.ENCRYPTION_ERROR;
         }
       } else {
@@ -96,37 +92,12 @@ public class UploadSignedPDFService implements Service {
     }
   }
 
-  public Message mongodbUpload(InputStream signedPDF) throws GeneralSecurityException, IOException {
-    GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
-
-    GridFSUploadOptions options;
-    if (pdfType == PDFType.FORM) {
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("annotated", false)
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
-    } else {
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
-    }
-    gridBucket.uploadFromStream(filename, inputStream, options);
-    return PdfMessage.SUCCESS;
+  public InputStream getSignedPDF() {
+    Objects.requireNonNull(signedPDF);
+    return signedPDF;
   }
 
-  public static InputStream signPDF(
-      String username, InputStream pdfInputStream, InputStream imageInputStream)
+  public void signPDF(String username, InputStream pdfInputStream, InputStream imageInputStream)
       throws IOException {
     PDDocument pdfDocument = PDDocument.load(pdfInputStream);
 
@@ -157,7 +128,7 @@ public class UploadSignedPDFService implements Service {
     pdfDocument.save(outputStream);
     pdfDocument.close();
 
-    return new ByteArrayInputStream(outputStream.toByteArray());
+    signedPDF = new ByteArrayInputStream(outputStream.toByteArray());
   }
 
   // Make it so that it can handle different signers

@@ -35,7 +35,7 @@ public class PdfController {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-      log.error(e.getMessage());
+      log.error(e.getClass() + ": " + e.getMessage());
     }
   }
 
@@ -342,8 +342,8 @@ public class PdfController {
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
 
-        UploadSignedPDFService uploadService =
-            new UploadSignedPDFService(
+        SignPDFService signPDFService =
+            new SignPDFService(
                 db,
                 username,
                 organizationName,
@@ -353,6 +353,24 @@ public class PdfController {
                 file.getContentType(),
                 file.getContent(),
                 signature.getContent(),
+                encryptionController);
+        Message response = signPDFService.executeAndGetResponse();
+        if (response != PdfMessage.SUCCESS) {
+          ctx.result(response.toResponseString());
+        }
+
+        InputStream signedPDF = signPDFService.getSignedPDF();
+        String title = getPDFTitle(file.getFilename(), file.getContent(), pdfType);
+        UploadPDFService uploadService =
+            new UploadPDFService(
+                db,
+                username,
+                organizationName,
+                privilegeLevel,
+                pdfType,
+                title,
+                file.getContentType(),
+                signedPDF,
                 encryptionController);
         ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };
