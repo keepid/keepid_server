@@ -46,7 +46,6 @@ public class EncryptionTools {
         objectMapper.readValue(file, new TypeReference<Map<String, Object>>() {});
     JSONObject keyJson = new JSONObject(map);
 
-    //    Document keyDocument = new Document("key.json");
     keyHandles.insertOne(Document.parse(keyJson.toString()));
   }
 }

@@ -35,7 +35,7 @@ public class PdfController {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-      log.error(e.getMessage());
+      log.error("generating encryption controller failed");
     }
   }
 

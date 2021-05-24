@@ -1,47 +1,40 @@
 package PDFTest;
 
-import PDF.PDFType;
+import Config.DeploymentLevel;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import PDF.PdfController;
-import Security.EncryptionUtils;
 import TestUtils.TestUtils;
+import User.User;
+import User.UserType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 import static PDFTest.PdfControllerIntegrationTestHelperMethods.*;
+import static TestUtils.EntityFactory.createUser;
 import static TestUtils.TestUtils.getFieldValues;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class PdfControllerIntegrationTests {
-  private static EncryptionUtils encryptionUtils;
-  public static String username = "adminBSM";;
-
-  public static String currentPDFFolderPath =
-      Paths.get("").toAbsolutePath().toString()
-          + File.separator
-          + "src"
-          + File.separator
-          + "test"
-          + File.separator
-          + "PDFTest";
+  public static String username = "adminBSM";
+  public static String password = "somepassword1";
+  private UserDao userDao;
 
   public static String resourcesFolderPath =
       Paths.get("").toAbsolutePath().toString()
@@ -58,6 +51,17 @@ public class PdfControllerIntegrationTests {
     TestUtils.setUpTestDB();
   }
 
+  @Before
+  public void initialize() {
+    this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+  }
+
+  @After
+  public void reset() {
+    this.userDao.clear();
+    TestUtils.logout();
+  }
+
   @AfterClass
   public static void tearDown() {
     TestUtils.tearDownTestDB();
@@ -65,46 +69,73 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void uploadValidPDFTest() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestPDF();
-    TestUtils.logout();
   }
 
   @Test
   public void uploadFormTest() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestFormPDF();
     TestUtils.logout();
   }
 
   @Test
   public void uploadAnnotatedPDFFormTest() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestAnnotatedFormPDF();
-    TestUtils.logout();
   }
 
   @Test
   public void uploadValidPDFTestExists() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestPDF();
     searchTestPDF();
-    TestUtils.logout();
   }
 
   @Test
   public void uploadValidPDFTestExistsAndDelete() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestPDF();
     JSONObject allDocuments = searchTestPDF();
     String idString = allDocuments.getJSONArray("documents").getJSONObject(0).getString("id");
     // delete(idString);
-    TestUtils.logout();
+    // @todo this test isn't finished
   }
 
   @Test
   public void uploadInvalidPDFTypeTest() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     File examplePDF =
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
     HttpResponse<String> uploadResponse =
@@ -120,7 +151,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void uploadNullPDFTest() {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     File examplePDF = null;
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
@@ -136,7 +172,7 @@ public class PdfControllerIntegrationTests {
   // Need to get it so it will only allow PDF and not docx+
   //  @Test
   //  public void uploadDocxTest() {
-  //    TestUtils.login(username, username);
+  //    TestUtils.login(username, password);
   //    File exampleDocx = new File(resourcesFolderPath + File.separator + "job_description.docx");
   //    HttpResponse<String> uploadResponse =
   //        Unirest.post(TestUtils.getServerUrl() + "/upload")
@@ -151,7 +187,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void downloadTestFormTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(testPdf, "FORM");
 
@@ -167,7 +208,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void downloadPDFTypeNullTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(testPdf, "FORM");
 
@@ -181,7 +227,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void getApplicationQuestionsIPFormTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -225,7 +276,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void getApplicationQuestionsTestPDFTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -281,7 +337,12 @@ public class PdfControllerIntegrationTests {
   @Test
   public void getApplicationQuestionsBirthCertificateTest()
       throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -350,7 +411,12 @@ public class PdfControllerIntegrationTests {
   @Test
   public void getApplicationQuestionsMediaReleaseTest()
       throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -380,7 +446,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void getApplicationQuestionsSS5Test() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -403,35 +474,13 @@ public class PdfControllerIntegrationTests {
   }
 
   @Test
-  public void getBirthCertificateQuestionsTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
-    // when running entire file, other documents interfere with retrieving the form.
-    clearAllDocuments();
-
-    File applicationPDF =
-        new File(resourcesFolderPath + File.separator + "Pennsylvania_Birth_Certificate_Form.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
-
-    JSONObject body = new JSONObject();
-    body.put("applicationId", fileId);
-    HttpResponse<String> applicationsQuestionsResponse =
-        Unirest.post(TestUtils.getServerUrl() + "/get-application-questions")
-            .body(body.toString())
-            .asString();
-    JSONObject applicationsQuestionsResponseJSON =
-        TestUtils.responseStringToJSON(applicationsQuestionsResponse.getBody());
-
-    System.out.println(applicationsQuestionsResponseJSON);
-
-    assertThat(applicationsQuestionsResponseJSON.getString("status")).isEqualTo("SUCCESS");
-
-    // delete(fileId, "FORM");
-    TestUtils.logout();
-  }
-
-  @Test
   public void getApplicationQuestionBlankPDFTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -457,12 +506,21 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void getDocumentsTargetUser() throws IOException, GeneralSecurityException {
-    TestUtils.login("workerttfBSM", "workerttfBSM");
+    createUser()
+        .withUserType(UserType.Worker)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    createUser()
+        .withUserType(UserType.Worker)
+        .withUsername("workerttfBSM")
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     clearAllDocuments();
     File applicationPDF = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
     TestUtils.logout();
-    TestUtils.login(username, username);
+    TestUtils.login(username, password);
 
     JSONObject body = new JSONObject();
     body.put("pdfType", "FORM");
@@ -472,14 +530,18 @@ public class PdfControllerIntegrationTests {
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
     JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
     String downId = getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
-    // String fileId = getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
     assertThat(fileId).isEqualTo(downId);
     TestUtils.logout();
   }
 
   @Test
   public void fillApplicationQuestionsTestPDFTest() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     clearAllDocuments();
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
@@ -523,7 +585,12 @@ public class PdfControllerIntegrationTests {
 
   @Test
   public void fillApplicationQuestionsSS5Test() throws IOException, GeneralSecurityException {
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     clearAllDocuments();
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
@@ -568,7 +635,12 @@ public class PdfControllerIntegrationTests {
   @Test
   public void getApplicationQuestionMetadataTest() throws IOException, GeneralSecurityException {
     // Test to get application with metadata
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     clearAllDocuments();
 
     File applicationPDF =
@@ -597,7 +669,13 @@ public class PdfControllerIntegrationTests {
   public void getApplicationQuestionsMatchedFieldsTest1()
       throws IOException, GeneralSecurityException {
     // Test simple matched fields in database
-    TestUtils.login(username, username);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -631,7 +709,7 @@ public class PdfControllerIntegrationTests {
     if (matchedField == null) {
       fail("No matched field found");
     } else {
-      assertEquals("Mike", matchedField.getString("fieldDefaultValue"));
+      assertEquals(user.getFirstName(), matchedField.getString("fieldDefaultValue"));
       assertEquals(true, matchedField.getBoolean("fieldIsMatched"));
       assertEquals("TextField", matchedField.getString("fieldType"));
       assertEquals("Please Enter Your: First Name", matchedField.getString("fieldQuestion"));
@@ -642,7 +720,12 @@ public class PdfControllerIntegrationTests {
   public void getApplicationQuestionsMatchedFieldsTest2()
       throws IOException, GeneralSecurityException {
     // Test simple matched fields in database
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -687,7 +770,12 @@ public class PdfControllerIntegrationTests {
   public void getApplicationQuestionsMatchedFieldsTest3()
       throws IOException, GeneralSecurityException {
     // Test simple matched fields in database
-    TestUtils.login(username, username);
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 
@@ -733,18 +821,18 @@ public class PdfControllerIntegrationTests {
   public void getPDFTitleTest1() throws IOException {
     String fileName = "Ann_Too_Pennsylvania_Birth_Certificate.pdf";
     File applicationPDF = new File(resourcesFolderPath + File.separator + fileName);
-    InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
+    PDDocument pdfDocument = PDDocument.load(FileUtils.openInputStream(applicationPDF));
     assertEquals(
         "Pennsylvania - Application for a Birth Certificate",
-        PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
+        PdfController.getPDFTitle(fileName, pdfDocument));
   }
 
   @Test // Test without any title in document
   public void getPDFTitleTest2() throws IOException {
     String fileName = "library-card-application.pdf";
     File applicationPDF = new File(resourcesFolderPath + File.separator + fileName);
-    InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
-    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
+    PDDocument pdfDocument = PDDocument.load(FileUtils.openInputStream(applicationPDF));
+    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument));
   }
 
   @BeforeEach

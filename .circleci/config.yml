@@ -1,21 +1,29 @@
 version: 2.1
 
 orbs:
-  maven: circleci/maven@1.1.0
+  maven: circleci/maven@1.1.1
   slack: circleci/slack@4.3.0
+
 jobs:
-  notify:
-    docker:
-      - image: 'cimg/base:stable'
+  test: # name of your job
+    working_directory: ~/project/
+    docker: # executor type
+      - image: buildpack-deps:trusty # primary container will run Ubuntu Trusty
     steps:
+      - run:
+          name: cloning github
+          command: 'git clone -b pdf-integration-test-fixes https://github.com/keepid/keepid_server.git;cd keepid_server;ls -a;chmod -x ./credential-generate;sh ./credential-generate'
+      - run:
+          command: 'mvn test -B'
       - slack/notify:
           event: fail
           template: basic_fail_1
       - slack/notify:
           event: pass
           template: basic_success_1
+
 workflows:
-  maven_test:
+  test_keepid_staging:
     jobs:
-      - maven/test: # checkout, build, test, and upload test results
+      - test:
           context: Keep.id Slack
