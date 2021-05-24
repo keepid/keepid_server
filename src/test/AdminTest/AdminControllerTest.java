@@ -9,7 +9,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Organization.Organization;
 import PDF.PDFType;
-import PDF.Services.UploadPDFService;
+import PDF.Services.CrudServices.UploadPDFService;
 import Security.AccountSecurityController;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
