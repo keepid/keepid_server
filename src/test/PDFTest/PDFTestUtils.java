@@ -5,6 +5,7 @@ import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,7 +14,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
-import java.util.LinkedList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,8 +38,8 @@ public class PDFTestUtils {
     EncryptionUtils encryptionUtils = TestUtils.getEncryptionUtils();
     InputStream fileStream = FileUtils.openInputStream(file);
 
-    File tmp = File.createTempFile("test1", "tmp");
-    FileUtils.copyInputStreamToFile(encryptionUtils.encryptFile(fileStream, username), tmp);
+    // File tmp = File.createTempFile("test1", "tmp");
+    // FileUtils.copyInputStreamToFile(encryptionUtils.encryptFile(fileStream, username), tmp);
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .header("Content-Disposition", "attachment")
@@ -73,42 +73,43 @@ public class PDFTestUtils {
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static void checkForFields(
-      JSONObject applicationsQuestionsResponseJSON, LinkedList<String[][]> fieldsToCheck) {
-    for (String[][] arr : fieldsToCheck) {
-      String fieldType = arr[0][0];
-      String fieldName = arr[1][0];
-      JSONArray fieldValueOptions = new JSONArray(arr[2]);
-      boolean found_type = false;
-      boolean found_name = false;
-      for (int i = 0; i < applicationsQuestionsResponseJSON.getJSONArray("fields").length(); i++) {
-        String curr_name =
-            applicationsQuestionsResponseJSON
-                .getJSONArray("fields")
-                .getJSONObject(i)
-                .get("fieldName")
-                .toString();
-        String curr_type =
-            applicationsQuestionsResponseJSON
-                .getJSONArray("fields")
-                .getJSONObject(i)
-                .get("fieldType")
-                .toString();
-        if (curr_name.equals(fieldName) && curr_type.equals(fieldType)) {
-          found_name = true;
-          found_type = true;
-          JSONArray curr_options =
-              applicationsQuestionsResponseJSON
-                  .getJSONArray("fields")
-                  .getJSONObject(i)
-                  .getJSONArray("fieldValueOptions");
-          assertThat(curr_options.toList()).isEqualTo(fieldValueOptions.toList());
-        }
-      }
-      assertThat(found_name).isTrue();
-      assertThat(found_type).isTrue();
-    }
-  }
+  //  public static void checkForFields(
+  //      JSONObject applicationsQuestionsResponseJSON, LinkedList<JSONObject> fieldsToCheck) {
+  //    for (JSONObject fieldJSON : fieldsToCheck) {
+  //      String fieldType = arr[0][0];
+  //      String fieldName = arr[1][0];
+  //      JSONArray fieldValueOptions = new JSONArray(arr[2]);
+  //      boolean found_type = false;
+  //      boolean found_name = false;
+  //      for (int i = 0; i < applicationsQuestionsResponseJSON.getJSONArray("fields").length();
+  // i++) {
+  //        String curr_name =
+  //            applicationsQuestionsResponseJSON
+  //                .getJSONArray("fields")
+  //                .getJSONObject(i)
+  //                .get("fieldName")
+  //                .toString();
+  //        String curr_type =
+  //            applicationsQuestionsResponseJSON
+  //                .getJSONArray("fields")
+  //                .getJSONObject(i)
+  //                .get("fieldType")
+  //                .toString();
+  //        if (curr_name.equals(fieldName) && curr_type.equals(fieldType)) {
+  //          found_name = true;
+  //          found_type = true;
+  //          JSONArray curr_options =
+  //              applicationsQuestionsResponseJSON
+  //                  .getJSONArray("fields")
+  //                  .getJSONObject(i)
+  //                  .getJSONArray("fieldValueOptions");
+  //          assertThat(curr_options.toList()).isEqualTo(fieldValueOptions.toList());
+  //        }
+  //      }
+  //      assertThat(found_name).isTrue();
+  //      assertThat(found_type).isTrue();
+  //    }
+  //  }
 
   public static void clearAllDocuments() {
     String[] pdfTypes = {"FORM", "FORM", "APPLICATION"};
@@ -134,8 +135,7 @@ public class PDFTestUtils {
   // ------------------ SPECIFIC HELPER METHODS ------------------------ //
 
   public static void uploadTestPDF() {
-    File examplePDF =
-        new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
+    File examplePDF = new File(resourcesFolderPath + File.separator + "1.png");
 
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")

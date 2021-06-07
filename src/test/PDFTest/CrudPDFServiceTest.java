@@ -3,6 +3,7 @@ package PDFTest;
 import Config.DeploymentLevel;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
+import PDF.PDFType;
 import TestUtils.TestUtils;
 import User.UserType;
 import kong.unirest.HttpResponse;
@@ -77,6 +78,26 @@ public class CrudPDFServiceTest {
         .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestAnnotatedFormPDF();
+  }
+
+  @Test
+  public void uploadImageToPDFTest() {
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File file = new File(resourcesFolderPath + File.separator + "1.png");
+    HttpResponse<String> uploadResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/upload")
+            .header("Content-Disposition", "attachment")
+            .field("pdfType", PDFType.IDENTIFICATION)
+            .field("file", file)
+            .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
   @Test

@@ -277,6 +277,7 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
+              System.out.println(ctx.formParam("pdfType") + ": " + pdfType);
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,

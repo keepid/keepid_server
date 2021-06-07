@@ -1,9 +1,9 @@
 package PDF;
 
 public enum PDFType {
-  APPLICATION("application"),
-  IDENTIFICATION("identification"),
-  FORM("form");
+  APPLICATION("APPLICATION"),
+  IDENTIFICATION("IDENTIFICATION"),
+  FORM("FORM");
 
   private String pdfType;
 
