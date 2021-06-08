@@ -40,6 +40,9 @@ public class Organization {
   @BsonProperty(value = "phone")
   private String orgPhoneNumber;
 
+  @BsonProperty(value = "customerId")
+  private String customerId;
+
   @BsonProperty(value = "creationDate")
   private Date creationDate;
 
@@ -54,7 +57,8 @@ public class Organization {
       String orgState,
       String orgZipcode,
       String orgEmail,
-      String orgPhoneNumber)
+      String orgPhoneNumber,
+      String customerId)
       throws ValidationException {
 
     OrganizationValidationMessage ovm =
@@ -67,7 +71,8 @@ public class Organization {
             orgState,
             orgZipcode,
             orgEmail,
-            orgPhoneNumber);
+            orgPhoneNumber,
+            customerId);
 
     if (ovm != OrganizationValidationMessage.VALID)
       throw new ValidationException(OrganizationValidationMessage.toOrganizationMessageJSON(ovm));
@@ -83,6 +88,7 @@ public class Organization {
     this.orgZipcode = orgZipcode;
     this.orgEmail = orgEmail;
     this.orgPhoneNumber = orgPhoneNumber;
+    this.customerId = customerId;
     this.creationDate = date;
   }
 
@@ -125,6 +131,10 @@ public class Organization {
 
   public String getOrgPhoneNumber() {
     return this.orgPhoneNumber;
+  }
+
+  public String getCustomerId() {
+    return this.customerId;
   }
 
   public Date getCreationDate() {
@@ -177,21 +187,27 @@ public class Organization {
     return this;
   }
 
+  public Organization setCustomerId(String customerId) {
+    this.customerId = customerId;
+    return this;
+  }
+
   public Organization setCreationDate(Date creationDate) {
     this.creationDate = creationDate;
     return this;
   }
 
   private static OrganizationValidationMessage isValid(
-      String orgName,
-      String orgWebsite,
-      String orgEIN,
-      String orgStreetAddress,
-      String orgCity,
-      String orgState,
-      String orgZipcode,
-      String orgEmail,
-      String orgPhoneNumber)
+          String orgName,
+          String orgWebsite,
+          String orgEIN,
+          String orgStreetAddress,
+          String orgCity,
+          String orgState,
+          String orgZipcode,
+          String orgEmail,
+          String orgPhoneNumber,
+          String customerId)
       throws SecurityException {
 
     if (!ValidationUtils.isValidOrgName(orgName)) {
@@ -230,6 +246,10 @@ public class Organization {
       log.error("Invalid zipcode: " + orgZipcode);
       return OrganizationValidationMessage.INVALID_ZIPCODE;
     }
+    if (!ValidationUtils.isValidCustomerId(customerId)) {
+      log.error("Invalid customerId: " + customerId);
+      return OrganizationValidationMessage.INVALID_CUSTOMERID;
+    }
     return OrganizationValidationMessage.VALID;
   }
 
@@ -246,6 +266,7 @@ public class Organization {
     sb.append(", orgZipcode=").append(this.orgZipcode);
     sb.append(", orgEmail=").append(this.orgEmail);
     sb.append(", orgPhoneNumber=").append(this.orgPhoneNumber);
+    sb.append(", customerId=").append(this.customerId);
     sb.append("}");
     return sb.toString();
   }
@@ -264,7 +285,8 @@ public class Organization {
         && Objects.equals(this.orgState, org.orgState)
         && Objects.equals(this.orgZipcode, org.orgZipcode)
         && Objects.equals(this.orgEmail, org.orgEmail)
-        && Objects.equals(this.orgPhoneNumber, org.orgPhoneNumber);
+        && Objects.equals(this.orgPhoneNumber, org.orgPhoneNumber)
+        && Objects.equals(this.customerId, org.customerId);
   }
 
   @Override
@@ -279,6 +301,7 @@ public class Organization {
         this.orgState,
         this.orgZipcode,
         this.orgEmail,
-        this.orgPhoneNumber);
+        this.orgPhoneNumber,
+        this.customerId);
   }
 }

@@ -12,6 +12,7 @@ public enum OrganizationValidationMessage {
   INVALID_CITY,
   INVALID_STATE,
   INVALID_ZIPCODE,
+  INVALID_CUSTOMERID,
   VALID;
 
   public static JSONObject toOrganizationMessageJSON(OrganizationValidationMessage v) {
@@ -34,6 +35,8 @@ public enum OrganizationValidationMessage {
         return OrgEnrollmentStatus.INVALID_PARAMETER.toJSON("Invalid Organization State");
       case INVALID_ZIPCODE:
         return OrgEnrollmentStatus.INVALID_PARAMETER.toJSON("Invalid Organization Zipcode");
+      case INVALID_CUSTOMERID:
+        return OrgEnrollmentStatus.INVALID_PARAMETER.toJSON("Invalid Organization CustomerId");
       case VALID:
         return OrgEnrollmentStatus.SUCCESS.toJSON();
       default:

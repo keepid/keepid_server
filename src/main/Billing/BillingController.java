@@ -1,5 +1,10 @@
 package Billing;
 
+import Config.DeploymentLevel;
+import Config.MongoConfig;
+import Organization.Organization;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.stripe.Stripe;
 import com.stripe.exception.CardException;
 import com.stripe.model.Customer;
@@ -12,6 +17,7 @@ import com.stripe.param.SubscriptionCreateParams;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import static com.mongodb.client.model.Filters.eq;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,14 +26,17 @@ import java.util.Map;
 @Slf4j
 public class BillingController {
   private String apiKey = System.getenv("STRIPE_TEST_KEY");
+  private MongoDatabase db;
+  private MongoCollection<Organization> orgCollection;
+
   public Handler createCustomer =
       ctx -> {
         ctx.req.getSession().invalidate();
+        Stripe.apiKey = apiKey;
         log.info("Attempting to create a customer");
         JSONObject req = new JSONObject(ctx.body());
         String customerName = req.getString("customerName");
         String customerEmail = req.getString("customerEmail");
-        Stripe.apiKey = apiKey;
         Map<String, Object> params = new HashMap<>();
         params.put("name", customerName);
         params.put("email", customerEmail);
@@ -39,11 +48,11 @@ public class BillingController {
   public Handler createSubscription =
       ctx -> {
         ctx.req.getSession().invalidate();
+        Stripe.apiKey = apiKey;
         JSONObject req = new JSONObject(ctx.body());
         String customerId = req.getString("customerId");
         String paymentMethodId = req.getString("paymentMethodId");
         String priceId = req.getString("priceId");
-        Stripe.apiKey = apiKey;
         log.info("Retrieving customer");
         Customer customer = Customer.retrieve(customerId);
         log.info("Retrieving payment method");
@@ -81,6 +90,8 @@ public class BillingController {
                 .addAllExpand(Arrays.asList("latest_invoice.payment_intent"))
                 .build();
         Subscription subscription = Subscription.create(subCreateParams);
+
+        // creating object to be returned
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("subscriptionId", subscription.getId());
         responseData.put(
@@ -101,4 +112,34 @@ public class BillingController {
         Subscription deletedSubscription = subscription.cancel();
         ctx.result(deletedSubscription.toJson());
       };
+
+    public Handler getCustomer =
+        ctx -> {
+            ctx.req.getSession().invalidate();
+            Stripe.apiKey = apiKey;
+            log.info("Attempting to find a customer");
+
+            JSONObject req = new JSONObject(ctx.body());
+            String customerEmail = req.getString("customerEmail");
+
+            // query mongoDB under organization for the field customerId that matches with the customerEmail
+            log.info("database found");
+            db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
+
+            if (db == null) {
+                throw new IllegalStateException("DB cannot be null");
+            }
+
+            orgCollection = db.getCollection("organization", Organization.class);
+            log.info("Collection found");
+
+            Organization org = orgCollection.find(eq("email", customerEmail)).first();
+            log.info("Organization found");
+
+            // get customerId from org and retrieve corresponding customer obj from stripe
+            String customerId = org.getCustomerId();
+            Customer customer = Customer.retrieve(customerId);
+            log.info("Found customer: {}", customer);
+            ctx.result(customer.toJson());
+        };
 }

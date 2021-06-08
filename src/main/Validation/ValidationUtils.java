@@ -131,6 +131,11 @@ public class ValidationUtils {
         && input.length() < MAX_PASSWORD_LENGTH);
   }
 
+  public static boolean isValidCustomerId(String input) {
+    return (input != null
+            && !input.strip().isBlank());
+  }
+
   public static boolean isValidUserType(String userType) {
     return UserType.userTypeFromString(userType) != null;
   }

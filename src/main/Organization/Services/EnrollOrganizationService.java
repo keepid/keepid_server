@@ -53,6 +53,7 @@ public class EnrollOrganizationService implements Service {
   String orgZipcode;
   String orgEmail;
   String orgPhoneNumber;
+  String customerId;
   ActivityController activityController;
 
   public EnrollOrganizationService(
@@ -78,7 +79,8 @@ public class EnrollOrganizationService implements Service {
       String orgState,
       String orgZipcode,
       String orgEmail,
-      String orgPhoneNumber) {
+      String orgPhoneNumber,
+      String customerId) {
     this.db = db;
     this.firstName = firstName;
     this.lastName = lastName;
@@ -102,6 +104,7 @@ public class EnrollOrganizationService implements Service {
     this.orgWebsite = orgWebsite;
     this.orgStreetAddress = orgStreetAddress;
     this.orgZipcode = orgZipcode;
+    this.customerId = customerId;
     activityController = new ActivityController();
   }
 
@@ -122,7 +125,8 @@ public class EnrollOrganizationService implements Service {
               orgState,
               orgZipcode,
               orgEmail,
-              orgPhoneNumber);
+              orgPhoneNumber,
+              customerId);
       user =
           new User(
               firstName,

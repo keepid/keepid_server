@@ -184,6 +184,7 @@ public class EntityFactory {
     private String orgZipcode = "19104";
     private String orgEmail = "testOrgEmail@keep.id";
     private String orgPhoneNumber = "1234567890";
+    private String customerId = "cus_JabD9iR9bq9wiK";
     private Date creationDate = new Date(TEST_DATE);
 
     @Override
@@ -199,7 +200,8 @@ public class EntityFactory {
                 orgState,
                 orgZipcode,
                 orgEmail,
-                orgPhoneNumber);
+                orgPhoneNumber,
+                customerId);
         newOrg.setCreationDate(creationDate);
         return newOrg;
       } catch (ValidationException e) {
@@ -256,6 +258,11 @@ public class EntityFactory {
 
     public PartialOrganization withPhoneNumber(String phoneNumber) {
       this.orgPhoneNumber = phoneNumber;
+      return this;
+    }
+
+    public PartialOrganization withCustomerId(String customerId) {
+      this.customerId = customerId;
       return this;
     }
 

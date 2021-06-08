@@ -97,7 +97,8 @@ public class TestUtils {
               "PA",
               "19104",
               "mikedahl@broadstreetministry.org",
-              "1234567890");
+              "1234567890",
+              "cus_JabD9iR9bq9wiK");
 
       User adminBSM =
           new User(
@@ -263,7 +264,8 @@ public class TestUtils {
               "PA",
               "19154",
               "info@ymca.net",
-              "1234567890");
+              "1234567890",
+              "cus_JabD9iR9bq9wiK");
 
       User adminYMCA =
           new User(
@@ -430,7 +432,8 @@ public class TestUtils {
               "PA",
               "19104",
               "contact@example.com",
-              "1234567890");
+              "1234567890",
+              "cus_JabD9iR9bq9wiK");
 
       User tokenTestValid =
           new User(
@@ -509,7 +512,8 @@ public class TestUtils {
               "PA",
               "19104",
               "contact@example.com",
-              "1234567890");
+              "1234567890",
+              "cus_JabD9iR9bq9wiK");
 
       User accountSettingsTest =
           new User(
@@ -557,7 +561,8 @@ public class TestUtils {
               "PA",
               "19104",
               "contact@example.com",
-              "1234567890");
+              "1234567890",
+              "cus_JabD9iR9bq9wiK");
 
       User passwordResetTest =
           new User(

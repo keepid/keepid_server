@@ -21,6 +21,7 @@ public class OrganizationControllerUnitTests {
     String orgZipcode = "12345";
     String orgEmail = "email@email.com";
     String orgPhoneNumber = "1234567890";
+    String customerId = "cus_JabD9iR9bq9wiK";
 
     Organization org =
         new Organization(
@@ -32,7 +33,8 @@ public class OrganizationControllerUnitTests {
             orgState,
             orgZipcode,
             orgEmail,
-            orgPhoneNumber);
+            orgPhoneNumber,
+            customerId);
 
     Date currDate = new Date();
     Calendar cal = Calendar.getInstance();

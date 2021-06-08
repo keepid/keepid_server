@@ -148,6 +148,7 @@ public class OrganizationController {
         String orgZipcode = req.getString("organizationAddressZipcode").strip();
         String orgEmail = req.getString("organizationEmail").strip();
         String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
+        String customerId = "cus_JabD9iR9bq9wiK"; // will need to change to creating it via call to /create-customer
 
         EnrollOrganizationService eoService =
             new EnrollOrganizationService(
@@ -173,7 +174,8 @@ public class OrganizationController {
                 orgState,
                 orgZipcode,
                 orgEmail,
-                orgPhoneNumber);
+                orgPhoneNumber,
+                customerId);
         ctx.result(eoService.executeAndGetResponse().toJSON().toString());
       };
   /*  Invite users through email under an organization with a JSON Object formatted as:
