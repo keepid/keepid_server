@@ -77,7 +77,7 @@ public class BillingController {
 
         // creating object to be returned
         Map<String, Object> responseData = new HashMap<>();
-        responseData.put("subscriptionId", subscription.getId());
+        responseData.put("id", subscription.getId());
         responseData.put(
             "clientSecret",
             subscription.getLatestInvoiceObject().getPaymentIntentObject().getClientSecret());
