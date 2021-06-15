@@ -103,7 +103,6 @@ public class AppConfig {
     app.post("/get-all-activities", activityController.findMyActivities);
 
     /* -------------- Billing ----------------- */
-    app.post("/create-customer", billingController.createCustomer);
     app.post("/create-subscription", billingController.createSubscription);
     app.post("/cancel-subscription", billingController.cancelSubscription);
     app.post("/get-customer", billingController.getCustomer);

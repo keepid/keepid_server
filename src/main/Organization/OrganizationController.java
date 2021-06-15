@@ -2,19 +2,17 @@ package Organization;
 
 import Activity.ActivityController;
 import Config.Message;
-import Organization.Services.EnrollOrganizationService;
-import Organization.Services.FindMemberService;
-import Organization.Services.InviteUserService;
-import Organization.Services.ListOrgsService;
+import Organization.Services.*;
 import Security.EncryptionUtils;
+import User.UserMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.Objects;
+import java.net.URL;
+import java.util.*;
 
 @Slf4j
 public class OrganizationController {
@@ -148,7 +146,20 @@ public class OrganizationController {
         String orgZipcode = req.getString("organizationAddressZipcode").strip();
         String orgEmail = req.getString("organizationEmail").strip();
         String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
-        String customerId = "cus_JabD9iR9bq9wiK"; // will need to change to creating it via call to /create-customer
+        String customerId = "";
+
+        CreateCustomerService ccService = new CreateCustomerService(orgName, orgEmail);
+        Message serviceResponse = ccService.executeAndGetResponse();
+
+        if (serviceResponse == UserMessage.SUCCESS)
+        {
+            customerId = ccService.getCustomer().getId();
+        }
+        else
+        {
+            customerId = "ERROR";
+        }
+        log.info("Customer id created is: {}", customerId);
 
         EnrollOrganizationService eoService =
             new EnrollOrganizationService(

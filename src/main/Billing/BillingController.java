@@ -29,22 +29,6 @@ public class BillingController {
   private MongoDatabase db;
   private MongoCollection<Organization> orgCollection;
 
-  public Handler createCustomer =
-      ctx -> {
-        ctx.req.getSession().invalidate();
-        Stripe.apiKey = apiKey;
-        log.info("Attempting to create a customer");
-        JSONObject req = new JSONObject(ctx.body());
-        String customerName = req.getString("customerName");
-        String customerEmail = req.getString("customerEmail");
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", customerName);
-        params.put("email", customerEmail);
-        Customer customer = Customer.create(params);
-        log.info("Created customer");
-        ctx.result(customer.toJson());
-      };
-
   public Handler createSubscription =
       ctx -> {
         ctx.req.getSession().invalidate();
@@ -131,9 +115,15 @@ public class BillingController {
             }
 
             orgCollection = db.getCollection("organization", Organization.class);
+            if (orgCollection == null){
+                throw new IllegalStateException("Org collection cannot be null");
+            }
             log.info("Collection found");
 
             Organization org = orgCollection.find(eq("email", customerEmail)).first();
+            if (org == null){
+                throw new IllegalStateException("Org document cannot be null");
+            }
             log.info("Organization found");
 
             // get customerId from org and retrieve corresponding customer obj from stripe
