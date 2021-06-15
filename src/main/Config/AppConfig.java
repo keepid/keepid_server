@@ -106,6 +106,7 @@ public class AppConfig {
     app.post("/create-subscription", billingController.createSubscription);
     app.post("/cancel-subscription", billingController.cancelSubscription);
     app.post("/get-customer", billingController.getCustomer);
+    app.post("/get-subscription", billingController.getSubscription);
     return app;
   }
 

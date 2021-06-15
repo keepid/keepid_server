@@ -132,4 +132,18 @@ public class BillingController {
             log.info("Found customer: {}", customer);
             ctx.result(customer.toJson());
         };
+        public Handler getSubscription =
+            ctx -> {
+                ctx.req.getSession().invalidate();
+                Stripe.apiKey = apiKey;
+                log.info("Attempting to find a subscription");
+
+                JSONObject req = new JSONObject(ctx.body());
+                String subscriptionId = req.getString("subscriptionId");
+
+                Subscription subscription = Subscription.retrieve(subscriptionId);
+                log.info("Found subscription: {}", subscription);
+                ctx.result(subscription.toJson());
+            };
+
 }
