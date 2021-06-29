@@ -6,12 +6,15 @@ import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
+import Database.VaccineRecord.VaccineRecordDao;
+import Database.VaccineRecord.VaccineRecordDaoImpl;
 import Issue.IssueController;
 import Organization.OrganizationController;
 import PDF.PdfController;
 import Security.AccountSecurityController;
 import Security.EncryptionUtils;
 import User.UserController;
+import VaccineRecord.VaccineRecordController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
 
@@ -26,6 +29,7 @@ public class AppConfig {
     MongoConfig.getMongoClient();
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
+    VaccineRecordDao vaccineRecordDao = new VaccineRecordDaoImpl(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
 
@@ -47,6 +51,7 @@ public class AppConfig {
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
+    VaccineRecordController vaccineRecordController = new VaccineRecordController(vaccineRecordDao);
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
 
@@ -98,6 +103,11 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+
+    /* --------------- VACCINE -------------- */
+    app.post("/record-dose", vaccineRecordController.recordDose);
+    app.get("/notify", vaccineRecordController.notify);
+    app.get("/get-doses-org/:orgName", vaccineRecordController.getDosesFromOrg);
 
     return app;
   }
