@@ -107,6 +107,8 @@ public class AppConfig {
     app.post("/cancel-subscription", billingController.cancelSubscription);
     app.post("/get-customer", billingController.getCustomer);
     app.post("/get-subscription", billingController.getSubscription);
+    app.get("/generate-client-token", billingController.generateClientToken);
+    app.post("/checkout-donation", billingController.checkoutDonation);
     return app;
   }
 

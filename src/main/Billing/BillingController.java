@@ -3,6 +3,7 @@ package Billing;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Organization.Organization;
+import com.braintreegateway.*;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.stripe.Stripe;
@@ -17,17 +18,47 @@ import com.stripe.param.SubscriptionCreateParams;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
-import static com.mongodb.client.model.Filters.eq;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
 public class BillingController {
   private String apiKey = System.getenv("STRIPE_TEST_KEY");
   private MongoDatabase db;
   private MongoCollection<Organization> orgCollection;
+  private static BraintreeGateway gateway =
+      new BraintreeGateway(
+          Environment.SANDBOX,
+          System.getenv("BT_MERCHANT_ID"),
+          System.getenv("BT_PUBLIC_KEY"),
+          System.getenv("BT_PRIVATE_KEY"));
+
+  public Handler generateClientToken =
+      ctx -> {
+        ctx.result(gateway.clientToken().generate());
+      };
+
+  public Handler checkoutDonation =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String nonceFromClient = req.getString("payment_method_nonce");
+        String amount = req.getString("amount");
+        TransactionRequest transactionReq =
+            new TransactionRequest()
+                .amount(new BigDecimal(amount))
+                .paymentMethodNonce(nonceFromClient)
+                .options()
+                .submitForSettlement(true)
+                .done();
+
+        Result<Transaction> result = gateway.transaction().sale(transactionReq);
+        ctx.result(String.valueOf(result.isSuccess()));
+      };
 
   public Handler createSubscription =
       ctx -> {
@@ -97,53 +128,54 @@ public class BillingController {
         ctx.result(deletedSubscription.toJson());
       };
 
-    public Handler getCustomer =
-        ctx -> {
-            ctx.req.getSession().invalidate();
-            Stripe.apiKey = apiKey;
-            log.info("Attempting to find a customer");
+  public Handler getCustomer =
+      ctx -> {
+        ctx.req.getSession().invalidate();
+        Stripe.apiKey = apiKey;
+        log.info("Attempting to find a customer");
 
-            JSONObject req = new JSONObject(ctx.body());
-            String customerEmail = req.getString("customerEmail");
+        JSONObject req = new JSONObject(ctx.body());
+        String customerEmail = req.getString("customerEmail");
 
-            // query mongoDB under organization for the field customerId that matches with the customerEmail
-            log.info("database found");
-            db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
+        // query mongoDB under organization for the field customerId that matches with the
+        // customerEmail
+        log.info("database found");
+        db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
 
-            if (db == null) {
-                throw new IllegalStateException("DB cannot be null");
-            }
+        if (db == null) {
+          throw new IllegalStateException("DB cannot be null");
+        }
 
-            orgCollection = db.getCollection("organization", Organization.class);
-            if (orgCollection == null){
-                throw new IllegalStateException("Org collection cannot be null");
-            }
-            log.info("Collection found");
+        orgCollection = db.getCollection("organization", Organization.class);
+        if (orgCollection == null) {
+          throw new IllegalStateException("Org collection cannot be null");
+        }
+        log.info("Collection found");
 
-            Organization org = orgCollection.find(eq("email", customerEmail)).first();
-            if (org == null){
-                throw new IllegalStateException("Org document cannot be null");
-            }
-            log.info("Organization found");
+        Organization org = orgCollection.find(eq("email", customerEmail)).first();
+        if (org == null) {
+          throw new IllegalStateException("Org document cannot be null");
+        }
+        log.info("Organization found");
 
-            // get customerId from org and retrieve corresponding customer obj from stripe
-            String customerId = org.getCustomerId();
-            Customer customer = Customer.retrieve(customerId);
-            log.info("Found customer: {}", customer);
-            ctx.result(customer.toJson());
-        };
-        public Handler getSubscription =
-            ctx -> {
-                ctx.req.getSession().invalidate();
-                Stripe.apiKey = apiKey;
-                log.info("Attempting to find a subscription");
+        // get customerId from org and retrieve corresponding customer obj from stripe
+        String customerId = org.getCustomerId();
+        Customer customer = Customer.retrieve(customerId);
+        log.info("Found customer: {}", customer);
+        ctx.result(customer.toJson());
+      };
 
-                JSONObject req = new JSONObject(ctx.body());
-                String subscriptionId = req.getString("subscriptionId");
+  public Handler getSubscription =
+      ctx -> {
+        ctx.req.getSession().invalidate();
+        Stripe.apiKey = apiKey;
+        log.info("Attempting to find a subscription");
 
-                Subscription subscription = Subscription.retrieve(subscriptionId);
-                log.info("Found subscription: {}", subscription);
-                ctx.result(subscription.toJson());
-            };
+        JSONObject req = new JSONObject(ctx.body());
+        String subscriptionId = req.getString("subscriptionId");
 
+        Subscription subscription = Subscription.retrieve(subscriptionId);
+        log.info("Found subscription: {}", subscription);
+        ctx.result(subscription.toJson());
+      };
 }

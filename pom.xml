@@ -287,5 +287,10 @@
             <artifactId>stripe-java</artifactId>
             <version>20.46.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.braintreepayments.gateway</groupId>
+            <artifactId>braintree-java</artifactId>
+            <version>3.11.0</version>
+        </dependency>
     </dependencies>
 </project>
