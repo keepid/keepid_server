@@ -38,6 +38,11 @@ public class BillingController {
           System.getenv("BT_PUBLIC_KEY"),
           System.getenv("BT_PRIVATE_KEY"));
 
+  public BillingController(MongoDatabase db) {
+    this.db = db;
+    // Need to add Stripe org collection
+  }
+
   public Handler generateClientToken =
       ctx -> {
         ctx.result(gateway.clientToken().generate());

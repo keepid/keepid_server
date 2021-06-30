@@ -48,7 +48,8 @@ public class AppConfig {
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
-    BillingController billingController = new BillingController();
+    BillingController billingController =
+        new BillingController(db); // Will need to pass in mongo org collection (Stripe)
 
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
