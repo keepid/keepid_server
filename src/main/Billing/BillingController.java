@@ -7,10 +7,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.stripe.Stripe;
 import com.stripe.exception.CardException;
-import com.stripe.model.Customer;
-import com.stripe.model.PaymentMethod;
-import com.stripe.model.StripeObject;
-import com.stripe.model.Subscription;
+import com.stripe.model.*;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.PaymentMethodAttachParams;
 import com.stripe.param.SubscriptionCreateParams;
@@ -132,18 +129,43 @@ public class BillingController {
             log.info("Found customer: {}", customer);
             ctx.result(customer.toJson());
         };
-        public Handler getSubscription =
-            ctx -> {
-                ctx.req.getSession().invalidate();
-                Stripe.apiKey = apiKey;
-                log.info("Attempting to find a subscription");
+    public Handler getSubscription =
+        ctx -> {
+            ctx.req.getSession().invalidate();
+            Stripe.apiKey = apiKey;
+            log.info("Attempting to find a subscription");
 
-                JSONObject req = new JSONObject(ctx.body());
-                String subscriptionId = req.getString("subscriptionId");
+            JSONObject req = new JSONObject(ctx.body());
+            String subscriptionId = req.getString("subscriptionId");
 
-                Subscription subscription = Subscription.retrieve(subscriptionId);
-                log.info("Found subscription: {}", subscription);
-                ctx.result(subscription.toJson());
-            };
+            Subscription subscription = Subscription.retrieve(subscriptionId);
+            log.info("Found subscription: {}", subscription);
+            ctx.result(subscription.toJson());
+        };
+    public Handler getPrice =
+        ctx -> {
+            ctx.req.getSession().invalidate();
+            Stripe.apiKey = apiKey;
+            log.info("Attempting to find a price object");
 
+            JSONObject req = new JSONObject(ctx.body());
+            String priceId = req.getString("priceId");
+
+            Price price = Price.retrieve(priceId);
+            log.info("Found price: {}", price);
+            ctx.result(price.toJson());
+        };
+    public Handler getProduct =
+        ctx -> {
+            ctx.req.getSession().invalidate();
+            Stripe.apiKey = apiKey;
+            log.info("Attempting to find a product object");
+
+            JSONObject req = new JSONObject(ctx.body());
+            String productId = req.getString("productId");
+
+            Product product = Product.retrieve(productId);
+            log.info("Found product: {}", product);
+            ctx.result(product.toJson());
+        };
 }
