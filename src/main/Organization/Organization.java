@@ -133,13 +133,9 @@ public class Organization {
     return this.orgPhoneNumber;
   }
 
-  public String getCustomerId() {
-    return this.customerId;
-  }
+  public String getCustomerId() { return this.customerId; }
 
-  public Date getCreationDate() {
-    return this.creationDate;
-  }
+  public Date getCreationDate() { return this.creationDate; }
 
   /** **************** SETTERS ********************* */
   public Organization setOrgName(String orgName) {
