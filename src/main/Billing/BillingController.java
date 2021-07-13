@@ -1,6 +1,8 @@
 package Billing;
 
+import Billing.Services.DonationGenerateUserTokenService;
 import Config.DeploymentLevel;
+import Config.Message;
 import Config.MongoConfig;
 import Organization.Organization;
 import com.braintreegateway.*;
@@ -31,21 +33,26 @@ public class BillingController {
   private String apiKey = System.getenv("STRIPE_TEST_KEY");
   private MongoDatabase db;
   private MongoCollection<Organization> orgCollection;
-  private static BraintreeGateway gateway =
-      new BraintreeGateway(
-          Environment.SANDBOX,
-          System.getenv("BT_MERCHANT_ID"),
-          System.getenv("BT_PUBLIC_KEY"),
-          System.getenv("BT_PRIVATE_KEY"));
+  private static BraintreeGateway gateway;
 
   public BillingController(MongoDatabase db) {
     this.db = db;
+    gateway =
+        new BraintreeGateway(
+            Environment.SANDBOX,
+            System.getenv("BT_MERCHANT_ID"),
+            System.getenv("BT_PUBLIC_KEY"),
+            System.getenv("BT_PRIVATE_KEY"));
+
     // Need to add Stripe org collection
   }
 
   public Handler generateClientToken =
       ctx -> {
-        ctx.result(gateway.clientToken().generate());
+        DonationGenerateUserTokenService donationGenerateUserTokenService =
+            new DonationGenerateUserTokenService(gateway);
+        Message res = donationGenerateUserTokenService.executeAndGetResponse();
+        ctx.result(res.toResponseString());
       };
 
   public Handler checkoutDonation =
