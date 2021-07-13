@@ -47,7 +47,7 @@ public class BillingController {
     // Need to add Stripe org collection
   }
 
-  public Handler generateClientToken =
+  public Handler donationGenerateClientToken =
       ctx -> {
         DonationGenerateUserTokenService donationGenerateUserTokenService =
             new DonationGenerateUserTokenService(gateway);
