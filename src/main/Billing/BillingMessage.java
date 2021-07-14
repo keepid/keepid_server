@@ -5,6 +5,7 @@ import org.json.JSONObject;
 
 public enum BillingMessage implements Message {
   SUCCESS("SUCCESS:Success."),
+  DONATION_CHECKOUT_FAILURE("DONATION_CHECKOUT_FAILURE:Failed to checkout"),
   DONATION_TOKEN_FAILURE("DONATION_TOKEN_FAILURE:Failed to generate client token");
   private String errorMessage;
 

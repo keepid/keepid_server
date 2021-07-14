@@ -1,11 +1,13 @@
 package Billing;
 
+import Billing.Services.DonationCheckoutService;
 import Billing.Services.DonationGenerateUserTokenService;
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
 import Organization.Organization;
-import com.braintreegateway.*;
+import com.braintreegateway.BraintreeGateway;
+import com.braintreegateway.Environment;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.stripe.Stripe;
@@ -21,7 +23,6 @@ import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,21 +56,16 @@ public class BillingController {
         ctx.result(res.toResponseString());
       };
 
-  public Handler checkoutDonation =
+  public Handler donationCheckout =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String nonceFromClient = req.getString("payment_method_nonce");
         String amount = req.getString("amount");
-        TransactionRequest transactionReq =
-            new TransactionRequest()
-                .amount(new BigDecimal(amount))
-                .paymentMethodNonce(nonceFromClient)
-                .options()
-                .submitForSettlement(true)
-                .done();
 
-        Result<Transaction> result = gateway.transaction().sale(transactionReq);
-        ctx.result(String.valueOf(result.isSuccess()));
+        DonationCheckoutService donationCheckoutService =
+            new DonationCheckoutService(amount, nonceFromClient, gateway);
+        Message res = donationCheckoutService.executeAndGetResponse();
+        ctx.result(res.toResponseString());
       };
 
   public Handler createSubscription =

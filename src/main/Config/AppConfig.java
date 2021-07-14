@@ -109,7 +109,7 @@ public class AppConfig {
     app.post("/get-customer", billingController.getCustomer);
     app.post("/get-subscription", billingController.getSubscription);
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
-    app.post("/checkout-donation", billingController.checkoutDonation);
+    app.post("/donation-checkout", billingController.donationCheckout);
     return app;
   }
 
