@@ -103,13 +103,13 @@ public class BillingController {
             JSONObject req = new JSONObject(ctx.body());
             String customerEmail = req.getString("customerEmail");
 
-            // query mongoDB under organization for the field customerId that matches with the customerEmail
-            log.info("database found");
             db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
 
             if (db == null) {
                 throw new IllegalStateException("DB cannot be null");
             }
+            // query mongoDB under organization for the field customerId that matches with the customerEmail
+            log.info("database found");
 
             orgCollection = db.getCollection("organization", Organization.class);
             if (orgCollection == null){
@@ -119,7 +119,7 @@ public class BillingController {
 
             Organization org = orgCollection.find(eq("email", customerEmail)).first();
             if (org == null){
-                throw new IllegalStateException("Org document cannot be null");
+                throw new IllegalStateException("Document where email with that name cannot be found");
             }
             log.info("Organization found");
 
@@ -168,4 +168,38 @@ public class BillingController {
             log.info("Found product: {}", product);
             ctx.result(product.toJson());
         };
+    public Handler getOrgEmail =
+            ctx -> {
+                String orgName = ctx.sessionAttribute("orgName");
+
+                // String orgName = "adfasdfasdfa21";
+                log.info("The current user's organization is: {}", orgName);
+
+                db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
+                if (db == null) {
+                    throw new IllegalStateException("DB cannot be null");
+                }
+                log.info("database found");
+
+                orgCollection = db.getCollection("organization", Organization.class);
+                if (orgCollection == null){
+                    throw new IllegalStateException("organization collection cannot be found");
+                }
+                log.info("Collection found");
+
+                Organization org = orgCollection.find(eq("orgName", orgName)).first();
+                if (org == null){
+                    throw new IllegalStateException("Document where orgName with that name cannot be found");
+                }
+                log.info("Organization found");
+
+                // get orgEmail from database and return it
+                String orgEmail = org.getOrgEmail();
+                log.info("orgEmail found: {}", orgEmail);
+
+                // creating object to be returned
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("orgEmail", orgEmail);
+                ctx.result(responseJSON.toString());
+            };
 }

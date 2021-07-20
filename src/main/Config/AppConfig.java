@@ -109,6 +109,7 @@ public class AppConfig {
     app.post("/get-subscription", billingController.getSubscription);
     app.post("/get-price", billingController.getPrice);
     app.post("/get-product", billingController.getProduct);
+    app.get("/get-orgEmail", billingController.getOrgEmail);
     return app;
   }
 
