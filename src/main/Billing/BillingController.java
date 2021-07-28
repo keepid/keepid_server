@@ -28,7 +28,6 @@ public class BillingController {
 
   public Handler createSubscription =
       ctx -> {
-        ctx.req.getSession().invalidate();
         Stripe.apiKey = apiKey;
         JSONObject req = new JSONObject(ctx.body());
         String customerId = req.getString("customerId");
@@ -83,7 +82,6 @@ public class BillingController {
 
   public Handler cancelSubscription =
       ctx -> {
-        ctx.req.getSession().invalidate();
         JSONObject req = new JSONObject(ctx.body());
         String subscriptionId = req.getString("subscriptionId");
         Stripe.apiKey = apiKey;
@@ -96,7 +94,6 @@ public class BillingController {
 
     public Handler getCustomer =
         ctx -> {
-            ctx.req.getSession().invalidate();
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a customer");
 
@@ -131,7 +128,6 @@ public class BillingController {
         };
     public Handler getSubscription =
         ctx -> {
-            ctx.req.getSession().invalidate();
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a subscription");
 
@@ -144,7 +140,7 @@ public class BillingController {
         };
     public Handler getPrice =
         ctx -> {
-            ctx.req.getSession().invalidate();
+            log.info("The username is: " + ctx.sessionAttribute("username"));
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a price object");
 
@@ -157,7 +153,7 @@ public class BillingController {
         };
     public Handler getProduct =
         ctx -> {
-            ctx.req.getSession().invalidate();
+            log.info("The username is: " + ctx.sessionAttribute("username"));
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a product object");
 
@@ -171,9 +167,12 @@ public class BillingController {
     public Handler getOrgEmail =
             ctx -> {
                 String orgName = ctx.sessionAttribute("orgName");
+                Map sessionMap = ctx.sessionAttributeMap();
 
+                log.info("The session attribute map is: {}", sessionMap);
+                log.info("The orgName is: " + ctx.sessionAttribute("orgName"));
                 // String orgName = "adfasdfasdfa21";
-                log.info("The current user's organization is: {}", orgName);
+                // log.info("The current user's organization is: {}", orgName);
 
                 db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
                 if (db == null) {
@@ -200,6 +199,7 @@ public class BillingController {
                 // creating object to be returned
                 JSONObject responseJSON = new JSONObject();
                 responseJSON.put("orgEmail", orgEmail);
+
                 ctx.result(responseJSON.toString());
             };
 }
