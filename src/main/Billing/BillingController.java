@@ -1,7 +1,9 @@
 package Billing;
 
+import Billing.Services.CreateSubscriptionService;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Config.Message;
 import Organization.Organization;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -28,56 +30,23 @@ public class BillingController {
 
   public Handler createSubscription =
       ctx -> {
+
+        log.info("createSubscription endpoint hit");
         Stripe.apiKey = apiKey;
         JSONObject req = new JSONObject(ctx.body());
         String customerId = req.getString("customerId");
         String paymentMethodId = req.getString("paymentMethodId");
         String priceId = req.getString("priceId");
-        log.info("Retrieving customer");
-        Customer customer = Customer.retrieve(customerId);
-        log.info("Retrieving payment method");
-        try {
-          PaymentMethod pm = PaymentMethod.retrieve(paymentMethodId);
-          pm.attach(PaymentMethodAttachParams.builder().setCustomer(customer.getId()).build());
-          log.info("Successfully retrieved payment method");
-        } catch (CardException e) {
-          Map<String, String> responseError = new HashMap<>();
-          responseError.put("error", e.getLocalizedMessage());
-          JSONObject responseErrorJSON = new JSONObject(responseError);
-          log.info("Failed in retrieving payment method");
-          ctx.result(
-              String.valueOf(
-                  responseErrorJSON)); // might need to add return statement to break out here
-        }
-        log.info("Updating customer params");
-        CustomerUpdateParams customerUpdateParams =
-            CustomerUpdateParams.builder()
-                .setInvoiceSettings(
-                    CustomerUpdateParams.InvoiceSettings.builder()
-                        .setDefaultPaymentMethod(paymentMethodId)
-                        .build())
-                .build();
-        customer.update(customerUpdateParams);
-        log.info("Creating subscription");
-        SubscriptionCreateParams subCreateParams =
-            SubscriptionCreateParams.builder()
-                .addItem(
-                    SubscriptionCreateParams.Item.builder()
-                        .setPrice(priceId) // found on dashboard in product
-                        .build())
-                .setCustomer(customer.getId())
-                .setCollectionMethod(SubscriptionCreateParams.CollectionMethod.CHARGE_AUTOMATICALLY)
-                .addAllExpand(Arrays.asList("latest_invoice.payment_intent"))
-                .build();
-        Subscription subscription = Subscription.create(subCreateParams);
 
-        // creating object to be returned
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("id", subscription.getId());
-        responseData.put(
-            "clientSecret",
-            subscription.getLatestInvoiceObject().getPaymentIntentObject().getClientSecret());
-        ctx.result(StripeObject.PRETTY_PRINT_GSON.toJson(responseData));
+        CreateSubscriptionService subscriptionService = new CreateSubscriptionService(customerId, paymentMethodId, priceId, apiKey);
+
+        Message response = subscriptionService.executeAndGetResponse();
+
+        if (response == BillingMessage.SUCCESS){
+            ctx.result(subscriptionService.getSubscriptionWithSecret());
+        }
+        log.info("Error: ", response.getErrorName());
+        ctx.result(response.toResponseString());
       };
 
   public Handler cancelSubscription =

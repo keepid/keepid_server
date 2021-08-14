@@ -2,6 +2,7 @@ package Database.User;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Security.SecurityUtils;
 import User.User;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -72,9 +73,14 @@ public class UserDaoImpl implements UserDao {
 
   @Override
   public void resetPassword(User user, String password) {
+    String newPassword = SecurityUtils.hashPassword(password);
+    System.out.print(("Password hash: " + newPassword));
+    if(newPassword == null){
+      throw new IllegalStateException(String.format("Hash function is not working for User %s", user.getUsername()));
+    }
     userCollection.updateOne(
         eq("username", user.getUsername()),
-        new Document("$set", new Document("password", password)));
+        new Document("$set", new Document("password", newPassword)));
   }
 
   @Override
