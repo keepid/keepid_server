@@ -7,10 +7,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.CardException;
 import com.stripe.exception.InvalidRequestException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
-import com.stripe.model.PaymentMethod;
-import com.stripe.model.StripeObject;
-import com.stripe.model.Subscription;
+import com.stripe.model.*;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.PaymentMethodAttachParams;
 import com.stripe.param.SubscriptionCreateParams;
@@ -45,35 +42,25 @@ public class CreateSubscriptionService implements Service {
         if (priceId == null || (priceId.strip()).equals("")){
             return BillingMessage.INVALID_PRICE_ID;
         }
-
-        // log.info("Retrieving Stripe customer");
-        Customer customer = Customer.retrieve(customerId);
-
-        if (customer == null){
+        Customer customer = null;
+        try{
+            customer = Customer.retrieve(customerId);
+        }
+        catch (Exception e){
             return BillingMessage.CUSTOMER_RETRIEVAL_FAILED;
         }
-        // log.info("Successfully retrieved Stripe customer");
 
-        // log.info("Retrieving payment method");
         try {
             PaymentMethod pm = PaymentMethod.retrieve(paymentMethodId);
             pm.attach(PaymentMethodAttachParams.builder().setCustomer(customer.getId()).build());
-            // log.info("Successfully retrieved Stripe payment method");
         } catch (InvalidRequestException e) {
             Map<String, String> responseError = new HashMap<>();
             responseError.put("error", e.getLocalizedMessage());
             JSONObject responseErrorJSON = new JSONObject(responseError);
             System.out.println("Payment method error: " + String.valueOf(responseErrorJSON));
-            /*
-            System.out.println("Status is: " + e.getCode());
-            System.out.println("Message is: " + e.getMessage());
-            */
-            // log.info("Failed in retrieving Stripe payment method");
             return BillingMessage.PAYMENT_METHOD_RETRIEVAL_FAILED;
-            // ctx.result(String.valueOf(responseErrorJSON)); // might need to add return statement to break out here
         }
 
-        // log.info("Updating customer params");
         CustomerUpdateParams customerUpdateParams =
                 CustomerUpdateParams.builder()
                         .setInvoiceSettings(
@@ -83,7 +70,6 @@ public class CreateSubscriptionService implements Service {
                         .build();
         customer.update(customerUpdateParams);
 
-        // log.info("Creating subscription");
         SubscriptionCreateParams subCreateParams =
                 SubscriptionCreateParams.builder()
                         .addItem(
@@ -99,7 +85,6 @@ public class CreateSubscriptionService implements Service {
         if (subscription == null){
             return BillingMessage.SUBSCRIPTION_NULL;
         }
-        // log.info("Successfully created subscription");
 
         // creating object to be returned
         Map<String, Object> responseData = new HashMap<>();

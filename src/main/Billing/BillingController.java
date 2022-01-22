@@ -1,6 +1,6 @@
 package Billing;
 
-import Billing.Services.CreateSubscriptionService;
+import Billing.Services.*;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Config.Message;
@@ -28,9 +28,52 @@ public class BillingController {
   private MongoDatabase db;
   private MongoCollection<Organization> orgCollection;
 
+    public Handler getOrgEmail =
+        ctx -> {
+            String orgName = ctx.sessionAttribute("orgName");
+            // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+            log.info("The orgName is: " + ctx.sessionAttribute("orgName"));
+
+            GetOrgEmailService getOrgEmailService = new GetOrgEmailService(orgName);
+            Message response = getOrgEmailService.executeAndGetResponse();
+
+            if (response == BillingMessage.SUCCESS){
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("orgEmail", getOrgEmailService.getOrgEmail());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
+        };
+
+    public Handler getCustomer =
+        ctx -> {
+            Stripe.apiKey = apiKey;
+            log.info("Attempting to find a customer");
+
+            JSONObject req = new JSONObject(ctx.body());
+            String customerEmail = req.getString("customerEmail");
+
+            GetCustomerService getCustomerService = new GetCustomerService(customerEmail, apiKey);
+            Message response = getCustomerService.executeAndGetResponse();
+
+            if (response == BillingMessage.SUCCESS){
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("customer", getCustomerService.getCustomer().toJson());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
+        };
+
   public Handler createSubscription =
       ctx -> {
-
         log.info("createSubscription endpoint hit");
         Stripe.apiKey = apiKey;
         JSONObject req = new JSONObject(ctx.body());
@@ -39,14 +82,18 @@ public class BillingController {
         String priceId = req.getString("priceId");
 
         CreateSubscriptionService subscriptionService = new CreateSubscriptionService(customerId, paymentMethodId, priceId, apiKey);
-
         Message response = subscriptionService.executeAndGetResponse();
 
         if (response == BillingMessage.SUCCESS){
-            ctx.result(subscriptionService.getSubscriptionWithSecret());
+            JSONObject responseJSON = new JSONObject();
+            responseJSON.put("subscription", subscriptionService.getSubscriptionWithSecret());
+            JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+            ctx.result(mergedInfo.toString());
         }
-        log.info("Error: ", response.getErrorName());
-        ctx.result(response.toResponseString());
+        else{
+            log.info("Error: {}", response.getErrorName());
+            ctx.result(response.toResponseString());
+        }
       };
 
   public Handler cancelSubscription =
@@ -61,40 +108,6 @@ public class BillingController {
         ctx.result(deletedSubscription.toJson());
       };
 
-    public Handler getCustomer =
-        ctx -> {
-            Stripe.apiKey = apiKey;
-            log.info("Attempting to find a customer");
-
-            JSONObject req = new JSONObject(ctx.body());
-            String customerEmail = req.getString("customerEmail");
-
-            db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
-
-            if (db == null) {
-                throw new IllegalStateException("DB cannot be null");
-            }
-            // query mongoDB under organization for the field customerId that matches with the customerEmail
-            log.info("database found");
-
-            orgCollection = db.getCollection("organization", Organization.class);
-            if (orgCollection == null){
-                throw new IllegalStateException("Org collection cannot be null");
-            }
-            log.info("Collection found");
-
-            Organization org = orgCollection.find(eq("email", customerEmail)).first();
-            if (org == null){
-                throw new IllegalStateException("Document where email with that name cannot be found");
-            }
-            log.info("Organization found");
-
-            // get customerId from org and retrieve corresponding customer obj from stripe
-            String customerId = org.getCustomerId();
-            Customer customer = Customer.retrieve(customerId);
-            log.info("Found customer: {}", customer);
-            ctx.result(customer.toJson());
-        };
     public Handler getSubscription =
         ctx -> {
             Stripe.apiKey = apiKey;
@@ -103,72 +116,71 @@ public class BillingController {
             JSONObject req = new JSONObject(ctx.body());
             String subscriptionId = req.getString("subscriptionId");
 
-            Subscription subscription = Subscription.retrieve(subscriptionId);
-            log.info("Found subscription: {}", subscription);
-            ctx.result(subscription.toJson());
+            GetSubscriptionService getSubscriptionService = new GetSubscriptionService(subscriptionId, apiKey);
+            Message response = getSubscriptionService.executeAndGetResponse();
+
+            if (response == BillingMessage.SUCCESS){
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("subscription", getSubscriptionService.getSubscription().toJson());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
         };
     public Handler getPrice =
         ctx -> {
-            log.info("The username is: " + ctx.sessionAttribute("username"));
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a price object");
 
             JSONObject req = new JSONObject(ctx.body());
             String priceId = req.getString("priceId");
 
-            Price price = Price.retrieve(priceId);
-            log.info("Found price: {}", price);
-            ctx.result(price.toJson());
+            GetPriceService getPriceService = new GetPriceService(priceId);
+            Message response = getPriceService.executeAndGetResponse();
+
+            if (response == BillingMessage.SUCCESS){
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("price", getPriceService.getPrice().toJson());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
         };
     public Handler getProduct =
         ctx -> {
-            log.info("The username is: " + ctx.sessionAttribute("username"));
             Stripe.apiKey = apiKey;
             log.info("Attempting to find a product object");
 
             JSONObject req = new JSONObject(ctx.body());
             String productId = req.getString("productId");
 
-            Product product = Product.retrieve(productId);
-            log.info("Found product: {}", product);
-            ctx.result(product.toJson());
-        };
-    public Handler getOrgEmail =
-            ctx -> {
-                String orgName = ctx.sessionAttribute("orgName");
-                Map sessionMap = ctx.sessionAttributeMap();
+            GetProductService getProductService = new GetProductService(productId);
+            Message response = getProductService.executeAndGetResponse();
 
-                log.info("The session attribute map is: {}", sessionMap);
-                log.info("The orgName is: " + ctx.sessionAttribute("orgName"));
-                // String orgName = "adfasdfasdfa21";
-                // log.info("The current user's organization is: {}", orgName);
-
-                db = MongoConfig.getDatabase(DeploymentLevel.STAGING);
-                if (db == null) {
-                    throw new IllegalStateException("DB cannot be null");
-                }
-                log.info("database found");
-
-                orgCollection = db.getCollection("organization", Organization.class);
-                if (orgCollection == null){
-                    throw new IllegalStateException("organization collection cannot be found");
-                }
-                log.info("Collection found");
-
-                Organization org = orgCollection.find(eq("orgName", orgName)).first();
-                if (org == null){
-                    throw new IllegalStateException("Document where orgName with that name cannot be found");
-                }
-                log.info("Organization found");
-
-                // get orgEmail from database and return it
-                String orgEmail = org.getOrgEmail();
-                log.info("orgEmail found: {}", orgEmail);
-
-                // creating object to be returned
+            System.out.println("The response is " + response.toResponseString());
+            if (response == BillingMessage.SUCCESS){
                 JSONObject responseJSON = new JSONObject();
-                responseJSON.put("orgEmail", orgEmail);
-
-                ctx.result(responseJSON.toString());
-            };
+                responseJSON.put("product", getProductService.getProduct().toJson());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
+        };
+    public static JSONObject mergeJSON(JSONObject object1, JSONObject object2) {
+        // helper function to merge 2 json objects
+        JSONObject merged = new JSONObject(object1, JSONObject.getNames(object1));
+        for (String key : JSONObject.getNames(object2)) {
+            merged.put(key, object2.get(key));
+        }
+        return merged;
+    }
 }
