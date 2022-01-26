@@ -283,7 +283,7 @@ public class User {
   }
 
   public User setDefaultId(String category, String id) {
-    this.defaultIds.replace(category, id);
+      this.defaultIds.put(category, id);
     return this;
   }
 
