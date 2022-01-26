@@ -309,4 +309,27 @@ public class UserController {
           ctx.result(mes.toJSON().toString());
         }
       };
+
+    public Handler setDefaultIds =
+        ctx -> {
+            String username = ctx.sessionAttribute("username");
+            String orgName = ctx.sessionAttribute("orgName");
+            // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+            log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("orgName"));
+            log.info("The orgName in setDefaultIds is: " + ctx.sessionAttribute("orgName"));
+
+            SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(orgName);
+            Message response = getOrgEmailService.executeAndGetResponse();
+
+            if (response == BillingMessage.SUCCESS){
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("orgEmail", getOrgEmailService.getOrgEmail());
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
+        };
 }
