@@ -13,16 +13,13 @@ import java.util.Optional;
 public class SetUserDefaultIdService implements Service {
     private UserDao userDao;
     private String username;
-    private String orgName;
     private String category;
     private String id;
     private User user;
 
-    // Not sure why this has to be void but the other services dont have to be
-    public void setUserDefaultIdService(UserDao userDao, String username, String orgName, String category, String id) {
+    public SetUserDefaultIdService(UserDao userDao, String username, String category, String id) {
         this.userDao = userDao;
         this.username = username;
-        this.orgName = orgName;
         this.category = category;
         this.id = id;
     }

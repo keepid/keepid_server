@@ -164,6 +164,7 @@ public class EntityFactory {
     private String zipcode = "19104";
     private String username = "testUser123";
     private String password = "testUser123";
+    private HashMap<String, String> defaultIds;
     private UserType userType = UserType.Client;
     private boolean twoFactorOn = false;
     private Date creationDate = new Date(TEST_DATE);
@@ -187,6 +188,7 @@ public class EntityFactory {
                 twoFactorOn,
                 username,
                 password,
+                defaultIds,
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
