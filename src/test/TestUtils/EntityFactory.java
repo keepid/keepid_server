@@ -12,10 +12,7 @@ import Validation.ValidationException;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
@@ -49,6 +46,7 @@ public class EntityFactory {
     private String zipcode = "19104";
     private String username = "testUser123";
     private String password = "testUser123";
+    private HashMap<String, String> defaultIds;
     private UserType userType = UserType.Client;
     private boolean twoFactorOn = false;
     private Date creationDate = new Date(TEST_DATE);
@@ -72,6 +70,7 @@ public class EntityFactory {
                 twoFactorOn,
                 username,
                 password,
+                defaultIds,
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
