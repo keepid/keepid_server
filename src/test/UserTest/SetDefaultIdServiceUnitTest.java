@@ -1,25 +1,17 @@
 package UserTest;
 
+import Config.DeploymentLevel;
 import Config.Message;
 import Database.User.UserDao;
+import Database.User.UserDaoTestImpl;
 import TestUtils.EntityFactory;
 import User.Services.SetUserDefaultIdService;
 import User.User;
 import User.UserMessage;
-import User.UserType;
-import Validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @Slf4j
 public class SetDefaultIdServiceUnitTest {
@@ -28,17 +20,23 @@ public class SetDefaultIdServiceUnitTest {
 
     @Test
     public void setDefaultIds() {
-        userDao = mock(UserDao.class);
+        UserDao userDao = new UserDaoTestImpl(DeploymentLevel.IN_MEMORY);
 
         User user = EntityFactory.createUser()
                         .withFirstName("Jason")
                         .withLastName("Zhang")
+                        .withUsername("jzhang0107")
                         .buildAndPersist(userDao);
 
-        SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, user.getUsername(), "SSN", "123456789");
-        Message response = setUserDefaultIdService.executeAndGetResponse();
+        String documentType = "SSN";
+        SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, user.getUsername(), documentType, "123456789");
 
-        assertEquals(user.getDefaultIds().get("SSN"), "123456789");
-        // assertEquals(response, UserMessage.SUCCESS);
+        Message response = setUserDefaultIdService.executeAndGetResponse();
+        String retrievedId = setUserDefaultIdService.getDocumentTypeId(documentType);
+        User userRetrieved = setUserDefaultIdService.getUser();
+
+        assertEquals(UserMessage.SUCCESS, response);
+        assertEquals( "123456789", retrievedId);
+        assertEquals(user, userRetrieved);
     }
 }

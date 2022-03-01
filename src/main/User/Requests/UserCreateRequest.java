@@ -4,6 +4,8 @@ import User.UserType;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.HashMap;
+
 public class UserCreateRequest
 {
   @BsonProperty(value = "firstName")
@@ -55,6 +57,9 @@ public class UserCreateRequest
   @BsonProperty(value = "password")
   private String password;
 
+  @BsonProperty(value = "defaultIds")
+  private HashMap<String, String> defaultIds;
+
 
   /** **************** GETTERS ********************* */
   public String getFirstName() { return firstName; }
@@ -82,6 +87,8 @@ public class UserCreateRequest
   public String getUsername() { return username; }
 
   public String getPassword() { return password; }
+
+  public HashMap<String, String> getDefaultIds() { return defaultIds; }
 
   /** **************** SETTERS ********************* */
   public void setFirstName(String firstName) {
@@ -127,4 +134,6 @@ public class UserCreateRequest
   public void setUsername(String username) { this.username = username; }
 
   public void setPassword(String password) { this.password = password; }
+
+  public void setDefaultIds(String documentType, String id) { this.defaultIds.put(documentType, id); }
 }

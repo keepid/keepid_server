@@ -164,7 +164,7 @@ public class EntityFactory {
     private String zipcode = "19104";
     private String username = "testUser123";
     private String password = "testUser123";
-    private HashMap<String, String> defaultIds;
+    private HashMap<String, String> defaultIds = new HashMap<String, String>();
     private UserType userType = UserType.Client;
     private boolean twoFactorOn = false;
     private Date creationDate = new Date(TEST_DATE);
@@ -188,7 +188,6 @@ public class EntityFactory {
                 twoFactorOn,
                 username,
                 password,
-                defaultIds,
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
@@ -287,6 +286,11 @@ public class EntityFactory {
 
     public PartialUser withLoginHistory(List<IpObject> logInHistory) {
       this.logInHistory = logInHistory;
+      return this;
+    }
+
+    public PartialUser withDefaultId(String category, String id) {
+      this.defaultIds.put(category, id);
       return this;
     }
   }

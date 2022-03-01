@@ -17,10 +17,7 @@ import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Setter
@@ -95,7 +92,6 @@ public class User {
       Boolean twoFactorOn,
       String username,
       String password,
-      Map<String, String> defaultIds,
       UserType userType)
       throws ValidationException {
 
@@ -113,7 +109,6 @@ public class User {
             zipcode,
             username,
             password,
-            defaultIds,
             userType);
 
     if (validationMessage != UserValidationMessage.VALID)
@@ -135,9 +130,9 @@ public class User {
     this.twoFactorOn = twoFactorOn;
     this.username = username;
     this.password = password;
-    this.defaultIds = defaultIds;
     this.userType = userType;
     this.creationDate = date;
+    this.defaultIds = new HashMap<String, String>();
   }
 
   /** **************** GETTERS ********************* */
@@ -282,8 +277,8 @@ public class User {
     return this;
   }
 
-  public User setDefaultId(String category, String id) {
-      this.defaultIds.put(category, id);
+  public User setDefaultId(String documentType, String id) {
+    this.defaultIds.put(documentType, id);
     return this;
   }
 
@@ -310,7 +305,6 @@ public class User {
       String zipcode,
       String username,
       String password,
-      Map<String, String> defaultIds,
       UserType userType) {
 
     if (!ValidationUtils.isValidFirstName(firstName)) {
