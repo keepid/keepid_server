@@ -69,7 +69,9 @@ public class UploadPDFService implements Service {
       return PdfMessage.INVALID_PDF_TYPE;
     } else if (fileStream == null) {
       return PdfMessage.INVALID_PDF;
-    } else if (!fileContentType.equals("application/pdf") && !fileContentType.startsWith("image")) {
+    } else if (!fileContentType.equals("application/pdf")
+        && !fileContentType.equals("application/octet-stream")
+        && !fileContentType.startsWith("image")) {
       return PdfMessage.INVALID_PDF;
     } else {
       if (fileContentType.startsWith("image")) {
@@ -101,10 +103,12 @@ public class UploadPDFService implements Service {
 
   public Message mongodbUpload() throws GeneralSecurityException, IOException {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
-    InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     GridFSUploadOptions options;
+    InputStream inputStream;
+
     if (pdfType == PDFType.FORM) {
+      inputStream = fileStream;
       options =
           new GridFSUploadOptions()
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
@@ -117,6 +121,7 @@ public class UploadPDFService implements Service {
                       .append("organizationName", organizationName));
 
     } else {
+      inputStream = encryptionController.encryptFile(fileStream, uploader);
       options =
           new GridFSUploadOptions()
               .chunkSizeBytes(CHUNK_SIZE_BYTES)

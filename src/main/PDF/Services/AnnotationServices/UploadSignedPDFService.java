@@ -10,6 +10,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
@@ -128,7 +129,7 @@ public class UploadSignedPDFService implements Service {
   public static InputStream signPDF(
       String username, InputStream pdfInputStream, InputStream imageInputStream)
       throws IOException {
-    PDDocument pdfDocument = PDDocument.load(pdfInputStream);
+    PDDocument pdfDocument = Loader.loadPDF(pdfInputStream);
 
     PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(imageInputStream);
     visibleSignDesigner.zoom(0);

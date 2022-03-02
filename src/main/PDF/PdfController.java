@@ -15,10 +15,14 @@ import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.tools.ant.taskdefs.Input;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -277,7 +281,6 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              System.out.println(ctx.formParam("pdfType") + ": " + pdfType);
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -448,7 +451,7 @@ public class PdfController {
     String title;
     if (pdfType == PDFType.FORM) {
       try {
-        PDDocument pdfDocument = PDDocument.load(content);
+        PDDocument pdfDocument = Loader.loadPDF(content);
         pdfDocument.setAllSecurityToBeRemoved(true);
         String titleTmp = pdfDocument.getDocumentInformation().getTitle();
         title = titleTmp != null ? titleTmp : fileName;

@@ -5,6 +5,7 @@ import Config.Service;
 import PDF.PdfMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
@@ -44,6 +45,7 @@ public class FillPDFService implements Service {
         try {
           return fillFields();
         } catch (IOException e) {
+          System.out.println(e.getMessage());
           return PdfMessage.SERVER_ERROR;
         }
       } else {
@@ -61,7 +63,7 @@ public class FillPDFService implements Service {
     if (fileStream == null || formAnswers == null) {
       return PdfMessage.INVALID_PDF;
     }
-    PDDocument pdfDocument = PDDocument.load(fileStream);
+    PDDocument pdfDocument = Loader.loadPDF(fileStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {

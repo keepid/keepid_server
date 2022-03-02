@@ -2,6 +2,7 @@ package PDFTest;
 
 import Security.EncryptionUtils;
 import TestUtils.TestUtils;
+import com.opencsv.CSVReader;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
@@ -9,13 +10,14 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.Iterator;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 public class PDFTestUtils {
   public static String username = "adminBSM";
@@ -252,5 +254,36 @@ public class PDFTestUtils {
       }
     }
     return formAnswers;
+  }
+
+  public static JSONArray csvToJSON(String filename) throws IOException {
+    Reader reader = new FileReader(resourcesFolderPath + File.separator + filename);
+    CSVReader csvReader = new CSVReader(reader);
+    List<String[]> list = csvReader.readAll();
+    Iterator<String[]> listIterator = list.iterator();
+    JSONArray resultArray = new JSONArray();
+    String[] columnNames = listIterator.next();
+    while (listIterator.hasNext()) {
+      String[] row = listIterator.next();
+      JSONObject rowResult = new JSONObject();
+
+      for (int i = 0; i < columnNames.length; i++) {
+        rowResult.put(columnNames[i], row[i]);
+      }
+      resultArray.put(rowResult);
+    }
+    reader.close();
+    csvReader.close();
+    return resultArray;
+  }
+
+  public static void checkFieldsEquality(JSONArray correctFields, JSONArray fields) {
+    int i = 0;
+    while (i < correctFields.length()) {
+      assertEquals(
+          correctFields.get(i).toString().replace("\"", ""),
+          fields.get(i).toString().replace("\"", ""));
+      i++;
+    }
   }
 }

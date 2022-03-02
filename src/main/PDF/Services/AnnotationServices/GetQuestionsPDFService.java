@@ -9,6 +9,7 @@ import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -74,7 +75,7 @@ public class GetQuestionsPDFService implements Service {
   }
 
   public Message getFieldInformation() throws IOException {
-    PDDocument pdfDocument = PDDocument.load(fileStream);
+    PDDocument pdfDocument = Loader.loadPDF(fileStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     JSONObject responseJSON = new JSONObject();
     List<JSONObject> fieldsJSON = new LinkedList<>();
@@ -175,17 +176,17 @@ public class GetQuestionsPDFService implements Service {
     String fieldQuestion;
     if (field.isReadOnly()) {
       fieldType = "ReadOnlyField";
-      fieldQuestion = field.getPartialName();
+      fieldQuestion = fieldName;
       String fieldValue = field.getValue();
       if (fieldValue != null && !fieldValue.equals("")) {
         fieldQuestion += ": " + fieldValue;
       }
     } else if (field.isMultiline()) {
       fieldType = "MultilineTextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
+      fieldQuestion = "Please Enter Your: " + fieldName;
     } else {
       fieldType = "TextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
+      fieldQuestion = "Please Enter Your: " + fieldName;
     }
     JSONArray fieldValueOptions = new JSONArray();
     String fieldDefaultValue = "";
@@ -209,7 +210,7 @@ public class GetQuestionsPDFService implements Service {
     Boolean fieldDefaultValue = Boolean.FALSE;
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
-    String fieldQuestion = "Please Select: " + field.getPartialName();
+    String fieldQuestion = "Please Select: " + fieldName;
     return createFieldJSONEntry(
         fieldName,
         fieldType,
@@ -230,7 +231,7 @@ public class GetQuestionsPDFService implements Service {
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = 2 + fieldValueOptions.length();
-    String fieldQuestion = "Please Select One Option for: " + field.getPartialName();
+    String fieldQuestion = "Please Select an Option for: " + fieldName;
     return createFieldJSONEntry(
         fieldName,
         fieldType,
@@ -259,10 +260,10 @@ public class GetQuestionsPDFService implements Service {
     if (field.isMultiSelect()) {
       fieldQuestion =
           "Please Select Option(s) for: "
-              + field.getPartialName()
+              + fieldName
               + " (you can select multiple options with CTRL)";
     } else {
-      fieldQuestion = "Please Select an Option for: " + field.getPartialName();
+      fieldQuestion = "Please Select an Option for: " + fieldName;
     }
     return createFieldJSONEntry(
         fieldName,
@@ -367,8 +368,6 @@ public class GetQuestionsPDFService implements Service {
       while (i < splitFieldOrdering1.length && i < splitFieldOrdering2.length) {
         int ordering1 = Integer.parseInt(splitFieldOrdering1[i]);
         int ordering2 = Integer.parseInt(splitFieldOrdering2[i]);
-
-        System.out.println(ordering1 + " " + ordering2);
 
         if (ordering1 > ordering2) {
           return 1;
