@@ -53,7 +53,8 @@ public class DownloadPDFService implements Service {
     if (privilegeLevel == UserType.Client
         || privilegeLevel == UserType.Worker
         || privilegeLevel == UserType.Director
-        || privilegeLevel == UserType.Admin) {
+        || privilegeLevel == UserType.Admin
+        || privilegeLevel == UserType.Developer) {
       try {
         return download();
       } catch (Exception e) {

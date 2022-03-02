@@ -45,7 +45,6 @@ public class FillPDFService implements Service {
         try {
           return fillFields();
         } catch (IOException e) {
-          System.out.println(e.getMessage());
           return PdfMessage.SERVER_ERROR;
         }
       } else {

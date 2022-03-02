@@ -102,6 +102,7 @@ public class UploadAnnotatedPDFService implements Service {
 
     // Forms don't need to be encrypted
     // InputStream inputStream = encryptionController.encryptFile(fileStream, uploader);
+    fileStream.reset();
     InputStream inputStream = fileStream;
 
     GridFSUploadOptions options =
