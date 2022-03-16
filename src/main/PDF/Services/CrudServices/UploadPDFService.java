@@ -164,18 +164,6 @@ public class UploadPDFService implements Service {
       finalWidth = imageWidth * PDFHEIGHT / imageHeight;
     }
 
-    //    Matrix transformationMatrix;
-    //    if (imageHeight >= imageWidth) {
-    //      // Normal Orientation
-    //      transformationMatrix = new Matrix(PDFWIDTH / imageWidth, 0, 0, PDFHEIGHT / imageHeight,
-    // 0, 0);
-    //    } else {
-    //      // Need to rotate
-    //      transformationMatrix =
-    //          new Matrix(0, PDFHEIGHT / imageWidth, -1 * PDFWIDTH / imageHeight, 0, 0, 0);
-    //      transformationMatrix = new Matrix(1f, 0f, 1f, 0f, 0f, 0f);
-    //    }
-
     PDImageXObject imageXObject = LosslessFactory.createFromImage(document, bimg);
     PDPageContentStream contentStream = new PDPageContentStream(document, page);
     contentStream.drawImage(imageXObject, 0, 0, finalWidth, finalHeight);
