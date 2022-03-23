@@ -156,14 +156,6 @@ public class GetQuestionsPDFService implements Service {
       }
     }
 
-    // Sort fields by their ordering index
-    try {
-      fieldsJSON.sort(new FieldOrderingComparator());
-    } catch (IllegalArgumentException exception) {
-      return new PdfAnnotationError(
-          "Field Orderings for Two Fields Are the Same: " + exception.getMessage());
-    }
-
     pdfDocument.close();
     responseJSON.put("fields", fieldsJSON);
     this.applicationInformation = responseJSON;
@@ -288,7 +280,7 @@ public class GetQuestionsPDFService implements Service {
 
     // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
-    if (splitFieldName.length != 2 && splitFieldName.length != 3) {
+    if (splitFieldName.length != 1 && splitFieldName.length != 2) {
       fieldJSON.put("fieldStatus", "Invalid Number of Colons for Field '" + fieldName + "'");
       return fieldJSON;
     } else {
@@ -296,20 +288,13 @@ public class GetQuestionsPDFService implements Service {
       String fieldLinkageType = "NONE"; // None, Positive, Negative
       String fieldLinkedTo = ""; // Field name it is linked to
 
-      String fieldOrdering = splitFieldName[0];
-      if (!fieldOrdering.matches("[0-9.]*")) {
-        // Field ordering has invalid character
-        String fieldStatus = "Invalid Field Ordering for Field '" + fieldName + "'";
-        fieldJSON.put("fieldStatus", fieldStatus);
-        return fieldJSON;
-      }
-      String fieldNameBase = splitFieldName[1];
+      String fieldNameBase = splitFieldName[0];
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
       fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
 
-      if (splitFieldName.length == 3) {
+      if (splitFieldName.length == 2) {
         // Annotation for matched field - has directive at the end
-        String fieldDirective = splitFieldName[2];
+        String fieldDirective = splitFieldName[1];
         if (fieldDirective.startsWith("+")) {
           // Positively linked field
           fieldLinkageType = "POSITIVE";
@@ -340,7 +325,6 @@ public class GetQuestionsPDFService implements Service {
       }
 
       fieldJSON.put("fieldName", fieldName);
-      fieldJSON.put("fieldOrdering", fieldOrdering);
       fieldJSON.put("fieldType", fieldType);
       fieldJSON.put("fieldValueOptions", fieldValueOptions);
       fieldJSON.put("fieldDefaultValue", fieldDefaultValue);
@@ -352,39 +336,6 @@ public class GetQuestionsPDFService implements Service {
       fieldJSON.put("fieldLinkedTo", fieldLinkedTo);
       fieldJSON.put("fieldStatus", successStatus);
       return fieldJSON;
-    }
-  }
-
-  private class FieldOrderingComparator implements Comparator<JSONObject> {
-    @Override
-    public int compare(JSONObject fieldJSON1, JSONObject fieldJSON2)
-        throws IllegalArgumentException {
-      String fieldOrdering1 = fieldJSON1.getString("fieldOrdering");
-      String fieldOrdering2 = fieldJSON2.getString("fieldOrdering");
-      String[] splitFieldOrdering1 = fieldOrdering1.split("\\.");
-      String[] splitFieldOrdering2 = fieldOrdering2.split("\\.");
-
-      int i = 0;
-      while (i < splitFieldOrdering1.length && i < splitFieldOrdering2.length) {
-        int ordering1 = Integer.parseInt(splitFieldOrdering1[i]);
-        int ordering2 = Integer.parseInt(splitFieldOrdering2[i]);
-
-        if (ordering1 > ordering2) {
-          return 1;
-        } else if (ordering1 < ordering2) {
-          return -1;
-        } // otherwise keep checking next subsection ordering
-
-        i++;
-      }
-
-      // If they are both are the same or cannot be compared, through IllegalArgumentException
-      throw new IllegalArgumentException(
-          "'"
-              + fieldJSON1.getString("fieldName")
-              + "' and '"
-              + fieldJSON2.getString("fieldName")
-              + "'");
     }
   }
 }
