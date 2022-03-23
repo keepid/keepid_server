@@ -60,16 +60,16 @@ public class GetFilesInformationPDFService implements Service {
   public Message getAllFiles() {
     try {
       Bson filter;
-      if (pdfType == PDFType.APPLICATION
+      if (pdfType == PDFType.COMPLETED_APPLICATION
           && (userType == UserType.Director
               || userType == UserType.Admin
               || userType == UserType.Worker)) {
         filter = Filters.eq("metadata.organizationName", orgName);
         return mongodbGetAllFiles(filter);
-      } else if (pdfType == PDFType.IDENTIFICATION && (userType == UserType.Client)) {
+      } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && (userType == UserType.Client)) {
         filter = Filters.eq("metadata.uploader", username);
         return mongodbGetAllFiles(filter);
-      } else if (pdfType == PDFType.FORM) {
+      } else if (pdfType == PDFType.BLANK_FORM) {
         if (userType == UserType.Developer) {
           // Getting forms that are not annotated yet
           filter = eq("metadata.annotated", annotated);
@@ -100,7 +100,7 @@ public class GetFilesInformationPDFService implements Service {
               .put("uploadDate", grid_out.getMetadata().getString("upload_date"))
               .put("annotated", annotated);
       fileMetadata.put("filename", grid_out.getMetadata().getString("title"));
-      if (pdfType.equals(PDFType.FORM)) {
+      if (pdfType.equals(PDFType.BLANK_FORM)) {
         fileMetadata.put("annotated", grid_out.getMetadata().getBoolean("annotated"));
       }
       files.put(fileMetadata);

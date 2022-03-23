@@ -152,7 +152,7 @@ public class TestUtils {
     File file = new File(filePath);
     HttpResponse<String> uploadResponse =
         Unirest.post(getServerUrl() + "/upload")
-            .field("pdfType", "FORM")
+            .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", file)
             .asString();

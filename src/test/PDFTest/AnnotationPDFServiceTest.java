@@ -68,7 +68,7 @@ public class AnnotationPDFServiceTest {
 
     File applicationPDF =
         new File(resourcesFolderPath + File.separator + "Pennsylvania_Birth_Certificate_Form.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -101,7 +101,7 @@ public class AnnotationPDFServiceTest {
     clearAllDocuments();
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "SSAPP_DELETE.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -114,7 +114,7 @@ public class AnnotationPDFServiceTest {
 
     assertThat(applicationsQuestionsResponseJSON.getString("status")).isEqualTo("SUCCESS");
 
-    // delete(fileId, "FORM");
+    // delete(fileId, "BLANK_FORM");
     TestUtils.logout();
   }
 
@@ -131,7 +131,7 @@ public class AnnotationPDFServiceTest {
 
     File applicationDocx =
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
-    String fileId = uploadFileAndGetFileId(applicationDocx, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationDocx, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -145,7 +145,7 @@ public class AnnotationPDFServiceTest {
     assertThat(applicationsQuestionsResponseJSON.getString("status")).isEqualTo("INVALID_PDF");
     //    assertThat(applicationsQuestionsResponseJSON.getJSONArray("fields").toString())
     //        .isEqualTo(new JSONArray().toString());
-    // delete(fileId, "FORM");
+    // delete(fileId, "BLANK_FORM");
     TestUtils.logout();
   }
 
@@ -157,7 +157,7 @@ public class AnnotationPDFServiceTest {
 
     File applicationPDF =
         new File(resourcesFolderPath + File.separator + "Pennsylvania_Birth_Certificate_Form.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -176,7 +176,7 @@ public class AnnotationPDFServiceTest {
         applicationsQuestionsResponseJSON.get("description"));
   }
 
-  // ------------------ FILL APPLICATION TESTS ------------------------ //
+  // ------------------ FILL COMPLETED_APPLICATION TESTS ------------------------ //
 
   @Test
   public void fillApplicationQuestionsBirthCertificateTest()
@@ -190,7 +190,7 @@ public class AnnotationPDFServiceTest {
     clearAllDocuments();
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -224,7 +224,7 @@ public class AnnotationPDFServiceTest {
     }
     assertThat(fieldValues).isNotNull();
     // checkFormAnswersSS5Form(fieldValues);
-    // delete(fileId, "FORM");
+    // delete(fileId, "BLANK_FORM");
     TestUtils.logout();
   }
 
@@ -239,7 +239,7 @@ public class AnnotationPDFServiceTest {
     clearAllDocuments();
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("applicationId", fileId);
@@ -273,7 +273,7 @@ public class AnnotationPDFServiceTest {
     }
     assertThat(fieldValues).isNotNull();
     // checkFormAnswersSS5Form(fieldValues);
-    // delete(fileId, "FORM");
+    // delete(fileId, "BLANK_FORM");
     TestUtils.logout();
   }
 
@@ -286,7 +286,7 @@ public class AnnotationPDFServiceTest {
     InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
     assertEquals(
         "Pennsylvania - Application for a Birth Certificate",
-        PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
+        PdfController.getPDFTitle(fileName, pdfDocument, PDFType.BLANK_FORM));
   }
 
   @Test // Test without any title in document
@@ -294,6 +294,6 @@ public class AnnotationPDFServiceTest {
     String fileName = "library-card-application.pdf";
     File applicationPDF = new File(resourcesFolderPath + File.separator + fileName);
     InputStream pdfDocument = FileUtils.openInputStream(applicationPDF);
-    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument, PDFType.FORM));
+    assertEquals(fileName, PdfController.getPDFTitle(fileName, pdfDocument, PDFType.BLANK_FORM));
   }
 }

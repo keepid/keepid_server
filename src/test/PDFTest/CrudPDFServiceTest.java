@@ -93,7 +93,7 @@ public class CrudPDFServiceTest {
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .header("Content-Disposition", "attachment")
-            .field("pdfType", PDFType.IDENTIFICATION)
+            .field("pdfType", PDFType.IDENTIFICATION_DOCUMENT)
             .field("file", file)
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -114,7 +114,7 @@ public class CrudPDFServiceTest {
 
   public static JSONObject searchTestPDF() {
     JSONObject body = new JSONObject();
-    body.put("pdfType", "APPLICATION");
+    body.put("pdfType", "COMPLETED_APPLICATION");
     HttpResponse<String> getAllDocuments =
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
     JSONObject getAllDocumentsJSON = TestUtils.responseStringToJSON(getAllDocuments.getBody());
@@ -170,7 +170,7 @@ public class CrudPDFServiceTest {
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .header("Content-Disposition", "attachment")
-            .field("pdfType", "APPLICATION")
+            .field("pdfType", "COMPLETED_APPLICATION")
             .asString();
 
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -191,11 +191,11 @@ public class CrudPDFServiceTest {
         .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
-    String fileId = uploadFileAndGetFileId(testPdf, "FORM");
+    String fileId = uploadFileAndGetFileId(testPdf, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("fileId", fileId);
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     HttpResponse<File> downloadFileResponse =
         Unirest.post(TestUtils.getServerUrl() + "/download")
             .body(body.toString())
@@ -212,7 +212,7 @@ public class CrudPDFServiceTest {
         .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
-    String fileId = uploadFileAndGetFileId(testPdf, "FORM");
+    String fileId = uploadFileAndGetFileId(testPdf, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
     body.put("fileId", fileId);
@@ -238,12 +238,12 @@ public class CrudPDFServiceTest {
     TestUtils.login(username, password);
     clearAllDocuments();
     File applicationPDF = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
-    String fileId = uploadFileAndGetFileId(applicationPDF, "FORM");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
     TestUtils.logout();
     TestUtils.login(username, password);
 
     JSONObject body = new JSONObject();
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     body.put("annotated", false);
     body.put("targetUser", "workerttfBSM");
     HttpResponse<String> getForm =

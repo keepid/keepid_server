@@ -78,7 +78,7 @@ public class DownloadPDFService implements Service {
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    if (pdfType == PDFType.APPLICATION
+    if (pdfType == PDFType.COMPLETED_APPLICATION
         && (privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Worker)) {
@@ -87,14 +87,14 @@ public class DownloadPDFService implements Service {
             encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.IDENTIFICATION
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
       if (grid_out.getMetadata().getString("uploader").equals(username)) {
         this.inputStream =
             encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.FORM) {
+    } else if (pdfType == PDFType.BLANK_FORM) {
       if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         this.inputStream = gridBucket.openDownloadStream(id);
         return PdfMessage.SUCCESS;

@@ -78,9 +78,9 @@ public class UploadSignedPDFService implements Service {
         && !fileContentType.equals("application/octet-stream")) {
       return PdfMessage.INVALID_PDF;
     } else {
-      if ((pdfType == PDFType.APPLICATION
-              || pdfType == PDFType.IDENTIFICATION
-              || pdfType == PDFType.FORM)
+      if ((pdfType == PDFType.COMPLETED_APPLICATION
+              || pdfType == PDFType.IDENTIFICATION_DOCUMENT
+              || pdfType == PDFType.BLANK_FORM)
           && (privilegeLevel == UserType.Client
               || privilegeLevel == UserType.Worker
               || privilegeLevel == UserType.Director
@@ -102,7 +102,7 @@ public class UploadSignedPDFService implements Service {
     InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
 
     GridFSUploadOptions options;
-    if (pdfType == PDFType.FORM) {
+    if (pdfType == PDFType.BLANK_FORM) {
       options =
           new GridFSUploadOptions()
               .chunkSizeBytes(CHUNK_SIZE_BYTES)

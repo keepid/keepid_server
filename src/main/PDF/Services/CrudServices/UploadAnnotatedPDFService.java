@@ -81,7 +81,7 @@ public class UploadAnnotatedPDFService implements Service {
 
   public Message mongodbUploadAnnotatedForm() throws IOException, GeneralSecurityException {
     ObjectId fileID = new ObjectId(fileIDStr);
-    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.FORM.toString());
+    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.BLANK_FORM.toString());
     GridFSFile grid_out = gridBucket.find(eq("_id", fileID)).first();
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;

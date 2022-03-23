@@ -48,7 +48,7 @@ public class PdfController {
 
   /*
   REQUIRES JSON Body with:
-    - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
+    - "pdfType": String giving PDF Type ("BLANK_FORM", "COMPLETED_APPLICATION", "IDENTIFICATION_DOCUMENT")
     - "fileId": String giving id of file to be deleted
     - OPTIONAL- "targetUser": User whose file you want to access.
         - If left empty, defaults to original username.
@@ -94,7 +94,7 @@ public class PdfController {
 
   /*
   REQUIRES JSON Body:
-    - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
+    - "pdfType": String giving PDF Type ("BLANK_FORM", "COMPLETED_APPLICATION", "IDENTIFICATION_DOCUMENT")
     - "fileId": String giving id of file to be downloaded
     - OPTIONAL- "targetUser": User whose file you want to access.
         - If left empty, defaults to original username.
@@ -178,8 +178,8 @@ public class PdfController {
   /*
   REQUIRES JSON Body:
     - Body
-      - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
-      - if "pdfType" is "FORM"
+      - "pdfType": String giving PDF Type ("BLANK_FORM", "COMPLETED_APPLICATION", "IDENTIFICATION_DOCUMENT")
+      - if "pdfType" is "BLANK_FORM"
         - "annotated": boolean for retrieving EITHER annotated forms OR unannotated forms
       - OPTIONAL- "targetUser": User whose file you want to access.
         - If left empty, defaults to original username.
@@ -215,7 +215,7 @@ public class PdfController {
           if (orgFlag) {
             PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
             boolean annotated = false;
-            if (pdfType == PDFType.FORM) {
+            if (pdfType == PDFType.BLANK_FORM) {
               annotated = Objects.requireNonNull(req.getBoolean("annotated"));
             }
             GetFilesInformationPDFService getFilesInformationPDFService =
@@ -236,7 +236,7 @@ public class PdfController {
 
   /*
   REQUIRES 2 fields in HTTP Request
-    - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
+    - "pdfType": String giving PDF Type ("BLANK_FORM", "COMPLETED_APPLICATION", "IDENTIFICATION_DOCUMENT")
     - "file": the PDF file to be uploaded
   Additional support for uploading on behalf of another user, JSON body:
     - "targetUser": the user the file is being uploaded for
@@ -334,7 +334,7 @@ public class PdfController {
 
   /*
   REQUIRES 3 fields in HTTP Request
-    - "pdfType": String giving PDF Type ("FORM", "APPLICATION", "IDENTIFICATION")
+    - "pdfType": String giving PDF Type ("BLANK_FORM", "COMPLETED_APPLICATION", "IDENTIFICATION_DOCUMENT")
     - "file": the PDF file to be uploaded
     - "signature": the signature image to place in the file
    */
@@ -382,7 +382,7 @@ public class PdfController {
                 organizationName,
                 privilegeLevel,
                 applicationId,
-                PDFType.FORM,
+                PDFType.BLANK_FORM,
                 encryptionController);
         Message responseDownload = downloadPDFService.executeAndGetResponse();
         if (responseDownload == PdfMessage.SUCCESS) {
@@ -427,7 +427,7 @@ public class PdfController {
                 organizationName,
                 privilegeLevel,
                 applicationId,
-                PDFType.FORM,
+                PDFType.BLANK_FORM,
                 encryptionController);
         Message responseDownload = downloadPDFService.executeAndGetResponse();
         if (responseDownload == PdfMessage.SUCCESS) {
@@ -449,7 +449,7 @@ public class PdfController {
   // TODO: Allow title that is retrieved from the client (optionally)
   public static String getPDFTitle(String fileName, InputStream content, PDFType pdfType) {
     String title;
-    if (pdfType == PDFType.FORM) {
+    if (pdfType == PDFType.BLANK_FORM) {
       try {
         PDDocument pdfDocument = Loader.loadPDF(content);
         pdfDocument.setAllSecurityToBeRemoved(true);

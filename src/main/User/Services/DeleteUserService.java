@@ -63,7 +63,7 @@ public class DeleteUserService implements Service {
 
   public void deleteUserFiles() {
     // Form
-    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.FORM.toString());
+    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.BLANK_FORM.toString());
     List<GridFSFile> files =
         gridBucket
             .find(Filters.eq("metadata.uploader", user.getUsername()))
@@ -74,7 +74,7 @@ public class DeleteUserService implements Service {
     }
 
     // Application
-    GridFSBucket gridBucket2 = GridFSBuckets.create(db, PDFType.APPLICATION.toString());
+    GridFSBucket gridBucket2 = GridFSBuckets.create(db, PDFType.COMPLETED_APPLICATION.toString());
     List<GridFSFile> files2 =
         gridBucket2
             .find(Filters.eq("metadata.uploader", user.getUsername()))
@@ -85,7 +85,7 @@ public class DeleteUserService implements Service {
     }
 
     // Identification
-    GridFSBucket gridBucket3 = GridFSBuckets.create(db, PDFType.IDENTIFICATION.toString());
+    GridFSBucket gridBucket3 = GridFSBuckets.create(db, PDFType.IDENTIFICATION_DOCUMENT.toString());
     List<GridFSFile> files3 =
         gridBucket3
             .find(Filters.eq("metadata.uploader", user.getUsername()))

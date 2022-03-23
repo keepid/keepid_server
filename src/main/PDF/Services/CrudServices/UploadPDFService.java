@@ -82,9 +82,9 @@ public class UploadPDFService implements Service {
           return PdfMessage.INVALID_PDF;
         }
       }
-      if ((pdfType == PDFType.APPLICATION
-              || pdfType == PDFType.IDENTIFICATION
-              || pdfType == PDFType.FORM)
+      if ((pdfType == PDFType.COMPLETED_APPLICATION
+              || pdfType == PDFType.IDENTIFICATION_DOCUMENT
+              || pdfType == PDFType.BLANK_FORM)
           && (privilegeLevel == UserType.Client
               || privilegeLevel == UserType.Worker
               || privilegeLevel == UserType.Director
@@ -107,7 +107,7 @@ public class UploadPDFService implements Service {
     GridFSUploadOptions options;
     InputStream inputStream;
 
-    if (pdfType == PDFType.FORM) {
+    if (pdfType == PDFType.BLANK_FORM) {
       inputStream = fileStream;
       options =
           new GridFSUploadOptions()
@@ -144,7 +144,6 @@ public class UploadPDFService implements Service {
     PDPage page = new PDPage();
     document.addPage(page);
     BufferedImage bimg = ImageIO.read(fileStream);
-    System.out.println(bimg.getWidth() + ": " + bimg.getHeight());
     float imageWidth = bimg.getWidth();
     float imageHeight = bimg.getHeight();
 

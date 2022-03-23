@@ -54,7 +54,7 @@ public class DeletePDFService implements Service {
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    if (pdfType == PDFType.APPLICATION
+    if (pdfType == PDFType.COMPLETED_APPLICATION
         && (userType == UserType.Admin
             || userType == UserType.Director
             || userType == UserType.Worker)) {
@@ -62,13 +62,13 @@ public class DeletePDFService implements Service {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.IDENTIFICATION
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
         && (userType == UserType.Client || userType == UserType.Worker)) {
       if (grid_out.getMetadata().getString("uploader").equals(username)) {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.FORM) {
+    } else if (pdfType == PDFType.BLANK_FORM) {
       if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;

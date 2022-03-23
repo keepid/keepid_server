@@ -99,7 +99,7 @@ public class AdminControllerTest {
         db.getCollection("activity", Activity.class);
     activityMongoCollection.insertOne(EntityFactory.createActivity().build());
 
-    PDFType pdfType = PDFType.FORM;
+    PDFType pdfType = PDFType.BLANK_FORM;
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     String fileName = resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf";
     InputStream file = new FileInputStream(fileName);

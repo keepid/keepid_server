@@ -53,7 +53,7 @@ public class PDFTestUtils {
 
     // get file id
     JSONObject body = new JSONObject();
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     body.put("annotated", false);
     HttpResponse<String> getForm =
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
@@ -114,7 +114,7 @@ public class PDFTestUtils {
   //  }
 
   public static void clearAllDocuments() {
-    String[] pdfTypes = {"FORM", "FORM", "APPLICATION"};
+    String[] pdfTypes = {"BLANK_FORM", "IDENTIFICATION_DOCUMENT", "COMPLETED_APPLICATION"};
     boolean[] annotated = {false, true, false};
     for (int j = 0; j < pdfTypes.length; j++) {
       JSONObject body = new JSONObject();
@@ -141,7 +141,7 @@ public class PDFTestUtils {
 
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .field("pdfType", "APPLICATION")
+            .field("pdfType", "COMPLETED_APPLICATION")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
             .asString();
@@ -154,7 +154,7 @@ public class PDFTestUtils {
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .field("pdfType", "FORM")
+            .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
             .asString();
@@ -162,7 +162,7 @@ public class PDFTestUtils {
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
 
     JSONObject body = new JSONObject();
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     body.put("annotated", false);
     HttpResponse<String> getForm =
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
@@ -178,7 +178,7 @@ public class PDFTestUtils {
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .field("pdfType", "FORM")
+            .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
             .asString();
@@ -187,7 +187,7 @@ public class PDFTestUtils {
 
     // download unannotated form
     JSONObject body = new JSONObject();
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     body.put("annotated", false);
     HttpResponse<String> getForm =
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
@@ -202,7 +202,7 @@ public class PDFTestUtils {
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
     uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload-annotated")
-            .field("pdfType", "FORM")
+            .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
             .field("fileId", fileId)
@@ -212,7 +212,7 @@ public class PDFTestUtils {
 
     // download newly annotated form
     body = new JSONObject();
-    body.put("pdfType", "FORM");
+    body.put("pdfType", "BLANK_FORM");
     body.put("annotated", true);
     getForm =
         Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();

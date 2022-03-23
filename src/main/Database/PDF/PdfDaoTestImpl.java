@@ -8,7 +8,7 @@ import org.bson.types.ObjectId;
 import java.io.InputStream;
 import java.util.*;
 
-import static PDF.PDFType.FORM;
+import static PDF.PDFType.BLANK_FORM;
 
 public class PdfDaoTestImpl implements PdfDao {
   Map<String, PDF> pdfMap;
@@ -46,7 +46,7 @@ public class PdfDaoTestImpl implements PdfDao {
             new DateTime(new Date()),
             Optional.empty(),
             fileInputStream,
-            FORM);
+            BLANK_FORM);
     pdfMap.put(uploaderUsername, pdf);
     objectIdPDFMap.put(pdf.getId(), pdf);
   }
@@ -60,7 +60,7 @@ public class PdfDaoTestImpl implements PdfDao {
             uploadedAt,
             Optional.empty(),
             fileInputStream,
-            FORM);
+            BLANK_FORM);
     pdfMap.put(uploaderUsername, pdf);
     objectIdPDFMap.put(pdf.getId(), pdf);
   }
