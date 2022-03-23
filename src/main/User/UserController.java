@@ -292,6 +292,24 @@ public class UserController {
         UploadedFile file = ctx.uploadedFile("file");
         log.info(username + " is attempting to upload a profile picture");
         UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
+        // TODO: enable UploadFileService:
+        //        UploadFileService serv =
+        //            new UploadFileService(
+        //                db,
+        //                username,
+        //                null,
+        //                null,
+        //                FileType.PROFILE_PICTURE,
+        //                fileName,
+        //                null,
+        //                file.getContentType(),
+        //                null,
+        //                false,
+        //                false,
+        //                file.getContent(),
+        //                null,
+        //                null);
+        //        JSONObject res = serv.executeAndGetResponse().toJSON();
         JSONObject res = serv.executeAndGetResponse().toJSON();
         ctx.result(res.toString());
       };
@@ -302,6 +320,18 @@ public class UserController {
         String username = req.getString("username");
         LoadPfpService lps = new LoadPfpService(db, username);
         Message mes = lps.executeAndGetResponse();
+
+        // TODO: enable DownloadFileService:
+        //          DownloadFileService serv = new DownloadFileService(
+        //                  db,
+        //                  username,
+        //                  null,
+        //                  null,
+        //                  FileType.PROFILE_PICTURE,
+        //                  null,
+        //                  null
+        //          );
+        //          Message mes = serv.executeAndGetResponse();
         if (mes == UserMessage.SUCCESS) {
           ctx.header("Content-Type", "image/" + lps.getContentType());
           ctx.result(lps.getRes());

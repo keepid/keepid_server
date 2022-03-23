@@ -10,6 +10,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Database.UserV2.UserV2Dao;
 import Database.UserV2.UserV2DaoFactory;
+import File.FileController;
 import Issue.IssueController;
 import Organization.Organization;
 import Organization.OrganizationController;
@@ -60,6 +61,7 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);
+    FileController fileController = new FileController(db, userDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
@@ -79,6 +81,14 @@ public class AppConfig {
     app.post("/get-application-questions", pdfController.getApplicationQuestions);
     app.post("/fill-application", pdfController.fillPDFForm);
 
+    /* -------------- FILE MANAGEMENT v2 --------------------- */
+    app.post("/upload-file", fileController.fileUpload);
+    app.post("/download-file", fileController.fileDownload);
+    app.post("/delete-file/", fileController.fileDelete);
+    app.post("/get-files", fileController.getFiles);
+    app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
+    app.post("/fill-form", fileController.fillPDFForm);
+
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
     app.post("/authenticate", userController.authenticateUser);
@@ -92,6 +102,7 @@ public class AppConfig {
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-login-history", userController.getLogInHistory);
+    // TODO: no longer necessary with upload file route
     app.post("/upload-pfp", userController.uploadPfp);
     app.post("/load-pfp", userController.loadPfp);
     app.post("/username-exists", userController.usernameExists);
