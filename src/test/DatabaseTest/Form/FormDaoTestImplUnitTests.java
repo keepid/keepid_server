@@ -31,26 +31,26 @@ public class FormDaoTestImplUnitTests {
     String testUsername = "username1";
     Form form = EntityFactory.createForm().withUsername(testUsername).build();
     formDao.save(form);
-    assertTrue(formDao.get(testUsername).isPresent());
-    assertEquals(formDao.get(testUsername).get(), form);
+    assertTrue(formDao.get(testUsername).size() == 1);
+    assertEquals(formDao.get(testUsername).get(0), form);
   }
 
   @Test
   public void get() {
     String testUsername = "username1";
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
-    assertTrue(formDao.get(testUsername).isPresent());
-    assertEquals(formDao.get(testUsername).get(), form);
+    assertTrue(formDao.get(testUsername).size() > 0);
+    assertEquals(formDao.get(testUsername).get(0), form);
   }
 
   @Test
   public void deleteByUsername() {
     String testUsername = "username1";
     EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
-    assertTrue(formDao.get(testUsername).isPresent());
-    ObjectId id = formDao.get(testUsername).get().getId();
+    assertTrue(formDao.get(testUsername).size() > 0);
+    ObjectId id = formDao.get(testUsername).get(0).getId();
     formDao.delete(id);
-    assertFalse(formDao.get(testUsername).isPresent());
+    assertFalse(formDao.get(testUsername).size() == 0);
   }
 
   @Test

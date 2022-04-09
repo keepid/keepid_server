@@ -65,8 +65,8 @@ public class FormDaoImpl implements FormDao {
   }
 
   @Override
-  public Optional<Form> get(String username) {
-    return Optional.ofNullable(formCollection.find(eq("username", username)).first());
+  public List<Form> get(String username) {
+    return formCollection.find(eq("username", username)).into(new ArrayList<>());
   }
 
   @Override
