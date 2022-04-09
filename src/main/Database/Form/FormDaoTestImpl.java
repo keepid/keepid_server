@@ -7,8 +7,9 @@ import org.bson.types.ObjectId;
 import java.util.*;
 
 public class FormDaoTestImpl implements FormDao {
-  Map<String, Form> formMap;
+  Map<String, List<Form>> formMap;
   Map<ObjectId, Form> objectIdFormMap;
+  List<Form> allForms;
 
   public FormDaoTestImpl(DeploymentLevel deploymentLevel) {
     if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
@@ -17,11 +18,12 @@ public class FormDaoTestImpl implements FormDao {
     }
     formMap = new LinkedHashMap<>();
     objectIdFormMap = new LinkedHashMap<>();
+    allForms = new ArrayList<>();
   }
 
   @Override
-  public Optional<Form> get(String username) {
-    return Optional.ofNullable(formMap.get(username));
+  public List<Form> get(String username) {
+    return formMap.get(username);
   }
 
   @Override
@@ -37,12 +39,12 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public Optional<Form> getByFileId(ObjectId fileId) {
-    return formMap.values().stream().filter(x -> x.getFileId() == fileId).findFirst();
+    return allForms.stream().filter(x -> x.getFileId() == fileId).findFirst();
   }
 
   @Override
   public List<Form> getAll() {
-    return new ArrayList<>(formMap.values());
+    return allForms;
   }
 
   @Override
@@ -52,7 +54,8 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public void save(Form form) {
-    formMap.put(form.getUsername(), form);
+    allForms.add(form);
+    formMap.put(form.getUsername(), formMap.getOrDefault(form.getUsername(), new ArrayList<>()));
     objectIdFormMap.put(form.getId(), form);
   }
 
@@ -64,7 +67,19 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public void update(Form newForm) {
-    formMap.put(newForm.getUsername(), newForm);
+    List<Form> forms = formMap.get(newForm.getUsername());
+    Form existingForm = null;
+    for (Form form : forms) {
+      if (form.getId().equals(newForm.getId())) {
+        existingForm = form;
+      }
+    }
+    if (existingForm == null) {
+      return;
+    }
+    forms.remove(existingForm);
+    forms.add(newForm);
+    formMap.put(newForm.getUsername(), forms);
     objectIdFormMap.put(newForm.getId(), newForm);
   }
 
