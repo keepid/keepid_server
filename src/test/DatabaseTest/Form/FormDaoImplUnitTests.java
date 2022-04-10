@@ -35,14 +35,7 @@ public class FormDaoImplUnitTests {
     Form form = EntityFactory.createForm().withUsername(testUsername).build();
     formDao.save(form);
     assertTrue(formDao.get(testUsername).size() == 1);
-    assertEquals(formDao.get(testUsername).get(0).getUsername(), form.getUsername());
-    assertEquals(
-        formDao.get(testUsername).get(0).getUploaderUsername(), form.getUploaderUsername());
-    assertEquals(formDao.get(testUsername).get(0).getLastModifiedAt(), form.getLastModifiedAt());
-    assertEquals(formDao.get(testUsername).get(0).getUploadedAt(), form.getUploadedAt());
-    assertEquals(formDao.get(testUsername).get(0).getBody(), form.getBody());
-    assertEquals(formDao.get(testUsername).get(0).getMetadata(), form.getMetadata());
-    assertEquals(formDao.get(testUsername).get(0).getFormType(), form.getFormType());
+    assertEquals(formDao.get(testUsername).get(0), form);
   }
 
   @Test
@@ -50,14 +43,7 @@ public class FormDaoImplUnitTests {
     String testUsername = "username1";
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
     assertTrue(formDao.get(testUsername).size() == 1);
-    assertEquals(formDao.get(testUsername).get(0).getUsername(), form.getUsername());
-    assertEquals(
-        formDao.get(testUsername).get(0).getUploaderUsername(), form.getUploaderUsername());
-    assertEquals(formDao.get(testUsername).get(0).getLastModifiedAt(), form.getLastModifiedAt());
-    assertEquals(formDao.get(testUsername).get(0).getUploadedAt(), form.getUploadedAt());
-    assertTrue(formDao.get(testUsername).get(0).getMetadata().equals(form.getMetadata()));
-    assertTrue(formDao.get(testUsername).get(0).getBody().equals(form.getBody()));
-    assertEquals(formDao.get(testUsername).get(0).getFormType(), form.getFormType());
+    assertEquals(formDao.get(testUsername).get(0), form);
   }
 
   @Test

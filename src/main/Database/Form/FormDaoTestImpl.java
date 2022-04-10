@@ -9,7 +9,6 @@ import java.util.*;
 public class FormDaoTestImpl implements FormDao {
   Map<String, List<Form>> formMap;
   Map<ObjectId, Form> objectIdFormMap;
-  List<Form> allForms;
 
   public FormDaoTestImpl(DeploymentLevel deploymentLevel) {
     if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
@@ -18,7 +17,6 @@ public class FormDaoTestImpl implements FormDao {
     }
     formMap = new LinkedHashMap<>();
     objectIdFormMap = new LinkedHashMap<>();
-    allForms = new ArrayList<>();
   }
 
   @Override
@@ -28,8 +26,22 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public void delete(ObjectId id) {
-    Form form = objectIdFormMap.remove(id);
-    formMap.remove(form.getUsername());
+    Form form = objectIdFormMap.get(id);
+    objectIdFormMap.remove(id);
+    String username = form.getUsername();
+
+    List<Form> userForms = formMap.get(username);
+    Form existingForm = null;
+    for (Form f : userForms) {
+      if (f.getId().equals(id)) {
+        existingForm = form;
+      }
+    }
+    if (existingForm == null) {
+      return;
+    }
+    userForms.remove(existingForm);
+    formMap.put(form.getUsername(), userForms);
   }
 
   @Override
@@ -39,12 +51,12 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public Optional<Form> getByFileId(ObjectId fileId) {
-    return allForms.stream().filter(x -> x.getFileId() == fileId).findFirst();
+    return objectIdFormMap.values().stream().filter(x -> x.getFileId() == fileId).findFirst();
   }
 
   @Override
   public List<Form> getAll() {
-    return allForms;
+    return new ArrayList<Form>(objectIdFormMap.values());
   }
 
   @Override
@@ -54,14 +66,28 @@ public class FormDaoTestImpl implements FormDao {
 
   @Override
   public void save(Form form) {
-    allForms.add(form);
-    formMap.put(form.getUsername(), formMap.getOrDefault(form.getUsername(), new ArrayList<>()));
+    // System.out.println(formMap.get(form.getUsername()).size());
+    List<Form> userForms = formMap.getOrDefault(form.getUsername(), new ArrayList<>());
+    userForms.add(form);
+    formMap.put(form.getUsername(), userForms);
     objectIdFormMap.put(form.getId(), form);
   }
 
   @Override
   public void delete(Form form) {
-    formMap.remove(form.getUsername());
+    List<Form> forms = formMap.get(form.getUsername());
+    Form existingForm = null;
+    for (Form f : forms) {
+      if (form.getId().equals(form.getId())) {
+        existingForm = form;
+      }
+    }
+    if (existingForm == null) {
+      return;
+    }
+    List<Form> userForms = formMap.getOrDefault(form.getUsername(), new ArrayList<>());
+    userForms.remove(existingForm);
+    formMap.put(form.getUsername(), userForms);
     objectIdFormMap.remove(form.getId());
   }
 

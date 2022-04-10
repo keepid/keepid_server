@@ -36,6 +36,18 @@ public class Form {
   @BsonProperty(value = "isTemplate")
   private boolean isTemplate;
 
+  @BsonProperty(value = "conditionalFieldId")
+  private ObjectId conditionalFieldId;
+
+  // We will have conditionalType replaced by condition
+  // this allows for handling more complex scenarios
+  // The string can express more condition that true or false.
+  // for example, if the conditionalFieldId is a radio button,
+  // we can use the condition string to express the option
+  // that is renderes the field
+  @BsonProperty(value = "condition")
+  private String condition;
+
   public Form() {}
 
   public static class MetadataCodec implements Codec<Metadata> {
@@ -475,7 +487,9 @@ public class Form {
       FormType formType,
       boolean isTemplate,
       Metadata metadata,
-      Section body) {
+      Section body,
+      ObjectId conditionalFieldId,
+      String condition) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
     this.username = username;
@@ -485,6 +499,8 @@ public class Form {
     this.formType = formType;
     this.isTemplate = isTemplate;
     this.metadata = metadata;
+    this.condition = condition;
+    this.conditionalFieldId = conditionalFieldId;
     this.body = body;
   }
 
@@ -529,6 +545,14 @@ public class Form {
     return body;
   }
 
+  public ObjectId getConditionalFieldId() {
+    return conditionalFieldId;
+  }
+
+  public String getCondition() {
+    return condition;
+  }
+
   /** **************** SETTERS ********************* */
   public void setFileId(ObjectId fileId) {
     this.fileId = fileId;
@@ -564,5 +588,71 @@ public class Form {
 
   public void setBody(Section body) {
     this.body = body;
+  }
+
+  public void setConditionalFieldId(ObjectId fieldId) {
+    this.conditionalFieldId = fieldId;
+  }
+
+  public void setCondition(String condition) {
+    this.condition = condition;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+    if (obj.getClass() != this.getClass()) {
+      return false;
+    }
+
+    final Form other = (Form) obj;
+
+    if (!this.id.equals(other.id)) {
+      return false;
+    }
+
+    if (!this.fileId.equals(other.fileId)) {
+      return false;
+    }
+
+    if (!this.uploadedAt.equals(other.uploadedAt)) {
+      return false;
+    }
+
+    if (this.isTemplate != other.isTemplate) {
+      return false;
+    }
+
+    if (!this.conditionalFieldId.equals(other.conditionalFieldId)) {
+      return false;
+    }
+
+    if (!this.condition.equals(other.condition)) {
+      return false;
+    }
+
+    if (!this.lastModifiedAt.equals(other.lastModifiedAt)) {
+      return false;
+    }
+
+    if (!this.username.equals(other.username)) {
+      return false;
+    }
+
+    if (!this.uploaderUsername.equals(other.uploaderUsername)) {
+      return false;
+    }
+
+    if (this.body == null || this.body.equals(other.body) == false) {
+      return false;
+    }
+
+    if (this.metadata == null || this.metadata.equals(other.metadata) == false) {
+      return false;
+    }
+
+    return true;
   }
 }
