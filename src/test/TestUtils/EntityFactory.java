@@ -49,6 +49,8 @@ public class EntityFactory {
     private String username = "testFirstName";
     private Optional<String> uploaderUsername = Optional.of("testuploadername");
     private Date uploadedAt = new Date(TEST_DATE);
+    private ObjectId conditionalFieldId = new ObjectId();
+    private String condition = "TEST_CONDITION";
     private Optional<Date> lastModifiedAt = Optional.of(new Date(TEST_DATE));
     private FormType formType = FormType.FORM;
     private boolean isTemplate = false;
@@ -95,7 +97,9 @@ public class EntityFactory {
               formType,
               isTemplate,
               metadata,
-              body);
+              body,
+              conditionalFieldId,
+              condition);
       return newForm;
     }
 
