@@ -16,6 +16,7 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
+import User.Services.DocumentType;
 
 import java.util.*;
 
@@ -109,6 +110,7 @@ public class User {
             zipcode,
             username,
             password,
+            defaultIds,
             userType);
 
     if (validationMessage != UserValidationMessage.VALID)
@@ -277,8 +279,8 @@ public class User {
     return this;
   }
 
-  public User setDefaultId(String documentType, String id) {
-    this.defaultIds.put(documentType, id);
+  public User setDefaultId(DocumentType documentType, String id) {
+    this.defaultIds.put(DocumentType.stringFromDocumentType(documentType), id);
     return this;
   }
 
@@ -305,6 +307,7 @@ public class User {
       String zipcode,
       String username,
       String password,
+      Map<String, String> defaultIds,
       UserType userType) {
 
     if (!ValidationUtils.isValidFirstName(firstName)) {
@@ -355,7 +358,6 @@ public class User {
       log.error("Invalid password: " + password);
       return UserValidationMessage.INVALID_PASSWORD;
     }
-    // insert validation for defaultIds
     if (!ValidationUtils.isValidUserType(userType.toString())) {
       log.error("Invalid UserType: " + userType);
       return UserValidationMessage.INVALID_USERTYPE;

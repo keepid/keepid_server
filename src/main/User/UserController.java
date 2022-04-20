@@ -9,6 +9,7 @@ import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import User.Services.DocumentType;
 
 @Slf4j
 public class UserController {
@@ -314,8 +315,9 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = ctx.sessionAttribute("username");
-        String documentType = req.getString("documentType");
         String id = req.getString("id");
+        String docTypeString = req.getString("documentType");
+        DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
         // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
         log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
@@ -326,7 +328,7 @@ public class UserController {
         if (response == UserMessage.SUCCESS){
             // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
             JSONObject responseJSON = new JSONObject();
-            responseJSON.put("Message", "DefaultId for " + documentType + " has successfully been set");
+            responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been set");
             JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
             ctx.result(mergedInfo.toString());
         }
@@ -340,7 +342,8 @@ public class UserController {
         ctx -> {
             JSONObject req = new JSONObject(ctx.body());
             String username = ctx.sessionAttribute("username");
-            String documentType = req.getString("documentType");
+            String docTypeString = req.getString("documentType");
+            DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
             // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
             log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
@@ -351,9 +354,9 @@ public class UserController {
             if (response == UserMessage.SUCCESS){
                 // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
                 JSONObject responseJSON = new JSONObject();
-                responseJSON.put("Message", "DefaultId for " + documentType + " has successfully been retrieved");
+                responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been retrieved");
                 responseJSON.put("id", getUserDefaultIdService.getId());
-                responseJSON.put("documentType", documentType);
+                responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
                 JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
                 ctx.result(mergedInfo.toString());
             }

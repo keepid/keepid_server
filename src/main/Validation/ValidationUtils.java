@@ -135,5 +135,9 @@ public class ValidationUtils {
     return UserType.userTypeFromString(userType) != null;
   }
 
+//  public static boolean isValidDefaultIds(HashMap<String, String> defaultDict){
+//    return !defaultDict.containsKey("error");
+//  }
+
   public static boolean hasValue(String input) { return input != null && !input.strip().isBlank(); }
 }
