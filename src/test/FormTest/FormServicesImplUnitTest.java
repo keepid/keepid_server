@@ -13,6 +13,7 @@ import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.UserType;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,29 +64,26 @@ public class FormServicesImplUnitTest {
     String testUsername = "username1";
     UserType testUserType = UserType.userTypeFromString("worker");
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
-    formDao.save(form);
     assertTrue(formDao.get(testUsername).size() == 1);
     ObjectId id = form.getId();
     GetFormService getFormService =
         new GetFormService(formDao, id, testUsername, testUserType, false);
     assertEquals(FormMessage.SUCCESS, getFormService.executeAndGetResponse());
+    JSONObject jsonInformation = getFormService.getJsonInformation();
+    assertEquals(jsonInformation.get("id"), id);
+    assertEquals(jsonInformation.get("fileId"), form.getFileId().toString());
+    assertEquals(jsonInformation.get("username"), testUsername);
+    assertEquals(jsonInformation.get("uploaderUsername"), form.getUploaderUsername());
+    assertEquals(jsonInformation.get("formType"), form.getFormType().toString());
+
     assertTrue(formDao.get(testUsername).size() == 1);
-    assertEquals(formDao.get(testUsername).get(0).getUsername(), form.getUsername());
-    assertEquals(
-        formDao.get(testUsername).get(0).getUploaderUsername(), form.getUploaderUsername());
-    assertEquals(formDao.get(testUsername).get(0).getLastModifiedAt(), form.getLastModifiedAt());
-    assertEquals(formDao.get(testUsername).get(0).getUploadedAt(), form.getUploadedAt());
-    assertTrue(formDao.get(testUsername).get(0).getMetadata().equals(form.getMetadata()));
-    assertTrue(formDao.get(testUsername).get(0).getBody().equals(form.getBody()));
-    assertEquals(formDao.get(testUsername).get(0).getFormType(), form.getFormType());
   }
 
   @Test
-  public void deleteById() {
+  public void delete() {
     String testUsername = "username1";
     UserType testUserType = UserType.userTypeFromString("worker");
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
-    formDao.save(form);
     assertTrue(formDao.get(testUsername).size() == 1);
     ObjectId id = form.getId();
     DeleteFormService deleteFormService =
