@@ -1,5 +1,6 @@
 package Form;
 
+import com.google.gson.Gson;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -7,6 +8,7 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 
 import java.util.*;
 
@@ -596,6 +598,29 @@ public class Form {
 
   public void setCondition(String condition) {
     this.condition = condition;
+  }
+
+  // Create a json string from the object
+  public JSONObject toJSON() {
+    Gson gson = new Gson();
+    String jsonString = gson.toJson(this);
+    JSONObject jsonObject = new JSONObject(jsonString);
+    return jsonObject;
+  }
+
+  //
+  public Form(JSONObject source) {
+    Map<String, Object> map = source.toMap();
+    for (String key : map.keySet()) {
+      // TO DO: Fill the rest of the fields
+      // TO DO: Metadata and Section will probably need their own
+      // JSON Concstructor
+      // Probably gonna need recursion in section
+      this.uploaderUsername = map.get("uploaderUserName").toString();
+      this.condition = map.get("condition").toString();
+      this.isTemplate = Boolean.parseBoolean(map.get("isTemplate").toString());
+      this.uploadedAt = new Date(map.get("uploadedAt").toString());
+    }
   }
 
   @Override
