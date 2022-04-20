@@ -7,61 +7,59 @@ import Form.Form;
 import Form.FormMessage;
 import Form.FormType;
 import User.UserType;
-import org.bson.types.ObjectId;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Date;
-import java.util.Optional;
 
 public class UploadFormService implements Service {
 
   String uploader;
   UserType privilegeLevel;
-
-  FormType formType;
   FormDao formDao;
-
-  Form.Metadata metadata;
-  Form.Section body;
-  boolean isTemplate;
+  JSONObject formJson;
+  Form form;
 
   public UploadFormService(
-      FormDao formDao,
-      String uploaderUsername,
-      UserType privilegeLevel,
-      FormType formType,
-      Form.Metadata metadata,
-      Form.Section body,
-      boolean isTemplate) {
+      FormDao formDao, String uploaderUsername, UserType privilegeLevel, JSONObject formJson) {
     this.formDao = formDao;
     this.uploader = uploaderUsername;
     this.privilegeLevel = privilegeLevel;
-    this.formType = formType;
-    this.metadata = metadata;
-    this.body = body;
-    this.isTemplate = isTemplate;
+    this.formJson = formJson;
+    //    this.formType = formType;
+    //    this.metadata = metadata;
+    //    this.body = body;
+    //    this.isTemplate = isTemplate;
   }
 
   @Override
   public Message executeAndGetResponse() {
-    if (formType == null) {
-      return FormMessage.INVALID_FORM_TYPE;
-    } else if (metadata == null) {
+    try {
+      this.form = Form.fromJson(formJson);
+    } catch (Exception e) {
       return FormMessage.INVALID_FORM;
-    } else if (body == null) {
+    }
+    if (this.form == null) {
+      return FormMessage.INVALID_FORM;
+    }
+
+    if (form.getFormType() == null) {
+      return FormMessage.INVALID_FORM_TYPE;
+    } else if (form.getMetadata() == null) {
+      return FormMessage.INVALID_FORM;
+    } else if (form.getBody() == null) {
       return FormMessage.INVALID_FORM;
     } else {
-      if ((formType == FormType.APPLICATION
-              || formType == FormType.IDENTIFICATION
-              || formType == FormType.FORM)
+      if ((form.getFormType() == FormType.APPLICATION
+              || form.getFormType() == FormType.IDENTIFICATION
+              || form.getFormType() == FormType.FORM)
           && (privilegeLevel == UserType.Client
               || privilegeLevel == UserType.Worker
               || privilegeLevel == UserType.Director
               || privilegeLevel == UserType.Admin
               || privilegeLevel == UserType.Developer)) {
         try {
-          return mongodbUpload(uploader, metadata, body, formType, formDao, isTemplate);
+          return mongodbUpload(uploader, form, formDao);
         } catch (GeneralSecurityException | IOException e) {
           return FormMessage.SERVER_ERROR;
         }
@@ -71,26 +69,9 @@ public class UploadFormService implements Service {
     }
   }
 
-  public Message mongodbUpload(
-      String uploader,
-      Form.Metadata metadata,
-      Form.Section body,
-      FormType formType,
-      FormDao formDao,
-      boolean isTemplate)
+  public Message mongodbUpload(String uploader, Form form, FormDao formDao)
       throws GeneralSecurityException, IOException {
-    formDao.save(
-        new Form(
-            uploader,
-            Optional.of(uploader),
-            new Date(),
-            Optional.of(new Date()),
-            formType,
-            isTemplate,
-            metadata,
-            body,
-            new ObjectId(),
-            "condition"));
+    formDao.save(form);
     return FormMessage.SUCCESS;
   }
 }
