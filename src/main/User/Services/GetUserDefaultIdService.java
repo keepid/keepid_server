@@ -6,17 +6,18 @@ import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
 import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 public class GetUserDefaultIdService implements Service{
     private final UserDao userDao;
     private final String username;
-    private final String documentType;
+    private final DocumentType documentType;
     private String id;
     private User user;
 
-    public GetUserDefaultIdService(UserDao userDao, String username, String documentType) {
+    public GetUserDefaultIdService(UserDao userDao, String username, DocumentType documentType) {
         this.userDao = userDao;
         this.username = username;
         this.documentType = documentType;
@@ -32,7 +33,8 @@ public class GetUserDefaultIdService implements Service{
         }
         user = optionalUser.get();
 
-        id = user.getDefaultIds().get(documentType);
+        Map<String, String> defaultIds = user.getDefaultIds();
+        id = defaultIds.get(DocumentType.stringFromDocumentType(documentType));
 
         return UserMessage.SUCCESS;
     }

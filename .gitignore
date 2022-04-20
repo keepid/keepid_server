@@ -44,4 +44,3 @@ key.json
 
 # don't track the keys property file
 secretkeys.properties
-src/test/UserTest/UserControllerUnitTest.java
