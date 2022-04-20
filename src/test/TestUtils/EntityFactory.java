@@ -2,6 +2,12 @@ package TestUtils;
 
 import Activity.Activity;
 import Database.Dao;
+import Form.FieldType;
+import Form.Form;
+import Form.Form.Metadata;
+import Form.Form.Question;
+import Form.Form.Section;
+import Form.FormType;
 import Organization.Organization;
 import Security.SecurityUtils;
 import Security.Tokens;
@@ -12,10 +18,7 @@ import Validation.ValidationException;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
@@ -34,6 +37,118 @@ public class EntityFactory {
 
   public static PartialActivity createActivity() {
     return new PartialActivity();
+  }
+
+  public static PartialForm createForm() {
+    return new PartialForm();
+  }
+
+  public static class PartialForm implements PartialObject<Form> {
+    // new
+    private int defaultNumLines = 10;
+    private String username = "testFirstName";
+    private Optional<String> uploaderUsername = Optional.of("testuploadername");
+    private Date uploadedAt = new Date(TEST_DATE);
+    private ObjectId conditionalFieldId = new ObjectId();
+    private String condition = "TEST_CONDITION";
+    private Optional<Date> lastModifiedAt = Optional.of(new Date(TEST_DATE));
+    private FormType formType = FormType.FORM;
+    private boolean isTemplate = false;
+    private Metadata metadata =
+        new Metadata(
+            "title",
+            "description",
+            "state",
+            "county",
+            new HashSet<ObjectId>(),
+            new Date(),
+            new ArrayList<String>(),
+            defaultNumLines);
+    private Section child =
+        new Section(
+            "child", "childDescription", new ArrayList<Section>(), new ArrayList<Question>());
+    List<Section> subSections = new ArrayList<>();
+    private Section body;
+
+    @Override
+    public Form build() {
+      Question question =
+          new Question(
+              new ObjectId(),
+              FieldType.TEXT_FIELD,
+              "question text",
+              new ArrayList<>(),
+              "default",
+              true,
+              10,
+              true,
+              new ObjectId(),
+              true);
+      List<Question> questions = new ArrayList<>();
+      questions.add(question);
+      subSections.add(child);
+      body = new Section("title", "description", subSections, questions);
+      Form newForm =
+          new Form(
+              username,
+              uploaderUsername,
+              uploadedAt,
+              lastModifiedAt,
+              formType,
+              isTemplate,
+              metadata,
+              body,
+              conditionalFieldId,
+              condition);
+      return newForm;
+    }
+
+    @Override
+    public Form buildAndPersist(Dao<Form> dao) {
+      Form form = this.build();
+      dao.save(form);
+      return form;
+    }
+
+    public PartialForm withUsername(String username) {
+      this.username = username;
+      return this;
+    }
+
+    public PartialForm withUploaderUsername(Optional<String> uploaderUsername) {
+      this.uploaderUsername = uploaderUsername;
+      return this;
+    }
+
+    public PartialForm withUploadedAt(Date uploadedAt) {
+      this.uploadedAt = uploadedAt;
+      return this;
+    }
+
+    public PartialForm withLastModifiedAt(Optional<Date> lastModifiedAt) {
+      this.lastModifiedAt = lastModifiedAt;
+      return this;
+    }
+
+    public PartialForm withFormType(FormType formType) {
+      this.formType = formType;
+      return this;
+    }
+
+    public PartialForm withIsTemplate(boolean isTemplate) {
+      this.isTemplate = isTemplate;
+      return this;
+    }
+
+    public PartialForm withMetadata(Metadata metadata) {
+      this.metadata = metadata;
+      return this;
+    }
+
+    public PartialForm withBody(Section body) {
+      this.body = body;
+      return this;
+    }
   }
 
   public static class PartialUser implements PartialObject<User> {
