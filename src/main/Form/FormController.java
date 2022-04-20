@@ -1,7 +1,10 @@
 package Form;
 
+import Config.Message;
 import Database.Form.FormDao;
 import Form.Services.DeleteFormService;
+import Form.Services.GetFormService;
+import Form.Services.UploadFormService;
 import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
@@ -44,14 +47,13 @@ public class FormController {
         } else {
           boolean orgFlag;
           if (check != null && req.has("targetUser")) {
-            log.info("Target user found");
+            log.info("Target form found");
             username = check.getUsername();
             orgName = check.getOrganization();
             userType = check.getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
-            orgName = ctx.sessionAttribute("orgName");
             userType = ctx.sessionAttribute("privilegeLevel");
             // User is in same org as themselves
             orgFlag = true;
@@ -69,6 +71,110 @@ public class FormController {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
           }
         }
+      };
+
+  public Handler formGet =
+      ctx -> {
+        String username;
+        String orgName;
+        UserType userType;
+        JSONObject req = new JSONObject(ctx.body());
+        User check = userCheck(ctx.body());
+        if (check == null && req.has("targetUser")) {
+          log.info("Target form not Found");
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+        } else {
+          boolean orgFlag;
+          if (check != null && req.has("targetUser")) {
+            log.info("Target form found");
+            username = check.getUsername();
+            orgName = check.getOrganization();
+            userType = check.getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+
+          if (orgFlag) {
+            String fileIDStr = req.getString("fileId");
+            String isTemplateString = req.getString("isTemplate");
+            GetFormService getFormService =
+                new GetFormService(
+                    formDao,
+                    new ObjectId(fileIDStr),
+                    username,
+                    userType,
+                    Boolean.valueOf(isTemplateString));
+            Message response = getFormService.executeAndGetResponse();
+            if (response == FormMessage.SUCCESS) {
+              JSONObject result = getFormService.getJsonInformation();
+              ctx.header("Content-Type", "application/form");
+              ctx.result(result.toString());
+            } else {
+              ctx.result(response.toResponseString());
+            }
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
+        }
+      };
+
+  public Handler formUpload =
+      ctx -> {
+        log.info("formUpload");
+        String username;
+        String organizationName;
+        UserType privilegeLevel;
+        Message response;
+        JSONObject req;
+        JSONObject form;
+        String body = ctx.body();
+        try {
+          req = new JSONObject(body);
+          form = (JSONObject) req.get("form");
+        } catch (Exception e) {
+          req = null;
+          form = null;
+        }
+        if (req != null) {
+          User check = userCheck(body);
+          if (req != null && req.has("targetUser") && check == null) {
+            log.info("Target User could not be found in the database");
+            response = UserMessage.USER_NOT_FOUND;
+          } else {
+            boolean orgFlag;
+            if (req != null && req.has("targetUser") && check != null) {
+              log.info("Target User found, setting parameters.");
+              username = check.getUsername();
+              organizationName = check.getOrganization();
+              privilegeLevel = check.getUserType();
+              orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
+            } else {
+              username = ctx.sessionAttribute("username");
+              privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+              orgFlag = true;
+            }
+            if (orgFlag) {
+              if (form == null) {
+                log.info("File is null, invalid pdf");
+                response = FormMessage.INVALID_FORM;
+              } else {
+                UploadFormService uploadService =
+                    new UploadFormService(formDao, username, privilegeLevel, form);
+                response = uploadService.executeAndGetResponse();
+              }
+            } else {
+              response = UserMessage.CROSS_ORG_ACTION_DENIED;
+            }
+          }
+        } else {
+          response = FormMessage.INVALID_FORM;
+        }
+
+        ctx.result(response.toResponseString());
       };
 
   public User userCheck(String req) {

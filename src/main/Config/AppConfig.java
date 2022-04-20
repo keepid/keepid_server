@@ -3,6 +3,8 @@ package Config;
 import Activity.ActivityController;
 import Admin.AdminController;
 import Billing.BillingController;
+import Database.Form.FormDao;
+import Database.Form.FormDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
@@ -12,6 +14,7 @@ import Database.User.UserDaoFactory;
 import Database.UserV2.UserV2Dao;
 import Database.UserV2.UserV2DaoFactory;
 import File.FileController;
+import Form.FormController;
 import Issue.IssueController;
 import Organization.Organization;
 import Organization.OrganizationController;
@@ -44,6 +47,7 @@ public class AppConfig {
     UserV2Dao userV2Dao = UserV2DaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
+    FormDao formDao = FormDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
 
@@ -63,6 +67,7 @@ public class AppConfig {
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);
     FileController fileController = new FileController(db, userDao);
+    FormController formController = new FormController(db, formDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
@@ -90,7 +95,9 @@ public class AppConfig {
     app.post("/get-files", fileController.getFiles);
     app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     app.post("/fill-form", fileController.fillPDFForm);
-
+    app.post("/upload-form", formController.formUpload);
+    app.post("/get-form", formController.formGet);
+    app.post("/delete-form/", formController.formDelete);
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
     app.post("/authenticate", userController.authenticateUser);
