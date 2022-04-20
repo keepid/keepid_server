@@ -5,13 +5,13 @@ import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Form.Form;
 import Form.FormMessage;
-import Form.FormType;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
 import TestUtils.EntityFactory;
 import User.UserType;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,13 +36,10 @@ public class FormServicesTestImplUnitTest {
   public void upload() {
     String testUsername = "username1";
     UserType testUserType = UserType.userTypeFromString("worker");
-    FormType testFormType = FormType.createFromString("FORM");
     Form form = EntityFactory.createForm().withUsername(testUsername).build();
-    Form.Metadata metadata = form.getMetadata();
-    Form.Section body = form.getBody();
+    JSONObject formJson = form.toJSON();
     UploadFormService uploadFormService =
-        new UploadFormService(
-            formDao, testUsername, testUserType, testFormType, metadata, body, false);
+        new UploadFormService(formDao, testUsername, testUserType, formJson);
     assertEquals(FormMessage.SUCCESS, uploadFormService.executeAndGetResponse());
     System.out.println(formDao.get(testUsername).size());
     assertTrue(formDao.get(testUsername).size() == 1);

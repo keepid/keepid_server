@@ -5,7 +5,6 @@ import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Form.Form;
 import Form.FormMessage;
-import Form.FormType;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
@@ -39,14 +38,11 @@ public class FormServicesImplUnitTest {
   @Test
   public void upload() {
     String testUsername = "username1";
-    Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
+    Form form = EntityFactory.createForm().withUsername(testUsername).build();
+    JSONObject formJson = form.toJSON();
     UserType testUserType = UserType.userTypeFromString("worker");
-    FormType testFormType = FormType.createFromString("FORM");
-    Form.Metadata metadata = form.getMetadata();
-    Form.Section body = form.getBody();
     UploadFormService uploadFormService =
-        new UploadFormService(
-            formDao, testUsername, testUserType, testFormType, metadata, body, false);
+        new UploadFormService(formDao, testUsername, testUserType, formJson);
     assertEquals(FormMessage.SUCCESS, uploadFormService.executeAndGetResponse());
     assertTrue(formDao.get(testUsername).size() == 1);
     assertEquals(formDao.get(testUsername).get(0).getUsername(), form.getUsername());
@@ -70,7 +66,7 @@ public class FormServicesImplUnitTest {
         new GetFormService(formDao, id, testUsername, testUserType, false);
     assertEquals(FormMessage.SUCCESS, getFormService.executeAndGetResponse());
     JSONObject jsonInformation = getFormService.getJsonInformation();
-    assertEquals(jsonInformation.get("id"), id);
+    assertEquals(jsonInformation.get("id"), id.toString());
     assertEquals(jsonInformation.get("fileId"), form.getFileId().toString());
     assertEquals(jsonInformation.get("username"), testUsername);
     assertEquals(jsonInformation.get("uploaderUsername"), form.getUploaderUsername());
