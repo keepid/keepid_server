@@ -7,6 +7,7 @@ import Form.Form;
 import Form.FormMessage;
 import Form.FormType;
 import User.UserType;
+import org.bson.types.ObjectId;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -87,7 +88,9 @@ public class UploadFormService implements Service {
             formType,
             isTemplate,
             metadata,
-            body));
+            body,
+            new ObjectId(),
+            "condition"));
     return FormMessage.SUCCESS;
   }
 }
