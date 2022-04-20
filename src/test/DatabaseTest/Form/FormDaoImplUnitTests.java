@@ -7,6 +7,7 @@ import Form.Form;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,6 +45,14 @@ public class FormDaoImplUnitTests {
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
     assertTrue(formDao.get(testUsername).size() == 1);
     assertEquals(formDao.get(testUsername).get(0), form);
+  }
+
+  @Test
+  public void JSONTests() {
+    String testUsername = "username1";
+    Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
+    JSONObject obj = form.toJSON();
+    Form newForm = new Form(obj);
   }
 
   @Test
