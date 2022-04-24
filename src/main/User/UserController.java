@@ -9,6 +9,7 @@ import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+import User.Services.DocumentType;
 
 @Slf4j
 public class UserController {
@@ -309,4 +310,59 @@ public class UserController {
           ctx.result(mes.toJSON().toString());
         }
       };
+
+  public Handler setDefaultIds =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String username = ctx.sessionAttribute("username");
+        String id = req.getString("id");
+        String docTypeString = req.getString("documentType");
+        DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
+
+        // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+        log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
+
+        SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, username, documentType, id);
+        Message response = setUserDefaultIdService.executeAndGetResponse();
+
+        if (response == UserMessage.SUCCESS){
+            // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
+            JSONObject responseJSON = new JSONObject();
+            responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been set");
+            JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+            ctx.result(mergedInfo.toString());
+        }
+        else{
+            log.info("Error: {}", response.getErrorName());
+            ctx.result(response.toResponseString());
+        }
+    };
+
+    public Handler getDefaultIds =
+        ctx -> {
+            JSONObject req = new JSONObject(ctx.body());
+            String username = ctx.sessionAttribute("username");
+            String docTypeString = req.getString("documentType");
+            DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
+
+            // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+            log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
+
+            GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, username, documentType);
+            Message response = getUserDefaultIdService.executeAndGetResponse();
+
+            if (response == UserMessage.SUCCESS){
+                // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
+                JSONObject responseJSON = new JSONObject();
+                responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been retrieved");
+                responseJSON.put("id", getUserDefaultIdService.getId());
+                responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
+                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+                ctx.result(mergedInfo.toString());
+            }
+            else{
+                log.info("Error: {}", response.getErrorName());
+                ctx.result(response.toResponseString());
+            }
+        };
 }

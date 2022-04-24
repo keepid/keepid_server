@@ -4,19 +4,20 @@ import Config.Message;
 import org.json.JSONObject;
 
 public enum UserValidationMessage implements Message {
-  INVALID_FIRSTNAME("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_LASTNAME("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_BIRTHDATE("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_EMAIL("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_PHONENUMBER("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_ORGANIZATION("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_ADDRESS("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_CITY("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_STATE("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_ZIPCODE("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_USERNAME("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_PASSWORD("INVALID_FIRSTNAME:Invalid First Name"),
-  INVALID_USERTYPE("INVALID_FIRSTNAME:Invalid First Name"),
+  INVALID_FIRSTNAME("INVALID_FIRSTNAME:Invalid first name"),
+  INVALID_LASTNAME("INVALID_LASTNAME:Invalid last name"),
+  INVALID_BIRTHDATE("INVALID_BIRTHDATE:Invalid birth date"),
+  INVALID_EMAIL("INVALID_EMAIL:Invalid email"),
+  INVALID_PHONENUMBER("INVALID_PHONENUMBER:Invalid phone number"),
+  INVALID_ORGANIZATION("INVALID_ORGANIZATION:Invalid organization"),
+  INVALID_ADDRESS("INVALID_ADDRESS:Invalid address"),
+  INVALID_CITY("INVALID_CITY:Invalid city"),
+  INVALID_STATE("INVALID_STATE:Invalid state"),
+  INVALID_ZIPCODE("INVALID_ZIPCODE:Invalid zipcode"),
+  INVALID_USERNAME("INVALID_USERNAME:Invalid username"),
+  INVALID_PASSWORD("INVALID_PASSWORD:Invalid password"),
+  INVALID_USERTYPE("INVALID_USERTYPE:Invalid user type"),
+  INVALID_DOCUMENTTYPE("INVALID_DOCUMENTTYPE:Invalid document type"),
   VALID("SUCCESS:Valid User");
 
   private final String errorMessage;
@@ -51,6 +52,8 @@ public enum UserValidationMessage implements Message {
         return UserMessage.INVALID_PARAMETER.toJSON("Invalid Username");
       case INVALID_PASSWORD:
         return UserMessage.INVALID_PARAMETER.toJSON("Invalid Password");
+      case INVALID_DOCUMENTTYPE:
+        return UserMessage.INVALID_PARAMETER.toJSON("Invalid DocumentType");
       case INVALID_USERTYPE:
         return UserMessage.INVALID_PARAMETER.toJSON("Invalid UserType");
       case VALID:
