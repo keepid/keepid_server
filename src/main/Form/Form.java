@@ -1,6 +1,6 @@
 package Form;
 
-import com.google.gson.Gson;
+import com.google.gson.*;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -10,6 +10,7 @@ import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
+import java.lang.reflect.Type;
 import java.util.*;
 
 public class Form {
@@ -608,18 +609,47 @@ public class Form {
 
   // Create a json string from the object
   public JSONObject toJSON() {
-    Gson gson = new Gson();
+    Gson gson =
+        new GsonBuilder()
+            .setDateFormat("E MMM dd HH:mm:ss z yyyy")
+            .registerTypeAdapter(ObjectId.class, new IdSerializer())
+            .registerTypeAdapter(ObjectId.class, new IdDeserializer())
+            .setPrettyPrinting()
+            .create();
     String jsonString = gson.toJson(this);
     JSONObject jsonObject = new JSONObject(jsonString);
     return jsonObject;
   }
 
+  // overrides how id is serialized to json
+  static class IdSerializer implements JsonSerializer<ObjectId> {
+    @Override
+    public JsonElement serialize(
+        ObjectId id, Type type, JsonSerializationContext jsonSerializationContext) {
+      return new JsonPrimitive(id.toHexString());
+    }
+  }
+
+  // overrides how id is deserialized from json
+  static class IdDeserializer implements JsonDeserializer<ObjectId> {
+    @Override
+    public ObjectId deserialize(
+        JsonElement elem, Type type, JsonDeserializationContext jsonDeserializationContext) {
+      return new ObjectId(elem.toString().replace("\"", ""));
+    }
+  }
+
   // Create a Form from a json object. Notice that
   // this is a static method
   public static Form fromJson(JSONObject source) {
-    Gson gson = new Gson();
+    Gson gson =
+        new GsonBuilder()
+            .setDateFormat("EEE MMM dd HH:mm:ss z yyyy")
+            .registerTypeAdapter(ObjectId.class, new IdSerializer())
+            .registerTypeAdapter(ObjectId.class, new IdDeserializer())
+            .setPrettyPrinting()
+            .create();
     Form res = (Form) gson.fromJson(source.toString(), Form.class);
-    Map<String, Object> map = source.toMap();
     return res;
   }
 
@@ -639,6 +669,7 @@ public class Form {
     }
 
     if (!this.fileId.equals(other.fileId)) {
+      System.out.println("field");
       return false;
     }
 
@@ -671,6 +702,7 @@ public class Form {
     }
 
     if (this.body == null || this.body.equals(other.body) == false) {
+
       return false;
     }
 

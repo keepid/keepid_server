@@ -83,11 +83,10 @@ public class FormDaoTestImplUnitTests {
 
   @Test
   public void JSONTests() {
-    String testUsername = "username1";
+    String testUsername = "test";
     Form form = EntityFactory.createForm().withUsername(testUsername).buildAndPersist(formDao);
     JSONObject obj = form.toJSON();
     Form newForm = Form.fromJson(obj);
-    // System.out.println(obj);
     // System.out.println(form.getMetadata().getLast());
     assertTrue(newForm.equals(form));
   }
