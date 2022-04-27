@@ -2,6 +2,7 @@ package Form;
 
 import Config.Message;
 import Database.Form.FormDao;
+import Database.User.UserDao;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
@@ -9,30 +10,23 @@ import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.mongodb.client.model.Filters.eq;
+import java.util.Optional;
 
 @Slf4j
 public class FormController {
-  private MongoDatabase db;
   private FormDao formDao;
+  private UserDao userDao;
   private EncryptionController encryptionController;
 
-  public FormController(MongoDatabase db, FormDao formDao) {
-    this.db = db;
+  public FormController(FormDao formDao, UserDao userDao) {
     this.formDao = formDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-
-    }
+    this.userDao = userDao;
   }
 
   public Handler formDelete =
@@ -185,8 +179,11 @@ public class FormController {
       JSONObject reqJson = new JSONObject(req);
       if (reqJson.has("targetUser")) {
         username = reqJson.getString("targetUser");
-        MongoCollection<User> userCollection = this.db.getCollection("user", User.class);
-        user = userCollection.find(eq("username", username)).first();
+        Optional<User> optionalUser = userDao.get(username);
+        if (optionalUser.isEmpty()) {
+          throw new JSONException("err");
+        }
+        user = optionalUser.get();
       }
     } catch (JSONException e) {
 
