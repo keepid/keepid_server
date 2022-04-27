@@ -39,7 +39,7 @@ public class DeleteFormService implements Service {
           || privilegeLevel == UserType.Admin
           || privilegeLevel == UserType.Developer) {
         try {
-          return mongodbDelete(id, formDao);
+          return deleteForm(id, formDao);
         } catch (GeneralSecurityException | IOException e) {
           return FormMessage.SERVER_ERROR;
         }
@@ -49,7 +49,7 @@ public class DeleteFormService implements Service {
     }
   }
 
-  public Message mongodbDelete(ObjectId id, FormDao formDao)
+  public Message deleteForm(ObjectId id, FormDao formDao)
       throws GeneralSecurityException, IOException {
     formDao.delete(id);
     return FormMessage.SUCCESS;

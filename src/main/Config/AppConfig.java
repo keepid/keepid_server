@@ -65,7 +65,7 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);
-    FormController formController = new FormController(db, formDao);
+    FormController formController = new FormController(formDao, userDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
