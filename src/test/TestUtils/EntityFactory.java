@@ -46,47 +46,102 @@ public class EntityFactory {
   public static class PartialForm implements PartialObject<Form> {
     // new
     private int defaultNumLines = 10;
-    private String username = "testFirstName";
-    private Optional<String> uploaderUsername = Optional.of("testuploadername");
+    private String username = "john_doe";
+    private Optional<String> uploaderUsername = Optional.of("john_doe");
     private Date uploadedAt = new Date(TEST_DATE);
     private ObjectId conditionalFieldId = new ObjectId();
-    private String condition = "TEST_CONDITION";
+    private String condition = "Positive";
     private Optional<Date> lastModifiedAt = Optional.of(new Date(TEST_DATE));
     private FormType formType = FormType.FORM;
     private boolean isTemplate = false;
     private Metadata metadata =
         new Metadata(
-            "title",
-            "description",
-            "state",
-            "county",
+            "Driver License",
+            "Form for driver License",
+            "Pennsylvania",
+            "Philadelphia",
             new HashSet<ObjectId>(),
             new Date(),
             new ArrayList<String>(),
             defaultNumLines);
     private Section child =
         new Section(
-            "child", "childDescription", new ArrayList<Section>(), new ArrayList<Question>());
+            "Empty", "childDescription", new ArrayList<Section>(), new ArrayList<Question>());
     List<Section> subSections = new ArrayList<>();
     private Section body;
 
     @Override
     public Form build() {
-      Question question =
+      Question question1 =
           new Question(
               new ObjectId(),
               FieldType.TEXT_FIELD,
-              "question text",
+              "What is your first name",
               new ArrayList<>(),
-              "default",
+              "NA",
+              true,
+              10,
+              true,
+              new ObjectId(),
+              true);
+      Question question2 =
+          new Question(
+              new ObjectId(),
+              FieldType.TEXT_FIELD,
+              "What is your last name",
+              new ArrayList<>(),
+              "NA",
               true,
               10,
               true,
               new ObjectId(),
               true);
       List<Question> questions = new ArrayList<>();
-      questions.add(question);
+      Question question3 =
+          new Question(
+              new ObjectId(),
+              FieldType.TEXT_FIELD,
+              "City",
+              new ArrayList<>(),
+              "NA",
+              true,
+              10,
+              true,
+              new ObjectId(),
+              true);
+      Question question4 =
+          new Question(
+              new ObjectId(),
+              FieldType.TEXT_FIELD,
+              "State",
+              new ArrayList<>(),
+              "NA",
+              true,
+              10,
+              true,
+              new ObjectId(),
+              true);
+      Question question5 =
+          new Question(
+              new ObjectId(),
+              FieldType.TEXT_FIELD,
+              "Street Address",
+              new ArrayList<>(),
+              "NA",
+              true,
+              10,
+              true,
+              new ObjectId(),
+              true);
+      List<Question> questions2 = new ArrayList<>();
+      questions2.add(question3);
+      questions2.add(question4);
+      questions2.add(question5);
+      Section child2 = new Section("Address", "Adress", new ArrayList<Section>(), questions2);
+      questions.add(question1);
+      questions.add(question2);
       subSections.add(child);
+      subSections.add(child2);
       body = new Section("title", "description", subSections, questions);
       Form newForm =
           new Form(

@@ -239,26 +239,26 @@ public class Form {
         writer.writeInt32(value.questions.size());
         for (Question question : value.questions) {
           writer.writeName("text");
-          writer.writeString(question.questionText);
+          writer.writeString(question.fieldQuestion);
           writer.writeName("default");
-          writer.writeString(question.defaultValue);
+          writer.writeString(question.fieldDefaultValue);
           writer.writeName("conditionalOnField");
           writer.writeObjectId(question.conditionalOnField);
           writer.writeName("id");
-          writer.writeObjectId(question.id);
+          writer.writeObjectId(question.fieldId);
           writer.writeName("required");
-          writer.writeBoolean(question.required);
+          writer.writeBoolean(question.fieldIsRequired);
           writer.writeName("matched");
-          writer.writeBoolean(question.matched);
+          writer.writeBoolean(question.fieldIsMatched);
           writer.writeName("conditionalType");
           writer.writeBoolean(question.conditionalType);
           writer.writeName("type");
-          writer.writeString(question.type.toString());
+          writer.writeString(question.fieldType.toString());
           writer.writeName("numLines");
-          writer.writeInt32(question.numLines);
+          writer.writeInt32(question.fieldNumLines);
           writer.writeName("optionsSize");
-          writer.writeInt32(question.options.size());
-          for (String option : question.options) {
+          writer.writeInt32(question.fieldValueOptions.size());
+          for (String option : question.fieldValueOptions) {
             writer.writeName(option);
             writer.writeString(option);
           }
@@ -403,14 +403,14 @@ public class Form {
   }
 
   public static class Question {
-    ObjectId id;
-    FieldType type;
-    String questionText;
-    List<String> options;
-    String defaultValue;
-    boolean required;
-    int numLines;
-    boolean matched;
+    ObjectId fieldId;
+    FieldType fieldType;
+    String fieldQuestion;
+    List<String> fieldValueOptions;
+    String fieldDefaultValue;
+    boolean fieldIsRequired;
+    int fieldNumLines;
+    boolean fieldIsMatched;
     ObjectId conditionalOnField;
     // true for positive, false for negative
     boolean conditionalType;
@@ -426,14 +426,14 @@ public class Form {
         boolean matched,
         ObjectId conditionalOnField,
         boolean conditionalType) {
-      this.id = id;
-      this.type = type;
-      this.questionText = questionText;
-      this.options = options;
-      this.defaultValue = defaultValue;
-      this.required = required;
-      this.numLines = numLines;
-      this.matched = matched;
+      this.fieldId = id;
+      this.fieldType = type;
+      this.fieldQuestion = questionText;
+      this.fieldValueOptions = options;
+      this.fieldDefaultValue = defaultValue;
+      this.fieldIsRequired = required;
+      this.fieldNumLines = numLines;
+      this.fieldIsMatched = matched;
       this.conditionalOnField = conditionalOnField;
       this.conditionalType = conditionalType;
     }
@@ -449,31 +449,31 @@ public class Form {
 
       final Question other = (Question) obj;
 
-      if (!this.id.equals(other.id)) {
+      if (!this.fieldId.equals(other.fieldId)) {
         return false;
       }
 
-      if (!this.type.equals(other.type)) {
+      if (!this.fieldType.equals(other.fieldType)) {
         return false;
       }
 
-      if (!this.questionText.equals(other.questionText)) {
+      if (!this.fieldQuestion.equals(other.fieldQuestion)) {
         return false;
       }
 
-      if (!this.options.equals(other.options)) {
+      if (!this.fieldValueOptions.equals(other.fieldValueOptions)) {
         return false;
       }
 
-      if (!this.defaultValue.equals(other.defaultValue)) {
+      if (!this.fieldDefaultValue.equals(other.fieldDefaultValue)) {
         return false;
       }
 
-      if (this.numLines != (other.numLines)) {
+      if (this.fieldNumLines != (other.fieldNumLines)) {
         return false;
       }
 
-      if (this.matched != (other.matched)) {
+      if (this.fieldIsMatched != (other.fieldIsMatched)) {
         return false;
       }
 
