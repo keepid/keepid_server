@@ -16,6 +16,7 @@ import java.util.*;
 public class Form {
   private ObjectId id;
   private ObjectId fileId;
+  private ObjectId pdfId;
 
   private Metadata metadata;
 
@@ -88,22 +89,6 @@ public class Form {
 
     @Override
     public Metadata decode(BsonReader reader, DecoderContext decoderContext) {
-      /*
-       writer.writeString(value.title);
-       writer.writeString(value.description);
-       writer.writeString(value.state);
-       writer.writeString(value.county);
-       writer.writeInt32(value.numLines);
-       writer.writeDateTime(value.lastRevisionDate.getTime());
-       writer.writeInt32(value.prerequisities.size());
-       for (ObjectId prereq : value.prerequisities) {
-         writer.writeObjectId(prereq);
-       }
-       writer.writeInt32(value.paymentInfo.size());
-       for (String item : value.paymentInfo) {
-         writer.writeString(item);
-       }
-      */
       reader.readStartDocument();
       reader.readName();
       String title = reader.readString();
@@ -284,14 +269,6 @@ public class Form {
       int questionsSize = reader.readInt32();
       List<Question> questions = new ArrayList<>();
       for (int i = 0; i < questionsSize; i++) {
-        /*
-         writer.writeName("optionsSize");
-         writer.writeInt32(question.options.size());
-         for (String option : question.options) {
-           writer.writeName(option);
-           writer.writeString(option);
-         }
-        */
         reader.readName();
         String questiontext = reader.readString();
         reader.readName();
@@ -490,6 +467,7 @@ public class Form {
 
   public Form(
       String username,
+      ObjectId pdfId,
       Optional<String> uploaderUsername,
       Date uploadedAt,
       Optional<Date> lastModifiedAt,
@@ -501,6 +479,7 @@ public class Form {
       String condition) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
+    this.pdfId = pdfId;
     this.username = username;
     this.uploaderUsername = uploaderUsername.orElse(username);
     this.uploadedAt = uploadedAt;
@@ -520,6 +499,10 @@ public class Form {
 
   public ObjectId getFileId() {
     return this.fileId;
+  }
+
+  public ObjectId getPdfId() {
+    return this.pdfId;
   }
 
   public Date getLastModifiedAt() {
@@ -665,6 +648,10 @@ public class Form {
     final Form other = (Form) obj;
 
     if (!this.id.equals(other.id)) {
+      return false;
+    }
+
+    if (!this.pdfId.equals(other.pdfId)) {
       return false;
     }
 

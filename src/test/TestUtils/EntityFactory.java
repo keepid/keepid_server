@@ -50,6 +50,7 @@ public class EntityFactory {
     private Optional<String> uploaderUsername = Optional.of("john_doe");
     private Date uploadedAt = new Date(TEST_DATE);
     private ObjectId conditionalFieldId = new ObjectId();
+    private ObjectId pdfId = new ObjectId();
     private String condition = "Positive";
     private Optional<Date> lastModifiedAt = Optional.of(new Date(TEST_DATE));
     private FormType formType = FormType.FORM;
@@ -146,6 +147,7 @@ public class EntityFactory {
       Form newForm =
           new Form(
               username,
+              pdfId,
               uploaderUsername,
               uploadedAt,
               lastModifiedAt,
