@@ -89,6 +89,8 @@ public class AppConfig {
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
+    app.post("/upload-form-test", formController.formUploadTest);
+    app.post("/get-form-test", formController.formGetTest);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

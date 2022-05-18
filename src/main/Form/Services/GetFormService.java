@@ -47,6 +47,7 @@ public class GetFormService implements Service {
         try {
           return mongodbGet(id, formDao);
         } catch (GeneralSecurityException | IOException e) {
+          System.out.println(e.toString());
           return FormMessage.SERVER_ERROR;
         }
       } else {
@@ -66,9 +67,11 @@ public class GetFormService implements Service {
     Optional<Form> formOptional = formDao.get(id);
     Form form = null;
     if (formOptional.isPresent()) {
+      System.out.println("Form is present");
       form = formOptional.get();
     }
     if (form == null) {
+      System.out.println("Form is null");
       throw new IOException();
     }
 

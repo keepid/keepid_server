@@ -75,8 +75,8 @@ public class FormServicesImplUnitTest {
     String jsonString = jsonInformation.toString(spacesToIndentEachLevel);
     System.out.println(jsonString);
 
-    // assertEquals(jsonInformation.get("id"), id.toString());
-    // assertEquals(jsonInformation.get("fileId"), form.getFileId().toString());
+    assertEquals(jsonInformation.get("id"), id.toString());
+    assertEquals(jsonInformation.get("fileId"), form.getFileId().toString());
     assertEquals(jsonInformation.get("uploadedAt"), form.getUploadedAt().toString());
     assertEquals(jsonInformation.get("username"), testUsername);
     assertEquals(jsonInformation.get("uploaderUsername"), form.getUploaderUsername());
