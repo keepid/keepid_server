@@ -25,6 +25,7 @@ public class FormControllerIntegrationTests {
   public static Form form =
       new Form(
           username,
+          new ObjectId(),
           Optional.empty(),
           new Date(),
           Optional.empty(),

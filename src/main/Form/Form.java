@@ -165,38 +165,6 @@ public class Form {
       this.paymentInfo = paymentInfo;
     }
 
-    public String getTitle() {
-      return title;
-    }
-
-    public String getDescription() {
-      return description;
-    }
-
-    public String getState() {
-      return state;
-    }
-
-    public String getCounty() {
-      return county;
-    }
-
-    public Date getLastRevisionDate() {
-      return lastRevisionDate;
-    }
-
-    public int getNumLines() {
-      return numLines;
-    }
-
-    public Set<ObjectId> getPrerequisities() {
-      return prerequisities;
-    }
-
-    public List<String> getPaymentInfo() {
-      return paymentInfo;
-    }
-
     @Override
     public boolean equals(Object obj) {
 
@@ -382,22 +350,6 @@ public class Form {
       this.questions = questions;
     }
 
-    public String getTitle() {
-      return title;
-    }
-
-    public String getDescription() {
-      return description;
-    }
-
-    public List<Section> getSubsections() {
-      return subsections;
-    }
-
-    public List<Question> getQuestions() {
-      return questions;
-    }
-
     @Override
     public boolean equals(Object obj) {
       if (obj == null) {
@@ -461,46 +413,6 @@ public class Form {
       this.fieldIsMatched = matched;
       this.conditionalOnField = conditionalOnField;
       this.conditionalType = conditionalType;
-    }
-
-    public ObjectId getId() {
-      return id;
-    }
-
-    public FieldType getType() {
-      return type;
-    }
-
-    public String getQuestionText() {
-      return questionText;
-    }
-
-    public List<String> getOptions() {
-      return options;
-    }
-
-    public String getDefaultValue() {
-      return defaultValue;
-    }
-
-    public boolean isRequired() {
-      return required;
-    }
-
-    public int getNumLines() {
-      return numLines;
-    }
-
-    public boolean isMatched() {
-      return matched;
-    }
-
-    public ObjectId getConditionalOnField() {
-      return conditionalOnField;
-    }
-
-    public boolean isConditionalType() {
-      return conditionalType;
     }
 
     @Override
