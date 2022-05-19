@@ -1,9 +1,9 @@
 package Form;
 
 public enum FormType {
-  APPLICATION("application"),
-  IDENTIFICATION("identification"),
-  FORM("form");
+  APPLICATION("APPLICATION"),
+  IDENTIFICATION("IDENTIFICATION"),
+  FORM("FORM");
 
   private String formType;
 

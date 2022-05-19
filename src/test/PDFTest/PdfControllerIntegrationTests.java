@@ -30,7 +30,7 @@ import static org.junit.Assert.fail;
 
 public class PdfControllerIntegrationTests {
   private static EncryptionUtils encryptionUtils;
-  public static String username = "adminBSM";;
+  public static String username = "adminBSM";
 
   public static String currentPDFFolderPath =
       Paths.get("").toAbsolutePath().toString()
