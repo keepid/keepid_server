@@ -51,6 +51,9 @@ public class DeleteFormService implements Service {
 
   public Message deleteForm(ObjectId id, FormDao formDao)
       throws GeneralSecurityException, IOException {
+    if (formDao.get(id).isEmpty()) {
+      return FormMessage.FORM_NOT_FOUND;
+    }
     formDao.delete(id);
     return FormMessage.SUCCESS;
   }

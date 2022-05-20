@@ -11,6 +11,7 @@ public enum FormMessage implements Message {
   SERVER_ERROR("SERVER_ERROR:There was an error with the server."),
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE:Privilege level too low."),
   SUCCESS("SUCCESS:Success."),
+  FORM_NOT_FOUND("Error:Form not found."),
   NO_SUCH_FILE("NO_SUCH_FILE:Form does not exist"),
   ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting"),
   PDF_NOT_FOUND("PDF_NOT_FOUND:the pdf associated with this form was not found");
