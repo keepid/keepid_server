@@ -710,7 +710,6 @@ public class Form {
     }
 
     if (!this.fileId.equals(other.fileId)) {
-      System.out.println("field");
       return false;
     }
 
