@@ -467,7 +467,6 @@ public class Form {
 
   public Form(
       String username,
-      ObjectId pdfId,
       Optional<String> uploaderUsername,
       Date uploadedAt,
       Optional<Date> lastModifiedAt,
@@ -479,7 +478,7 @@ public class Form {
       String condition) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
-    this.pdfId = pdfId;
+    this.pdfId = new ObjectId();
     this.username = username;
     this.uploaderUsername = uploaderUsername.orElse(username);
     this.uploadedAt = uploadedAt;
@@ -491,6 +490,61 @@ public class Form {
     this.conditionalFieldId = conditionalFieldId;
     this.body = body;
   }
+
+    public Form(
+            String username,
+            ObjectId id,
+            ObjectId fileId,
+            Optional<String> uploaderUsername,
+            Date uploadedAt,
+            Optional<Date> lastModifiedAt,
+            FormType formType,
+            boolean isTemplate,
+            Metadata metadata,
+            Section body,
+            ObjectId conditionalFieldId,
+            String condition) {
+        this.id = id;
+        this.fileId = fileId;
+        this.pdfId = new ObjectId();
+        this.username = username;
+        this.uploaderUsername = uploaderUsername.orElse(username);
+        this.uploadedAt = uploadedAt;
+        this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
+        this.formType = formType;
+        this.isTemplate = isTemplate;
+        this.metadata = metadata;
+        this.condition = condition;
+        this.conditionalFieldId = conditionalFieldId;
+        this.body = body;
+    }
+
+    public Form(
+            String username,
+            ObjectId pdfId,
+            Optional<String> uploaderUsername,
+            Date uploadedAt,
+            Optional<Date> lastModifiedAt,
+            FormType formType,
+            boolean isTemplate,
+            Metadata metadata,
+            Section body,
+            ObjectId conditionalFieldId,
+            String condition) {
+        this.id = new ObjectId();
+        this.fileId = new ObjectId();
+        this.pdfId = pdfId;
+        this.username = username;
+        this.uploaderUsername = uploaderUsername.orElse(username);
+        this.uploadedAt = uploadedAt;
+        this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
+        this.formType = formType;
+        this.isTemplate = isTemplate;
+        this.metadata = metadata;
+        this.condition = condition;
+        this.conditionalFieldId = conditionalFieldId;
+        this.body = body;
+    }
 
   /** **************** GETTERS ********************* */
   public ObjectId getId() {

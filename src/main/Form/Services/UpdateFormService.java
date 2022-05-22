@@ -71,6 +71,7 @@ public class UpdateFormService implements Service {
 
   public Message mongodbUpdate(String uploader, Form form, FormDao formDao)
       throws GeneralSecurityException, IOException {
+      System.out.println("whats up");
     formDao.update(form);
     return FormMessage.SUCCESS;
   }
