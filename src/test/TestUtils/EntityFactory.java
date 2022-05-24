@@ -47,7 +47,9 @@ public class EntityFactory {
     // new
     private int defaultNumLines = 10;
     private String username = "john_doe";
+    private String updatedUsername = "jane_doe";
     private Optional<String> uploaderUsername = Optional.of("john_doe");
+    private Optional<String> updatedUploaderUsername = Optional.of("jane_doe");
     private Date uploadedAt = new Date(TEST_DATE);
     private ObjectId conditionalFieldId = new ObjectId();
     private ObjectId pdfId = new ObjectId();
@@ -65,6 +67,18 @@ public class EntityFactory {
             new Date(),
             new ArrayList<String>(),
             defaultNumLines);
+
+      private Metadata updatedMetadata =
+              new Metadata(
+                      "Birth Certificate",
+                      "Form for birth certificate",
+                      "Pennsylvania",
+                      "Pittsburgh",
+                      new HashSet<ObjectId>(),
+                      new Date(),
+                      new ArrayList<String>(),
+                      defaultNumLines);
+
     private Section child =
         new Section(
             "Empty", "childDescription", new ArrayList<Section>(), new ArrayList<Question>());
@@ -160,6 +174,94 @@ public class EntityFactory {
       return newForm;
     }
 
+      public Form updatedBuild(ObjectId oldId, ObjectId oldFileId) {
+          Question question1 =
+                  new Question(
+                          new ObjectId(),
+                          FieldType.TEXT_FIELD,
+                          "What is your first name",
+                          new ArrayList<>(),
+                          "NA",
+                          true,
+                          10,
+                          true,
+                          new ObjectId(),
+                          true);
+          Question question2 =
+                  new Question(
+                          new ObjectId(),
+                          FieldType.TEXT_FIELD,
+                          "What is your last name",
+                          new ArrayList<>(),
+                          "NA",
+                          true,
+                          10,
+                          true,
+                          new ObjectId(),
+                          true);
+          List<Question> questions = new ArrayList<>();
+          Question question3 =
+                  new Question(
+                          new ObjectId(),
+                          FieldType.TEXT_FIELD,
+                          "City",
+                          new ArrayList<>(),
+                          "NA",
+                          true,
+                          10,
+                          true,
+                          new ObjectId(),
+                          true);
+          Question question4 =
+                  new Question(
+                          new ObjectId(),
+                          FieldType.TEXT_FIELD,
+                          "State",
+                          new ArrayList<>(),
+                          "NA",
+                          true,
+                          10,
+                          true,
+                          new ObjectId(),
+                          true);
+          Question question5 =
+                  new Question(
+                          new ObjectId(),
+                          FieldType.TEXT_FIELD,
+                          "Address of Street",
+                          new ArrayList<>(),
+                          "NA",
+                          true,
+                          10,
+                          true,
+                          new ObjectId(),
+                          true);
+          List<Question> questions2 = new ArrayList<>();
+          questions2.add(question3);
+          questions2.add(question4);
+          questions2.add(question5);
+          Section child2 = new Section("Address", "Adress", new ArrayList<Section>(), questions2);
+          questions.add(question1);
+          questions.add(question2);
+          subSections.add(child);
+          subSections.add(child2);
+          body = new Section("title", "description", subSections, questions);
+          Form newForm =
+                  new Form(
+                          username,
+                          oldId,
+                          oldFileId,
+                          updatedUploaderUsername,
+                          uploadedAt,
+                          lastModifiedAt,
+                          formType,
+                          isTemplate,
+                          updatedMetadata,
+                          body,
+                          conditionalFieldId,
+                          condition);
+          return newForm;
+      }
     @Override
     public Form buildAndPersist(Dao<Form> dao) {
       Form form = this.build();

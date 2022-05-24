@@ -7,6 +7,7 @@ import Form.Form;
 import Form.FormMessage;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
+import Form.Services.UpdateFormService;
 import Form.Services.UploadFormService;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -58,6 +59,78 @@ public class FormServicesImplUnitTest {
     assertEquals(formDao.get(testUsername).get(0).getMetadata(), form.getMetadata());
     assertEquals(formDao.get(testUsername).get(0).getFormType(), form.getFormType());
   }
+
+    @Test
+    public void uploadFail() {
+        String testUsername = "username1";
+        Form form = EntityFactory.createForm().withUsername(testUsername).build();
+        JSONObject formJson = form.toJSON();
+        int spacesToIndentEachLevel = 2;
+        String jsonString = formJson.toString(spacesToIndentEachLevel);
+        System.out.println(jsonString);
+
+        UserType testUserType = UserType.userTypeFromString("fail");
+        UploadFormService uploadFormService =
+                new UploadFormService(formDao, testUsername, testUserType, formJson);
+        assertEquals(FormMessage.INSUFFICIENT_PRIVILEGE, uploadFormService.executeAndGetResponse());
+    }
+
+    @Test
+    public void update() {
+        String testUsername = "username1";
+        Form form = EntityFactory.createForm().withUsername(testUsername).build();
+        JSONObject formJson = form.toJSON();
+        int spacesToIndentEachLevel = 2;
+        String jsonString = formJson.toString(spacesToIndentEachLevel);
+        System.out.println(jsonString);
+        UserType testUserType = UserType.userTypeFromString("worker");
+        UploadFormService uploadFormService =
+                new UploadFormService(formDao, testUsername, testUserType, formJson);
+        assertEquals(FormMessage.SUCCESS, uploadFormService.executeAndGetResponse());
+
+        Form updatedForm = EntityFactory.createForm().withUsername(testUsername).updatedBuild(form.getId(), form.getFileId());
+        JSONObject updatedFormJson = updatedForm.toJSON();
+        String updatedJsonString = updatedFormJson.toString(spacesToIndentEachLevel);
+        System.out.println(updatedJsonString);
+
+        UpdateFormService updateFormService =
+                new UpdateFormService(formDao, testUsername, testUserType, updatedFormJson);
+        assertEquals(FormMessage.SUCCESS, updateFormService.executeAndGetResponse());
+
+        assertEquals(formDao.get(testUsername).get(0).getUsername(), updatedForm.getUsername());
+        assertEquals(
+                formDao.get(testUsername).get(0).getUploaderUsername(), updatedForm.getUploaderUsername());
+        assertEquals(formDao.get(testUsername).get(0).getLastModifiedAt(), updatedForm.getLastModifiedAt());
+        assertEquals(formDao.get(testUsername).get(0).getUploadedAt(), updatedForm.getUploadedAt());
+        assertEquals(formDao.get(testUsername).get(0).getBody(), updatedForm.getBody());
+        assertEquals(formDao.get(testUsername).get(0).getMetadata(), updatedForm.getMetadata());
+        assertEquals(formDao.get(testUsername).get(0).getFormType(), updatedForm.getFormType());
+    }
+
+    @Test
+    public void updateFail() {
+        String testUsername = "username1";
+        Form form = EntityFactory.createForm().withUsername(testUsername).build();
+        JSONObject formJson = form.toJSON();
+        int spacesToIndentEachLevel = 2;
+        String jsonString = formJson.toString(spacesToIndentEachLevel);
+        System.out.println(jsonString);
+        UserType testUserType = UserType.userTypeFromString("worker");
+        UploadFormService uploadFormService =
+                new UploadFormService(formDao, testUsername, testUserType, formJson);
+        assertEquals(FormMessage.SUCCESS, uploadFormService.executeAndGetResponse());
+
+        Form updatedForm = EntityFactory.createForm().withUsername(testUsername).updatedBuild(form.getId(), form.getFileId());
+        JSONObject updatedFormJson = updatedForm.toJSON();
+        String updatedJsonString = updatedFormJson.toString(spacesToIndentEachLevel);
+        System.out.println(updatedJsonString);
+
+        UserType updatedTestUserType = UserType.userTypeFromString("fail");
+
+        UpdateFormService updateFormService =
+                new UpdateFormService(formDao, testUsername, updatedTestUserType, updatedFormJson);
+        assertEquals(FormMessage.INSUFFICIENT_PRIVILEGE, updateFormService.executeAndGetResponse());
+    }
 
   @Test
   public void get() {
