@@ -550,6 +550,10 @@ public class Form {
     this.fileId = fileId;
   }
 
+  public void setPdfId(ObjectId id) {
+    this.pdfId = id;
+  }
+
   public void setId(ObjectId id) {
     this.id = id;
   }

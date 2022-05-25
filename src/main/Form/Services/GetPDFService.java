@@ -34,11 +34,9 @@ public class GetPDFService implements Service {
     this.db = db;
     this.fileId = form.getPdfId().toString();
     this.username = form.getUsername();
-    this.username = username;
     this.orgName = orgName;
     this.privilegeLevel = privilegeLevel;
     this.pdfType = pdfType;
-    this.fileId = fileId;
     this.encryptionController = encryptionController;
   }
 
@@ -48,6 +46,7 @@ public class GetPDFService implements Service {
         new DownloadPDFService(
             db, username, orgName, privilegeLevel, fileId, pdfType, encryptionController);
     Message pdfResponse = pdfService.executeAndGetResponse();
+    System.out.println(pdfResponse.toResponseString());
     if (pdfResponse != PdfMessage.SUCCESS) {
       return FormMessage.PDF_NOT_FOUND;
     }

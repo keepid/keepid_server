@@ -6,6 +6,7 @@ import Config.MongoConfig;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Form.Form;
+import Form.FormMessage;
 import Form.Services.GetPDFService;
 import PDF.PDFType;
 import PDF.Services.GetFilesInformationPDFService;
@@ -15,7 +16,6 @@ import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class GetPDFServiceUnitTests {
   private static String resourcesFolderPath =
@@ -53,6 +55,8 @@ public class GetPDFServiceUnitTests {
   ObjectId formId;
   Form form;
 
+  InputStream inputStream;
+
   @Before
   public void setup() {
     TestUtils.startServer();
@@ -71,7 +75,7 @@ public class GetPDFServiceUnitTests {
   private void customUploadPdf() {
     File file =
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
-    InputStream inputStream = null;
+    inputStream = null;
     try {
       inputStream = new FileInputStream(file);
     } catch (Exception e) {
@@ -96,10 +100,9 @@ public class GetPDFServiceUnitTests {
   public void reset() {}
 
   @Test
-  public void Test() {
+  public void FormIdCorrectTest() {
     customUploadPdf();
     PDFType pdfType = PDFType.FORM;
-    Bson filter = null;
     GetFilesInformationPDFService infoService =
         new GetFilesInformationPDFService(db, username, orgName, userType, pdfType, false);
     infoService.executeAndGetResponse();
@@ -110,6 +113,25 @@ public class GetPDFServiceUnitTests {
     GetPDFService getPDFService =
         new GetPDFService(db, form, orgName, UserType.Admin, pdfType, encryptionController);
     Message getPdfResponse = getPDFService.executeAndGetResponse();
-    System.out.println(getPdfResponse.toResponseString());
+    // For now, it seems that everything works fine until it attempts to decrypt the file
+    // the file is correctly identified in the database, but the decryption doesn't work
+    assertEquals(FormMessage.SUCCESS, getPdfResponse);
+    assertEquals(inputStream, getPDFService.getInputStream());
+  }
+
+  @Test
+  public void FormIdInCorrectTest() {
+    customUploadPdf();
+    PDFType pdfType = PDFType.FORM;
+    GetFilesInformationPDFService infoService =
+        new GetFilesInformationPDFService(db, username, orgName, userType, pdfType, false);
+    infoService.executeAndGetResponse();
+    JSONArray array = infoService.getFiles();
+    JSONObject firstElem = (JSONObject) (array.get(0));
+    ObjectId id = new ObjectId(firstElem.get("id").toString());
+    GetPDFService getPDFService =
+        new GetPDFService(db, form, orgName, UserType.Admin, pdfType, encryptionController);
+    Message getPdfResponse = getPDFService.executeAndGetResponse();
+    assertEquals(FormMessage.PDF_NOT_FOUND, getPdfResponse);
   }
 }
