@@ -6,29 +6,27 @@ import Database.Form.FormDao;
 import Form.Form;
 import Form.FormMessage;
 import User.UserType;
-import org.bson.types.ObjectId;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
-public class GetFormService implements Service {
+public class GetAllFormsService implements Service {
 
-  ObjectId id;
   String username;
   UserType privilegeLevel;
 
   FormDao formDao;
   boolean isTemplate;
 
-  JSONObject formInformation;
+  JSONArray formInformation;
 
-  public GetFormService(
-      FormDao formDao, ObjectId id, String username, UserType privilegeLevel, boolean isTemplate) {
+  public GetAllFormsService(
+      FormDao formDao, String username, UserType privilegeLevel, boolean isTemplate) {
     this.formDao = formDao;
-    this.id = id;
     this.username = username;
     this.privilegeLevel = privilegeLevel;
     this.isTemplate = isTemplate;
@@ -36,7 +34,7 @@ public class GetFormService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
-    if (id == null) {
+    if (username == null) {
       return FormMessage.INVALID_PARAMETER;
     } else {
       if (privilegeLevel == UserType.Client
@@ -45,7 +43,7 @@ public class GetFormService implements Service {
           || privilegeLevel == UserType.Admin
           || privilegeLevel == UserType.Developer) {
         try {
-          return mongodbGet(id, formDao);
+          return mongodbGet(username, formDao);
         } catch (GeneralSecurityException | IOException e) {
           System.out.println(e.toString());
           return FormMessage.SERVER_ERROR;
@@ -56,26 +54,25 @@ public class GetFormService implements Service {
     }
   }
 
-  public JSONObject getJsonInformation() {
+  public JSONArray getJsonInformation() {
     Objects.requireNonNull(formInformation);
     return formInformation;
   }
 
-  public Message mongodbGet(ObjectId id, FormDao formDao)
+  public Message mongodbGet(String username, FormDao formDao)
       throws GeneralSecurityException, IOException {
 
-    Optional<Form> formOptional = formDao.get(id);
-    Form form = null;
-    if (formOptional.isPresent()) {
-      System.out.println("Form is present");
-      form = formOptional.get();
+    List<Form> formList = formDao.get(username);
+    if (formList == null) {
+      System.out.println("Form List is null");
+      throw new IOException();
     }
-    if (form == null) {
-      System.out.println("Form is null");
-      return FormMessage.FORM_NOT_FOUND;
-    }
+    JSONArray responseJSON = new JSONArray();
 
-    JSONObject responseJSON = form.toJSON();
+    for (int i = 0; i < formList.size(); i++) {
+      JSONObject formJSON = formList.get(i).toJSON();
+      responseJSON.put(formJSON);
+    }
     this.formInformation = responseJSON;
 
     return FormMessage.SUCCESS;

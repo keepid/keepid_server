@@ -3,10 +3,7 @@ package Form;
 import Config.Message;
 import Database.Form.FormDao;
 import Database.User.UserDao;
-import Form.Services.DeleteFormService;
-import Form.Services.GetFormService;
-import Form.Services.UpdateFormService;
-import Form.Services.UploadFormService;
+import Form.Services.*;
 import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
@@ -14,6 +11,7 @@ import User.UserType;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -106,6 +104,51 @@ public class FormController {
             Message response = getFormService.executeAndGetResponse();
             if (response == FormMessage.SUCCESS) {
               JSONObject result = getFormService.getJsonInformation();
+              ctx.header("Content-Type", "application/form");
+              ctx.result(result.toString());
+            } else {
+              ctx.result(response.toResponseString());
+            }
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
+        }
+      };
+
+  public Handler formGetAll =
+      ctx -> {
+        String username;
+        String orgName;
+        UserType userType;
+        JSONObject req = new JSONObject(ctx.body());
+        User check = userCheck(ctx.body());
+        if (check == null && req.has("targetUser")) {
+          log.info("Target forms not Found");
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+        } else {
+          boolean orgFlag;
+          if (check != null && req.has("targetUser")) {
+            log.info("Target form found");
+            username = check.getUsername();
+            orgName = check.getOrganization();
+            userType = check.getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            username = ctx.sessionAttribute("username");
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+
+          if (orgFlag) {
+            String fileIDStr = req.getString("fileId");
+            String isTemplateString = req.getString("isTemplate");
+            GetAllFormsService getAllFormsService =
+                new GetAllFormsService(
+                    formDao, username, userType, Boolean.valueOf(isTemplateString));
+            Message response = getAllFormsService.executeAndGetResponse();
+            if (response == FormMessage.SUCCESS) {
+              JSONArray result = getAllFormsService.getJsonInformation();
               ctx.header("Content-Type", "application/form");
               ctx.result(result.toString());
             } else {

@@ -87,7 +87,9 @@ public class AppConfig {
     app.post("/fill-application", pdfController.fillPDFForm);
 
     app.post("/upload-form", formController.formUpload);
+    app.post("/update-form", formController.formUpdate);
     app.post("/get-form", formController.formGet);
+    app.post("/get-all-form", formController.formGetAll);
     app.post("/delete-form/", formController.formDelete);
     app.post("/upload-form-test", formController.formUploadTest);
     app.post("/get-form-test", formController.formGetTest);
