@@ -21,6 +21,7 @@ import Organization.OrganizationController;
 import PDF.PdfController;
 import Production.ProductionController;
 import Security.AccountSecurityController;
+import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
 import User.UserController;
@@ -74,6 +75,15 @@ public class AppConfig {
     ProductionController productionController = new ProductionController(orgDao, userDao);
     UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);
     BillingController billingController = new BillingController();
+    EncryptionTools tools = new EncryptionTools(db);
+//    try { do not recomment this block of code, this will delete and regenerate our encryption key
+//      System.out.println("generating keyset");
+//      tools.generateAndUploadKeySet();
+//      System.out.println("successfully generated keyset");
+//    } catch (Exception e) {
+//      System.out.println(e);
+//    }
+
 
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
