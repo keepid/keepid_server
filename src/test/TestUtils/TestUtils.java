@@ -52,11 +52,12 @@ public class TestUtils {
       try {
         MongoConfig.getMongoClient();
         MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+        EncryptionTools encryptionTools = new EncryptionTools(db);
+        encryptionTools.generateGoogleCredentials();
         try {
-          EncryptionTools encryptionTools = new EncryptionTools(db);
           encryptionTools.generateAndUploadKeySet();
         } catch (Exception e) {
-
+          System.out.println("exception: " + e);
         }
         EncryptionUtils.initialize();
         encryptionUtils = EncryptionUtils.getInstance();
