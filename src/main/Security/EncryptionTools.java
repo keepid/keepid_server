@@ -38,7 +38,12 @@ public class EncryptionTools {
     File file = new File(credentials);
     if (file.length() == 0 || !file.isFile()) {
       try {
-        Files.writeString(Path.of(credentials), credential_contents);
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> map =
+            objectMapper.readValue(credential_contents, new TypeReference<Map<String, Object>>() {
+            });
+        JSONObject keyJson = new JSONObject(map);
+        Files.writeString(Path.of(credentials), keyJson.toString());
       } catch (Exception e) {
         System.out.println("exception: " + e);
       }
@@ -51,6 +56,8 @@ public class EncryptionTools {
     AeadConfig.register();
 
     try {
+      System.out.println(credentials);
+      System.out.println(masterKeyUri);
       GcpKmsClient.register(Optional.of(masterKeyUri), Optional.of(credentials));
     } catch (Exception ex) {
       System.err.println("Error initializing GCP client: " + ex);
