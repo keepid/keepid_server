@@ -19,7 +19,6 @@ public class OrgDaoImplUnitTests {
   @Before
   public void initialize() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
     this.orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
   }
 

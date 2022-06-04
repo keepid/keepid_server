@@ -19,7 +19,6 @@ public class TokenDaoImplUnitTests {
   @Before
   public void initialize() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
     this.tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
   }
 

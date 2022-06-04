@@ -20,7 +20,6 @@ public class FormDaoImplUnitTests {
   @Before
   public void initialize() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
   }
 
