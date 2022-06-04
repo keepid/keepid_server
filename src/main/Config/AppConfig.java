@@ -51,7 +51,8 @@ public class AppConfig {
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
-
+    EncryptionTools tools = new EncryptionTools(db);
+    tools.generateGoogleCredentials();
     EncryptionUtils.initialize();
     //    try {
     //      encryptionController = new EncryptionController(db);
@@ -75,7 +76,6 @@ public class AppConfig {
     ProductionController productionController = new ProductionController(orgDao, userDao);
     UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);
     BillingController billingController = new BillingController();
-    EncryptionTools tools = new EncryptionTools(db);
 //    try { do not recomment this block of code, this will delete and regenerate our encryption key
 //      System.out.println("generating keyset");
 //      tools.generateAndUploadKeySet();

@@ -9,7 +9,6 @@ import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.aead.KmsAeadKeyManager;
 import com.google.crypto.tink.integration.gcpkms.GcpKmsClient;
-import com.google.gson.Gson;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
@@ -17,9 +16,8 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +28,22 @@ public class EncryptionTools {
   public static final String credentials =
       Objects.requireNonNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
   public static final String masterKeyUri = Objects.requireNonNull(System.getenv("MASTERKEYURI"));
+  public static final String credential_contents = Objects.requireNonNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS_CONTENTS"));
 
   public EncryptionTools(MongoDatabase db) {
     this.db = db;
+  }
+
+  public boolean generateGoogleCredentials() {
+    File file = new File(credentials);
+    if (file.length() == 0 || !file.isFile()) {
+      try {
+        Files.writeString(Path.of(credentials), credential_contents);
+      } catch (Exception e) {
+        System.out.println("exception: " + e);
+      }
+    }
+    return true;
   }
 
   // Used for maintaining keys in mongodb, use with caution.

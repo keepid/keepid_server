@@ -36,9 +36,8 @@ session-store
 session-store*
 session-store/*
 .env
+env
 
-keepid-google-kms.json
-test_encryption_key.json
 google-credentials.json
 key.json
 
