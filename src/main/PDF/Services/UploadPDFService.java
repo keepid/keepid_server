@@ -28,6 +28,7 @@ public class UploadPDFService implements Service {
   String fileContentType;
   InputStream fileStream;
   PDFType pdfType;
+  String documentType;
   MongoDatabase db;
   EncryptionController encryptionController;
 
@@ -37,6 +38,7 @@ public class UploadPDFService implements Service {
       String organizationName,
       UserType privilegeLevel,
       PDFType pdfType,
+      String documentType,
       String filename,
       String title,
       String fileContentType,
@@ -47,6 +49,7 @@ public class UploadPDFService implements Service {
     this.organizationName = organizationName;
     this.privilegeLevel = privilegeLevel;
     this.pdfType = pdfType;
+    this.documentType = documentType;
     this.filename = filename;
     this.title = title;
     this.fileContentType = fileContentType;

@@ -275,6 +275,7 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
+              String documentType = ctx.formParam("documentType");
               // TODO: Replace with a title that is retrieved from the client (optionally)
               String title = null;
               try {
@@ -286,6 +287,7 @@ public class PdfController {
               } catch (Exception exception) {
                 ctx.result(PdfMessage.INVALID_PDF.toResponseString());
               }
+
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -293,6 +295,7 @@ public class PdfController {
                       organizationName,
                       privilegeLevel,
                       pdfType,
+                      documentType,
                       file.getFilename(),
                       title,
                       file.getContentType(),
