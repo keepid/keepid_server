@@ -2,11 +2,11 @@ package ProductionAPITest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Organization.Organization;
 import Security.SecurityUtils;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
-import Organization.Organization;
 import Validation.ValidationException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -18,6 +18,7 @@ import org.junit.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,9 +59,13 @@ public class ProductionControllerIntegrationTests {
 
   @Before
   public void login() {
-    MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
-    MongoCollection<User> userCollection = testDB.getCollection("user", User.class);
     TestUtils.login("devYMCA", "devYMCA123");
+    try {
+      TimeUnit.SECONDS.sleep(1); // this looks super jank but basically we are running into concurrency problems
+      // if we login too fast because the login call is asynchronous because we are using unirest
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 
   @After
