@@ -40,12 +40,13 @@ public class ChangeAccountSettingsIntegrationTests {
   public void reset() {
     userDao.clear();
     tokenDao.clear();
+    clearInvocations(ctx);
   }
 
   @AfterClass
   public static void tearDown() {
     TestUtils.tearDownTestDB();
-    verifyNoMoreInteractions(ctx);
+    clearInvocations(ctx);
   }
 
   // Make sure to enable .env file configurations for these tests
