@@ -14,25 +14,26 @@ import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ChangeAccountSettingsIntegrationTests {
-  Context ctx = mock(Context.class);
+  static Context ctx;
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
 
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
+  }
+
+  @Before
+  public void initialize() {
+    ctx = mock(Context.class);
   }
 
   @After
@@ -44,6 +45,7 @@ public class ChangeAccountSettingsIntegrationTests {
   @AfterClass
   public static void tearDown() {
     TestUtils.tearDownTestDB();
+    verifyNoMoreInteractions(ctx);
   }
 
   // Make sure to enable .env file configurations for these tests
