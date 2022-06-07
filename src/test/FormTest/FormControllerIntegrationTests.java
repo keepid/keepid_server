@@ -17,15 +17,13 @@ import static FormTest.FormControllerIntegrationTestHelperMethods.*;
 public class FormControllerIntegrationTests {
   public static String username = "adminBSM";
   private static FormDao formDao;
-  private static Form formObject;
+  // private static Form formObject;
 
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
     TestUtils.setUpTestDB();
     formDao = FormDaoFactory.create(DeploymentLevel.TEST);
-    Form form = EntityFactory.createForm().withUsername("testUsername").buildAndPersist(formDao);
-    formObject = form;
   }
 
   @AfterClass
@@ -36,32 +34,47 @@ public class FormControllerIntegrationTests {
   @Test
   public void uploadFormTest() {
     TestUtils.login(username, username);
-    uploadForm(formObject);
+    Form form = EntityFactory.createForm().withUsername(username).build();
+    uploadForm(form);
     TestUtils.logout();
   }
 
   @Test
   public void updateFormTest() {
     TestUtils.login(username, username);
-    uploadForm(formObject);
-    formObject.setUploadedAt(new Date());
-    updateForm(formObject);
+    Form form = EntityFactory.createForm().withUsername(username).build();
+    uploadForm(form);
+    form.setUploadedAt(new Date());
+    updateForm(form);
     TestUtils.logout();
   }
 
   @Test
   public void deleteFormTest() {
     TestUtils.login(username, username);
-    uploadForm(formObject);
-    delete(formObject.getId());
+    Form form = EntityFactory.createForm().withUsername(username).buildAndPersist(formDao);
+    // uploadForm(form);
+    delete(form.getId());
     TestUtils.logout();
   }
 
   @Test
   public void getFormTest() {
     TestUtils.login(username, username);
-    uploadForm(formObject);
-    getForm(formObject.getId());
+    Form form = EntityFactory.createForm().withUsername(username).buildAndPersist(formDao);
+    // uploadForm(form);
+    getForm(form.getId());
+    TestUtils.logout();
+  }
+
+  @Test
+  public void getAllFormsTest() {
+    TestUtils.login(username, username);
+    Form form = EntityFactory.createForm().withUsername(username).buildAndPersist(formDao);
+    Form form2 = EntityFactory.createForm().withUsername(username).buildAndPersist(formDao);
+    Form form3 = EntityFactory.createForm().withUsername(username).buildAndPersist(formDao);
+    // uploadForm(form);
+    getAllForms();
     TestUtils.logout();
   }
 }

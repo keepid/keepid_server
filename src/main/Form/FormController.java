@@ -104,6 +104,7 @@ public class FormController {
             Message response = getFormService.executeAndGetResponse();
             if (response == FormMessage.SUCCESS) {
               JSONObject result = getFormService.getJsonInformation();
+              result.put("status", "SUCCESS");
               ctx.header("Content-Type", "application/form");
               ctx.result(result.toString());
             } else {
@@ -141,14 +142,16 @@ public class FormController {
           }
 
           if (orgFlag) {
-            String fileIDStr = req.getString("fileId");
             String isTemplateString = req.getString("isTemplate");
             GetAllFormsService getAllFormsService =
                 new GetAllFormsService(
                     formDao, username, userType, Boolean.valueOf(isTemplateString));
             Message response = getAllFormsService.executeAndGetResponse();
             if (response == FormMessage.SUCCESS) {
-              JSONArray result = getAllFormsService.getJsonInformation();
+              JSONArray resultArray = getAllFormsService.getJsonInformation();
+              JSONObject result = new JSONObject();
+              result.put("forms", resultArray);
+              result.put("status", "SUCCESS");
               ctx.header("Content-Type", "application/form");
               ctx.result(result.toString());
             } else {

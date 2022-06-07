@@ -43,7 +43,7 @@ public class FormControllerIntegrationTestHelperMethods {
     JSONObject body = new JSONObject();
     body.put("fileId", id);
     body.put("targetUser", username);
-    body.put("isTemplate", false);
+    body.put("isTemplate", "false");
     HttpResponse<String> deleteResponse =
         Unirest.post(TestUtils.getServerUrl() + "/delete-form").body(body.toString()).asString();
     System.out.println(deleteResponse.getBody());
@@ -55,9 +55,20 @@ public class FormControllerIntegrationTestHelperMethods {
     JSONObject body = new JSONObject();
     body.put("fileId", id);
     body.put("targetUser", username);
-    body.put("isTemplate", false);
+    body.put("isTemplate", "false");
     HttpResponse<String> getResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-form").body(body.toString()).asString();
+    System.out.println(getResponse.getBody());
+    JSONObject deleteResponseJSON = TestUtils.responseStringToJSON(getResponse.getBody());
+    assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
+  }
+
+  public static void getAllForms() {
+    JSONObject body = new JSONObject();
+    body.put("targetUser", username);
+    body.put("isTemplate", "false");
+    HttpResponse<String> getResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-form").body(body.toString()).asString();
     System.out.println(getResponse.getBody());
     JSONObject deleteResponseJSON = TestUtils.responseStringToJSON(getResponse.getBody());
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
