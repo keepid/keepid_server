@@ -2,6 +2,8 @@ package TestUtils;
 
 import Activity.Activity;
 import Database.Dao;
+import File.File;
+import File.FileType;
 import Form.FieldType;
 import Form.Form;
 import Form.Form.Metadata;
@@ -17,6 +19,7 @@ import User.UserType;
 import Validation.ValidationException;
 import org.bson.types.ObjectId;
 
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -41,6 +44,71 @@ public class EntityFactory {
 
   public static PartialForm createForm() {
     return new PartialForm();
+  }
+
+  public static PartialFile createFile() {
+    return new PartialFile();
+  }
+
+  public static class PartialFile implements PartialObject<File> {
+
+    private ObjectId id = new ObjectId(); // id of file in collection (metadata)
+    private String filename = "testFilename";
+    private FileType fileType = FileType.MISC;
+    private Date uploadedAt = new Date(TEST_DATE);
+    private String username = "testUsername";
+    private String organizationName = "testOrganizationName";
+    private String contentType = "testContentType";
+
+    @Override
+    public File build() {
+      File newFile =
+          new File(id, filename, fileType, uploadedAt, username, organizationName, contentType);
+      newFile.setFileStream(InputStream.nullInputStream());
+      return newFile;
+    }
+
+    @Override
+    public File buildAndPersist(Dao<File> dao) {
+      File file = this.build();
+      dao.save(file);
+      return file;
+    }
+
+    public PartialFile withId(ObjectId id) {
+      this.id = id;
+      return this;
+    }
+
+    public PartialFile withFilename(String filename) {
+      this.filename = filename;
+      return this;
+    }
+
+    public PartialFile withFileType(FileType fileType) {
+      this.fileType = fileType;
+      return this;
+    }
+
+    public PartialFile withUploadedAt(Date uploadedAt) {
+      this.uploadedAt = uploadedAt;
+      return this;
+    }
+
+    public PartialFile withUsername(String username) {
+      this.username = username;
+      return this;
+    }
+
+    public PartialFile withOrganizationName(String orgName) {
+      this.organizationName = orgName;
+      return this;
+    }
+
+    public PartialFile withContentType(String contentType) {
+      this.contentType = contentType;
+      return this;
+    }
   }
 
   public static class PartialForm implements PartialObject<Form> {

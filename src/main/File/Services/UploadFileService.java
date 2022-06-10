@@ -2,18 +2,13 @@ package File.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.File.FileDao;
+import File.File;
 import File.FileMessage;
 import File.FileType;
-import PDF.PdfMessage;
 import Security.EncryptionController;
-import User.UserMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.gridfs.GridFSBucket;
-import com.mongodb.client.gridfs.GridFSBuckets;
-import com.mongodb.client.gridfs.model.GridFSFile;
-import com.mongodb.client.gridfs.model.GridFSUploadOptions;
-import com.mongodb.client.model.Filters;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
@@ -23,9 +18,6 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleS
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
-import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,11 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.time.LocalDate;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
-
-import static com.mongodb.client.model.Filters.eq;
+import java.time.ZoneId;
+import java.util.*;
 
 @Slf4j
 public class UploadFileService implements Service {
@@ -56,10 +45,12 @@ public class UploadFileService implements Service {
   InputStream signatureFileStream;
   FileType fileType;
   MongoDatabase db;
+  FileDao fileDao;
   EncryptionController encryptionController;
 
   public UploadFileService(
       MongoDatabase db,
+      FileDao fileDao,
       String uploaderUsername,
       String organizationName,
       UserType privilegeLevel,
@@ -74,6 +65,7 @@ public class UploadFileService implements Service {
       InputStream signatureFileStream,
       EncryptionController encryptionController) {
     this.db = db;
+    this.fileDao = fileDao;
     this.uploader = uploaderUsername;
     this.organizationName = organizationName;
     this.privilegeLevel = privilegeLevel;
@@ -109,7 +101,7 @@ public class UploadFileService implements Service {
           if (this.toSign) {
             this.fileStream = signFile();
           }
-          return mongodbUploadPDF();
+          return uploadFile();
         } catch (GeneralSecurityException | IOException e) {
           return FileMessage.SERVER_ERROR;
         }
@@ -119,85 +111,53 @@ public class UploadFileService implements Service {
       }
     } else if (fileType.isProfilePic()) {
       try {
-        return mongodbUploadPFP();
+        return uploadPFP();
       } catch (GeneralSecurityException | IOException e) {
         return FileMessage.SERVER_ERROR;
       }
     } else {
       try {
-        return mongodbUploadMisc();
+        return uploadFile();
       } catch (GeneralSecurityException | IOException e) {
         return FileMessage.SERVER_ERROR;
       }
     }
   }
 
-  public Message mongodbUploadPDF() throws GeneralSecurityException, IOException {
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "files");
+  public Message uploadFile() throws GeneralSecurityException, IOException {
+    Date uploadDate = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
     fileStream = encryptionController.encryptFile(fileStream, uploader);
-    if (fileType == FileType.FORM_PDF && this.annotated) {
-      ObjectId fileID = new ObjectId(this.fileIdStr);
-      GridFSFile grid_out = gridBucket.find(eq("_id", fileID)).first();
-      if (grid_out == null || grid_out.getMetadata() == null) {
-        return FileMessage.NO_SUCH_FILE;
-      }
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
-        gridBucket.delete(fileID);
-      }
-    }
-
-    Document metadata =
-        new Document("type", fileType.toString())
-            .append("upload_date", String.valueOf(LocalDate.now()))
-            .append("title", title)
-            .append("uploader", uploader)
-            .append("organizationName", organizationName);
-    if (fileType == FileType.FORM_PDF) {
-      metadata.append("annotated", this.annotated);
-    }
-    GridFSUploadOptions options =
-        new GridFSUploadOptions().chunkSizeBytes(CHUNK_SIZE_BYTES).metadata(metadata);
-    gridBucket.uploadFromStream(filename, fileStream, options);
-    return PdfMessage.SUCCESS;
+    return this.fileDao.save(
+        this.uploader,
+        this.fileStream,
+        this.fileType,
+        uploadDate,
+        this.organizationName,
+        this.annotated,
+        this.filename,
+        this.fileContentType);
   }
 
-  public Message mongodbUploadPFP() throws GeneralSecurityException, IOException {
-    Bson filter = Filters.eq("metadata.uploader", this.uploader);
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "files");
-    GridFSFile grid_out = gridBucket.find(filter).first();
-    if (grid_out != null) {
-      gridBucket.delete(grid_out.getObjectId());
+  public Message uploadPFP() throws GeneralSecurityException, IOException {
+    Optional<File> optFile = fileDao.get(this.uploader, FileType.PROFILE_PICTURE);
+    if (optFile.isPresent()) {
+      fileDao.delete(optFile.get());
     }
     String[] temp = filename.split("\\.");
     String contentType = temp[temp.length - 1];
     if (!contentType.equals("png")) {
       contentType = "jpeg";
     }
-    GridFSUploadOptions options =
-        new GridFSUploadOptions()
-            .chunkSizeBytes(CHUNK_SIZE_BYTES)
-            .metadata(
-                new Document("type", fileType.toString())
-                    .append("upload_date", String.valueOf(LocalDate.now()))
-                    .append("contentType", contentType)
-                    .append("uploader", uploader));
-    gridBucket.uploadFromStream(filename, fileStream, options);
-    log.info(uploader + " has successfully uploaded a profile picture with name  " + filename);
-    return UserMessage.SUCCESS.withMessage("Profile Picture uploaded Successfully");
-  }
-
-  public Message mongodbUploadMisc() throws GeneralSecurityException, IOException {
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "files");
-    GridFSUploadOptions options =
-        new GridFSUploadOptions()
-            .chunkSizeBytes(CHUNK_SIZE_BYTES)
-            .metadata(
-                new Document("type", fileType.toString())
-                    .append("contentType", fileContentType)
-                    .append("upload_date", String.valueOf(LocalDate.now()))
-                    .append("uploader", uploader));
-    gridBucket.uploadFromStream(filename, fileStream, options);
-    return FileMessage.SUCCESS;
+    Date uploadDate = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+    return this.fileDao.save(
+        this.uploader,
+        this.fileStream,
+        this.fileType,
+        uploadDate,
+        this.organizationName,
+        this.annotated,
+        this.filename,
+        contentType);
   }
 
   private InputStream signFile() throws IOException {

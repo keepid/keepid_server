@@ -2,30 +2,40 @@ package Database.File;
 
 import Database.Dao;
 import File.File;
+import File.FileMessage;
 import File.FileType;
-import com.google.api.client.util.DateTime;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import java.io.InputStream;
+import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 public interface FileDao extends Dao<File> {
   Optional<File> get(ObjectId id);
 
-  Optional<File> get(String username);
+  List<File> getAll(String username);
 
-  Optional<File> getByFileId(ObjectId id);
+  List<File> getAll(Bson filter);
 
   Optional<InputStream> getStream(ObjectId id);
 
-  Optional<InputStream> getStream(String username);
-
   void save(String uploaderUsername, InputStream fileInputStream, FileType fileType);
 
-  void save(
-      String uploaderUsername, InputStream fileInputStream, FileType fileType, DateTime uploadedAt);
+  void save(File file);
 
-  void delete(String username);
+  FileMessage save(
+      String uploaderUsername,
+      InputStream fileInputStream,
+      FileType fileType,
+      Date uploadedAt,
+      String organizationName,
+      boolean annotated,
+      String filename,
+      String contentType);
 
   void delete(ObjectId id);
+
+  Optional<File> get(String uploaderUsername, FileType fileType);
 }

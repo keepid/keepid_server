@@ -2,13 +2,12 @@ package File.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.File.FileDao;
+import File.File;
 import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.gridfs.GridFSBucket;
-import com.mongodb.client.gridfs.GridFSBuckets;
-import com.mongodb.client.gridfs.model.GridFSFile;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -20,6 +19,7 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class GetFilesInformationService implements Service {
   MongoDatabase db;
+  private FileDao fileDao;
   private String username;
   private String orgName;
   private UserType userType;
@@ -29,12 +29,14 @@ public class GetFilesInformationService implements Service {
 
   public GetFilesInformationService(
       MongoDatabase db,
+      FileDao fileDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       boolean annotated) {
     this.db = db;
+    this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -56,29 +58,28 @@ public class GetFilesInformationService implements Service {
                   || userType == UserType.Worker)) {
             filter =
                 and(
-                    eq("metadata.organizationName", orgName),
-                    eq("metadata.type", FileType.APPLICATION_PDF.toString()));
+                    eq("organizationName", orgName),
+                    eq("fileType", FileType.APPLICATION_PDF.toString()));
             return mongoDBGetAllFiles(filter, fileType, db);
           } else if (fileType == FileType.IDENTIFICATION_PDF && (userType == UserType.Client)) {
             filter =
                 and(
-                    eq("metadata.uploader", username),
-                    eq("metadata.type", FileType.IDENTIFICATION_PDF.toString()));
+                    eq("username", username),
+                    eq("fileType", FileType.IDENTIFICATION_PDF.toString()));
             return mongoDBGetAllFiles(filter, fileType, db);
           } else if (fileType == FileType.FORM_PDF) {
             filter =
                 and(
-                    eq("metadata.organizationName", orgName),
-                    eq("metadata.annotated", annotated),
-                    eq("metadata.type", FileType.FORM_PDF.toString()));
+                    eq("organizationName", orgName),
+                    eq("annotated", annotated),
+                    eq("fileType", FileType.FORM_PDF.toString()));
             return mongoDBGetAllFiles(filter, fileType, db);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
           }
         } else if (!fileType.isProfilePic()) {
           // miscellaneous files
-          filter =
-              and(eq("metadata.uploader", username), eq("metadata.type", FileType.MISC.toString()));
+          filter = and(eq("username", username), eq("fileType", FileType.MISC.toString()));
           return mongoDBGetAllFiles(filter, fileType, db);
         }
         return FileMessage.INVALID_FILE_TYPE;
@@ -95,33 +96,32 @@ public class GetFilesInformationService implements Service {
 
   public Message mongoDBGetAllFiles(Bson filter, FileType fileType, MongoDatabase db) {
     JSONArray files = new JSONArray();
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "files");
-    for (GridFSFile grid_out : gridBucket.find(filter)) {
-      assert grid_out.getMetadata() != null;
-      String uploaderUsername = grid_out.getMetadata().getString("uploader");
+    for (File file_out : fileDao.getAll(filter)) {
+      assert file_out != null;
+      String uploaderUsername = file_out.getUsername();
       JSONObject fileMetadata =
           new JSONObject()
               .put("uploader", uploaderUsername)
-              .put("id", grid_out.getId().asObjectId().getValue().toString())
-              .put("uploadDate", grid_out.getUploadDate().toString());
+              .put("id", file_out.getId().toString())
+              .put("uploadDate", file_out.getUploadedAt().toString());
       if (fileType.isPDF()) {
-        fileMetadata.put("organizationName", grid_out.getMetadata().getString("organizationName"));
-        fileMetadata.put("annotated", annotated);
+        fileMetadata.put("organizationName", file_out.getOrganizationName());
+        fileMetadata.put("annotated", file_out.isAnnotated());
         if (fileType == FileType.FORM_PDF) {
-          String title = grid_out.getMetadata().getString("title");
+          String title = file_out.getFilename();
           if (title != null) {
             fileMetadata.put("filename", title);
           } else {
-            fileMetadata.put("filename", grid_out.getFilename());
+            fileMetadata.put("filename", file_out.getFilename());
           }
-          fileMetadata.put("annotated", grid_out.getMetadata().getBoolean("annotated"));
+          fileMetadata.put("annotated", file_out.isAnnotated());
 
         } else if (fileType == FileType.APPLICATION_PDF
             || fileType == FileType.IDENTIFICATION_PDF) {
-          fileMetadata.put("filename", grid_out.getFilename());
+          fileMetadata.put("filename", file_out.getFilename());
         }
       } else if (fileType == FileType.MISC) {
-        fileMetadata.put("filename", grid_out.getFilename());
+        fileMetadata.put("filename", file_out.getFilename());
       }
       files.put(fileMetadata);
     }

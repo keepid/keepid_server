@@ -2,15 +2,16 @@ package Database.File;
 
 import Config.DeploymentLevel;
 import File.File;
+import File.FileMessage;
 import File.FileType;
-import com.google.api.client.util.DateTime;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import java.io.InputStream;
 import java.util.*;
 
 public class FileDaoTestImpl implements FileDao {
-  Map<String, File> fileMap;
+  Map<String, List<File>> fileMap;
   Map<ObjectId, File> objectIdFileMap;
 
   public FileDaoTestImpl(DeploymentLevel deploymentLevel) {
@@ -20,10 +21,29 @@ public class FileDaoTestImpl implements FileDao {
     }
 
     fileMap = new LinkedHashMap<>();
+    objectIdFileMap = new LinkedHashMap<>();
   }
 
   @Override
-  public void save(File file) {}
+  public void save(File file) {
+    List<File> userForms = fileMap.getOrDefault(file.getUsername(), new ArrayList<>());
+    userForms.add(file);
+    fileMap.put(file.getUsername(), userForms);
+    objectIdFileMap.put(file.getId(), file);
+  }
+
+  @Override
+  public FileMessage save(
+      String uploaderUsername,
+      InputStream fileInputStream,
+      FileType fileType,
+      Date uploadedAt,
+      String organizationName,
+      boolean annotated,
+      String filename,
+      String contentType) {
+    return null;
+  }
 
   @Override
   public Optional<File> get(ObjectId id) {
@@ -31,8 +51,13 @@ public class FileDaoTestImpl implements FileDao {
   }
 
   @Override
-  public Optional<File> get(String username) {
-    return Optional.ofNullable(fileMap.get(username));
+  public List<File> getAll(String username) {
+    return fileMap.get(username);
+  }
+
+  @Override
+  public List<File> getAll(Bson filter) {
+    return null;
   }
 
   @Override
@@ -41,48 +66,42 @@ public class FileDaoTestImpl implements FileDao {
   }
 
   @Override
-  public Optional<InputStream> getStream(String username) {
-    return Optional.ofNullable(fileMap.get(username).getFileStream());
-  }
-
-  @Override
-  public Optional<File> getByFileId(ObjectId fileId) {
-    return fileMap.values().stream().filter(x -> x.getFileId() == fileId).findFirst();
-  }
-
-  @Override
   public void save(String uploaderUsername, InputStream fileInputStream, FileType fileType) {
-    File file = new File(uploaderUsername, new DateTime(new Date()), fileInputStream, fileType);
-    fileMap.put(uploaderUsername, file);
-    objectIdFileMap.put(file.getId(), file);
-  }
-
-  @Override
-  public void save(
-      String uploaderUsername,
-      InputStream fileInputStream,
-      FileType fileType,
-      DateTime uploadedAt) {
-    File file = new File(uploaderUsername, uploadedAt, fileInputStream, fileType);
-    fileMap.put(uploaderUsername, file);
-    objectIdFileMap.put(file.getId(), file);
-  }
-
-  @Override
-  public void delete(String username) {
-    File file = fileMap.remove(username);
-    objectIdFileMap.remove(file.getId());
+    //    File file = new File(uploaderUsername, new DateTime(new Date()), fileInputStream,
+    // fileType);
+    //    fileMap.put(uploaderUsername, file);
+    //    objectIdFileMap.put(file.getId(), file);
   }
 
   @Override
   public void delete(ObjectId id) {
-    File file = objectIdFileMap.remove(id);
-    fileMap.remove(file.getUsername());
+    File file = objectIdFileMap.get(id);
+    objectIdFileMap.remove(id);
+    String username = file.getUsername();
+
+    List<File> userFiles = fileMap.get(username);
+    File existingFile = null;
+    for (File f : userFiles) {
+      if (f.getId().equals(id)) {
+        existingFile = f;
+        break;
+      }
+    }
+    if (existingFile == null) {
+      return;
+    }
+    userFiles.remove(existingFile);
+    fileMap.put(file.getUsername(), userFiles);
+  }
+
+  @Override
+  public Optional<File> get(String uploaderUsername, FileType fileType) {
+    return Optional.empty();
   }
 
   @Override
   public List<File> getAll() {
-    return new ArrayList<>(fileMap.values());
+    return new ArrayList<>(objectIdFileMap.values());
   }
 
   @Override
@@ -103,8 +122,5 @@ public class FileDaoTestImpl implements FileDao {
   }
 
   @Override
-  public void update(File newFile) {
-    fileMap.put(newFile.getUsername(), newFile);
-    objectIdFileMap.put(newFile.getId(), newFile);
-  }
+  public void update(File newFile) {}
 }

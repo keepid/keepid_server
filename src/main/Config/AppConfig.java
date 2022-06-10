@@ -3,6 +3,8 @@ package Config;
 import Activity.ActivityController;
 import Admin.AdminController;
 import Billing.BillingController;
+import Database.File.FileDao;
+import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Database.Organization.OrgDao;
@@ -49,6 +51,7 @@ public class AppConfig {
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
+    FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -68,8 +71,8 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);
-    FileController fileController = new FileController(db, userDao);
     FormController formController = new FormController(db, formDao);
+    FileController fileController = new FileController(db, userDao, fileDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);

@@ -1,6 +1,7 @@
 package File;
 
 import Config.Message;
+import Database.File.FileDao;
 import Database.User.UserDao;
 import File.Services.*;
 import Security.EncryptionController;
@@ -26,15 +27,18 @@ import static com.mongodb.client.model.Filters.eq;
 public class FileController {
   private MongoDatabase db;
   private UserDao userDao;
+  private FileDao fileDao;
   private EncryptionController encryptionController;
 
-  public FileController(MongoDatabase db, UserDao userDao) {
+  public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
     this.db = db;
     this.userDao = userDao;
+    this.fileDao = fileDao;
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-
+      System.out.println("Error in encryption controller!");
+      e.printStackTrace();
     }
   }
 
@@ -147,6 +151,7 @@ public class FileController {
                 UploadFileService uploadService =
                     new UploadFileService(
                         db,
+                        fileDao,
                         username,
                         organizationName,
                         privilegeLevel,
@@ -166,6 +171,7 @@ public class FileController {
                 UploadFileService uploadService =
                     new UploadFileService(
                         db,
+                        fileDao,
                         username,
                         organizationName,
                         privilegeLevel,
@@ -185,6 +191,7 @@ public class FileController {
                 UploadFileService uploadService =
                     new UploadFileService(
                         db,
+                        fileDao,
                         username,
                         organizationName,
                         privilegeLevel,
@@ -249,7 +256,14 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
             DownloadFileService downloadFileService =
                 new DownloadFileService(
-                    db, username, orgName, userType, fileType, fileIDStr, encryptionController);
+                    db,
+                    fileDao,
+                    username,
+                    orgName,
+                    userType,
+                    fileType,
+                    fileIDStr,
+                    encryptionController);
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
               ctx.header("Content-Type", downloadFileService.getContentType());
@@ -301,7 +315,8 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
 
             DeleteFileService deleteFileService =
-                new DeleteFileService(db, username, orgName, userType, fileType, fileIDStr);
+                new DeleteFileService(
+                    db, fileDao, username, orgName, userType, fileType, fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -353,7 +368,7 @@ public class FileController {
             }
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    db, username, orgName, userType, fileType, annotated);
+                    db, fileDao, username, orgName, userType, fileType, annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
@@ -381,6 +396,7 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 db,
+                fileDao,
                 username,
                 organizationName,
                 privilegeLevel,
@@ -426,6 +442,7 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 db,
+                fileDao,
                 username,
                 organizationName,
                 privilegeLevel,

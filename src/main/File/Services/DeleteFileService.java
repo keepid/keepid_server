@@ -2,19 +2,20 @@ package File.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.File.FileDao;
+import File.File;
 import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import Validation.ValidationUtils;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.gridfs.GridFSBucket;
-import com.mongodb.client.gridfs.GridFSBuckets;
-import com.mongodb.client.gridfs.model.GridFSFile;
-import com.mongodb.client.model.Filters;
 import org.bson.types.ObjectId;
+
+import java.util.Optional;
 
 public class DeleteFileService implements Service {
   MongoDatabase db;
+  private FileDao fileDao;
   private String username;
   private String orgName;
   private UserType userType;
@@ -23,12 +24,14 @@ public class DeleteFileService implements Service {
 
   public DeleteFileService(
       MongoDatabase db,
+      FileDao fileDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       String fileId) {
     this.db = db;
+    this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -52,33 +55,33 @@ public class DeleteFileService implements Service {
       UserType privilegeLevel,
       ObjectId id,
       MongoDatabase db) {
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "files");
-    GridFSFile grid_out = gridBucket.find(Filters.eq("_id", id)).first();
-    if (grid_out == null || grid_out.getMetadata() == null) {
+    Optional<File> fileFromDB = fileDao.get(id);
+    if (fileFromDB.isEmpty()) {
       return FileMessage.NO_SUCH_FILE;
     }
+    File file = fileFromDB.get();
     if (fileType == FileType.APPLICATION_PDF
         && (privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
-        gridBucket.delete(id);
+      if (file.getOrganizationName().equals(organizationName)) {
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.IDENTIFICATION_PDF
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("uploader").equals(user)) {
-        gridBucket.delete(id);
+      if (file.getUsername().equals(user)) {
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM_PDF) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
-        gridBucket.delete(id);
+      if (file.getOrganizationName().equals(organizationName)) {
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.MISC) { // need to establish security levels for MISC files
-      if (grid_out.getMetadata().getString("uploader").equals(user)) {
-        gridBucket.delete(id);
+      if (file.getUsername().equals(user)) {
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } // no deleting of profile pic files (only replacing)

@@ -12,12 +12,19 @@ public enum FileMessage implements Message {
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE:Privilege level too low."),
   SUCCESS("SUCCESS:Success."),
   NO_SUCH_FILE("NO_SUCH_FILE:PDF does not exist"),
-  ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting");
+  ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting"),
+  FILE_EXISTS("ERROR: File already exists!");
 
   private String errorMessage;
+  private String fileId; // optional
 
   FileMessage(String errorMessage) {
     this.errorMessage = errorMessage;
+  }
+
+  FileMessage(String errorMessage, String fileId) {
+    this.errorMessage = errorMessage;
+    this.fileId = fileId;
   }
 
   public String toResponseString() {
@@ -32,10 +39,21 @@ public enum FileMessage implements Message {
     return this.errorMessage.split(":")[1];
   }
 
+  public String getFileId() {
+    return this.fileId;
+  }
+
+  public void setFileId(String fileId) {
+    this.fileId = fileId;
+  }
+
   public JSONObject toJSON() {
     JSONObject res = new JSONObject();
     res.put("status", getErrorName());
     res.put("message", getErrorDescription());
+    if (this.fileId != null) {
+      res.put("fileId", getFileId());
+    }
     return res;
   }
 
@@ -43,6 +61,9 @@ public enum FileMessage implements Message {
     JSONObject res = new JSONObject();
     res.put("status", getErrorName());
     res.put("message", message);
+    if (this.fileId != null) {
+      res.put("fileId", getFileId());
+    }
     return res;
   }
 }
