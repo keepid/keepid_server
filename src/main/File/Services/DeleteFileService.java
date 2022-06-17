@@ -8,13 +8,11 @@ import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import Validation.ValidationUtils;
-import com.mongodb.client.MongoDatabase;
 import org.bson.types.ObjectId;
 
 import java.util.Optional;
 
 public class DeleteFileService implements Service {
-  MongoDatabase db;
   private FileDao fileDao;
   private String username;
   private String orgName;
@@ -23,14 +21,12 @@ public class DeleteFileService implements Service {
   private String fileId;
 
   public DeleteFileService(
-      MongoDatabase db,
       FileDao fileDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       String fileId) {
-    this.db = db;
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
@@ -45,7 +41,7 @@ public class DeleteFileService implements Service {
       return FileMessage.INVALID_PARAMETER;
     }
     ObjectId fileID = new ObjectId(fileId);
-    return delete(username, orgName, fileType, userType, fileID, db);
+    return delete(username, orgName, fileType, userType, fileID, fileDao);
   }
 
   public Message delete(
@@ -54,7 +50,7 @@ public class DeleteFileService implements Service {
       FileType fileType,
       UserType privilegeLevel,
       ObjectId id,
-      MongoDatabase db) {
+      FileDao fileDao) {
     Optional<File> fileFromDB = fileDao.get(id);
     if (fileFromDB.isEmpty()) {
       return FileMessage.NO_SUCH_FILE;

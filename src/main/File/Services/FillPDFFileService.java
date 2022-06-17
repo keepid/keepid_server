@@ -4,7 +4,6 @@ import Config.Message;
 import Config.Service;
 import File.FileMessage;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
@@ -22,11 +21,9 @@ public class FillPDFFileService implements Service {
   InputStream fileStream;
   JSONObject formAnswers;
   InputStream completedForm;
-  MongoDatabase db;
 
   public FillPDFFileService(
-      MongoDatabase db, UserType privilegeLevel, InputStream fileStream, JSONObject formAnswers) {
-    this.db = db;
+      UserType privilegeLevel, InputStream fileStream, JSONObject formAnswers) {
     this.privilegeLevel = privilegeLevel;
     this.fileStream = fileStream;
     this.formAnswers = formAnswers;

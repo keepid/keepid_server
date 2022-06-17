@@ -137,7 +137,8 @@ public class FileDaoImpl implements FileDao {
             fileType,
             filename,
             organizationName,
-            annotated);
+            annotated,
+            contentType);
     File foundFile =
         fileCollection
             .find(
@@ -150,10 +151,6 @@ public class FileDaoImpl implements FileDao {
       FileMessage message = FileMessage.FILE_EXISTS;
       message.setFileId(foundFile.getFileId().toString());
       return message;
-    }
-
-    if (contentType != null) {
-      file.setContentType(contentType);
     }
 
     GridFSUploadOptions options = new GridFSUploadOptions().chunkSizeBytes(CHUNK_SIZE_BYTES);

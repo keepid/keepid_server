@@ -5,10 +5,10 @@ import Database.File.FileDao;
 import Database.User.UserDao;
 import File.Services.*;
 import Security.EncryptionController;
+import User.Services.GetUserInfoService;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -18,46 +18,28 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Objects;
+import java.util.Optional;
 
 import static User.UserController.mergeJSON;
-import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
 public class FileController {
-  private MongoDatabase db;
   private UserDao userDao;
   private FileDao fileDao;
   private EncryptionController encryptionController;
 
   public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
-    this.db = db;
     this.userDao = userDao;
     this.fileDao = fileDao;
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-      System.out.println("Error in encryption controller!");
       e.printStackTrace();
     }
-  }
-
-  public User userCheck(String req) {
-    log.info("Starting check for user...");
-    String username;
-    User user = null;
-    try {
-      JSONObject reqJson = new JSONObject(req);
-      if (reqJson.has("targetUser")) {
-        username = reqJson.getString("targetUser");
-        MongoCollection<User> userCollection = this.db.getCollection("user", User.class);
-        user = userCollection.find(eq("username", username)).first();
-      }
-    } catch (JSONException e) {
-
-    }
-    log.info("User check completed...");
-    return user;
   }
 
   /*
@@ -82,7 +64,6 @@ public class FileController {
         UserType privilegeLevel;
         Message response = null;
         UploadedFile file = ctx.uploadedFile("file");
-        log.info("File: {}", file.getFilename());
         JSONObject req;
         String body = ctx.body();
         try {
@@ -91,9 +72,9 @@ public class FileController {
           req = null;
         }
 
-        User check = userCheck(body);
+        User check = GetUserInfoService.getUserFromRequest(this.userDao, body);
         if (req != null && req.has("targetUser") && check == null) {
-          log.info("Target User could not be found in the database");
+          log.info("Target user could not be found in the database");
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
@@ -116,7 +97,8 @@ public class FileController {
               log.info("File is null, invalid file!");
               response = FileMessage.INVALID_FILE;
             } else {
-              FileType fileType = FileType.createFromString(ctx.formParam("fileType"));
+              FileType fileType =
+                  FileType.createFromString(Objects.requireNonNull(ctx.formParam("fileType")));
               log.info("Received file type of {}", fileType.toString());
               String title = null;
               boolean annotated = false;
@@ -129,85 +111,100 @@ public class FileController {
               }
               String fileId = null;
               UploadedFile signature = null;
-              if (fileType.isPDF()) {
-                log.info("Got PDF file to upload!");
-                try {
-                  InputStream content = file.getContent();
-                  PDDocument pdfDocument = PDDocument.load(content);
-                  title = getPDFTitle(file.getFilename(), pdfDocument);
-                  content.reset();
-                  pdfDocument.close();
-                } catch (Exception exception) {
-                  ctx.result(FileMessage.INVALID_FILE.toResponseString());
-                }
+              Date uploadDate =
+                  Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
 
-                if (toSign) {
-                  signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
-                }
+              switch (fileType) {
+                case APPLICATION_PDF:
+                case IDENTIFICATION_PDF:
+                case FORM_PDF:
+                  log.info("Got PDF file to upload!");
+                  try {
+                    InputStream content = file.getContent();
+                    PDDocument pdfDocument = PDDocument.load(content);
+                    title = getPDFTitle(file.getFilename(), pdfDocument);
+                    content.reset();
+                    pdfDocument.close();
+                  } catch (Exception exception) {
+                    ctx.result(FileMessage.INVALID_FILE.toResponseString());
+                  }
 
-                if (fileType == FileType.FORM_PDF && annotated) {
-                  fileId = Objects.requireNonNull(ctx.formParam("fileID"));
-                }
-                UploadFileService uploadService =
-                    new UploadFileService(
-                        db,
-                        fileDao,
-                        username,
-                        organizationName,
-                        privilegeLevel,
-                        fileType,
-                        file.getFilename(),
-                        title,
-                        file.getContentType(),
-                        fileId,
-                        annotated,
-                        toSign,
-                        file.getContent(),
-                        signature == null ? null : signature.getContent(),
-                        encryptionController);
-                response = uploadService.executeAndGetResponse();
-              } else if (fileType.isProfilePic()) {
-                log.info("Got profile picture to upload!");
-                UploadFileService uploadService =
-                    new UploadFileService(
-                        db,
-                        fileDao,
-                        username,
-                        organizationName,
-                        privilegeLevel,
-                        fileType,
-                        file.getFilename(),
-                        title,
-                        file.getContentType(),
-                        fileId,
-                        annotated,
-                        toSign,
-                        file.getContent(),
-                        null,
-                        encryptionController);
-                response = uploadService.executeAndGetResponse();
-              } else if (fileType == FileType.MISC) {
-                log.info("Got miscellaneous file to upload!");
-                UploadFileService uploadService =
-                    new UploadFileService(
-                        db,
-                        fileDao,
-                        username,
-                        organizationName,
-                        privilegeLevel,
-                        fileType,
-                        file.getFilename(),
-                        title,
-                        file.getContentType(),
-                        fileId,
-                        annotated,
-                        toSign,
-                        file.getContent(),
-                        null,
-                        encryptionController);
-                response = uploadService.executeAndGetResponse();
-              } else {
-                response = FileMessage.INVALID_FILE_TYPE;
+                  if (toSign) {
+                    signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
+                  }
+
+                  if (fileType == FileType.FORM_PDF && annotated) {
+                    fileId = Objects.requireNonNull(ctx.formParam("fileID"));
+                  }
+                  File fileToUpload =
+                      new File(
+                          username,
+                          uploadDate,
+                          file.getContent(),
+                          fileType,
+                          file.getFilename(),
+                          organizationName,
+                          annotated,
+                          file.getContentType());
+                  UploadFileService uploadService =
+                      new UploadFileService(
+                          fileDao,
+                          fileToUpload,
+                          Optional.ofNullable(privilegeLevel),
+                          Optional.ofNullable(fileId),
+                          toSign,
+                          signature == null
+                              ? Optional.empty()
+                              : Optional.ofNullable(signature.getContent()),
+                          Optional.ofNullable(encryptionController));
+                  response = uploadService.executeAndGetResponse();
+                  break;
+                case PROFILE_PICTURE:
+                  log.info("Got profile picture to upload!");
+                  fileToUpload =
+                      new File(
+                          username,
+                          uploadDate,
+                          file.getContent(),
+                          fileType,
+                          file.getFilename(),
+                          organizationName,
+                          annotated,
+                          file.getContentType());
+                  uploadService =
+                      new UploadFileService(
+                          fileDao,
+                          fileToUpload,
+                          Optional.ofNullable(privilegeLevel),
+                          Optional.ofNullable(fileId),
+                          toSign,
+                          Optional.empty(),
+                          Optional.ofNullable(encryptionController));
+                  response = uploadService.executeAndGetResponse();
+                  break;
+                case MISC:
+                  log.info("Got miscellaneous file to upload!");
+                  fileToUpload =
+                      new File(
+                          username,
+                          uploadDate,
+                          file.getContent(),
+                          fileType,
+                          file.getFilename(),
+                          organizationName,
+                          annotated,
+                          file.getContentType());
+                  uploadService =
+                      new UploadFileService(
+                          fileDao,
+                          fileToUpload,
+                          Optional.ofNullable(privilegeLevel),
+                          Optional.ofNullable(fileId),
+                          toSign,
+                          Optional.empty(),
+                          Optional.ofNullable(encryptionController));
+                  response = uploadService.executeAndGetResponse();
+                  break;
               }
             }
           } else {
@@ -231,7 +228,7 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = userCheck(ctx.body());
+        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
         if (check == null && req.has("targetUser")) {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
@@ -256,7 +253,6 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
             DownloadFileService downloadFileService =
                 new DownloadFileService(
-                    db,
                     fileDao,
                     username,
                     orgName,
@@ -290,7 +286,7 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = userCheck(ctx.body());
+        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
         if (check == null && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
@@ -315,8 +311,7 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
 
             DeleteFileService deleteFileService =
-                new DeleteFileService(
-                    db, fileDao, username, orgName, userType, fileType, fileIDStr);
+                new DeleteFileService(fileDao, username, orgName, userType, fileType, fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -342,7 +337,7 @@ public class FileController {
         String reqBody = ctx.body();
         JSONObject req = new JSONObject(reqBody);
         JSONObject responseJSON;
-        User check = userCheck(ctx.body());
+        User check = GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
         if (check == null && req.has("targetUser")) {
           log.info("Target User not Found");
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
@@ -368,12 +363,12 @@ public class FileController {
             }
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    db, fileDao, username, orgName, userType, fileType, annotated);
+                    fileDao, username, orgName, userType, fileType, annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
             if (response == FileMessage.SUCCESS) {
-              responseJSON.put("documents", getFilesInformationService.getFiles());
+              responseJSON.put("documents", getFilesInformationService.getFilesJSON());
             }
           } else {
             responseJSON = UserMessage.CROSS_ORG_ACTION_DENIED.toJSON();
@@ -395,7 +390,6 @@ public class FileController {
         UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
         DownloadFileService downloadFileService =
             new DownloadFileService(
-                db,
                 fileDao,
                 username,
                 organizationName,
@@ -441,7 +435,6 @@ public class FileController {
 
         DownloadFileService downloadFileService =
             new DownloadFileService(
-                db,
                 fileDao,
                 username,
                 organizationName,
@@ -453,7 +446,7 @@ public class FileController {
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
           FillPDFFileService fillPDFFileService =
-              new FillPDFFileService(db, privilegeLevel, inputStream, formAnswers);
+              new FillPDFFileService(privilegeLevel, inputStream, formAnswers);
           Message response = fillPDFFileService.executeAndGetResponse();
           if (response == FileMessage.SUCCESS) {
             ctx.header("Content-Type", "application/pdf");

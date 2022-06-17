@@ -7,7 +7,6 @@ import File.File;
 import File.FileMessage;
 import File.FileType;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -18,7 +17,6 @@ import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
 public class GetFilesInformationService implements Service {
-  MongoDatabase db;
   private FileDao fileDao;
   private String username;
   private String orgName;
@@ -28,14 +26,12 @@ public class GetFilesInformationService implements Service {
   private boolean annotated;
 
   public GetFilesInformationService(
-      MongoDatabase db,
       FileDao fileDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       boolean annotated) {
-    this.db = db;
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
@@ -60,27 +56,27 @@ public class GetFilesInformationService implements Service {
                 and(
                     eq("organizationName", orgName),
                     eq("fileType", FileType.APPLICATION_PDF.toString()));
-            return mongoDBGetAllFiles(filter, fileType, db);
+            return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.IDENTIFICATION_PDF && (userType == UserType.Client)) {
             filter =
                 and(
                     eq("username", username),
                     eq("fileType", FileType.IDENTIFICATION_PDF.toString()));
-            return mongoDBGetAllFiles(filter, fileType, db);
+            return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.FORM_PDF) {
             filter =
                 and(
                     eq("organizationName", orgName),
                     eq("annotated", annotated),
                     eq("fileType", FileType.FORM_PDF.toString()));
-            return mongoDBGetAllFiles(filter, fileType, db);
+            return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
           }
         } else if (!fileType.isProfilePic()) {
           // miscellaneous files
           filter = and(eq("username", username), eq("fileType", FileType.MISC.toString()));
-          return mongoDBGetAllFiles(filter, fileType, db);
+          return getAllFiles(filter, fileType, fileDao);
         }
         return FileMessage.INVALID_FILE_TYPE;
       } catch (Exception e) {
@@ -89,12 +85,12 @@ public class GetFilesInformationService implements Service {
     }
   }
 
-  public JSONArray getFiles() {
+  public JSONArray getFilesJSON() {
     Objects.requireNonNull(files);
     return files;
   }
 
-  public Message mongoDBGetAllFiles(Bson filter, FileType fileType, MongoDatabase db) {
+  public Message getAllFiles(Bson filter, FileType fileType, FileDao fileDao) {
     JSONArray files = new JSONArray();
     for (File file_out : fileDao.getAll(filter)) {
       assert file_out != null;

@@ -8,7 +8,6 @@ import File.FileMessage;
 import File.FileType;
 import Security.EncryptionController;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 
@@ -20,10 +19,9 @@ import java.util.Optional;
 
 @Slf4j
 public class DownloadFileService implements Service {
-  MongoDatabase db;
   private FileDao fileDao;
   private String username;
-  private String orgName;
+  private String organizationName;
   private UserType privilegeLevel;
   private FileType fileType;
   private String fileId;
@@ -32,7 +30,6 @@ public class DownloadFileService implements Service {
   private EncryptionController encryptionController;
 
   public DownloadFileService(
-      MongoDatabase db,
       FileDao fileDao,
       String username,
       String orgName,
@@ -40,10 +37,9 @@ public class DownloadFileService implements Service {
       FileType fileType,
       String fileId,
       EncryptionController encryptionController) {
-    this.db = db;
     this.fileDao = fileDao;
     this.username = username;
-    this.orgName = orgName;
+    this.organizationName = orgName;
     this.privilegeLevel = privilegeLevel;
     this.fileType = fileType;
     this.fileId = fileId;
@@ -52,7 +48,6 @@ public class DownloadFileService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
-    ObjectId fileID = new ObjectId(fileId);
     if (fileType == null) {
       return FileMessage.INVALID_FILE_TYPE;
     }
@@ -62,7 +57,7 @@ public class DownloadFileService implements Service {
           || privilegeLevel == UserType.Director
           || privilegeLevel == UserType.Admin) {
         try {
-          return download(username, orgName, privilegeLevel, fileID, fileType, db);
+          return download();
         } catch (Exception e) {
           return FileMessage.ENCRYPTION_ERROR;
         }
@@ -71,7 +66,7 @@ public class DownloadFileService implements Service {
       }
     } else {
       try {
-        return download(username, orgName, privilegeLevel, fileID, fileType, db);
+        return download();
       } catch (Exception e) {
         log.info(e.toString());
         return FileMessage.ENCRYPTION_ERROR;
@@ -88,14 +83,8 @@ public class DownloadFileService implements Service {
     return contentType;
   }
 
-  public Message download(
-      String user,
-      String organizationName,
-      UserType privilegeLevel,
-      ObjectId id,
-      FileType fileType,
-      MongoDatabase db)
-      throws GeneralSecurityException, IOException {
+  public Message download() throws GeneralSecurityException, IOException {
+    ObjectId id = new ObjectId(fileId);
     log.info("Attempting to download file with id {}", id);
     if (fileType.isPDF()) {
       Optional<File> fileFromDB = fileDao.get(id);
@@ -108,22 +97,37 @@ public class DownloadFileService implements Service {
               || privilegeLevel == UserType.Admin
               || privilegeLevel == UserType.Worker)) {
         if (file.getOrganizationName().equals(organizationName)) {
-          this.inputStream = encryptionController.decryptFile(file.getFileStreamFromDB(db), user);
-          this.contentType = "application/pdf";
-          return FileMessage.SUCCESS;
+          Optional<InputStream> optionalStream = fileDao.getStream(id);
+          if (optionalStream.isPresent()) {
+            this.inputStream =
+                encryptionController.decryptFile(optionalStream.get(), this.username);
+            this.contentType = "application/pdf";
+            return FileMessage.SUCCESS;
+          }
+          return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.IDENTIFICATION_PDF
           && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
-        if (file.getUsername().equals(user)) {
-          this.inputStream = encryptionController.decryptFile(file.getFileStreamFromDB(db), user);
-          this.contentType = "application/pdf";
-          return FileMessage.SUCCESS;
+        if (file.getUsername().equals(username)) {
+          Optional<InputStream> optionalStream = fileDao.getStream(id);
+          if (optionalStream.isPresent()) {
+            this.inputStream =
+                encryptionController.decryptFile(optionalStream.get(), this.username);
+            this.contentType = "application/pdf";
+            return FileMessage.SUCCESS;
+          }
+          return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.FORM_PDF) {
         if (file.getOrganizationName().equals(organizationName)) {
-          this.inputStream = encryptionController.decryptFile(file.getFileStreamFromDB(db), user);
-          this.contentType = "application/pdf";
-          return FileMessage.SUCCESS;
+          Optional<InputStream> optionalStream = fileDao.getStream(id);
+          if (optionalStream.isPresent()) {
+            this.inputStream =
+                encryptionController.decryptFile(optionalStream.get(), this.username);
+            this.contentType = "application/pdf";
+            return FileMessage.SUCCESS;
+          }
+          return FileMessage.NO_SUCH_FILE;
         }
       }
     } else if (fileType.isProfilePic()) {
@@ -134,8 +138,12 @@ public class DownloadFileService implements Service {
       }
       File file = fileFromDB.get();
       this.contentType = "image/" + file.getContentType();
-      this.inputStream = file.getFileStreamFromDB(db);
-      return FileMessage.SUCCESS;
+      Optional<InputStream> optionalStream = fileDao.getStream(id);
+      if (optionalStream.isPresent()) {
+        this.inputStream = optionalStream.get();
+        return FileMessage.SUCCESS;
+      }
+      return FileMessage.NO_SUCH_FILE;
     } else {
       // miscellaneous files
       Optional<File> fileFromDB = fileDao.get(id);
@@ -144,8 +152,12 @@ public class DownloadFileService implements Service {
       }
       File file = fileFromDB.get();
       this.contentType = file.getContentType();
-      this.inputStream = file.getFileStreamFromDB(db);
-      return FileMessage.SUCCESS;
+      Optional<InputStream> optionalStream = fileDao.getStream(id);
+      if (optionalStream.isPresent()) {
+        this.inputStream = optionalStream.get();
+        return FileMessage.SUCCESS;
+      }
+      return FileMessage.NO_SUCH_FILE;
     }
     return FileMessage.NO_SUCH_FILE;
   }

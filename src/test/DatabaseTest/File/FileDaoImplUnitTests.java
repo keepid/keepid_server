@@ -35,8 +35,16 @@ public class FileDaoImplUnitTests {
     fileDao.save(file);
     assertTrue(fileDao.get(file.getId()).isPresent());
     File fileFromDao = fileDao.get(file.getId()).get();
+
     assertEquals(1, fileDao.getAll(testUsername).size());
     assertEquals(testUsername, fileFromDao.getUsername());
+    assertEquals("testOrganizationName", fileFromDao.getOrganizationName());
+    assertEquals("testContentType", fileFromDao.getContentType());
+    assertEquals(file.isAnnotated(), fileFromDao.isAnnotated());
+    assertEquals(file.getUploadedAt().toString(), fileFromDao.getUploadedAt().toString());
+    assertEquals(file.getFileId(), fileFromDao.getFileId());
+    assertEquals(file.getFilename(), fileFromDao.getFilename());
+    assertEquals(file.getFileType(), fileFromDao.getFileType());
   }
 
   @Test

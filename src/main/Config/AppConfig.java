@@ -67,7 +67,7 @@ public class AppConfig {
 
     // We need to instantiate the controllers with the database.
     OrganizationController orgController = new OrganizationController(db);
-    UserController userController = new UserController(userDao, tokenDao, db);
+    UserController userController = new UserController(userDao, tokenDao, fileDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);

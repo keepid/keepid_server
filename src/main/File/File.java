@@ -1,12 +1,6 @@
 package File;
 
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.gridfs.GridFSBucket;
-import com.mongodb.client.gridfs.GridFSBuckets;
-import com.mongodb.client.gridfs.model.GridFSFile;
-import com.mongodb.client.model.Filters;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
@@ -61,7 +55,8 @@ public class File {
       FileType fileType,
       String fileName,
       String organizationName,
-      boolean isAnnotated) {
+      boolean isAnnotated,
+      String contentType) {
     this.id = new ObjectId();
     this.username = username;
     this.uploadedAt = uploadedAt;
@@ -70,45 +65,7 @@ public class File {
     this.filename = fileName;
     this.organizationName = organizationName;
     this.isAnnotated = isAnnotated;
-  }
-
-  public File(
-      String username,
-      Date uploadedAt,
-      InputStream fileStream,
-      FileType fileType,
-      String fileName) {
-    this.id = new ObjectId();
-    this.username = username;
-    this.uploadedAt = uploadedAt;
-    this.fileStream = fileStream;
-    this.fileType = fileType;
-    this.filename = fileName;
-  }
-
-  public File(String username, Date uploadedAt, InputStream fileStream, FileType fileType) {
-    this.id = new ObjectId();
-    this.username = username;
-    this.uploadedAt = uploadedAt;
-    this.fileStream = fileStream;
-    this.fileType = fileType;
-  }
-
-  public File(String username, Date uploadedAt, ObjectId fileId, FileType fileType) {
-    this.id = new ObjectId();
-    this.fileId = fileId;
-    this.username = username;
-    this.uploadedAt = uploadedAt;
-    this.fileType = fileType;
-  }
-
-  public InputStream getFileStreamFromDB(@NonNull MongoDatabase db) {
-    GridFSBucket gridBucket = GridFSBuckets.create(db, "file_fs");
-    GridFSFile grid_out = gridBucket.find(Filters.eq("_id", id)).first();
-    if (grid_out == null || grid_out.getMetadata() == null) {
-      return null;
-    }
-    return gridBucket.openDownloadStream(grid_out.getObjectId());
+    this.contentType = contentType;
   }
 
   @Override
@@ -139,6 +96,34 @@ public class File {
         organizationName,
         isAnnotated,
         contentType);
+  }
+
+  @Override
+  public String toString() {
+    return "File{"
+        + "id="
+        + id
+        + ", fileId="
+        + fileId
+        + ", filename='"
+        + filename
+        + '\''
+        + ", fileType="
+        + fileType
+        + ", uploadedAt="
+        + uploadedAt
+        + ", username='"
+        + username
+        + '\''
+        + ", organizationName='"
+        + organizationName
+        + '\''
+        + ", isAnnotated="
+        + isAnnotated
+        + ", contentType='"
+        + contentType
+        + '\''
+        + '}';
   }
 
   /*
