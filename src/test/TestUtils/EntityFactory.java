@@ -2,12 +2,7 @@ package TestUtils;
 
 import Activity.Activity;
 import Database.Dao;
-import Form.FieldType;
-import Form.Form;
-import Form.Form.Metadata;
-import Form.Form.Question;
-import Form.Form.Section;
-import Form.FormType;
+import Form.*;
 import Organization.Organization;
 import Security.SecurityUtils;
 import Security.Tokens;
@@ -15,6 +10,7 @@ import User.IpObject;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
+import com.google.api.client.util.DateTime;
 import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
@@ -22,6 +18,7 @@ import java.util.*;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
+  public static final DateTime TEST_DATE_TIME = new DateTime(TEST_DATE);
 
   public static PartialUser createUser() {
     return new PartialUser();
@@ -44,36 +41,35 @@ public class EntityFactory {
   }
 
   public static class PartialForm implements PartialObject<Form> {
-    // new
     private int defaultNumLines = 10;
     private String username = "testFirstName";
     private Optional<String> uploaderUsername = Optional.of("testuploadername");
-    private Date uploadedAt = new Date(TEST_DATE);
+    private DateTime uploadedAt = TEST_DATE_TIME;
     private ObjectId conditionalFieldId = new ObjectId();
     private String condition = "TEST_CONDITION";
-    private Optional<Date> lastModifiedAt = Optional.of(new Date(TEST_DATE));
+    private Optional<DateTime> lastModifiedAt = Optional.of(TEST_DATE_TIME);
     private FormType formType = FormType.FORM;
     private boolean isTemplate = false;
-    private Metadata metadata =
-        new Metadata(
+    private FormMetadata metadata =
+        new FormMetadata(
             "title",
             "description",
             "state",
             "county",
             new HashSet<ObjectId>(),
-            new Date(),
+            TEST_DATE_TIME,
             new ArrayList<String>(),
             defaultNumLines);
-    private Section child =
-        new Section(
-            "child", "childDescription", new ArrayList<Section>(), new ArrayList<Question>());
-    List<Section> subSections = new ArrayList<>();
-    private Section body;
+    private FormSection child =
+        new FormSection(
+            "child", "childDescription", new ArrayList<FormSection>(), new ArrayList<FormQuestion>());
+    List<FormSection> subSections = new ArrayList<>();
+    private FormSection body;
 
     @Override
     public Form build() {
-      Question question =
-          new Question(
+      FormQuestion question =
+          new FormQuestion(
               new ObjectId(),
               FieldType.TEXT_FIELD,
               "question text",
@@ -84,10 +80,10 @@ public class EntityFactory {
               true,
               new ObjectId(),
               true);
-      List<Question> questions = new ArrayList<>();
+      List<FormQuestion> questions = new ArrayList<>();
       questions.add(question);
       subSections.add(child);
-      body = new Section("title", "description", subSections, questions);
+      body = new FormSection("title", "description", subSections, questions);
       Form newForm =
           new Form(
               username,
@@ -120,12 +116,12 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialForm withUploadedAt(Date uploadedAt) {
+    public PartialForm withUploadedAt(DateTime uploadedAt) {
       this.uploadedAt = uploadedAt;
       return this;
     }
 
-    public PartialForm withLastModifiedAt(Optional<Date> lastModifiedAt) {
+    public PartialForm withLastModifiedAt(Optional<DateTime> lastModifiedAt) {
       this.lastModifiedAt = lastModifiedAt;
       return this;
     }
@@ -140,12 +136,12 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialForm withMetadata(Metadata metadata) {
+    public PartialForm withMetadata(FormMetadata metadata) {
       this.metadata = metadata;
       return this;
     }
 
-    public PartialForm withBody(Section body) {
+    public PartialForm withBody(FormSection body) {
       this.body = body;
       return this;
     }

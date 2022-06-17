@@ -27,7 +27,7 @@ public enum FieldType {
       case "signature":
         return FieldType.SIGNATURE;
       default:
-        return null;
+        throw new IllegalStateException("Error: Illegal field type: " + fieldTypeString);
     }
   }
 }

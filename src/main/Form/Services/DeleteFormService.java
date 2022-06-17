@@ -3,12 +3,12 @@ package Form.Services;
 import Config.Message;
 import Config.Service;
 import Database.Form.FormDao;
+import Form.Form;
 import Form.FormMessage;
 import User.UserType;
 import org.bson.types.ObjectId;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
+import java.util.Optional;
 
 public class DeleteFormService implements Service {
 
@@ -25,7 +25,7 @@ public class DeleteFormService implements Service {
     this.id = id;
     this.username = username;
     this.privilegeLevel = privilegeLevel;
-    this.isTemplate = isTemplate;
+    this.isTemplate = isTemplate; // this extra param is also useless
   }
 
   @Override
@@ -37,21 +37,19 @@ public class DeleteFormService implements Service {
           || privilegeLevel == UserType.Worker
           || privilegeLevel == UserType.Director
           || privilegeLevel == UserType.Admin
-          || privilegeLevel == UserType.Developer) {
+          || privilegeLevel == UserType.Developer) { // this privilegeLevel check is useless
         try {
-          return mongodbDelete(id, formDao);
-        } catch (GeneralSecurityException | IOException e) {
+          Optional<Form> maybeForm = formDao.get(id);
+          if (maybeForm.isPresent()) {
+            formDao.delete(id);
+          }
+          return FormMessage.SUCCESS;
+        } catch (Exception e) {
           return FormMessage.SERVER_ERROR;
         }
       } else {
         return FormMessage.INSUFFICIENT_PRIVILEGE;
       }
     }
-  }
-
-  public Message mongodbDelete(ObjectId id, FormDao formDao)
-      throws GeneralSecurityException, IOException {
-    formDao.delete(id);
-    return FormMessage.SUCCESS;
   }
 }

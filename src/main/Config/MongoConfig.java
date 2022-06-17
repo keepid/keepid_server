@@ -1,8 +1,7 @@
 package Config;
 
-import Form.Form;
-import Form.Form.SectionCodec;
-import Form.Form.MetadataCodec;
+import Form.FormMetadata.MetadataCodec;
+import Form.FormSection.SectionCodec;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
