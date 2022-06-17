@@ -53,8 +53,8 @@ public class Form implements Comparable<Form> {
   }
 
   @Override
-  public int compareTo(@NotNull Form o) {
-    return 0; // TODO
+  public int compareTo(@NotNull Form otherForm) {
+    return this.getComparator().compare(this, otherForm);
   }
 
 
@@ -196,18 +196,6 @@ public class Form implements Comparable<Form> {
   }
 
   private Comparator<Form> getComparator() {
-    /*
-    this.username = username;
-    this.uploaderUsername = uploaderUsername.orElse(username);
-    this.uploadedAt = uploadedAt;
-    this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
-    this.formType = formType;
-    this.isTemplate = isTemplate;
-    this.metadata = metadata;
-    this.condition = condition;
-    this.conditionalFieldId = conditionalFieldId;
-    this.body = body;
-     */
     return Comparator.comparing(Form::getId)
         .thenComparing(Form::getFileId)
         .thenComparing(Form::isTemplate)
@@ -220,8 +208,7 @@ public class Form implements Comparable<Form> {
   }
 
   @Override
-
-  public boolean equals(Object obj) { // i think there is a better way to pull all the fields of a class and compare
+  public boolean equals(Object obj) {
     if (obj == null) {
       return false;
     }
@@ -230,50 +217,6 @@ public class Form implements Comparable<Form> {
     }
 
     final Form other = (Form) obj;
-    if (!this.id.equals(other.id)) {
-      return false;
-    }
-
-    if (!this.fileId.equals(other.fileId)) {
-      return false;
-    }
-
-    if (!this.uploadedAt.equals(other.uploadedAt)) {
-      return false;
-    }
-
-    if (this.isTemplate != other.isTemplate) {
-      return false;
-    }
-
-    if (!this.conditionalFieldId.equals(other.conditionalFieldId)) {
-      return false;
-    }
-
-    if (!this.condition.equals(other.condition)) {
-      return false;
-    }
-
-    if (!this.lastModifiedAt.equals(other.lastModifiedAt)) {
-      return false;
-    }
-
-    if (!this.username.equals(other.username)) {
-      return false;
-    }
-
-    if (!this.uploaderUsername.equals(other.uploaderUsername)) {
-      return false;
-    }
-
-    if (this.body == null || this.body.equals(other.body) == false) {
-      return false;
-    }
-
-    if (this.metadata == null || this.metadata.equals(other.metadata) == false) {
-      return false;
-    }
-
-    return true;
+    return getComparator().compare(this, other) == 0;
   }
 }
