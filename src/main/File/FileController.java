@@ -255,11 +255,11 @@ public class FileController {
                 new DownloadFileService(
                     fileDao,
                     username,
-                    orgName,
-                    userType,
+                    Optional.ofNullable(orgName),
+                    Optional.ofNullable(userType),
                     fileType,
-                    fileIDStr,
-                    encryptionController);
+                    Optional.ofNullable(fileIDStr),
+                    Optional.ofNullable(encryptionController));
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
               ctx.header("Content-Type", downloadFileService.getContentType());
@@ -392,11 +392,11 @@ public class FileController {
             new DownloadFileService(
                 fileDao,
                 username,
-                organizationName,
-                privilegeLevel,
+                Optional.ofNullable(organizationName),
+                Optional.ofNullable(privilegeLevel),
                 FileType.FORM_PDF,
-                applicationId,
-                encryptionController);
+                Optional.ofNullable(applicationId),
+                Optional.ofNullable(encryptionController));
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -437,11 +437,11 @@ public class FileController {
             new DownloadFileService(
                 fileDao,
                 username,
-                organizationName,
-                privilegeLevel,
+                Optional.ofNullable(organizationName),
+                Optional.ofNullable(privilegeLevel),
                 FileType.FORM_PDF,
-                applicationId,
-                encryptionController);
+                Optional.ofNullable(applicationId),
+                Optional.ofNullable(encryptionController));
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();

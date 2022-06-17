@@ -21,22 +21,22 @@ import java.util.Optional;
 public class DownloadFileService implements Service {
   private FileDao fileDao;
   private String username;
-  private String organizationName;
-  private UserType privilegeLevel;
+  private Optional<String> organizationName;
+  private Optional<UserType> privilegeLevel;
   private FileType fileType;
-  private String fileId;
+  private Optional<String> fileId;
   private String contentType;
   private InputStream inputStream;
-  private EncryptionController encryptionController;
+  private Optional<EncryptionController> encryptionController;
 
   public DownloadFileService(
       FileDao fileDao,
       String username,
-      String orgName,
-      UserType privilegeLevel,
+      Optional<String> orgName,
+      Optional<UserType> privilegeLevel,
       FileType fileType,
-      String fileId,
-      EncryptionController encryptionController) {
+      Optional<String> fileId,
+      Optional<EncryptionController> encryptionController) {
     this.fileDao = fileDao;
     this.username = username;
     this.organizationName = orgName;
@@ -51,11 +51,15 @@ public class DownloadFileService implements Service {
     if (fileType == null) {
       return FileMessage.INVALID_FILE_TYPE;
     }
+    if (privilegeLevel.isEmpty()) {
+      return FileMessage.INSUFFICIENT_PRIVILEGE;
+    }
+    UserType privilegeLevelType = privilegeLevel.get();
     if (fileType.isPDF()) {
-      if (privilegeLevel == UserType.Client
-          || privilegeLevel == UserType.Worker
-          || privilegeLevel == UserType.Director
-          || privilegeLevel == UserType.Admin) {
+      if (privilegeLevelType == UserType.Client
+          || privilegeLevelType == UserType.Worker
+          || privilegeLevelType == UserType.Director
+          || privilegeLevelType == UserType.Admin) {
         try {
           return download();
         } catch (Exception e) {
@@ -84,46 +88,53 @@ public class DownloadFileService implements Service {
   }
 
   public Message download() throws GeneralSecurityException, IOException {
-    ObjectId id = new ObjectId(fileId);
-    log.info("Attempting to download file with id {}", id);
     if (fileType.isPDF()) {
+      if (fileId.isEmpty() || organizationName.isEmpty()) {
+        return FileMessage.INVALID_PARAMETER;
+      }
+      if (encryptionController.isEmpty()) {
+        return FileMessage.SERVER_ERROR;
+      }
+      ObjectId id = new ObjectId(fileId.get());
+      log.info("Attempting to download file with id {}", id);
       Optional<File> fileFromDB = fileDao.get(id);
       if (fileFromDB.isEmpty()) {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
+      UserType privilegeLevelType = privilegeLevel.get();
       if (fileType == FileType.APPLICATION_PDF
-          && (privilegeLevel == UserType.Director
-              || privilegeLevel == UserType.Admin
-              || privilegeLevel == UserType.Worker)) {
-        if (file.getOrganizationName().equals(organizationName)) {
+          && (privilegeLevelType == UserType.Director
+              || privilegeLevelType == UserType.Admin
+              || privilegeLevelType == UserType.Worker)) {
+        if (file.getOrganizationName().equals(organizationName.get())) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
             this.inputStream =
-                encryptionController.decryptFile(optionalStream.get(), this.username);
+                encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.IDENTIFICATION_PDF
-          && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
+          && (privilegeLevelType == UserType.Client || privilegeLevelType == UserType.Worker)) {
         if (file.getUsername().equals(username)) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
             this.inputStream =
-                encryptionController.decryptFile(optionalStream.get(), this.username);
+                encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.FORM_PDF) {
-        if (file.getOrganizationName().equals(organizationName)) {
+        if (file.getOrganizationName().equals(organizationName.get())) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
             this.inputStream =
-                encryptionController.decryptFile(optionalStream.get(), this.username);
+                encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
             return FileMessage.SUCCESS;
           }
@@ -131,14 +142,14 @@ public class DownloadFileService implements Service {
         }
       }
     } else if (fileType.isProfilePic()) {
-      // profile picture
-      Optional<File> fileFromDB = fileDao.get(this.username, FileType.PROFILE_PICTURE);
+      // profile picture only requires username
+      Optional<File> fileFromDB = fileDao.get(this.username, fileType);
       if (fileFromDB.isEmpty()) {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
       this.contentType = "image/" + file.getContentType();
-      Optional<InputStream> optionalStream = fileDao.getStream(id);
+      Optional<InputStream> optionalStream = fileDao.getStream(file.getId());
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
         return FileMessage.SUCCESS;
@@ -146,6 +157,10 @@ public class DownloadFileService implements Service {
       return FileMessage.NO_SUCH_FILE;
     } else {
       // miscellaneous files
+      if (fileId.isEmpty()) {
+        return FileMessage.INVALID_PARAMETER;
+      }
+      ObjectId id = new ObjectId(fileId.get());
       Optional<File> fileFromDB = fileDao.get(id);
       if (fileFromDB.isEmpty()) {
         return FileMessage.NO_SUCH_FILE;
