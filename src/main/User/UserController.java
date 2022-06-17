@@ -5,7 +5,9 @@ import Database.File.FileDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import File.File;
+import File.FileMessage;
 import File.FileType;
+import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Services.*;
 import com.mongodb.client.MongoDatabase;
@@ -338,26 +340,20 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
-        LoadPfpService lps = new LoadPfpService(db, username);
-        Message mes = lps.executeAndGetResponse();
-
-        // TODO: enable DownloadFileService:
-        //          DownloadFileService serv = new DownloadFileService(
-        //                  db,
-        //                  username,
-        //                  null,
-        //                  null,
-        //                  FileType.PROFILE_PICTURE,
-        //                  null,
-        //                  null
-        //          );
-        //          Message mes = serv.executeAndGetResponse();
-        if (mes == UserMessage.SUCCESS) {
-          ctx.header("Content-Type", "image/" + lps.getContentType());
-          ctx.result(lps.getRes());
-        } else {
-          ctx.result(mes.toJSON().toString());
+        DownloadFileService serv =
+            new DownloadFileService(
+                fileDao,
+                username,
+                Optional.empty(),
+                Optional.empty(),
+                FileType.PROFILE_PICTURE,
+                Optional.empty(),
+                Optional.empty());
+        Message mes = serv.executeAndGetResponse();
+        if (mes == FileMessage.SUCCESS) {
+          ctx.header("Content-Type", "image/" + serv.getContentType());
         }
+        ctx.result(mes.toJSON().toString());
       };
 
   public Handler setDefaultIds =
