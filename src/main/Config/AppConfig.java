@@ -3,6 +3,8 @@ package Config;
 import Activity.ActivityController;
 import Admin.AdminController;
 import Billing.BillingController;
+import Database.File.FileDao;
+import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Database.Organization.OrgDao;
@@ -13,6 +15,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Database.UserV2.UserV2Dao;
 import Database.UserV2.UserV2DaoFactory;
+import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
 import Organization.Organization;
@@ -48,6 +51,7 @@ public class AppConfig {
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
+    FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -63,25 +67,26 @@ public class AppConfig {
 
     // We need to instantiate the controllers with the database.
     OrganizationController orgController = new OrganizationController(db);
-    UserController userController = new UserController(userDao, tokenDao, db);
+    UserController userController = new UserController(userDao, tokenDao, fileDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao);
     PdfController pdfController = new PdfController(db, userDao);
     FormController formController = new FormController(db, formDao);
+    FileController fileController = new FileController(db, userDao, fileDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController();
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);
     BillingController billingController = new BillingController();
-//    try { do not recomment this block of code, this will delete and regenerate our encryption key
-//      System.out.println("generating keyset");
-//      tools.generateAndUploadKeySet();
-//      System.out.println("successfully generated keyset");
-//    } catch (Exception e) {
-//      System.out.println(e);
-//    }
-
+    //    try { do not recomment this block of code, this will delete and regenerate our encryption
+    // key
+    //      System.out.println("generating keyset");
+    //      tools.generateAndUploadKeySet();
+    //      System.out.println("successfully generated keyset");
+    //    } catch (Exception e) {
+    //      System.out.println(e);
+    //    }
 
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
@@ -95,6 +100,14 @@ public class AppConfig {
     app.post("/get-documents", pdfController.pdfGetDocuments);
     app.post("/get-application-questions", pdfController.getApplicationQuestions);
     app.post("/fill-application", pdfController.fillPDFForm);
+
+    /* -------------- FILE MANAGEMENT v2 --------------------- */
+    app.post("/upload-file", fileController.fileUpload);
+    app.post("/download-file", fileController.fileDownload);
+    app.post("/delete-file/", fileController.fileDelete);
+    app.post("/get-files", fileController.getFiles);
+    app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
+    app.post("/fill-form", fileController.fillPDFForm);
 
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
@@ -113,6 +126,7 @@ public class AppConfig {
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-login-history", userController.getLogInHistory);
+    // TODO: no longer necessary with upload file route
     app.post("/upload-pfp", userController.uploadPfp);
     app.post("/load-pfp", userController.loadPfp);
     app.post("/username-exists", userController.usernameExists);
