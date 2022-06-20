@@ -77,17 +77,16 @@ public class EncryptionTools {
       KeysetHandle handle = KeysetHandle.generateNew(KeyTemplates.get("AES256_GCM"));
       String keysetFileName = "key.json";
       handle.write(JsonKeysetWriter.withPath(keysetFileName), kekAead);
-
-      ObjectMapper objectMapper = new ObjectMapper();
-      Map<String, Object> map =
-          objectMapper.readValue(file, new TypeReference<Map<String, Object>>() {
-          });
-      JSONObject keyJson = new JSONObject(map);
-
-      MongoCollection<Document> keyHandles = this.db.getCollection("keys", Document.class);
-      keyHandles.deleteMany(new Document());
-      //    Document keyDocument = new Document("key.json");
-      keyHandles.insertOne(Document.parse(keyJson.toString()));
     }
+    ObjectMapper objectMapper = new ObjectMapper();
+    Map<String, Object> map =
+        objectMapper.readValue(file, new TypeReference<Map<String, Object>>() {
+        });
+    JSONObject keyJson = new JSONObject(map);
+
+    MongoCollection<Document> keyHandles = this.db.getCollection("keys", Document.class);
+    keyHandles.deleteMany(new Document());
+    //    Document keyDocument = new Document("key.json");
+    keyHandles.insertOne(Document.parse(keyJson.toString()));
   }
 }

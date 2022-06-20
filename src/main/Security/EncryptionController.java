@@ -36,10 +36,8 @@ public class EncryptionController {
   private Aead generateAead() throws GeneralSecurityException, IOException {
     log.info("Generating AEAD Prim");
     AeadConfig.register();
-
     MongoCollection<Document> keyHandles = db.getCollection("keys", Document.class);
     Document keyDocument = keyHandles.find().first();
-
     if (keyDocument == null) {
       throw new GeneralSecurityException();
     }

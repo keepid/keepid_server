@@ -14,7 +14,6 @@ import static FileTest.FileControllerIntegrationTestHelperMethods.uploadTestPDF;
 public class FileControllerIntegrationTests {
   private static EncryptionUtils encryptionUtils;
   public static String username = "adminBSM";
-  ;
 
   public static String currentPDFFolderPath =
       Paths.get("").toAbsolutePath().toString()
