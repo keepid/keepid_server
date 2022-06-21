@@ -8,6 +8,7 @@ import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -73,7 +74,7 @@ public class GetQuestionsPDFFileService implements Service {
   }
 
   public Message getFieldInformation(InputStream inputStream) throws IOException {
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     JSONObject responseJSON = new JSONObject();
     List<JSONObject> fieldsJSON = new LinkedList<>();

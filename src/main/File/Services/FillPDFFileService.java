@@ -4,6 +4,7 @@ import Config.Message;
 import Config.Service;
 import File.FileMessage;
 import User.UserType;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
@@ -59,7 +60,7 @@ public class FillPDFFileService implements Service {
     if (inputStream == null || formAnswers == null) {
       return FileMessage.INVALID_FILE;
     }
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {

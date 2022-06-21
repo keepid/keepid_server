@@ -9,6 +9,7 @@ import File.FileType;
 import Security.EncryptionController;
 import User.UserType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
@@ -134,7 +135,7 @@ public class UploadFileService implements Service {
   }
 
   private InputStream signFile() throws IOException {
-    PDDocument pdfDocument = PDDocument.load(this.fileToUpload.getFileStream());
+    PDDocument pdfDocument = Loader.loadPDF(this.fileToUpload.getFileStream());
 
     InputStream signatureStream = signatureFileStream.get();
     PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(signatureStream);

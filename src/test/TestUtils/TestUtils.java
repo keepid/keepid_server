@@ -16,6 +16,7 @@ import de.mkammerer.argon2.Argon2Factory;
 import io.javalin.Javalin;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
@@ -779,7 +780,7 @@ public class TestUtils {
   }
 
   public static JSONObject getFieldValues(InputStream inputStream) throws IOException {
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     JSONObject fieldValues = new JSONObject();
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     List<PDField> fields = new LinkedList<>();
