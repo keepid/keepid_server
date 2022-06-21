@@ -6,6 +6,7 @@ import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Objects;
@@ -20,6 +21,24 @@ public class GetUserInfoService implements Service {
   public GetUserInfoService(UserDao userDao, String username) {
     this.userDao = userDao;
     this.username = username;
+  }
+
+  public static User getUserFromRequest(UserDao userDao, String req) {
+    log.info("Starting check for user...");
+    String username;
+    User user = null;
+    try {
+      JSONObject reqJson = new JSONObject(req);
+      if (reqJson.has("targetUser")) {
+        username = reqJson.getString("targetUser");
+        Optional<User> optionalUser = userDao.get(username);
+        if (optionalUser.isPresent()) user = optionalUser.get();
+      }
+    } catch (JSONException e) {
+      log.error("JSON Error when reading request body ... {}", e.getMessage());
+    }
+    log.info("User check completed...");
+    return user;
   }
 
   @Override

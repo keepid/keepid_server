@@ -46,7 +46,7 @@ public class AccountSecurityController {
         String username = ctx.sessionAttribute("username");
         String password = req.getString("password");
         String key = req.getString("key");
-        String value = req.getString("value");
+        String value = req.get("value").toString();
         ChangeAccountSettingService changeAccountSettingService =
             new ChangeAccountSettingService(userDao, username, password, key, value);
         ctx.result(changeAccountSettingService.executeAndGetResponse().toResponseString());

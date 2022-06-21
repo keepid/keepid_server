@@ -4,7 +4,7 @@ import User.User;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.JsonKeysetReader;
 import com.google.crypto.tink.KeysetHandle;
-import com.google.crypto.tink.config.TinkConfig;
+import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.integration.gcpkms.GcpKmsClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -56,7 +56,7 @@ public class EncryptionUtils {
 
   // Generates an AEAD Object through Google Tink for encryption and decryption
   public Aead generateAead() throws GeneralSecurityException, IOException {
-    TinkConfig.register();
+    AeadConfig.register();
 
     GoogleCredentials.generateCredentials();
 

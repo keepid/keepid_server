@@ -16,11 +16,9 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
+import User.Services.DocumentType;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @Setter
@@ -76,6 +74,9 @@ public class User {
   @BsonProperty(value = "logInHistory")
   private List<IpObject> logInHistory;
 
+  @BsonProperty(value = "defaultIds")
+  private Map<String, String> defaultIds;
+
   public User() {}
 
   public User(
@@ -109,6 +110,7 @@ public class User {
             zipcode,
             username,
             password,
+            defaultIds,
             userType);
 
     if (validationMessage != UserValidationMessage.VALID)
@@ -132,6 +134,7 @@ public class User {
     this.password = password;
     this.userType = userType;
     this.creationDate = date;
+    this.defaultIds = new HashMap<String, String>();
   }
 
   /** **************** GETTERS ********************* */
@@ -186,6 +189,8 @@ public class User {
   public String getPassword() {
     return this.password;
   }
+
+  public Map<String, String> getDefaultIds() { return this.defaultIds; };
 
   public UserType getUserType() {
     return this.userType;
@@ -274,6 +279,11 @@ public class User {
     return this;
   }
 
+  public User setDefaultId(DocumentType documentType, String id) {
+    this.defaultIds.put(DocumentType.stringFromDocumentType(documentType), id);
+    return this;
+  }
+
   public User setUserType(UserType userType) {
     this.userType = userType;
     return this;
@@ -297,6 +307,7 @@ public class User {
       String zipcode,
       String username,
       String password,
+      Map<String, String> defaultIds,
       UserType userType) {
 
     if (!ValidationUtils.isValidFirstName(firstName)) {
@@ -370,6 +381,7 @@ public class User {
     sb.append(", zipcode=").append(this.zipcode);
     sb.append(", username=").append(this.username);
     sb.append(", password=").append(this.password);
+    sb.append(", defaultIds=").append(this.defaultIds.toString());
     sb.append(", userType=").append(this.userType);
     sb.append(", twoFactorOn=").append(this.twoFactorOn);
     sb.append(", creationDate=").append(this.creationDate);
@@ -394,6 +406,7 @@ public class User {
         && Objects.equals(this.zipcode, user.zipcode)
         && Objects.equals(this.username, user.username)
         && Objects.equals(this.password, user.password)
+        && Objects.equals(this.defaultIds, user.defaultIds)
         && Objects.equals(this.userType, user.userType)
         && Objects.equals(this.twoFactorOn, user.twoFactorOn);
   }
@@ -413,6 +426,7 @@ public class User {
         this.zipcode,
         this.username,
         this.password,
+        this.defaultIds,
         this.userType,
         this.twoFactorOn);
   }
@@ -435,6 +449,7 @@ public class User {
     userJSON.put("logInHistory", logInHistory);
     userJSON.put("creationDate", creationDate);
     userJSON.put("twoFactorOn", twoFactorOn);
+    userJSON.put("defaultIds", defaultIds);
     return userJSON;
   }
 
@@ -445,6 +460,8 @@ public class User {
     result.remove("id");
     return result;
   }
+
+  // Should user be able to update defaultIds via updateProperties?
 
   public User updateProperties (UserUpdateRequest updateRequest) {
     if (updateRequest.getFirstName() != null && updateRequest.getFirstName().isPresent()) {
