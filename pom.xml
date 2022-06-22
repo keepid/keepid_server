@@ -251,6 +251,11 @@
             <artifactId>pdfbox-examples</artifactId>
             <version>3.0.0-RC1</version>
         </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.1</version>
+        </dependency>
         <!-- MongoSessionDataStore -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
