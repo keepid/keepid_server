@@ -312,7 +312,7 @@ public class UserController {
         User user = optionalUser.get();
         Date uploadDate =
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-        UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
+        UploadPfpService serv = new UploadPfpService(db, userDao, username, file, fileName);
         File fileToUpload =
             new File(
                 username,
@@ -338,6 +338,9 @@ public class UserController {
 
   public Handler loadPfp =
       ctx -> {
+      // get the privilege level of the logged in user
+          // get this by session ctx.session(), then look for existing service/create your own that will input
+          // logged in user, then it will get the privilege level (get user info service technically)
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
         DownloadFileService serv =
