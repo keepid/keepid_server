@@ -328,6 +328,7 @@ public class UserController {
                 fileDao,
                 fileToUpload,
                 Optional.empty(),
+                Optional.ofNullable(ctx.sessionAttribute("privilegeLevel")),
                 Optional.empty(),
                 false,
                 Optional.empty(),
@@ -345,7 +346,8 @@ public class UserController {
                 fileDao,
                 username,
                 Optional.empty(),
-                Optional.empty(),
+                //                Optional.empty(),
+                Optional.ofNullable(ctx.sessionAttribute("privilegeLevel")),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
                 Optional.empty());
