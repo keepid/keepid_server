@@ -327,7 +327,6 @@ public class UserController {
             new UploadFileService(
                 fileDao,
                 fileToUpload,
-                Optional.empty(),
                 Optional.ofNullable(ctx.sessionAttribute("privilegeLevel")),
                 Optional.empty(),
                 false,
