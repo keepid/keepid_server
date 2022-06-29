@@ -14,6 +14,7 @@ import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
 import java.time.LocalDate;
@@ -312,7 +313,6 @@ public class UserController {
         User user = optionalUser.get();
         Date uploadDate =
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-        UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
         File fileToUpload =
             new File(
                 username,
@@ -332,7 +332,7 @@ public class UserController {
                 false,
                 Optional.empty(),
                 Optional.empty());
-        JSONObject res = serv.executeAndGetResponse().toJSON();
+        JSONObject res = service.executeAndGetResponse().toJSON();
         ctx.result(res.toString());
       };
 
@@ -340,21 +340,27 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
-        DownloadFileService serv =
-            new DownloadFileService(
-                fileDao,
-                username,
-                Optional.empty(),
-                //                Optional.empty(),
-                Optional.ofNullable(ctx.sessionAttribute("privilegeLevel")),
-                FileType.PROFILE_PICTURE,
-                Optional.empty(),
-                Optional.empty());
-        Message mes = serv.executeAndGetResponse();
-        if (mes == FileMessage.SUCCESS) {
-          ctx.header("Content-Type", "image/" + serv.getContentType());
+        GetLatestProfilePictureService getLatestProfilePictureService =
+            new GetLatestProfilePictureService(fileDao, username);
+        Message retrieveProfPicMessage = getLatestProfilePictureService.executeAndGetResponse();
+        if (retrieveProfPicMessage == UserMessage.SUCCESS) {
+          ObjectId fileId = getLatestProfilePictureService.getFileId();
+          DownloadFileService serv =
+              new DownloadFileService(
+                  fileDao,
+                  username,
+                  Optional.empty(),
+                  Optional.ofNullable(ctx.sessionAttribute("privilegeLevel")),
+                  FileType.PROFILE_PICTURE,
+                  Optional.of(fileId.toString()),
+                  Optional.empty());
+          Message mes = serv.executeAndGetResponse();
+          if (mes == FileMessage.SUCCESS) {
+            ctx.header("Content-Type", "image/" + serv.getContentType());
+          }
+          ctx.result(mes.toJSON().toString());
         }
-        ctx.result(mes.toJSON().toString());
+        ctx.result(retrieveProfPicMessage.toJSON().toString());
       };
 
   public Handler setDefaultIds =

@@ -119,10 +119,6 @@ public class UploadFileService implements Service {
   }
 
   public Message uploadPFP() throws GeneralSecurityException, IOException {
-    Optional<File> optFile = fileDao.get(this.fileToUpload.getUsername(), FileType.PROFILE_PICTURE);
-    if (optFile.isPresent()) {
-      fileDao.delete(optFile.get());
-    }
     String[] temp = fileToUpload.getFilename().split("\\.");
     String contentType = temp[temp.length - 1];
     if (!contentType.equals("png")) {

@@ -96,7 +96,7 @@ public class DownloadFileService implements Service {
         return FileMessage.SERVER_ERROR;
       }
       ObjectId id = new ObjectId(fileId.get());
-      log.info("Attempting to download file with id {}", id);
+      log.warn("Attempting to download file with id {}", id);
       Optional<File> fileFromDB = fileDao.get(id);
       if (fileFromDB.isEmpty()) {
         return FileMessage.NO_SUCH_FILE;
