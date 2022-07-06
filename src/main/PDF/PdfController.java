@@ -449,7 +449,7 @@ public class PdfController {
   // TODO: Allow title that is retrieved from the client (optionally)
   public static String getPDFTitle(String fileName, InputStream content, PDFType pdfType) {
     String title;
-    if (pdfType == PDFType.BLANK_FORM) {
+    if (pdfType == PDFType.BLANK_FORM || pdfType == PDFType.COMPLETED_APPLICATION) {
       try {
         PDDocument pdfDocument = Loader.loadPDF(content);
         pdfDocument.setAllSecurityToBeRemoved(true);
