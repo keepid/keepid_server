@@ -122,6 +122,7 @@ public class GetQuestionsPDFService implements Service {
           }
         } else if (field instanceof PDSignatureField) {
           // Do nothing, as signatures are dealt with in findSignatureFields
+          continue;
         }
 
         // Check for an annotation error - if so, then return error with field name

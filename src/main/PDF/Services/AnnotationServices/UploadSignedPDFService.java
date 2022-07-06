@@ -3,6 +3,7 @@ package PDF.Services.AnnotationServices;
 import Config.Message;
 import Config.Service;
 import PDF.PDFType;
+import PDF.PdfController;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
@@ -98,6 +99,7 @@ public class UploadSignedPDFService implements Service {
   }
 
   public Message mongodbUpload(InputStream signedPDF) throws GeneralSecurityException, IOException {
+    String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
 
@@ -109,6 +111,7 @@ public class UploadSignedPDFService implements Service {
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("title", title)
                       .append("annotated", false)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
@@ -119,6 +122,7 @@ public class UploadSignedPDFService implements Service {
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("title", title)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
     }

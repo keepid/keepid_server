@@ -83,8 +83,9 @@ public class DownloadPDFService implements Service {
             || privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Worker)) {
       if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
+        String uploaderUsername = grid_out.getMetadata().getString("uploader");
         this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
+            encryptionController.decryptFile(gridBucket.openDownloadStream(id), uploaderUsername);
         return PdfMessage.SUCCESS;
       }
     } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
