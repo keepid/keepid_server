@@ -1,4 +1,4 @@
-package PDF.Services;
+package PDF.Services.CrudServices;
 
 import Config.Message;
 import Config.Service;
@@ -48,7 +48,7 @@ public class GetFilesInformationPDFService implements Service {
     if (pdfType == null) {
       return PdfMessage.INVALID_PDF_TYPE;
     } else {
-      return getAllFiles(username, orgName, userType, pdfType, annotated, db);
+      return getAllFiles();
     }
   }
 
@@ -57,30 +57,27 @@ public class GetFilesInformationPDFService implements Service {
     return files;
   }
 
-  public Message getAllFiles(
-      String uploader,
-      String organizationName,
-      UserType privilegeLevel,
-      PDFType pdfType,
-      boolean annotated,
-      MongoDatabase db) {
+  public Message getAllFiles() {
     try {
       Bson filter;
-      if (pdfType == PDFType.APPLICATION
-          && (privilegeLevel == UserType.Director
-              || privilegeLevel == UserType.Admin
-              || privilegeLevel == UserType.Worker)) {
-        filter = Filters.eq("metadata.organizationName", organizationName);
-        return mongodbGetAllFiles(filter, pdfType, db);
-      } else if (pdfType == PDFType.IDENTIFICATION && (privilegeLevel == UserType.Client)) {
-        filter = Filters.eq("metadata.uploader", uploader);
-        return mongodbGetAllFiles(filter, pdfType, db);
-      } else if (pdfType == PDFType.FORM) {
-        filter =
-            and(
-                eq("metadata.organizationName", organizationName),
-                eq("metadata.annotated", annotated));
-        return mongodbGetAllFiles(filter, pdfType, db);
+      if (pdfType == PDFType.COMPLETED_APPLICATION
+          && (userType == UserType.Director
+              || userType == UserType.Admin
+              || userType == UserType.Worker)) {
+        filter = Filters.eq("metadata.organizationName", orgName);
+        return mongodbGetAllFiles(filter);
+      } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && (userType == UserType.Client)) {
+        filter = Filters.eq("metadata.uploader", username);
+        return mongodbGetAllFiles(filter);
+      } else if (pdfType == PDFType.BLANK_FORM) {
+        if (userType == UserType.Developer) {
+          // Getting forms that are not annotated yet
+          filter = eq("metadata.annotated", annotated);
+        } else {
+          filter =
+              and(eq("metadata.organizationName", orgName), eq("metadata.annotated", annotated));
+        }
+        return mongodbGetAllFiles(filter);
       } else {
         return PdfMessage.INSUFFICIENT_PRIVILEGE;
       }
@@ -89,7 +86,7 @@ public class GetFilesInformationPDFService implements Service {
     }
   }
 
-  public Message mongodbGetAllFiles(Bson filter, PDFType pdfType, MongoDatabase db) {
+  public Message mongodbGetAllFiles(Bson filter) {
     JSONArray files = new JSONArray();
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     for (GridFSFile grid_out : gridBucket.find(filter)) {
@@ -100,22 +97,11 @@ public class GetFilesInformationPDFService implements Service {
               .put("uploader", uploaderUsername)
               .put("organizationName", grid_out.getMetadata().getString("organizationName"))
               .put("id", grid_out.getId().asObjectId().getValue().toString())
-              .put("uploadDate", grid_out.getUploadDate().toString())
+              .put("uploadDate", grid_out.getMetadata().getString("upload_date"))
               .put("annotated", annotated);
-      if (pdfType.equals(PDFType.FORM)) {
-        // TODO: Make one field for filename and one for title (or they are both the same if one is
-        // derived from the other)
-        String title = grid_out.getMetadata().getString("title");
-        // TODO: Reupload existing forms so that title is always not null
-        if (title != null) {
-          fileMetadata.put("filename", title);
-        } else {
-          fileMetadata.put("filename", grid_out.getFilename());
-        }
+      fileMetadata.put("filename", grid_out.getMetadata().getString("title"));
+      if (pdfType.equals(PDFType.BLANK_FORM)) {
         fileMetadata.put("annotated", grid_out.getMetadata().getBoolean("annotated"));
-
-      } else if (pdfType.equals(PDFType.APPLICATION) || pdfType.equals(PDFType.IDENTIFICATION)) {
-        fileMetadata.put("filename", grid_out.getFilename());
       }
       files.put(fileMetadata);
     }

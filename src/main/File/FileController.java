@@ -13,6 +13,7 @@ import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -121,7 +122,7 @@ public class FileController {
                   log.info("Got PDF file to upload!");
                   try {
                     InputStream content = file.getContent();
-                    PDDocument pdfDocument = PDDocument.load(content);
+                    PDDocument pdfDocument = Loader.loadPDF(content);
                     title = getPDFTitle(file.getFilename(), pdfDocument);
                     content.reset();
                     pdfDocument.close();

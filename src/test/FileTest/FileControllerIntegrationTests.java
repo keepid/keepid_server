@@ -10,10 +10,10 @@ import java.io.File;
 import java.nio.file.Paths;
 
 import static FileTest.FileControllerIntegrationTestHelperMethods.uploadTestPDF;
+import static PDFTest.PDFTestUtils.username;
 
 public class FileControllerIntegrationTests {
   private static EncryptionUtils encryptionUtils;
-  public static String username = "adminBSM";
 
   public static String currentPDFFolderPath =
       Paths.get("").toAbsolutePath().toString()

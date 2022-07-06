@@ -1,4 +1,4 @@
-package PDF.Services;
+package PDF.Services.CrudServices;
 
 import Config.Message;
 import Config.Service;
@@ -47,16 +47,16 @@ public class DownloadPDFService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
-    ObjectId fileID = new ObjectId(fileId);
     if (pdfType == null) {
       return PdfMessage.INVALID_PDF;
     }
     if (privilegeLevel == UserType.Client
         || privilegeLevel == UserType.Worker
         || privilegeLevel == UserType.Director
-        || privilegeLevel == UserType.Admin) {
+        || privilegeLevel == UserType.Admin
+        || privilegeLevel == UserType.Developer) {
       try {
-        return download(username, orgName, privilegeLevel, fileID, pdfType, db);
+        return download();
       } catch (Exception e) {
         return PdfMessage.ENCRYPTION_ERROR;
       }
@@ -71,39 +71,32 @@ public class DownloadPDFService implements Service {
     return inputStream;
   }
 
-  public Message download(
-      String user,
-      String organizationName,
-      UserType privilegeLevel,
-      ObjectId id,
-      PDFType pdfType,
-      MongoDatabase db)
-      throws GeneralSecurityException, IOException {
+  public Message download() throws GeneralSecurityException, IOException {
+    ObjectId id = new ObjectId(fileId);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     GridFSFile grid_out = gridBucket.find(Filters.eq("_id", id)).first();
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    if (pdfType == PDFType.APPLICATION
+    if (pdfType == PDFType.COMPLETED_APPLICATION
         && (privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
+      if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), user);
+            encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.IDENTIFICATION
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("uploader").equals(user)) {
+      if (grid_out.getMetadata().getString("uploader").equals(username)) {
         this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), user);
+            encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.FORM) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
-        this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), user);
+    } else if (pdfType == PDFType.BLANK_FORM) {
+      if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
+        this.inputStream = gridBucket.openDownloadStream(id);
         return PdfMessage.SUCCESS;
       }
     }

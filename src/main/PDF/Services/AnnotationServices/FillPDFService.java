@@ -1,10 +1,11 @@
-package PDF.Services;
+package PDF.Services.AnnotationServices;
 
 import Config.Message;
 import Config.Service;
 import PDF.PdfMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
@@ -42,7 +43,7 @@ public class FillPDFService implements Service {
           || privilegeLevel == UserType.Director
           || privilegeLevel == UserType.Admin) {
         try {
-          return fillFields(fileStream, formAnswers);
+          return fillFields();
         } catch (IOException e) {
           return PdfMessage.SERVER_ERROR;
         }
@@ -57,12 +58,11 @@ public class FillPDFService implements Service {
     return completedForm;
   }
 
-  public Message fillFields(InputStream inputStream, JSONObject formAnswers)
-      throws IllegalArgumentException, IOException {
-    if (inputStream == null || formAnswers == null) {
+  public Message fillFields() throws IllegalArgumentException, IOException {
+    if (fileStream == null || formAnswers == null) {
       return PdfMessage.INVALID_PDF;
     }
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(fileStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {

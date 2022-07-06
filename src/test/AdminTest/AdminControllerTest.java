@@ -9,7 +9,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Organization.Organization;
 import PDF.PDFType;
-import PDF.Services.UploadPDFService;
+import PDF.Services.CrudServices.UploadPDFService;
 import Security.AccountSecurityController;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -99,7 +99,7 @@ public class AdminControllerTest {
         db.getCollection("activity", Activity.class);
     activityMongoCollection.insertOne(EntityFactory.createActivity().build());
 
-    PDFType pdfType = PDFType.FORM;
+    PDFType pdfType = PDFType.BLANK_FORM;
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     String fileName = resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf";
     InputStream file = new FileInputStream(fileName);

@@ -1,13 +1,15 @@
-package PDF.Services;
+package PDF.Services.AnnotationServices;
 
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import PDF.PdfAnnotationError;
 import PDF.PdfMessage;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -16,13 +18,12 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 public class GetQuestionsPDFService implements Service {
   public static final int DEFAULT_FIELD_NUM_LINES = 3;
+  public static final String successStatus = "Success";
 
   UserType privilegeLevel;
   String username;
@@ -54,9 +55,10 @@ public class GetQuestionsPDFService implements Service {
         if (privilegeLevel == UserType.Client
             || privilegeLevel == UserType.Worker
             || privilegeLevel == UserType.Director
-            || privilegeLevel == UserType.Admin) {
+            || privilegeLevel == UserType.Admin
+            || privilegeLevel == UserType.Developer) {
           try {
-            return getFieldInformation(fileStream);
+            return getFieldInformation();
           } catch (IOException e) {
             return PdfMessage.SERVER_ERROR;
           }
@@ -72,8 +74,8 @@ public class GetQuestionsPDFService implements Service {
     return applicationInformation;
   }
 
-  public Message getFieldInformation(InputStream inputStream) throws IOException {
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+  public Message getFieldInformation() throws IOException {
+    PDDocument pdfDocument = Loader.loadPDF(fileStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     JSONObject responseJSON = new JSONObject();
     List<JSONObject> fieldsJSON = new LinkedList<>();
@@ -102,31 +104,61 @@ public class GetQuestionsPDFService implements Service {
         List<PDField> childrenFields = ((PDNonTerminalField) field).getChildren();
         fields.addAll(childrenFields);
       } else {
+        JSONObject fieldJSON = null;
         // If the field is a leaf, then get the relevant data and return it
         if (field instanceof PDButton) {
           if (field instanceof PDCheckBox) {
-            fieldsJSON.add(getCheckBox((PDCheckBox) field));
+            fieldJSON = getCheckBox((PDCheckBox) field);
           } else if (field instanceof PDPushButton) {
-            // Do not do anything for a push button, as we don't need to support them right now
+            // Do nothing for a push button, as we don't need to support them right now
           } else if (field instanceof PDRadioButton) {
-            fieldsJSON.add(getRadioButton((PDRadioButton) field));
+            fieldJSON = getRadioButton((PDRadioButton) field);
           }
         } else if (field instanceof PDVariableText) {
           if (field instanceof PDChoice) {
-            fieldsJSON.add(getChoiceField((PDChoice) field));
+            fieldJSON = getChoiceField((PDChoice) field);
           } else if (field instanceof PDTextField) {
-            fieldsJSON.add(getTextField((PDTextField) field));
+            fieldJSON = getTextField((PDTextField) field);
           }
         } else if (field instanceof PDSignatureField) {
           // Do nothing, as signatures are dealt with in findSignatureFields
         }
+
+        // Check for an annotation error - if so, then return error with field name
+        if (fieldJSON != null && !fieldJSON.get("fieldStatus").equals(successStatus)) {
+          return new PdfAnnotationError(fieldJSON.getString("fieldStatus"));
+        }
+        fieldsJSON.add(fieldJSON);
       }
     }
-    fieldsJSON.removeIf(field -> field == null);
-    responseJSON.put("fields", fieldsJSON);
-    this.applicationInformation = responseJSON;
+
+    // Replace fieldLinkedTo with the actual field name it is linked to (currently ordering index)
+    for (JSONObject fieldJSON : fieldsJSON) {
+      if (!fieldJSON.getString("fieldLinkageType").equals("NONE")) {
+        String fieldName = fieldJSON.getString("fieldName");
+        String fieldLinkedToFieldOrdering = fieldJSON.getString("fieldLinkedTo");
+
+        // Find the linked field name by the ordering index
+        String fieldLinkedToFieldName = null;
+        Iterator<JSONObject> fieldIterator = fieldsJSON.iterator();
+        while (fieldIterator.hasNext() && fieldLinkedToFieldName == null) {
+          JSONObject field = fieldIterator.next();
+          if (field.getString("fieldOrdering").equals(fieldLinkedToFieldOrdering)) {
+            fieldLinkedToFieldName = field.getString("fieldName");
+          }
+        }
+
+        if (fieldLinkedToFieldName == null) {
+          return new PdfAnnotationError(
+              "Field Directive not Understood for Field '" + fieldName + "'");
+        }
+        fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
+      }
+    }
 
     pdfDocument.close();
+    responseJSON.put("fields", fieldsJSON);
+    this.applicationInformation = responseJSON;
     return PdfMessage.SUCCESS;
   }
 
@@ -136,17 +168,17 @@ public class GetQuestionsPDFService implements Service {
     String fieldQuestion;
     if (field.isReadOnly()) {
       fieldType = "ReadOnlyField";
-      fieldQuestion = field.getPartialName();
+      fieldQuestion = fieldName;
       String fieldValue = field.getValue();
       if (fieldValue != null && !fieldValue.equals("")) {
         fieldQuestion += ": " + fieldValue;
       }
     } else if (field.isMultiline()) {
       fieldType = "MultilineTextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
+      fieldQuestion = "Please Enter Your: " + fieldName;
     } else {
       fieldType = "TextField";
-      fieldQuestion = "Please Enter Your: " + field.getPartialName();
+      fieldQuestion = "Please Enter Your: " + fieldName;
     }
     JSONArray fieldValueOptions = new JSONArray();
     String fieldDefaultValue = "";
@@ -170,7 +202,7 @@ public class GetQuestionsPDFService implements Service {
     Boolean fieldDefaultValue = Boolean.FALSE;
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
-    String fieldQuestion = "Please Select: " + field.getPartialName();
+    String fieldQuestion = "Please Select: " + fieldName;
     return createFieldJSONEntry(
         fieldName,
         fieldType,
@@ -190,8 +222,8 @@ public class GetQuestionsPDFService implements Service {
     }
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
-    int numLines = 2 + fieldValueOptions.length();
-    String fieldQuestion = "Please Select One Option for: " + field.getPartialName();
+    int numLines = fieldValueOptions.length();
+    String fieldQuestion = "Please Select an Option for: " + fieldName;
     return createFieldJSONEntry(
         fieldName,
         fieldType,
@@ -216,14 +248,14 @@ public class GetQuestionsPDFService implements Service {
     }
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
-    int numLines = fieldValueOptions.length() + 2;
+    int numLines = fieldValueOptions.length();
     if (field.isMultiSelect()) {
       fieldQuestion =
           "Please Select Option(s) for: "
-              + field.getPartialName()
+              + fieldName
               + " (you can select multiple options with CTRL)";
     } else {
-      fieldQuestion = "Please Select an Option for: " + field.getPartialName();
+      fieldQuestion = "Please Select an Option for: " + fieldName;
     }
     return createFieldJSONEntry(
         fieldName,
@@ -244,54 +276,66 @@ public class GetQuestionsPDFService implements Service {
       int fieldNumLines,
       String fieldQuestion) {
 
-    // TODO: Move into getTextField(), since only textFields can be autofilled right now
-    // Parse field matching directions in the field name
-    boolean fieldIsMatched = false;
+    JSONObject fieldJSON = new JSONObject();
+
+    // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
-    if (splitFieldName.length == 1) {
-      // No annotation for matched field
-    } else if (splitFieldName.length == 2) {
-      // Annotation for matched field
+    if (splitFieldName.length != 1 && splitFieldName.length != 2) {
+      fieldJSON.put("fieldStatus", "Invalid Number of Colons for Field '" + fieldName + "'");
+      return fieldJSON;
+    } else {
+      boolean fieldIsMatched = false;
+      String fieldLinkageType = "NONE"; // None, Positive, Negative
+      String fieldLinkedTo = ""; // Field name it is linked to
+
       String fieldNameBase = splitFieldName[0];
-      String fieldDirective = splitFieldName[1];
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
       fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
 
-      if (fieldDirective.equals("anyDate")) {
-        // Make it a date field that can be selected by the client
-        fieldType = "DateField";
-      } else if (fieldDirective.equals("currentDate")) {
-        // Make it a date field with the current date that cannot be changed
-        fieldType = "DateField";
-        fieldIsMatched = true;
-      } else if (fieldDirective.equals("signature")) {
-        // Signatures not handled in first round of form completion
-        return null;
-      } else if (this.userInfo.has(fieldDirective)) {
-        // Field has a matched database variable
-        fieldDefaultValue = this.userInfo.getString(fieldDirective);
-        fieldIsMatched = true;
-      } else {
-        // Match not found
-        log.error("Error in Annotation for Field: " + fieldName + " - Directive not Understood");
-        return null;
+      if (splitFieldName.length == 2) {
+        // Annotation for matched field - has directive at the end
+        String fieldDirective = splitFieldName[1];
+        if (fieldDirective.startsWith("+")) {
+          // Positively linked field
+          fieldLinkageType = "POSITIVE";
+          fieldLinkedTo = fieldDirective.substring(1);
+        } else if (fieldDirective.startsWith("-")) {
+          // Negatively linked field
+          fieldLinkageType = "NEGATIVE";
+          fieldLinkedTo = fieldDirective.substring(1);
+        } else if (fieldDirective.equals("anyDate")) {
+          // Make it a date field that can be selected by the client
+          fieldType = "DateField";
+        } else if (fieldDirective.equals("currentDate")) {
+          // Make a date field with the current date that cannot be changed (value set on frontend)
+          fieldType = "DateField";
+          fieldIsMatched = true;
+        } else if (fieldDirective.equals("signature")) {
+          // Signatures not handled in first round of form completion
+          fieldType = "SignatureField";
+        } else if (this.userInfo.has(fieldDirective)) {
+          // Field has a matched database variable, so make that the autofilled value
+          fieldIsMatched = true;
+          fieldDefaultValue = this.userInfo.getString(fieldDirective);
+        } else {
+          String fieldStatus = "Field Directive not Understood for Field '" + fieldName + "'";
+          fieldJSON.put("fieldStatus", fieldStatus);
+          return fieldJSON;
+        }
       }
-    } else {
-      // Error in annotation - treat as normal without annotation
-      log.error("Error in Annotation for Field: " + fieldName + " - Invalid Format");
-      return null;
-    }
 
-    // If no errors in matching, return a fieldJSON
-    JSONObject fieldJSON = new JSONObject();
-    fieldJSON.put("fieldName", fieldName);
-    fieldJSON.put("fieldType", fieldType);
-    fieldJSON.put("fieldValueOptions", fieldValueOptions);
-    fieldJSON.put("fieldDefaultValue", fieldDefaultValue);
-    fieldJSON.put("fieldIsRequired", fieldIsRequired);
-    fieldJSON.put("fieldNumLines", fieldNumLines);
-    fieldJSON.put("fieldIsMatched", fieldIsMatched);
-    fieldJSON.put("fieldQuestion", fieldQuestion);
-    return fieldJSON;
+      fieldJSON.put("fieldName", fieldName);
+      fieldJSON.put("fieldType", fieldType);
+      fieldJSON.put("fieldValueOptions", fieldValueOptions);
+      fieldJSON.put("fieldDefaultValue", fieldDefaultValue);
+      fieldJSON.put("fieldIsRequired", fieldIsRequired);
+      fieldJSON.put("fieldNumLines", fieldNumLines);
+      fieldJSON.put("fieldIsMatched", fieldIsMatched);
+      fieldJSON.put("fieldQuestion", fieldQuestion);
+      fieldJSON.put("fieldLinkageType", fieldLinkageType);
+      fieldJSON.put("fieldLinkedTo", fieldLinkedTo);
+      fieldJSON.put("fieldStatus", successStatus);
+      return fieldJSON;
+    }
   }
 }
