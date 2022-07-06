@@ -293,4 +293,72 @@ public class PdfControllerIntegrationTestHelperMethods {
     assertThat(getFormJSON.getJSONArray("documents").getJSONObject(0).getBoolean("annotated"))
         .isEqualTo(false);
   }
+
+  public static String getDocumentsTarget(String target) {
+    // upload file
+    JSONObject body = new JSONObject();
+    body.put("pdfType", "FORM");
+    body.put("annotated", false);
+    body.put("targetUser", target);
+    HttpResponse<String> getForm =
+        Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
+    JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
+
+    return getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
+  }
+
+  public static String uploadFileAndGetFileIdTarget(File file, String pdfType, String target)
+      throws IOException, GeneralSecurityException {
+    // upload file
+    EncryptionUtils encryptionUtils = TestUtils.getEncryptionUtils();
+    InputStream fileStream = FileUtils.openInputStream(file);
+
+    File tmp = File.createTempFile("test1", "tmp");
+    FileUtils.copyInputStreamToFile(
+        encryptionUtils.encryptFile(fileStream, PdfControllerIntegrationTests.username), tmp);
+    HttpResponse<String> uploadResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/upload")
+            .header("Content-Disposition", "attachment")
+            .field("pdfType", pdfType)
+            .field("file", file)
+            .field("targetUser", target)
+            .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+
+    // get file id
+    JSONObject body = new JSONObject();
+    body.put("pdfType", "FORM");
+    body.put("annotated", false);
+    body.put("targetUser", target);
+    HttpResponse<String> getForm =
+        Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
+    JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
+
+    return getFormJSON.getJSONArray("documents").getJSONObject(0).getString("id");
+  }
+
+  public static void clearAllDocumentsTarget(String target) {
+    String[] pdfTypes = {"FORM", "FORM", "APPLICATION"};
+    boolean[] annotated = {false, true, false};
+    for (int j = 0; j < pdfTypes.length; j++) {
+      JSONObject body = new JSONObject();
+      body.put("pdfType", pdfTypes[j]);
+      body.put("annotated", annotated[j]);
+      // body.put("targetUser", target);
+      HttpResponse<String> getAllDocuments =
+          Unirest.post(TestUtils.getServerUrl() + "/get-documents")
+              .body(body.toString())
+              .asString();
+      JSONObject getAllDocumentsJSON = TestUtils.responseStringToJSON(getAllDocuments.getBody());
+      assertThat(getAllDocumentsJSON.getString("status")).isEqualTo("SUCCESS");
+
+      JSONArray arr = getAllDocumentsJSON.getJSONArray("documents");
+      System.out.println(arr);
+      for (int i = 0; i < arr.length(); i++) {
+        String fileId = arr.getJSONObject(i).getString("id");
+        delete(fileId, pdfTypes[j]);
+      }
+    }
+  }
 }

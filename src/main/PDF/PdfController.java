@@ -197,7 +197,8 @@ public class PdfController {
             username = check.getUsername();
             orgName = check.getOrganization();
             userType = check.getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            orgFlag = true;
+            // orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -215,6 +216,8 @@ public class PdfController {
                 new GetFilesInformationPDFService(
                     db, username, orgName, userType, pdfType, annotated);
             Message response = getFilesInformationPDFService.executeAndGetResponse();
+            // System.out.println("PRINTING RESPONSE");
+            // System.out.println(response);
             responseJSON = response.toJSON();
 
             if (response == PdfMessage.SUCCESS) {
