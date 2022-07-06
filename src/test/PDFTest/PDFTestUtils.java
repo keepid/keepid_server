@@ -75,44 +75,6 @@ public class PDFTestUtils {
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  //  public static void checkForFields(
-  //      JSONObject applicationsQuestionsResponseJSON, LinkedList<JSONObject> fieldsToCheck) {
-  //    for (JSONObject fieldJSON : fieldsToCheck) {
-  //      String fieldType = arr[0][0];
-  //      String fieldName = arr[1][0];
-  //      JSONArray fieldValueOptions = new JSONArray(arr[2]);
-  //      boolean found_type = false;
-  //      boolean found_name = false;
-  //      for (int i = 0; i < applicationsQuestionsResponseJSON.getJSONArray("fields").length();
-  // i++) {
-  //        String curr_name =
-  //            applicationsQuestionsResponseJSON
-  //                .getJSONArray("fields")
-  //                .getJSONObject(i)
-  //                .get("fieldName")
-  //                .toString();
-  //        String curr_type =
-  //            applicationsQuestionsResponseJSON
-  //                .getJSONArray("fields")
-  //                .getJSONObject(i)
-  //                .get("fieldType")
-  //                .toString();
-  //        if (curr_name.equals(fieldName) && curr_type.equals(fieldType)) {
-  //          found_name = true;
-  //          found_type = true;
-  //          JSONArray curr_options =
-  //              applicationsQuestionsResponseJSON
-  //                  .getJSONArray("fields")
-  //                  .getJSONObject(i)
-  //                  .getJSONArray("fieldValueOptions");
-  //          assertThat(curr_options.toList()).isEqualTo(fieldValueOptions.toList());
-  //        }
-  //      }
-  //      assertThat(found_name).isTrue();
-  //      assertThat(found_type).isTrue();
-  //    }
-  //  }
-
   public static void clearAllDocuments() {
     String[] pdfTypes = {"BLANK_FORM", "IDENTIFICATION_DOCUMENT", "COMPLETED_APPLICATION"};
     boolean[] annotated = {false, true, false};

@@ -34,7 +34,6 @@ public class AnnotationPDFServiceTest {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
   }
 
   @Before
@@ -58,16 +57,16 @@ public class AnnotationPDFServiceTest {
   public void getApplicationQuestionsBirthCertificateTest()
       throws IOException, GeneralSecurityException {
     createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
-    TestUtils.login(username, password);
+      .withUserType(UserType.Admin)
+      .withUsername(username)
+      .withPasswordToHash(username)
+      .buildAndPersist(userDao);
+    TestUtils.login(username, username);
     // when running entire file, other documents interfere with retrieving the form.
-    clearAllDocuments();
+    // clearAllDocuments();
 
     File applicationPDF =
-        new File(resourcesFolderPath + File.separator + "Pennsylvania_Birth_Certificate_Form.pdf");
+        new File(resourcesFolderPath + File.separator + "AnnotatedPDFs" + File.separator + "Application_for_a_Birth_Certificate_Annotated.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
 
     JSONObject body = new JSONObject();
@@ -123,9 +122,9 @@ public class AnnotationPDFServiceTest {
     createUser()
         .withUserType(UserType.Admin)
         .withUsername(username)
-        .withPasswordToHash(password)
+        .withPasswordToHash(username)
         .buildAndPersist(userDao);
-    TestUtils.login(username, password);
+    TestUtils.login(username, username);
     // when running entire file, other documents interfere with retrieving the form.
     clearAllDocuments();
 

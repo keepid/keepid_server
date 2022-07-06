@@ -222,7 +222,7 @@ public class GetQuestionsPDFService implements Service {
     }
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
-    int numLines = 2 + fieldValueOptions.length();
+    int numLines = fieldValueOptions.length();
     String fieldQuestion = "Please Select an Option for: " + fieldName;
     return createFieldJSONEntry(
         fieldName,
@@ -248,7 +248,7 @@ public class GetQuestionsPDFService implements Service {
     }
     String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
-    int numLines = fieldValueOptions.length() + 2;
+    int numLines = fieldValueOptions.length();
     if (field.isMultiSelect()) {
       fieldQuestion =
           "Please Select Option(s) for: "
