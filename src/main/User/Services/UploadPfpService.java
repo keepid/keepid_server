@@ -2,6 +2,8 @@ package User.Services;
 
 import Config.Message;
 import Config.Service;
+import Database.User.UserDao;
+import User.User;
 import User.UserMessage;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
@@ -16,16 +18,20 @@ import org.bson.conversions.Bson;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Slf4j
 public class UploadPfpService implements Service {
   MongoDatabase db;
+
+  private UserDao userDao;
   private String username;
   private String fileName;
   private UploadedFile pfp;
 
-  public UploadPfpService(MongoDatabase db, String username, UploadedFile pfp, String fileName) {
+  public UploadPfpService(MongoDatabase db, UserDao userDao, String username, UploadedFile pfp, String fileName) {
     this.db = db;
+    this.userDao = userDao;
     this.username = username;
     this.pfp = pfp;
     this.fileName = fileName;
@@ -33,6 +39,10 @@ public class UploadPfpService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
+    Optional<User> optionalUser = userDao.get(this.username);
+    if (optionalUser.isEmpty()) {
+      return UserMessage.AUTH_FAILURE;
+    }
     InputStream content = pfp.getContent();
     Bson filter = Filters.eq("metadata.owner", username);
     GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
