@@ -108,6 +108,7 @@ public class PdfController {
             log.info("Target user found");
             username = check.getUsername();
             orgName = check.getOrganization();
+            // HERE
             userType = check.getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
@@ -210,7 +211,7 @@ public class PdfController {
             PDFType pdfType = PDFType.createFromString(req.getString("pdfType"));
             boolean annotated = false;
             if (pdfType == PDFType.FORM) {
-              annotated = Objects.requireNonNull(req.getBoolean("annotated"));
+              annotated = req.getBoolean("annotated");
             }
             GetFilesInformationPDFService getFilesInformationPDFService =
                 new GetFilesInformationPDFService(

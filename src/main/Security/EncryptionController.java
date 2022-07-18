@@ -61,7 +61,7 @@ public class EncryptionController {
       return ciphertext;
 
     } catch (GeneralSecurityException e) {
-      log.error("General Security Exception thrown, encrpytion unsuccessful");
+      log.error("General Security Exception thrown, encryption unsuccessful");
       throw e;
     }
   }
