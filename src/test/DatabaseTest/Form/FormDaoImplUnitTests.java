@@ -21,6 +21,7 @@ public class FormDaoImplUnitTests {
   public void initialize() {
     TestUtils.startServer();
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
+    formDao.clear();
   }
 
   @After

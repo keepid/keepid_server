@@ -12,7 +12,6 @@ import User.IpObject;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
-import com.google.api.client.util.DateTime;
 import org.bson.types.ObjectId;
 
 import java.io.InputStream;
@@ -21,7 +20,7 @@ import java.util.*;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
-  public static final DateTime TEST_DATE_TIME = new DateTime(TEST_DATE);
+  public static final Date TEST_DATE_TIME = new Date(TEST_DATE);
 
   public static PartialUser createUser() {
     return new PartialUser();
@@ -112,10 +111,10 @@ public class EntityFactory {
     private int defaultNumLines = 10;
     private String username = "testFirstName";
     private Optional<String> uploaderUsername = Optional.of("testuploadername");
-    private DateTime uploadedAt = TEST_DATE_TIME;
+    private Date uploadedAt = TEST_DATE_TIME;
     private ObjectId conditionalFieldId = new ObjectId();
     private String condition = "TEST_CONDITION";
-    private Optional<DateTime> lastModifiedAt = Optional.of(TEST_DATE_TIME);
+    private Optional<Date> lastModifiedAt = Optional.of(TEST_DATE_TIME);
     private FormType formType = FormType.FORM;
     private boolean isTemplate = false;
     private FormMetadata metadata =
@@ -130,7 +129,10 @@ public class EntityFactory {
             defaultNumLines);
     private FormSection child =
         new FormSection(
-            "child", "childDescription", new ArrayList<FormSection>(), new ArrayList<FormQuestion>());
+            "child",
+            "childDescription",
+            new ArrayList<FormSection>(),
+            new ArrayList<FormQuestion>());
     List<FormSection> subSections = new ArrayList<>();
     private FormSection body;
 
@@ -184,12 +186,12 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialForm withUploadedAt(DateTime uploadedAt) {
+    public PartialForm withUploadedAt(Date uploadedAt) {
       this.uploadedAt = uploadedAt;
       return this;
     }
 
-    public PartialForm withLastModifiedAt(Optional<DateTime> lastModifiedAt) {
+    public PartialForm withLastModifiedAt(Optional<Date> lastModifiedAt) {
       this.lastModifiedAt = lastModifiedAt;
       return this;
     }

@@ -345,7 +345,7 @@ public class UserController {
                 fileDao,
                 username,
                 Optional.empty(),
-                Optional.empty(),
+                Optional.of(UserType.Worker),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
                 Optional.empty());
