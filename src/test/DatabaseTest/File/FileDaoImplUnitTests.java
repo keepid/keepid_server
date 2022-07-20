@@ -4,6 +4,10 @@ import Config.DeploymentLevel;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import File.File;
+import File.FileType;
+
+import java.util.List;
+import java.util.Optional;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import org.bson.types.ObjectId;
@@ -83,4 +87,37 @@ public class FileDaoImplUnitTests {
     EntityFactory.createFile().withUsername("username3").buildAndPersist(fileDao);
     assertEquals(3, fileDao.getAll().size());
   }
+
+  @Test
+  public void getPfp() {
+    String user = "username1";
+    FileType type = FileType.PROFILE_PICTURE;
+    EntityFactory.createFile()
+            .withUsername(user)
+            .withFileType(type)
+            .withFilename("7/20testpfp")
+            .buildAndPersist(fileDao);
+
+    Optional<File> retrievedfile = fileDao.get(user, type);
+    assertTrue(retrievedfile.isPresent());
+    assertEquals(FileType.PROFILE_PICTURE, retrievedfile.get().getFileType());
+  }
+
+// Requires a file to already be inserted to test_db with id
+//  @Test
+//  public void getPFPUsingID() {
+//    String id = "62d83d68ccf42f70b087fdf3";
+//    Optional<File> retrievedfile = fileDao.get(new ObjectId(id));
+//    assertTrue(retrievedfile.isPresent());
+//  }
+
+// Used for development when fileDao.clear() is commented out
+//  @Test
+//  public void printAllFile() {
+//    List<File> collection = fileDao.getAll();
+//    for (File file : collection) {
+//      System.out.println("name: " + file.getFilename());
+//      assertEquals(FileType.PROFILE_PICTURE, file.getFileType());
+//    }
+//  }
 }

@@ -1,11 +1,11 @@
 package File;
 
 public enum FileType {
-  APPLICATION_PDF("application"),
-  IDENTIFICATION_PDF("identification"),
-  FORM_PDF("form"),
-  PROFILE_PICTURE("profile_pic"),
-  MISC("misc");
+  APPLICATION_PDF("APPLICATION_PDF"),
+  IDENTIFICATION_PDF("IDENTIFICATION_PDF"),
+  FORM_PDF("FORM"),
+  PROFILE_PICTURE("PROFILE_PICTURE"),
+  MISC("MISC");
 
   private final String fileType;
 

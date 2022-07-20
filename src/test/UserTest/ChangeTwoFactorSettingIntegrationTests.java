@@ -15,9 +15,6 @@ import io.javalin.http.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -25,7 +22,6 @@ import java.security.GeneralSecurityException;
 import static com.mongodb.client.model.Filters.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-@TestMethodOrder(OrderAnnotation.class)
 public class ChangeTwoFactorSettingIntegrationTests {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
@@ -46,7 +42,6 @@ public class ChangeTwoFactorSettingIntegrationTests {
   // Make sure to enable .env file configurations for these tests
 
   @Test
-  @Order(1)
   public void changeTwoFactorFromOffToOnTest() throws Exception {
     String inputString = "{\"twoFactorOn\":true}";
 
@@ -64,7 +59,6 @@ public class ChangeTwoFactorSettingIntegrationTests {
   }
 
   @Test
-  @Order(2)
   public void changeTwoFactorFromOnToOffTest() throws Exception {
     String inputString = "{\"twoFactorOn\":false}";
 

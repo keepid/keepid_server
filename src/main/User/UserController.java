@@ -312,7 +312,6 @@ public class UserController {
         User user = optionalUser.get();
         Date uploadDate =
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-        UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
         File fileToUpload =
             new File(
                 username,
@@ -332,7 +331,7 @@ public class UserController {
                 false,
                 Optional.empty(),
                 Optional.empty());
-        JSONObject res = serv.executeAndGetResponse().toJSON();
+        JSONObject res = service.executeAndGetResponse().toJSON();
         ctx.result(res.toString());
       };
 
@@ -345,7 +344,9 @@ public class UserController {
                 fileDao,
                 username,
                 Optional.empty(),
-                Optional.empty(),
+                // come back and update with privilege later but for now
+                // everyone is a worker when loading profile pictures
+                Optional.of(UserType.Worker),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
                 Optional.empty());
