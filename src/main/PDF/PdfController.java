@@ -247,22 +247,24 @@ public class PdfController {
         Message response;
         UploadedFile file = ctx.uploadedFile("file");
         JSONObject req;
+        String reqString = null;
         String targetUser = ctx.formParam("targetUser");
 
         try {
           req = new JSONObject();
           req.put("targetUser", targetUser);
+          reqString = req.toString();
         } catch (JSONException e) {
-          req = new JSONObject();
+          req = null;
         }
 
-        User check = userCheck(req.toString());
-        if (req.has("targetUser") && check == null) {
+        User check = userCheck(reqString);
+        if (req != null && req.has("targetUser") && check == null) {
           log.info("Target User could not be found in the database");
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
-          if (req.has("targetUser") && check != null) {
+          if (req != null && req.has("targetUser") && check != null) {
             log.info("Target User found, setting parameters.");
             username = check.getUsername();
             organizationName = check.getOrganization();
