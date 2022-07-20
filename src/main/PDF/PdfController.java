@@ -17,12 +17,9 @@ import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.tools.ant.taskdefs.Input;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -250,13 +247,18 @@ public class PdfController {
         Message response;
         UploadedFile file = ctx.uploadedFile("file");
         JSONObject req;
-        String body = ctx.body();
+        String reqString = null;
+        String targetUser = ctx.formParam("targetUser");
+
         try {
-          req = new JSONObject(body);
+          req = new JSONObject();
+          req.put("targetUser", targetUser);
+          reqString = req.toString();
         } catch (JSONException e) {
           req = null;
         }
-        User check = userCheck(body);
+
+        User check = userCheck(reqString);
         if (req != null && req.has("targetUser") && check == null) {
           log.info("Target User could not be found in the database");
           response = UserMessage.USER_NOT_FOUND;
