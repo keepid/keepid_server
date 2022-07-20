@@ -16,6 +16,7 @@ import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
@@ -339,6 +340,7 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
+        JSONObject responseJSON;
         DownloadFileService serv =
             new DownloadFileService(
                 fileDao,
@@ -351,10 +353,13 @@ public class UserController {
                 Optional.empty(),
                 Optional.empty());
         Message mes = serv.executeAndGetResponse();
+        responseJSON = mes.toJSON();
         if (mes == FileMessage.SUCCESS) {
+          InputStream result = serv.getInputStream();
+          responseJSON.put("inputStream", result);
           ctx.header("Content-Type", "image/" + serv.getContentType());
         }
-        ctx.result(mes.toJSON().toString());
+        ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
