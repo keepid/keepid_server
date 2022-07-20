@@ -101,7 +101,7 @@ public class FileDaoImpl implements FileDao {
   public Optional<InputStream> getStream(ObjectId id) {
     File file = fileCollection.find(eq("_id", id)).first();
     if (file != null) {
-      GridFSFile grid_out = fileBucket.find(Filters.eq("_id", file.getFileId())).first();
+      GridFSFile grid_out = fileBucket.find(eq("_id", file.getFileId())).first();
       if (grid_out == null) {
         return Optional.empty();
       }
