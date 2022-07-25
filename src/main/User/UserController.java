@@ -355,11 +355,10 @@ public class UserController {
         Message mes = serv.executeAndGetResponse();
         responseJSON = mes.toJSON();
         if (mes == FileMessage.SUCCESS) {
-          InputStream result = serv.getInputStream();
-          responseJSON.put("inputStream", result);
           ctx.header("Content-Type", "image/" + serv.getContentType());
+          ctx.result(serv.getInputStream());
         }
-        ctx.result(responseJSON.toString());
+        else ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
