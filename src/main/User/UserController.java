@@ -345,9 +345,7 @@ public class UserController {
                 fileDao,
                 username,
                 Optional.empty(),
-                // come back and update with privilege later but for now
-                // everyone is a worker when loading profile pictures
-                Optional.of(UserType.Worker),
+                Optional.empty(),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
                 Optional.empty());
