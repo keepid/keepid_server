@@ -90,14 +90,10 @@ public class UserDaoImpl implements UserDao {
 
   @Override
   public void resetPassword(User user, String password) {
-    String newPassword = SecurityUtils.hashPassword(password);
-    if (newPassword == null) {
-      throw new IllegalStateException(
-          String.format("Hash function failed on User %s", user.getUsername()));
-    }
+    // note that pwd is already hashed
     userCollection.updateOne(
         eq("username", user.getUsername()),
-        new Document("$set", new Document("password", newPassword)));
+        new Document("$set", new Document("password", password)));
   }
 
   @Override
