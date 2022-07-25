@@ -16,7 +16,6 @@ import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
-import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
