@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
@@ -100,7 +101,7 @@ public class FileDaoImpl implements FileDao {
   public Optional<InputStream> getStream(ObjectId id) {
     File file = fileCollection.find(eq("_id", id)).first();
     if (file != null) {
-      GridFSFile grid_out = fileBucket.find(Filters.eq("_id", id)).first();
+      GridFSFile grid_out = fileBucket.find(eq("_id", file.getFileId())).first();
       if (grid_out == null) {
         return Optional.empty();
       }
@@ -142,7 +143,7 @@ public class FileDaoImpl implements FileDao {
     File foundFile =
         fileCollection
             .find(
-                Filters.and(
+                and(
                     Filters.eq("filename", filename),
                     Filters.eq("fileType", fileType),
                     Filters.eq("username", uploaderUsername)))
@@ -172,9 +173,9 @@ public class FileDaoImpl implements FileDao {
     File foundFile =
         fileCollection
             .find(
-                Filters.and(
-                    Filters.eq("fileType", fileType.toString()),
-                    Filters.eq("username", uploaderUsername)))
+                and(
+                    eq("fileType", fileType.toString()),
+                    eq("username", uploaderUsername)))
             .first();
 
     return Optional.ofNullable(foundFile);

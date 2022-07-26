@@ -51,6 +51,8 @@ public class DownloadFileService implements Service {
     if (fileType == null) {
       return FileMessage.INVALID_FILE_TYPE;
     }
+    //quick fix to make sure everyone can access profile pictures. edit later
+    if (fileType.isProfilePic()) this.privilegeLevel = Optional.of(UserType.Worker);
     if (privilegeLevel.isEmpty()) {
       return FileMessage.INSUFFICIENT_PRIVILEGE;
     }

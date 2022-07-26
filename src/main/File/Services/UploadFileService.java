@@ -49,6 +49,7 @@ public class UploadFileService implements Service {
       boolean toSign,
       Optional<InputStream> signatureFileStream,
       Optional<EncryptionController> encryptionController) {
+    this.fileDao = fileDao;
     this.fileToUpload = fileToUpload;
     this.privilegeLevel = privilegeLevel;
     this.fileIdStr = fileIdStr;
@@ -121,6 +122,7 @@ public class UploadFileService implements Service {
 
   public Message uploadPFP() throws GeneralSecurityException, IOException {
     Optional<File> optFile = fileDao.get(this.fileToUpload.getUsername(), FileType.PROFILE_PICTURE);
+    System.out.println("Uploading PFP real quick!");
     if (optFile.isPresent()) {
       fileDao.delete(optFile.get());
     }

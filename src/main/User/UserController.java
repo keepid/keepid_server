@@ -312,7 +312,6 @@ public class UserController {
         User user = optionalUser.get();
         Date uploadDate =
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-        UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
         File fileToUpload =
             new File(
                 username,
@@ -332,7 +331,7 @@ public class UserController {
                 false,
                 Optional.empty(),
                 Optional.empty());
-        JSONObject res = serv.executeAndGetResponse().toJSON();
+        JSONObject res = service.executeAndGetResponse().toJSON();
         ctx.result(res.toString());
       };
 
@@ -340,6 +339,7 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
+        JSONObject responseJSON;
         DownloadFileService serv =
             new DownloadFileService(
                 fileDao,
@@ -350,10 +350,12 @@ public class UserController {
                 Optional.empty(),
                 Optional.empty());
         Message mes = serv.executeAndGetResponse();
+        responseJSON = mes.toJSON();
         if (mes == FileMessage.SUCCESS) {
           ctx.header("Content-Type", "image/" + serv.getContentType());
+          ctx.result(serv.getInputStream());
         }
-        ctx.result(mes.toJSON().toString());
+        else ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
