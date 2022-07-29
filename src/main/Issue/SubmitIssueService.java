@@ -77,7 +77,7 @@ public class SubmitIssueService implements Service {
     IssueReport issueReport = new IssueReport(title, description, email);
     issueReportCollection.insertOne(issueReport);
     if (!posted.isSuccess()) {
-      log.error("Posing on Slack failed");
+      log.error("Posting on Slack failed");
       return IssueReportMessage.SLACK_FAILED;
     }
     log.info("Issue successfully submitted");
