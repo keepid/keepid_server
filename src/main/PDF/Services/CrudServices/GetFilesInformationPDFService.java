@@ -66,6 +66,10 @@ public class GetFilesInformationPDFService implements Service {
               || userType == UserType.Worker)) {
         filter = Filters.eq("metadata.organizationName", orgName);
         return mongodbGetAllFiles(filter);
+      } else if (pdfType == PDFType.COMPLETED_APPLICATION
+          && (userType == UserType.Client)) {
+        filter = and(eq("metadata.uploader", username));
+        return mongodbGetAllFiles(filter);
       } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && (userType == UserType.Client)) {
         filter = Filters.eq("metadata.uploader", username);
         return mongodbGetAllFiles(filter);
