@@ -31,7 +31,7 @@ public class GetDefaultIdServiceUnitTest {
 
         GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, user.getUsername(), documentType);
         Message response = getUserDefaultIdService.executeAndGetResponse();
-        String retrievedId = getUserDefaultIdService.getId();
+        String retrievedId = getUserDefaultIdService.getId(documentType);
         User retrievedUser = getUserDefaultIdService.getUser();
 
         assertEquals(UserMessage.SUCCESS, response);
@@ -55,7 +55,7 @@ public class GetDefaultIdServiceUnitTest {
 
         GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, user.getUsername(), getDocumentType);
         Message response = getUserDefaultIdService.executeAndGetResponse();
-        String retrievedId = getUserDefaultIdService.getId();
+        String retrievedId = getUserDefaultIdService.getId(setDocumentType);
         User retrievedUser = getUserDefaultIdService.getUser();
 
         assertEquals(UserMessage.SUCCESS, response);
@@ -93,10 +93,10 @@ public class GetDefaultIdServiceUnitTest {
         Message bc_response = getUserDefaultIdService_bc.executeAndGetResponse();
         Message vc_response = getUserDefaultIdService_vc.executeAndGetResponse();
 
-        String ssc_id = getUserDefaultIdService_ssc.getId();
-        String dl_id = getUserDefaultIdService_dl.getId();
-        String bc_id = getUserDefaultIdService_bc.getId();
-        String vc_id = getUserDefaultIdService_vc.getId();
+        String ssc_id = getUserDefaultIdService_ssc.getId(ssc_document);
+        String dl_id = getUserDefaultIdService_dl.getId(dl_document);
+        String bc_id = getUserDefaultIdService_bc.getId(bc_document);
+        String vc_id = getUserDefaultIdService_vc.getId(vc_document);
         User retrievedUser = getUserDefaultIdService_ssc.getUser();
 
         // message should still be success cause user is found

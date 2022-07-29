@@ -36,6 +36,7 @@ public class SetUserDefaultIdService implements Service {
         user = optionalUser.get();
 
         user.setDefaultId(documentType, id);
+        userDao.update(user);
 
         return UserMessage.SUCCESS;
     }

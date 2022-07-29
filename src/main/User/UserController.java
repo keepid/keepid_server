@@ -329,6 +329,7 @@ public class UserController {
             // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
             JSONObject responseJSON = new JSONObject();
             responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been set");
+            responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
             JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
             ctx.result(mergedInfo.toString());
         }
@@ -352,10 +353,12 @@ public class UserController {
             Message response = getUserDefaultIdService.executeAndGetResponse();
 
             if (response == UserMessage.SUCCESS){
+                String fileId = getUserDefaultIdService.getId(documentType);
+                log.info("fileId retrieved is " + fileId);
                 // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
                 JSONObject responseJSON = new JSONObject();
                 responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been retrieved");
-                responseJSON.put("id", getUserDefaultIdService.getId());
+                responseJSON.put("fileId", fileId);
                 responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
                 JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
                 ctx.result(mergedInfo.toString());
