@@ -249,6 +249,7 @@ public class PdfController {
         JSONObject req;
         String reqString = null;
         String targetUser = ctx.formParam("targetUser");
+        String idCategory = "";
 
         try {
           req = new JSONObject();
@@ -283,6 +284,9 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
+              if (pdfType == PDFType.IDENTIFICATION_DOCUMENT) {
+                  idCategory = ctx.formParam("idCategory");
+              }
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -293,7 +297,8 @@ public class PdfController {
                       file.getFilename(),
                       file.getContentType(),
                       file.getContent(),
-                      encryptionController);
+                      encryptionController,
+                      idCategory);
               response = uploadService.executeAndGetResponse();
             }
           } else {

@@ -41,6 +41,7 @@ public class UploadPDFService implements Service {
   PDFType pdfType;
   MongoDatabase db;
   EncryptionController encryptionController;
+  String idCategory;
 
   public UploadPDFService(
       MongoDatabase db,
@@ -51,7 +52,8 @@ public class UploadPDFService implements Service {
       String filename,
       String fileContentType,
       InputStream fileStream,
-      EncryptionController encryptionController) {
+      EncryptionController encryptionController,
+      String idCategory) {
     this.db = db;
     this.uploader = uploaderUsername;
     this.organizationName = organizationName;
@@ -61,6 +63,7 @@ public class UploadPDFService implements Service {
     this.fileContentType = fileContentType;
     this.fileStream = fileStream;
     this.encryptionController = encryptionController;
+    this.idCategory = idCategory;
   }
 
   @Override
@@ -119,7 +122,19 @@ public class UploadPDFService implements Service {
                       .append("annotated", false)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
-
+// sorry I made a whole new else if I couldn't figure out how to edit the metadata after the fact
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT){
+      inputStream = encryptionController.encryptFile(fileStream, uploader);
+      options =
+          new GridFSUploadOptions()
+                .chunkSizeBytes(CHUNK_SIZE_BYTES)
+                .metadata(
+                    new Document("type", "pdf")
+                        .append("upload_date", String.valueOf(LocalDate.now()))
+                        .append("title", title)
+                        .append("uploader", uploader)
+                        .append("organizationName", organizationName)
+                        .append("idCategory", idCategory));
     } else {
       inputStream = encryptionController.encryptFile(fileStream, uploader);
       options =
