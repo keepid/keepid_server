@@ -9,11 +9,13 @@ import User.User;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class SetDefaultIdServiceIntegrationTest {
+public class GetDefaultIdServiceIntegrationTest {
     UserDao userDao;
     JSONObject loginBody = new JSONObject();
 
@@ -34,7 +36,7 @@ public class SetDefaultIdServiceIntegrationTest {
     }
 
     @Test
-    public void setSocialSecurityCardSuccess() {
+    public void getSocialSecurityCardSuccess() {
         User user = EntityFactory.createUser()
                 .withFirstName("john")
                 .withLastName("smith")
@@ -47,15 +49,23 @@ public class SetDefaultIdServiceIntegrationTest {
 
         Unirest.post(TestUtils.getServerUrl() + "/login").body(loginBody.toString()).asString();
 
-        JSONObject body = new JSONObject();
-        body.put("documentType", documentType);
-        body.put("id", documentId);
+        JSONObject setBody = new JSONObject();
+        setBody.put("documentType", documentType);
+        setBody.put("id", documentId);
+        Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+            .header("Accept", "*/*")
+            .header("Content-Type", "text/plain")
+            .body(setBody.toString())
+            .asString();
+
+        JSONObject getBody = new JSONObject();
+        getBody.put("documentType", documentType);
 
         HttpResponse<String> actualResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                Unirest.post(TestUtils.getServerUrl() + "/get-default-id")
                         .header("Accept", "*/*")
                         .header("Content-Type", "text/plain")
-                        .body(body.toString())
+                        .body(getBody.toString())
                         .asString();
 
         JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody().toString());
@@ -65,10 +75,13 @@ public class SetDefaultIdServiceIntegrationTest {
 
         assert (actualResponseJSON.has("fileId"));
         assertThat(actualResponseJSON.getString("fileId")).isEqualTo(documentId);
+
+        assert (actualResponseJSON.has("documentType"));
+        assertThat(actualResponseJSON.getString("documentType")).isEqualTo(documentType);
     }
 
     @Test
-    public void setVaccineCardSuccess() {
+    public void getVaccineCardSuccess() {
         User user = EntityFactory.createUser()
                 .withFirstName("john")
                 .withLastName("smith")
@@ -81,15 +94,23 @@ public class SetDefaultIdServiceIntegrationTest {
 
         Unirest.post(TestUtils.getServerUrl() + "/login").body(loginBody.toString()).asString();
 
-        JSONObject body = new JSONObject();
-        body.put("documentType", documentType);
-        body.put("id", documentId);
+        JSONObject setBody = new JSONObject();
+        setBody.put("documentType", documentType);
+        setBody.put("id", documentId);
+        Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                .header("Accept", "*/*")
+                .header("Content-Type", "text/plain")
+                .body(setBody.toString())
+                .asString();
+
+        JSONObject getBody = new JSONObject();
+        getBody.put("documentType", documentType);
 
         HttpResponse<String> actualResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                Unirest.post(TestUtils.getServerUrl() + "/get-default-id")
                         .header("Accept", "*/*")
                         .header("Content-Type", "text/plain")
-                        .body(body.toString())
+                        .body(getBody.toString())
                         .asString();
 
         JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody().toString());
@@ -99,10 +120,13 @@ public class SetDefaultIdServiceIntegrationTest {
 
         assert (actualResponseJSON.has("fileId"));
         assertThat(actualResponseJSON.getString("fileId")).isEqualTo(documentId);
+
+        assert (actualResponseJSON.has("documentType"));
+        assertThat(actualResponseJSON.getString("documentType")).isEqualTo(documentType);
     }
 
     @Test
-    public void setDriversLicenseSuccess() {
+    public void getDriversLicenseSuccess() {
         User user = EntityFactory.createUser()
                 .withFirstName("john")
                 .withLastName("smith")
@@ -115,15 +139,23 @@ public class SetDefaultIdServiceIntegrationTest {
 
         Unirest.post(TestUtils.getServerUrl() + "/login").body(loginBody.toString()).asString();
 
-        JSONObject body = new JSONObject();
-        body.put("documentType", documentType);
-        body.put("id", documentId);
+        JSONObject setBody = new JSONObject();
+        setBody.put("documentType", documentType);
+        setBody.put("id", documentId);
+        Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                .header("Accept", "*/*")
+                .header("Content-Type", "text/plain")
+                .body(setBody.toString())
+                .asString();
+
+        JSONObject getBody = new JSONObject();
+        getBody.put("documentType", documentType);
 
         HttpResponse<String> actualResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                Unirest.post(TestUtils.getServerUrl() + "/get-default-id")
                         .header("Accept", "*/*")
                         .header("Content-Type", "text/plain")
-                        .body(body.toString())
+                        .body(getBody.toString())
                         .asString();
 
         JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody().toString());
@@ -133,6 +165,9 @@ public class SetDefaultIdServiceIntegrationTest {
 
         assert (actualResponseJSON.has("fileId"));
         assertThat(actualResponseJSON.getString("fileId")).isEqualTo(documentId);
+
+        assert (actualResponseJSON.has("documentType"));
+        assertThat(actualResponseJSON.getString("documentType")).isEqualTo(documentType);
     }
 
     @Test
@@ -149,15 +184,23 @@ public class SetDefaultIdServiceIntegrationTest {
 
         Unirest.post(TestUtils.getServerUrl() + "/login").body(loginBody.toString()).asString();
 
-        JSONObject body = new JSONObject();
-        body.put("documentType", documentType);
-        body.put("id", documentId);
+        JSONObject setBody = new JSONObject();
+        setBody.put("documentType", documentType);
+        setBody.put("id", documentId);
+        Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                .header("Accept", "*/*")
+                .header("Content-Type", "text/plain")
+                .body(setBody.toString())
+                .asString();
+
+        JSONObject getBody = new JSONObject();
+        getBody.put("documentType", documentType);
 
         HttpResponse<String> actualResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/set-default-id")
+                Unirest.post(TestUtils.getServerUrl() + "/get-default-id")
                         .header("Accept", "*/*")
                         .header("Content-Type", "text/plain")
-                        .body(body.toString())
+                        .body(getBody.toString())
                         .asString();
 
         JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody().toString());
@@ -167,5 +210,8 @@ public class SetDefaultIdServiceIntegrationTest {
 
         assert (actualResponseJSON.has("fileId"));
         assertThat(actualResponseJSON.getString("fileId")).isEqualTo(documentId);
+
+        assert (actualResponseJSON.has("documentType"));
+        assertThat(actualResponseJSON.getString("documentType")).isEqualTo(documentType);
     }
 }
