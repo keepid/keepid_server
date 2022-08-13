@@ -2,55 +2,58 @@ package UserTest;
 
 import Activity.ChangeUserAttributesActivity;
 import Config.DeploymentLevel;
-import Config.MongoConfig;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Security.AccountSecurityController;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-import static com.mongodb.client.model.Filters.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ChangeAccountSettingsIntegrationTests {
-  Context ctx = mock(Context.class);
-  MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+  static Context ctx;
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
 
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+  }
+
+  @Before
+  public void initialize() {
+    ctx = mock(Context.class);
+  }
+
+  @After
+  public void reset() {
+    userDao.clear();
+    tokenDao.clear();
+    clearInvocations(ctx);
   }
 
   @AfterClass
   public static void tearDown() {
     TestUtils.tearDownTestDB();
+    clearInvocations(ctx);
   }
 
   // Make sure to enable .env file configurations for these tests
   // TODO: Swap new SecurityUtils() for a mock that correctly (or incorrectly hashes passwords.
 
   private boolean isCorrectAttribute(String username, String attribute, String possibleValue) {
-    MongoCollection<User> userCollection = db.getCollection("user", User.class);
-    User user = userCollection.find(eq("username", username)).first();
-
+    User user = userDao.get(username).orElseThrow();
     switch (attribute) {
       case "firstName":
         String currentFirstName = user.getFirstName();
@@ -78,8 +81,7 @@ public class ChangeAccountSettingsIntegrationTests {
         return (currentState.equals(possibleValue));
       case "zipcode":
         String currentZipcode = user.getZipcode();
-        String currentZipcodeFormatted = "\"" + currentZipcode + "\"";
-        return (currentZipcodeFormatted.equals(possibleValue));
+        return (currentZipcode.equals(possibleValue));
       default:
         return false;
     }
@@ -87,17 +89,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeFirstNameTest() throws Exception {
-    String firstName1 = "David";
-    String firstName2 = "Sarah";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newFirstName = firstName2;
-
-    if (isCorrectAttribute(username, "firstName", newFirstName)) {
-      newFirstName = firstName1;
-    }
+    String password = "account-settings-test-password";
+    User user = EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withFirstName("David")
+        .buildAndPersist(userDao);
+    String newFirstName = "Sarah";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"firstName\",\"value\":" + newFirstName + "}";
@@ -111,7 +110,7 @@ public class ChangeAccountSettingsIntegrationTests {
     AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
     asc.changeAccountSetting.handle(ctx);
 
-    TestUtils.login("account-settings-test", "account-settings-test");
+    TestUtils.login(username, password);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
             .body(body.toString())
@@ -126,17 +125,15 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeLastNameTest() throws Exception {
-    String lastName1 = "Smith";
-    String lastName2 = "Jones";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withLastName("Smith")
+        .buildAndPersist(userDao);
 
-    String newLastName = lastName2;
-
-    if (isCorrectAttribute(username, "lastName", newLastName)) {
-      newLastName = lastName1;
-    }
+    String newLastName = "Jones";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"lastName\",\"value\":" + newLastName + "}";
@@ -152,17 +149,15 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeBirthDateTest() throws Exception {
-    String birthDate1 = "01-25-1965";
-    String birthDate2 = "05-23-2002";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withBirthDate("01-25-1965")
+        .buildAndPersist(userDao);
 
-    String newBirthDate = birthDate2;
-
-    if (isCorrectAttribute(username, "birthDate", newBirthDate)) {
-      newBirthDate = birthDate1;
-    }
+    String newBirthDate = "05-23-2002";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"birthDate\",\"value\":" + newBirthDate + "}";
@@ -175,7 +170,7 @@ public class ChangeAccountSettingsIntegrationTests {
 
     AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
     asc.changeAccountSetting.handle(ctx);
-    TestUtils.login("account-settings-test", "account-settings-test");
+    TestUtils.login(username, password);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
             .body(body.toString())
@@ -187,17 +182,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changePhoneTest() throws Exception {
-    String phone1 = "215-123-4567";
-    String phone2 = "412-123-3456";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newPhone = phone2;
-
-    if (isCorrectAttribute(username, "phone", newPhone)) {
-      newPhone = phone1;
-    }
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withPhoneNumber("215-123-4567")
+        .buildAndPersist(userDao);
+    String newPhone = "412-123-3456";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"phone\",\"value\":" + newPhone + "}";
@@ -213,17 +205,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeEmailTest() throws Exception {
-    String email1 = "contact1@example.com";
-    String email2 = "contact2@example.com";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newEmail = email2;
-
-    if (isCorrectAttribute(username, "email", newEmail)) {
-      newEmail = email1;
-    }
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withEmail("contact1@example.com")
+        .buildAndPersist(userDao);
+    String newEmail = "contact2@example.com";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"email\",\"value\":" + newEmail + "}";
@@ -236,7 +225,7 @@ public class ChangeAccountSettingsIntegrationTests {
 
     AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
     asc.changeAccountSetting.handle(ctx);
-    TestUtils.login("account-settings-test", "account-settings-test");
+    TestUtils.login(username, password);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
             .body(body.toString())
@@ -248,17 +237,15 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeAddressTest() throws Exception {
-    String address1 = "123 SampleStreet";
-    String address2 = "321 RandomStreet";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withAddress("123 SampleStreet")
+        .buildAndPersist(userDao);
 
-    String newAddress = address2;
-
-    if (isCorrectAttribute(username, "address", newAddress)) {
-      newAddress = address1;
-    }
+    String newAddress = "321 RandomStreet";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"address\",\"value\":" + newAddress + "}";
@@ -274,17 +261,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeCityTest() throws Exception {
-    String city1 = "SampleCity";
-    String city2 = "RandomCity";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newCity = city2;
-
-    if (isCorrectAttribute(username, "city", newCity)) {
-      newCity = city1;
-    }
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withCity("Chicago")
+        .buildAndPersist(userDao);
+    String newCity = "New York";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"city\",\"value\":" + newCity + "}";
@@ -300,17 +284,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeStateTest() throws Exception {
-    String state1 = "PA";
-    String state2 = "GA";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newState = state2;
-
-    if (isCorrectAttribute(username, "state", newState)) {
-      newState = state1;
-    }
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withState("PA")
+        .buildAndPersist(userDao);
+    String newState = "GA";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"state\",\"value\":" + newState + "}";
@@ -326,17 +307,14 @@ public class ChangeAccountSettingsIntegrationTests {
 
   @Test
   public void changeZipcodeTest() throws Exception {
-    String zipcode1 = "\"19091\"";
-    String zipcode2 = "\"19012\"";
-
     String username = "account-settings-test";
-    String password = "account-settings-test";
-
-    String newZipcode = zipcode2;
-
-    if (isCorrectAttribute(username, "zipcode", newZipcode)) {
-      newZipcode = zipcode1;
-    }
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withZipcode("19091")
+        .buildAndPersist(userDao);
+    String newZipcode = "19012";
 
     String inputString =
         "{\"password\":" + password + ",\"key\":\"zipcode\",\"value\":" + newZipcode + "}";

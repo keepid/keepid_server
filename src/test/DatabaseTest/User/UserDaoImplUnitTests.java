@@ -18,7 +18,6 @@ public class UserDaoImplUnitTests {
   @Before
   public void initialize() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   }
 

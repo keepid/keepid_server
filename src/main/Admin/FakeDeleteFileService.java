@@ -28,7 +28,7 @@ public class FakeDeleteFileService implements Service {
   public Message executeAndGetResponse() {
 
     // Form
-    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.FORM.toString());
+    GridFSBucket gridBucket = GridFSBuckets.create(db, PDFType.BLANK_FORM.toString());
     List<GridFSFile> files =
         gridBucket.find(Filters.eq("metadata.organizationName", orgName)).into(new ArrayList<>());
 
@@ -37,14 +37,14 @@ public class FakeDeleteFileService implements Service {
     res.put("form", files);
 
     // Application
-    GridFSBucket gridBucket2 = GridFSBuckets.create(db, PDFType.APPLICATION.toString());
+    GridFSBucket gridBucket2 = GridFSBuckets.create(db, PDFType.COMPLETED_APPLICATION.toString());
     List<GridFSFile> files2 =
         gridBucket2.find(Filters.eq("metadata.organizationName", orgName)).into(new ArrayList<>());
 
     res.put("application", files2);
 
     // Identification
-    GridFSBucket gridBucket3 = GridFSBuckets.create(db, PDFType.IDENTIFICATION.toString());
+    GridFSBucket gridBucket3 = GridFSBuckets.create(db, PDFType.IDENTIFICATION_DOCUMENT.toString());
     List<GridFSFile> files3 =
         gridBucket3.find(Filters.eq("metadata.organizationName", orgName)).into(new ArrayList<>());
 

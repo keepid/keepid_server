@@ -1,25 +1,37 @@
 package User;
 
 import Config.Message;
+import Database.File.FileDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
+import File.File;
+import File.FileMessage;
+import File.FileType;
+import File.Services.DownloadFileService;
+import File.Services.UploadFileService;
 import User.Services.*;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
-import User.Services.DocumentType;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Optional;
 
 @Slf4j
 public class UserController {
   MongoDatabase db;
   UserDao userDao;
   TokenDao tokenDao;
+  FileDao fileDao;
 
-  public UserController(UserDao userDao, TokenDao tokenDao, MongoDatabase db) {
+  public UserController(UserDao userDao, TokenDao tokenDao, FileDao fileDao, MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
+    this.fileDao = fileDao;
     this.db = db;
   }
 
@@ -292,8 +304,34 @@ public class UserController {
         String fileName = ctx.formParam("fileName");
         UploadedFile file = ctx.uploadedFile("file");
         log.info(username + " is attempting to upload a profile picture");
-        UploadPfpService serv = new UploadPfpService(db, username, file, fileName);
-        JSONObject res = serv.executeAndGetResponse().toJSON();
+        Optional<User> optionalUser = userDao.get(username);
+        if (optionalUser.isEmpty()) {
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+          return;
+        }
+        User user = optionalUser.get();
+        Date uploadDate =
+            Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        File fileToUpload =
+            new File(
+                username,
+                uploadDate,
+                file.getContent(),
+                FileType.PROFILE_PICTURE,
+                file.getFilename(),
+                user.getOrganization(),
+                false,
+                file.getContentType());
+        UploadFileService service =
+            new UploadFileService(
+                fileDao,
+                fileToUpload,
+                Optional.empty(),
+                Optional.empty(),
+                false,
+                Optional.empty(),
+                Optional.empty());
+        JSONObject res = service.executeAndGetResponse().toJSON();
         ctx.result(res.toString());
       };
 
@@ -301,14 +339,23 @@ public class UserController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
-        LoadPfpService lps = new LoadPfpService(db, username);
-        Message mes = lps.executeAndGetResponse();
-        if (mes == UserMessage.SUCCESS) {
-          ctx.header("Content-Type", "image/" + lps.getContentType());
-          ctx.result(lps.getRes());
-        } else {
-          ctx.result(mes.toJSON().toString());
+        JSONObject responseJSON;
+        DownloadFileService serv =
+            new DownloadFileService(
+                fileDao,
+                username,
+                Optional.empty(),
+                Optional.empty(),
+                FileType.PROFILE_PICTURE,
+                Optional.empty(),
+                Optional.empty());
+        Message mes = serv.executeAndGetResponse();
+        responseJSON = mes.toJSON();
+        if (mes == FileMessage.SUCCESS) {
+          ctx.header("Content-Type", "image/" + serv.getContentType());
+          ctx.result(serv.getInputStream());
         }
+        else ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
@@ -319,10 +366,12 @@ public class UserController {
         String docTypeString = req.getString("documentType");
         DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-        // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+        // Session attributes contains the following information: {orgName=Stripe testing,
+        // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
         log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
 
-        SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, username, documentType, id);
+        SetUserDefaultIdService setUserDefaultIdService =
+            new SetUserDefaultIdService(userDao, username, documentType, id);
         Message response = setUserDefaultIdService.executeAndGetResponse();
 
         if (response == UserMessage.SUCCESS){
@@ -333,11 +382,7 @@ public class UserController {
             JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
             ctx.result(mergedInfo.toString());
         }
-        else{
-            log.info("Error: {}", response.getErrorName());
-            ctx.result(response.toResponseString());
-        }
-    };
+      };
 
     public Handler getDefaultIds =
         ctx -> {
@@ -368,4 +413,5 @@ public class UserController {
                 ctx.result(response.toResponseString());
             }
         };
+      };
 }

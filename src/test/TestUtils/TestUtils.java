@@ -6,22 +6,17 @@ import Config.MongoConfig;
 import Organization.Organization;
 import Security.EncryptionTools;
 import Security.EncryptionUtils;
-import Security.GoogleCredentials;
 import Security.Tokens;
 import User.User;
 import User.UserType;
-import com.google.crypto.tink.Aead;
-import com.google.crypto.tink.JsonKeysetReader;
-import com.google.crypto.tink.KeysetHandle;
-import com.google.crypto.tink.integration.gcpkms.GcpKmsClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import io.javalin.Javalin;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
@@ -33,30 +28,31 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestUtils {
-  private static final int SERVER_TEST_PORT = Integer.parseInt(System.getenv("TEST_PORT"));
-  private static final String SERVER_TEST_URL = "http://localhost:" + SERVER_TEST_PORT;
+  private static final Optional<Integer> SERVER_TEST_PORT = Optional.ofNullable(System.getenv("TEST_PORT")).map(Integer::valueOf);
+  private static final String SERVER_TEST_URL = "http://localhost:" + SERVER_TEST_PORT.orElse(7001);
   private static Javalin app;
   private static EncryptionUtils encryptionUtils;
-  private static final String masterKeyUri = Objects.requireNonNull(System.getenv("MASTERKEYURI"));
-  private static final String credentials =
-      Objects.requireNonNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
 
-  public static void startServer() {
+  public static Javalin startServer() {
+    if (SERVER_TEST_PORT.isEmpty()) {
+      throw new IllegalStateException("Please run test with env file. You can do this by going to the edit configurations " +
+          "menu next to the run test button in the top right hand corner of IntelliJ.");
+    }
     if (app == null) {
       try {
         MongoConfig.getMongoClient();
         MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+        EncryptionTools encryptionTools = new EncryptionTools(db);
+        encryptionTools.generateGoogleCredentials();
         try {
-          EncryptionTools encryptionTools = new EncryptionTools(db);
           encryptionTools.generateAndUploadKeySet();
         } catch (Exception e) {
-
+          System.out.println("exception: " + e);
         }
         EncryptionUtils.initialize();
         encryptionUtils = EncryptionUtils.getInstance();
@@ -65,7 +61,9 @@ public class TestUtils {
         System.exit(0);
       }
       app = AppConfig.appFactory(DeploymentLevel.TEST);
+      return app;
     }
+    return app;
   }
 
   public static String getServerUrl() {
@@ -732,22 +730,6 @@ public class TestUtils {
     return passwordHash;
   }
 
-  public static Aead getAead() throws GeneralSecurityException, IOException {
-    MongoConfig.getMongoClient();
-    MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-    assert db != null;
-    MongoCollection<Document> keyCollection = db.getCollection("keys", Document.class);
-    Document handleDoc = keyCollection.find(Filters.eq("keyType", "encryption")).first();
-
-    handleDoc.remove("fieldname");
-    KeysetHandle keysetHandle =
-        KeysetHandle.read(
-            JsonKeysetReader.withJsonObject(new JSONObject(handleDoc)),
-            new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
-    GoogleCredentials.deleteCredentials();
-    return keysetHandle.getPrimitive(Aead.class);
-  }
-
   public static void login(String username, String password) {
     JSONObject body = new JSONObject();
     body.put("password", password);
@@ -798,7 +780,7 @@ public class TestUtils {
   }
 
   public static JSONObject getFieldValues(InputStream inputStream) throws IOException {
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     JSONObject fieldValues = new JSONObject();
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     List<PDField> fields = new LinkedList<>();

@@ -1,0 +1,46 @@
+fieldName,fieldType,fieldValueOptions,fieldDefaultValue,fieldIsRequired,fieldNumLines,fieldIsMatched,fieldQuestion,fieldLinkageType,fieldLinkedTo,fieldStatus
+First Name:firstName,TextField,[],testFirstName,true,3,true,Please Enter Your: First Name,NONE,,Success
+Middle Name,TextField,[],,false,3,false,Please Enter Your: Middle Name,NONE,,Success
+Last Name:lastName,TextField,[],testLastName,true,3,true,Please Enter Your: Last Name,NONE,,Success
+Suffix Name,TextField,[],,false,3,false,Please Enter Your: Suffix Name,NONE,,Success
+Street Address:address,TextField,[],123 Test St Av,true,3,true,Please Enter Your: Street Address,NONE,,Success
+Email Address:email,TextField,[],testemail@keep.id,false,3,true,Please Enter Your: Email Address,NONE,,Success
+City:city,TextField,[],Philadelphia,true,3,true,Please Enter Your: City,NONE,,Success
+State:state,TextField,[],PA,true,3,true,Please Enter Your: State,NONE,,Success
+Zip Code:zipcode,TextField,[],19104,true,3,true,Please Enter Your: Zip Code,NONE,,Success
+Daytime Phone:phone,TextField,[],1231231234,false,3,true,Please Enter Your: Daytime Phone,NONE,,Success
+Relationship to Person Named on Birth Record,ComboBox,"[Self,Mother,Father,Brother,Daughter,Grandchild,Grandparent,Sister,Spouse,Son,Other]",Off,true,11,false,Please Select an Option for: Relationship to Person Named on Birth Record,NONE,,Success
+Intended Use of Birth Certificate,RadioButton,"[Travel/Passport,School,Driver's License,Social Security/Benefits,Dual Citizenship,Employment,Other]",Off,true,7,false,Please Select an Option for: Intended Use of Birth Certificate,NONE,,Success
+Other Intended Use of Birth Certificate,TextField,[],,false,3,false,Please Enter Your: Other Intended Use of Birth Certificate,NONE,,Success
+First Name at Birth,TextField,[],,true,3,false,Please Enter Your: First Name at Birth,NONE,,Success
+Middle Name at Birth,TextField,[],,false,3,false,Please Enter Your: Middle Name at Birth,NONE,,Success
+Last Name at Birth,TextField,[],,true,3,false,Please Enter Your: Last Name at Birth,NONE,,Success
+Suffix at Birth,TextField,[],,false,3,false,Please Enter Your: Suffix at Birth,NONE,,Success
+Current Age,TextField,[],,true,3,false,Please Enter Your: Current Age,NONE,,Success
+Date of Birth:birthDate,TextField,[],12-14-1997,true,3,true,Please Enter Your: Date of Birth,NONE,,Success
+First Name if Changed Due to Any Reason Other Than Marriage,TextField,[],,false,3,false,Please Enter Your: First Name if Changed Due to Any Reason Other Than Marriage,NONE,,Success
+Middle Name if Changed Due to Any Reason Other Than Marriage,TextField,[],,false,3,false,Please Enter Your: Middle Name if Changed Due to Any Reason Other Than Marriage,NONE,,Success
+Last Name if Changed Due to Any Reason Other Than Marriage,TextField,[],,false,3,false,Please Enter Your: Last Name if Changed Due to Any Reason Other Than Marriage,NONE,,Success
+Suffix Name if Changed Due to Any Reason Other Than Marriage,TextField,[],,false,3,false,Please Enter Your: Suffix Name if Changed Due to Any Reason Other Than Marriage,NONE,,Success
+Sex,RadioButton,"[Male,Female]",Off,true,2,false,Please Select an Option for: Sex,NONE,,Success
+Type of Birth Record,ComboBox,"[Born in Pennsylvania,Born Abroad to a PA Citizen,Foreign-Born Adoption by a PA Citizen]",Off,true,3,false,Please Select an Option for: Type of Birth Record,NONE,,Success
+County of Birth,TextField,[],,false,3,false,Please Enter Your: County of Birth,NONE,,Success
+City/Borough/Township of Birth,TextField,[],,false,3,false,Please Enter Your: City/Borough/Township of Birth,NONE,,Success
+Hospital of Birth,TextField,[],,false,3,false,Please Enter Your: Hospital of Birth,NONE,,Success
+First Parent's Type,RadioButton,"[Mother,Father,Parent]",Off,false,3,false,Please Select an Option for: First Parent's Type,NONE,,Success
+First Parent's First Name,TextField,,,false,3,false,Please Enter Your: First Parent's First Name,NONE,,Success
+First Parent's Middle Name,TextField,,,false,3,false,Please Enter Your: First Parent's Middle Name,NONE,,Success
+First Parent's Last Name Prior to First Marriage,TextField,,,false,3,false,Please Enter Your: First Parent's Last Name Prior to First Marriage,NONE,,Success
+First Parent's Last Name,TextField,,,false,3,false,Please Enter Your: First Parent's Last Name,NONE,,Success
+Second Parent's Type,RadioButton,"[Mother,Father,Parent]",Off,false,3,false,Please Select an Option for: Second Parent's Type,NONE,,Success
+Second Parent's First Name,TextField,,,false,3,false,Please Enter Your: Second Parent's First Name,NONE,,Success
+Second Parent's Middle Name,TextField,,,false,3,false,Please Enter Your: Second Parent's Middle Name,NONE,,Success
+Second Parent's Last Name Prior to First Marriage,TextField,,,false,3,false,Please Enter Your: Second Parent's Last Name Prior to First Marriage,NONE,,Success
+Second Parent's Last Name,TextField,,,false,3,false,Please Enter Your: Second Parent's Last Name,NONE,,Success
+I have a photocopy of one of the following:,RadioButton,"[I have a valid driver's license or other government-issued photo ID that includes my mailing address,I do not have a valid government-issued photo ID; I have provided two current documents that verify my name and current address]",,true,2,false,Please Select an Option for: I have a photocopy of one of the following:,NONE,,Success
+Veteran Fee Waiver,CheckBox,[I or my current legal spouse (includes widow/widower if not married) is in active service or was honorably discharged from service],,false,3,false,Please Select: I or my current legal spouse (includes widow/widower if not married) is in active service or was honorably discharged from service,NONE,,Success
+Armed Forces Member's Name:+4.1,TextField,,,false,3,false,Please Enter Your: Armed Forces Member's Name,POSITIVE,4.1,Success
+Service Number:+4.1,TextField,,,false,3,false,Please Enter Your: Service Number,POSITIVE,4.1,Success
+,TextField,,,false,3,false,Please Enter Your: Rank and Branch of Services,POSITIVE,4.1,Success
+Signature:signature,SignatureField,,,true,3,false,Please Enter Your: Signature,NONE,,Success
+Date:currentDate,DateField,,,true,3,true,Please Enter Your: Date,NONE,,Success

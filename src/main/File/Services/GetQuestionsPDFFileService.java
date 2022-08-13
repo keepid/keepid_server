@@ -1,13 +1,14 @@
-package PDF.Services;
+package File.Services;
 
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
-import PDF.PdfMessage;
+import File.FileMessage;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Slf4j
-public class GetQuestionsPDFService implements Service {
+public class GetQuestionsPDFFileService implements Service {
   public static final int DEFAULT_FIELD_NUM_LINES = 3;
 
   UserType privilegeLevel;
@@ -31,7 +32,7 @@ public class GetQuestionsPDFService implements Service {
   UserDao userDao;
   JSONObject applicationInformation;
 
-  public GetQuestionsPDFService(
+  public GetQuestionsPDFFileService(
       UserDao userDao, UserType privilegeLevel, String username, InputStream fileStream) {
     this.userDao = userDao;
     this.privilegeLevel = privilegeLevel;
@@ -45,11 +46,11 @@ public class GetQuestionsPDFService implements Service {
     GetUserInfoService userInfoService = new GetUserInfoService(userDao, username);
     Message userInfoServiceResponse = userInfoService.executeAndGetResponse();
     if (userInfoServiceResponse != UserMessage.SUCCESS) {
-      return PdfMessage.SERVER_ERROR;
+      return FileMessage.SERVER_ERROR;
     } else {
       this.userInfo = userInfoService.getUserFields();
       if (fileStream == null) {
-        return PdfMessage.INVALID_PDF;
+        return FileMessage.INVALID_FILE;
       } else {
         if (privilegeLevel == UserType.Client
             || privilegeLevel == UserType.Worker
@@ -58,10 +59,10 @@ public class GetQuestionsPDFService implements Service {
           try {
             return getFieldInformation(fileStream);
           } catch (IOException e) {
-            return PdfMessage.SERVER_ERROR;
+            return FileMessage.SERVER_ERROR;
           }
         } else {
-          return PdfMessage.INSUFFICIENT_PRIVILEGE;
+          return FileMessage.INSUFFICIENT_PRIVILEGE;
         }
       }
     }
@@ -73,7 +74,7 @@ public class GetQuestionsPDFService implements Service {
   }
 
   public Message getFieldInformation(InputStream inputStream) throws IOException {
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     JSONObject responseJSON = new JSONObject();
     List<JSONObject> fieldsJSON = new LinkedList<>();
@@ -81,7 +82,7 @@ public class GetQuestionsPDFService implements Service {
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {
       pdfDocument.close();
-      return PdfMessage.INVALID_PDF;
+      return FileMessage.INVALID_FILE;
     }
 
     // Report the Metadata
@@ -127,7 +128,7 @@ public class GetQuestionsPDFService implements Service {
     this.applicationInformation = responseJSON;
 
     pdfDocument.close();
-    return PdfMessage.SUCCESS;
+    return FileMessage.SUCCESS;
   }
 
   private JSONObject getTextField(PDTextField field) {

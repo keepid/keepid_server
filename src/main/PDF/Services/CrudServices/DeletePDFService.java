@@ -1,4 +1,4 @@
-package PDF.Services;
+package PDF.Services.CrudServices;
 
 import Config.Message;
 import Config.Service;
@@ -44,38 +44,32 @@ public class DeletePDFService implements Service {
     if (!ValidationUtils.isValidObjectId(fileId) || pdfType == null) {
       return PdfMessage.INVALID_PARAMETER;
     }
-    ObjectId fileID = new ObjectId(fileId);
-    return delete(username, orgName, pdfType, userType, fileID, db);
+    return delete();
   }
 
-  public Message delete(
-      String user,
-      String organizationName,
-      PDFType pdfType,
-      UserType privilegeLevel,
-      ObjectId id,
-      MongoDatabase db) {
+  public Message delete() {
+    ObjectId id = new ObjectId(fileId);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     GridFSFile grid_out = gridBucket.find(Filters.eq("_id", id)).first();
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    if (pdfType == PDFType.APPLICATION
-        && (privilegeLevel == UserType.Admin
-            || privilegeLevel == UserType.Director
-            || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
+    if (pdfType == PDFType.COMPLETED_APPLICATION
+        && (userType == UserType.Admin
+            || userType == UserType.Director
+            || userType == UserType.Worker)) {
+      if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.IDENTIFICATION
-        && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("uploader").equals(user)) {
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
+        && (userType == UserType.Client || userType == UserType.Worker)) {
+      if (grid_out.getMetadata().getString("uploader").equals(username)) {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;
       }
-    } else if (pdfType == PDFType.FORM) {
-      if (grid_out.getMetadata().getString("organizationName").equals(organizationName)) {
+    } else if (pdfType == PDFType.BLANK_FORM) {
+      if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         gridBucket.delete(id);
         return PdfMessage.SUCCESS;
       }

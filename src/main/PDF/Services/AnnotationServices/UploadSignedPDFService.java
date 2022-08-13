@@ -1,8 +1,9 @@
-package PDF.Services;
+package PDF.Services.AnnotationServices;
 
 import Config.Message;
 import Config.Service;
 import PDF.PDFType;
+import PDF.PdfController;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
@@ -10,6 +11,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
@@ -77,16 +79,16 @@ public class UploadSignedPDFService implements Service {
         && !fileContentType.equals("application/octet-stream")) {
       return PdfMessage.INVALID_PDF;
     } else {
-      if ((pdfType == PDFType.APPLICATION
-              || pdfType == PDFType.IDENTIFICATION
-              || pdfType == PDFType.FORM)
+      if ((pdfType == PDFType.COMPLETED_APPLICATION
+              || pdfType == PDFType.IDENTIFICATION_DOCUMENT
+              || pdfType == PDFType.BLANK_FORM)
           && (privilegeLevel == UserType.Client
               || privilegeLevel == UserType.Worker
               || privilegeLevel == UserType.Director
               || privilegeLevel == UserType.Admin)) {
         try {
           InputStream signedPDF = signPDF(uploader, fileStream, signatureFileStream);
-          return mongodbUpload(uploader, organizationName, filename, signedPDF, pdfType, db);
+          return mongodbUpload(signedPDF);
         } catch (GeneralSecurityException | IOException e) {
           return PdfMessage.ENCRYPTION_ERROR;
         }
@@ -96,25 +98,20 @@ public class UploadSignedPDFService implements Service {
     }
   }
 
-  public Message mongodbUpload(
-      String uploader,
-      String organizationName,
-      String filename,
-      InputStream inputStream,
-      PDFType pdfType,
-      MongoDatabase db)
-      throws GeneralSecurityException, IOException {
+  public Message mongodbUpload(InputStream signedPDF) throws GeneralSecurityException, IOException {
+    String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    inputStream = encryptionController.encryptFile(inputStream, uploader);
+    InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
 
     GridFSUploadOptions options;
-    if (pdfType == PDFType.FORM) {
+    if (pdfType == PDFType.BLANK_FORM) {
       options =
           new GridFSUploadOptions()
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("title", title)
                       .append("annotated", false)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
@@ -125,6 +122,7 @@ public class UploadSignedPDFService implements Service {
               .metadata(
                   new Document("type", "pdf")
                       .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("title", title)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
     }
@@ -135,7 +133,7 @@ public class UploadSignedPDFService implements Service {
   public static InputStream signPDF(
       String username, InputStream pdfInputStream, InputStream imageInputStream)
       throws IOException {
-    PDDocument pdfDocument = PDDocument.load(pdfInputStream);
+    PDDocument pdfDocument = Loader.loadPDF(pdfInputStream);
 
     PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(imageInputStream);
     visibleSignDesigner.zoom(0);

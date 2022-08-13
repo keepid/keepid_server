@@ -22,7 +22,6 @@ import java.security.GeneralSecurityException;
 import static com.mongodb.client.model.Filters.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 public class ChangeTwoFactorSettingIntegrationTests {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);

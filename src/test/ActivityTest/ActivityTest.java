@@ -46,7 +46,6 @@ public class ActivityTest {
   //    act.insertOne(av);
   //    act.insertOne(ac);
   //    MongoCursor cursor = act.find(eq("owner", user1)).iterator();
-  //    System.out.print(cursor.next().getClass());
   //    assert (cursor.hasNext());
   //    assert (act.find(eq("type", "CreateUserActivity")).first() != null);
   //  }
@@ -60,7 +59,6 @@ public class ActivityTest {
   //                .projection(fields(include("firstName"), excludeId()))
   //                .first();
   //    String old = d.get("firstName").toString();
-  //    System.out.print(old);
   //    assert (old.equals("Cathy"));
   //  }
   //
@@ -77,16 +75,15 @@ public class ActivityTest {
     MongoCollection a = db.getCollection("activity");
     Document d = (Document) a.find(eq("owner", user1)).first();
     Document b = (Document) d.get("created");
-    //    System.out.println(b);
     assert (b.get("lastName").equals("Chen"));
   }
   //
   //  @Test
   //  public void testFoo() {
   //    MongoCollection<Super> act = db.getCollection("super", Super.class);
-  //    Super newact = new Super("hi", PDFType.FORM);
+  //    Super newact = new Super("hi", PDFType.BLANK_FORM);
   //    act.insertOne(newact);
-  //    assert (act.find(eq("en", PDFType.FORM)).first() != null);
+  //    assert (act.find(eq("en", PDFType.BLANK_FORM)).first() != null);
   //  }
   //
   //  @Test
@@ -96,11 +93,11 @@ public class ActivityTest {
   //    User user1 = user.find(eq("username", "createAdminOwner")).first();
   //    User user2 = user.find(eq("username", "createdAdmin")).first();
   //    ObjectId id = new ObjectId();
-  //    DeleteActivity deleteActivity = new DeleteActivity(user1, user2, PDFType.FORM, id);
+  //    DeleteActivity deleteActivity = new DeleteActivity(user1, user2, PDFType.BLANK_FORM, id);
   //    act.insertOne(deleteActivity);
   //    assert (act.find(eq("documentOwner",
   // user2)).first().getOwner().getLastName().equals("Chen"));
-  //    assert (act.find(eq("documentType", PDFType.FORM.toString())).first() != null);
+  //    assert (act.find(eq("documentType", PDFType.BLANK_FORM.toString())).first() != null);
   //  }
   //
   @Test

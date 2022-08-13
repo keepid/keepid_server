@@ -1,10 +1,10 @@
-package PDF.Services;
+package File.Services;
 
 import Config.Message;
 import Config.Service;
-import PDF.PdfMessage;
+import File.FileMessage;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
@@ -17,16 +17,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-public class FillPDFService implements Service {
+public class FillPDFFileService implements Service {
   UserType privilegeLevel;
   InputStream fileStream;
   JSONObject formAnswers;
   InputStream completedForm;
-  MongoDatabase db;
 
-  public FillPDFService(
-      MongoDatabase db, UserType privilegeLevel, InputStream fileStream, JSONObject formAnswers) {
-    this.db = db;
+  public FillPDFFileService(
+      UserType privilegeLevel, InputStream fileStream, JSONObject formAnswers) {
     this.privilegeLevel = privilegeLevel;
     this.fileStream = fileStream;
     this.formAnswers = formAnswers;
@@ -35,7 +33,7 @@ public class FillPDFService implements Service {
   @Override
   public Message executeAndGetResponse() {
     if (fileStream == null) {
-      return PdfMessage.INVALID_PDF;
+      return FileMessage.INVALID_FILE;
     } else {
       if (privilegeLevel == UserType.Client
           || privilegeLevel == UserType.Worker
@@ -44,10 +42,10 @@ public class FillPDFService implements Service {
         try {
           return fillFields(fileStream, formAnswers);
         } catch (IOException e) {
-          return PdfMessage.SERVER_ERROR;
+          return FileMessage.SERVER_ERROR;
         }
       } else {
-        return PdfMessage.INSUFFICIENT_PRIVILEGE;
+        return FileMessage.INSUFFICIENT_PRIVILEGE;
       }
     }
   }
@@ -60,13 +58,13 @@ public class FillPDFService implements Service {
   public Message fillFields(InputStream inputStream, JSONObject formAnswers)
       throws IllegalArgumentException, IOException {
     if (inputStream == null || formAnswers == null) {
-      return PdfMessage.INVALID_PDF;
+      return FileMessage.INVALID_FILE;
     }
-    PDDocument pdfDocument = PDDocument.load(inputStream);
+    PDDocument pdfDocument = Loader.loadPDF(inputStream);
     pdfDocument.setAllSecurityToBeRemoved(true);
     PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {
-      return PdfMessage.INVALID_PDF;
+      return FileMessage.INVALID_FILE;
     }
 
     for (String fieldName : formAnswers.keySet()) {
@@ -118,6 +116,6 @@ public class FillPDFService implements Service {
     pdfDocument.close();
 
     this.completedForm = new ByteArrayInputStream(outputStream.toByteArray());
-    return PdfMessage.SUCCESS;
+    return FileMessage.SUCCESS;
   }
 }
