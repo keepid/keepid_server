@@ -21,9 +21,18 @@ public class UserControllerV2 {
     this.userDao = userDao;
   }
 
+  /**
+   * Takes in JSON request with same property names as BaseUser.
+   *
+   * <p>Example:
+   *
+   * <p>{ "password": "passwordExample", "self": { "firstName": "Example", "lastName": "Example",
+   * "birthDate": "12-25-1999" } }
+   */
   public Handler signup =
       ctx -> {
         BaseUser payload = ctx.bodyAsClass(BaseUser.class);
+        log.info("Received payload: {}", payload);
         String hash = SecurityUtils.hashPassword(payload.getPassword());
         if (hash == null) {
           log.error("Could not hash password");
@@ -110,7 +119,7 @@ public class UserControllerV2 {
   }
 
   private void verifyBaseUser(BaseUser baseUser) throws Exception {
-    if (baseUser.getSelf() == null) {
+    if (!baseUser.validateSelf()) {
       throw new Exception();
     }
     if (baseUser.getPassword() == null) {

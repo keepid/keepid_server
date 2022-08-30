@@ -14,6 +14,7 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
 public class BaseUser {
 
   private ObjectId id;
@@ -33,6 +34,16 @@ public class BaseUser {
       result.put("birthDate", self.getBirthDate());
     }
     return result;
+  }
+
+  @JsonIgnore
+  public boolean validateSelf() {
+    if (self != null) {
+      return self.getFirstName() != null
+          && self.getLastName() != null
+          && self.getBirthDate() != null;
+    }
+    return false;
   }
 
   @JsonIgnore

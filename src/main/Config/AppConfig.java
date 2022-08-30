@@ -134,6 +134,11 @@ public class AppConfig {
     app.post("/set-default-id", userController.setDefaultIds);
     app.post("/get-default-id", userController.getDefaultIds);
 
+    /* -------------- USER AUTHENTICATION/USER RELATED ROUTES V2-------------- */
+    app.post("/create-user-v2", userControllerV2.signup);
+    app.post("/add-info", userControllerV2.addInformation);
+    app.post("/get-user-info-v2", userControllerV2.getInformation);
+
     /* -------------- ORGANIZATION SIGN UP ------------------ */
     //    app.post("/organization-signup-validator", orgController.organizationSignupValidator);
     app.post("/organization-signup", orgController.enrollOrganization);
