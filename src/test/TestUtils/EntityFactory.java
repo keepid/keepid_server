@@ -130,7 +130,10 @@ public class EntityFactory {
             defaultNumLines);
     private FormSection child =
         new FormSection(
-            "child", "childDescription", new ArrayList<FormSection>(), new ArrayList<FormQuestion>());
+            "child",
+            "childDescription",
+            new ArrayList<FormSection>(),
+            new ArrayList<FormQuestion>());
     List<FormSection> subSections = new ArrayList<>();
     private FormSection body;
 
@@ -256,7 +259,7 @@ public class EntityFactory {
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
-        newUser.setAssignedWorkers(assignedWorkerUsernames);
+        newUser.setAssignedWorkerUsernames(assignedWorkerUsernames);
         return newUser;
       } catch (ValidationException e) {
         throw new IllegalArgumentException("Illegal Param: " + e.toString());

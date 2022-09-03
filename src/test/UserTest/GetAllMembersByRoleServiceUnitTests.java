@@ -32,29 +32,35 @@ public class GetAllMembersByRoleServiceUnitTests {
   @Test
   public void success() {
     String targetOrg = "MyOrganization";
-    User workerInOrg1 = EntityFactory.createUser()
-        .withOrgName(targetOrg)
-        .withUsername("user1")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
-    User workerInOrg2 = EntityFactory.createUser()
-        .withOrgName(targetOrg)
-        .withUsername("user2")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
-    User clientInOrg2 = EntityFactory.createUser()
-        .withOrgName(targetOrg)
-        .withUsername("user3")
-        .withUserType(UserType.Client)
-        .buildAndPersist(userDao);
-    User userNotInOrg = EntityFactory.createUser()
-        .withOrgName("otherOrganization")
-        .withUsername("user4")
-        .buildAndPersist(userDao);
-    GetAllMembersByRoleService getMembersService = new GetAllMembersByRoleService(userDao, targetOrg, UserType.Worker);
+    User workerInOrg1 =
+        EntityFactory.createUser()
+            .withOrgName(targetOrg)
+            .withUsername("user1")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
+    User workerInOrg2 =
+        EntityFactory.createUser()
+            .withOrgName(targetOrg)
+            .withUsername("user2")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
+    User clientInOrg2 =
+        EntityFactory.createUser()
+            .withOrgName(targetOrg)
+            .withUsername("user3")
+            .withUserType(UserType.Client)
+            .buildAndPersist(userDao);
+    User userNotInOrg =
+        EntityFactory.createUser()
+            .withOrgName("otherOrganization")
+            .withUsername("user4")
+            .buildAndPersist(userDao);
+    GetAllMembersByRoleService getMembersService =
+        new GetAllMembersByRoleService(userDao, targetOrg, UserType.Worker);
     Message result = getMembersService.executeAndGetResponse();
     assertEquals(result, UserMessage.SUCCESS);
-    assertEquals(List.of(workerInOrg1.serialize().toString(), workerInOrg2.serialize().toString()),
+    assertEquals(
+        List.of(workerInOrg1.serialize().toString(), workerInOrg2.serialize().toString()),
         getMembersService.getUsersWithSpecificRole().stream()
             .map(JSONObject::toString)
             .sorted()
@@ -64,23 +70,27 @@ public class GetAllMembersByRoleServiceUnitTests {
   @Test
   public void noUsersInOrganization() {
     String targetOrg = "MyOrganization";
-    User workerNotInOrganization = EntityFactory.createUser()
-        .withOrgName("someOtherOrg")
-        .withUsername("user1")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
-    User workerNotInOrganization2 = EntityFactory.createUser()
-        .withOrgName("someOtherOrg")
-        .withUsername("user2")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
-    User client = EntityFactory.createUser()
-        .withOrgName(targetOrg)
-        .withUsername("user3")
-        .withUserType(UserType.Client)
-        .buildAndPersist(userDao);
+    User workerNotInOrganization =
+        EntityFactory.createUser()
+            .withOrgName("someOtherOrg")
+            .withUsername("user1")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
+    User workerNotInOrganization2 =
+        EntityFactory.createUser()
+            .withOrgName("someOtherOrg")
+            .withUsername("user2")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
+    User client =
+        EntityFactory.createUser()
+            .withOrgName(targetOrg)
+            .withUsername("user3")
+            .withUserType(UserType.Client)
+            .buildAndPersist(userDao);
 
-    GetAllMembersByRoleService getMembersService = new GetAllMembersByRoleService(userDao, targetOrg, UserType.Worker);
+    GetAllMembersByRoleService getMembersService =
+        new GetAllMembersByRoleService(userDao, targetOrg, UserType.Worker);
     Message result = getMembersService.executeAndGetResponse();
     assertEquals(result, UserMessage.SUCCESS);
     assertEquals(emptySet(), getMembersService.getUsersWithSpecificRole());
@@ -88,7 +98,8 @@ public class GetAllMembersByRoleServiceUnitTests {
 
   @Test
   public void notLoggedIn() {
-    GetAllMembersByRoleService getMembersService = new GetAllMembersByRoleService(userDao, null, UserType.Worker);
+    GetAllMembersByRoleService getMembersService =
+        new GetAllMembersByRoleService(userDao, null, UserType.Worker);
     Message result = getMembersService.executeAndGetResponse();
     assertEquals(result, UserMessage.SESSION_TOKEN_FAILURE);
     assertEquals(emptySet(), getMembersService.getUsersWithSpecificRole());

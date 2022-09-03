@@ -75,8 +75,7 @@ public class User {
   @BsonProperty(value = "assignedWorkerUsernames")
   private List<String> assignedWorkerUsernames;
 
-  public User() {
-  }
+  public User() {}
 
   public User(
       String firstName,
@@ -190,7 +189,10 @@ public class User {
     return this.password;
   }
 
-  public Map<String, String> getDefaultIds() { return this.defaultIds; };
+  public Map<String, String> getDefaultIds() {
+    return this.defaultIds;
+  }
+  ;
 
   public UserType getUserType() {
     return this.userType;
@@ -212,9 +214,7 @@ public class User {
     return this.assignedWorkerUsernames;
   }
 
-  /**
-   * *************** SETTERS *********************
-   */
+  /** *************** SETTERS ********************* */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
     return this;
@@ -300,7 +300,7 @@ public class User {
     return this;
   }
 
-  public User setAssignedWorkers(List<String> assignedWorkerUsernames) {
+  public User setAssignedWorkerUsernames(List<String> assignedWorkerUsernames) {
     this.assignedWorkerUsernames = assignedWorkerUsernames;
     return this;
   }
@@ -358,7 +358,7 @@ public class User {
       log.error("Invalid city: " + city);
       return UserValidationMessage.INVALID_CITY;
     }
-    if (ValidationUtils.hasValue(state) &&!ValidationUtils.isValidUSState(state)) {
+    if (ValidationUtils.hasValue(state) && !ValidationUtils.isValidUSState(state)) {
       log.error("Invalid state: " + state);
       return UserValidationMessage.INVALID_STATE;
     }
@@ -482,7 +482,7 @@ public class User {
 
   // Should user be able to update defaultIds via updateProperties?
 
-  public User updateProperties (UserUpdateRequest updateRequest) {
+  public User updateProperties(UserUpdateRequest updateRequest) {
     if (updateRequest.getFirstName() != null && updateRequest.getFirstName().isPresent()) {
       this.setFirstName(updateRequest.getFirstName().get());
     }

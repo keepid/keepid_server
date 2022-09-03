@@ -33,15 +33,14 @@ public class GetAllMembersByRoleService implements Service {
       log.error("Session Token Failure");
       return UserMessage.SESSION_TOKEN_FAILURE;
     }
-    this.usersWithSpecificRole = userDao.getAllFromOrg(orgName).stream()
-        .filter(user -> user.getUserType() == privilegeLevel)
-        .collect(Collectors.toSet());
+    this.usersWithSpecificRole =
+        userDao.getAllFromOrg(orgName).stream()
+            .filter(user -> user.getUserType() == privilegeLevel)
+            .collect(Collectors.toSet());
     return UserMessage.SUCCESS;
   }
 
   public Set<JSONObject> getUsersWithSpecificRole() {
-    return usersWithSpecificRole.stream()
-        .map(user -> user.serialize())
-        .collect(Collectors.toSet());
+    return usersWithSpecificRole.stream().map(user -> user.serialize()).collect(Collectors.toSet());
   }
 }

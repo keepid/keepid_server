@@ -10,6 +10,8 @@ import File.FileType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Services.*;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -18,7 +20,9 @@ import org.json.JSONObject;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -269,7 +273,8 @@ public class UserController {
         JSONObject res = new JSONObject();
         String orgName = ctx.sessionAttribute("orgName");
         UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
-        GetAllMembersByRoleService getAllMembersByRoleService = new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
+        GetAllMembersByRoleService getAllMembersByRoleService =
+            new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
         Message message = getAllMembersByRoleService.executeAndGetResponse();
         if (message == UserMessage.SUCCESS) {
           res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
@@ -372,8 +377,7 @@ public class UserController {
         if (mes == FileMessage.SUCCESS) {
           ctx.header("Content-Type", "image/" + serv.getContentType());
           ctx.result(serv.getInputStream());
-        }
-        else ctx.result(responseJSON.toString());
+        } else ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
@@ -441,5 +445,25 @@ public class UserController {
           log.info("Error: {}", response.getErrorName());
           ctx.result(response.toResponseString());
         }
+      };
+
+  public Handler assignWorkerToUser =
+      ctx -> {
+        log.info("Started assignWorkerToUser handler");
+        JSONObject req = new JSONObject(ctx.body());
+        String currentlyLoggedInUsername = ctx.sessionAttribute("username");
+        String targetUser = req.getString("user");
+
+        // convert json list to java list
+        Gson gson = new Gson();
+        List<String> workerUsernamesToAdd =
+            gson.fromJson(
+                req.get("workerUsernamesToAdd").toString(),
+                new TypeToken<ArrayList<String>>() {}.getType());
+        AssignWorkerToUserService getMembersService =
+            new AssignWorkerToUserService(
+                userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
+        Message message = getMembersService.executeAndGetResponse();
+        ctx.result(message.toResponseString());
       };
 }

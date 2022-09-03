@@ -28,14 +28,16 @@ public class GetUserInfoServiceUnitTests {
 
   @Test
   public void success() {
-    User worker1 = EntityFactory.createUser()
-        .withUsername("user1")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
-    User worker2 = EntityFactory.createUser()
-        .withUsername("user2")
-        .withUserType(UserType.Worker)
-        .buildAndPersist(userDao);
+    User worker1 =
+        EntityFactory.createUser()
+            .withUsername("user1")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
+    User worker2 =
+        EntityFactory.createUser()
+            .withUsername("user2")
+            .withUserType(UserType.Worker)
+            .buildAndPersist(userDao);
 
     GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, "user1");
     Message result = getUserInfoService.executeAndGetResponse();
@@ -53,7 +55,8 @@ public class GetUserInfoServiceUnitTests {
     GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, "no username");
     Message result = getUserInfoService.executeAndGetResponse();
     assertEquals(result, UserMessage.USER_NOT_FOUND);
-    assertThrows(IllegalStateException.class, getUserInfoService::getUserFields, "user must be defined");
+    assertThrows(
+        IllegalStateException.class, getUserInfoService::getUserFields, "user must be defined");
   }
 
   @Test
@@ -61,6 +64,7 @@ public class GetUserInfoServiceUnitTests {
     GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, null);
     Message result = getUserInfoService.executeAndGetResponse();
     assertEquals(result, UserMessage.SESSION_TOKEN_FAILURE);
-    assertThrows(IllegalStateException.class, getUserInfoService::getUserFields, "user must be defined");
+    assertThrows(
+        IllegalStateException.class, getUserInfoService::getUserFields, "user must be defined");
   }
 }
