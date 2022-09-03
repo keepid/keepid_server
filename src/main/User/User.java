@@ -1,8 +1,7 @@
 package User;
 
-import Organization.Organization;
-import Organization.Requests.OrganizationUpdateRequest;
 import User.Requests.UserUpdateRequest;
+import User.Services.DocumentType;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,13 +9,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.codecs.pojo.annotations.BsonDiscriminator;
-import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
-import User.Services.DocumentType;
 
 import java.util.*;
 
@@ -77,7 +72,11 @@ public class User {
   @BsonProperty(value = "defaultIds")
   private Map<String, String> defaultIds;
 
-  public User() {}
+  @BsonProperty(value = "assignedWorkerUsernames")
+  private List<String> assignedWorkerUsernames;
+
+  public User() {
+  }
 
   public User(
       String firstName,
@@ -134,7 +133,8 @@ public class User {
     this.password = password;
     this.userType = userType;
     this.creationDate = date;
-    this.defaultIds = new HashMap<String, String>();
+    this.defaultIds = new HashMap<>();
+    this.assignedWorkerUsernames = new ArrayList<>();
   }
 
   /** **************** GETTERS ********************* */
@@ -208,7 +208,13 @@ public class User {
     return this.logInHistory;
   }
 
-  /** **************** SETTERS ********************* */
+  public List<String> getAssignedWorkerUsernames() {
+    return this.assignedWorkerUsernames;
+  }
+
+  /**
+   * *************** SETTERS *********************
+   */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
     return this;
@@ -291,6 +297,16 @@ public class User {
 
   public User setLogInHistory(List<IpObject> logInHistory) {
     this.logInHistory = logInHistory;
+    return this;
+  }
+
+  public User setAssignedWorkers(List<String> assignedWorkerUsernames) {
+    this.assignedWorkerUsernames = assignedWorkerUsernames;
+    return this;
+  }
+
+  public User addAssignedWorker(String assignedWorkerUsername) {
+    this.assignedWorkerUsernames.add(assignedWorkerUsername);
     return this;
   }
 
@@ -385,6 +401,7 @@ public class User {
     sb.append(", userType=").append(this.userType);
     sb.append(", twoFactorOn=").append(this.twoFactorOn);
     sb.append(", creationDate=").append(this.creationDate);
+    sb.append(", assignedWorkerUsernames=").append(this.assignedWorkerUsernames.toString());
     sb.append("}");
     return sb.toString();
   }
@@ -428,7 +445,8 @@ public class User {
         this.password,
         this.defaultIds,
         this.userType,
-        this.twoFactorOn);
+        this.twoFactorOn,
+        this.assignedWorkerUsernames);
   }
 
   public JSONObject serialize() {
@@ -450,6 +468,7 @@ public class User {
     userJSON.put("creationDate", creationDate);
     userJSON.put("twoFactorOn", twoFactorOn);
     userJSON.put("defaultIds", defaultIds);
+    userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
     return userJSON;
   }
 

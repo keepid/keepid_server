@@ -262,6 +262,24 @@ public class UserController {
         }
       };
 
+  public Handler getAllMembersByRole =
+      ctx -> {
+        log.info("Started getAllMembersByRoles handler");
+        JSONObject req = new JSONObject(ctx.body());
+        JSONObject res = new JSONObject();
+        String orgName = ctx.sessionAttribute("orgName");
+        UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
+        GetAllMembersByRoleService getAllMembersByRoleService = new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
+        Message message = getAllMembersByRoleService.executeAndGetResponse();
+        if (message == UserMessage.SUCCESS) {
+          res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
+          res.put("numPeople", getAllMembersByRoleService.getUsersWithSpecificRole().size());
+          ctx.result(mergeJSON(res, message.toJSON()).toString());
+        } else {
+          ctx.result(message.toResponseString());
+        }
+      };
+
   /*
    Returned JSON format:
      {“username”: “username”,

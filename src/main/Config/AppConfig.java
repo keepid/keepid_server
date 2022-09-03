@@ -125,6 +125,7 @@ public class AppConfig {
     app.post("/get-user-info", userController.getUserInfo);
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
+    app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
     // TODO: no longer necessary with upload file route
     app.post("/upload-pfp", userController.uploadPfp);

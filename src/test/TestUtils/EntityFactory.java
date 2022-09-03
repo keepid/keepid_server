@@ -233,6 +233,7 @@ public class EntityFactory {
     private boolean twoFactorOn = false;
     private Date creationDate = new Date(TEST_DATE);
     private List<IpObject> logInHistory = new ArrayList<>();
+    private List<String> assignedWorkerUsernames = new ArrayList<>();
 
     @Override
     public User build() {
@@ -255,6 +256,7 @@ public class EntityFactory {
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
+        newUser.setAssignedWorkers(assignedWorkerUsernames);
         return newUser;
       } catch (ValidationException e) {
         throw new IllegalArgumentException("Illegal Param: " + e.toString());
@@ -355,6 +357,11 @@ public class EntityFactory {
 
     public PartialUser withDefaultId(String category, String id) {
       this.defaultIds.put(category, id);
+      return this;
+    }
+
+    public PartialUser withAssignedWorker(String assignedWorkerUsername) {
+      this.assignedWorkerUsernames.add(assignedWorkerUsername);
       return this;
     }
   }
