@@ -2,7 +2,6 @@ package Database.User;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
-import Security.SecurityUtils;
 import User.User;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -74,18 +73,6 @@ public class UserDaoImpl implements UserDao {
   @Override
   public void update(User user) {
     userCollection.replaceOne(eq("username", user.getUsername()), user);
-    //    User existingUser = userCollection.find(eq("username", user.getUsername())).first();
-    //    Map<String, Object> existingUserMap = user.toMap();
-    //
-    //    Map<String, Object> keyValueMap = user.toMap();
-    //    Bson statement =
-    //        combine(
-    //            keyValueMap.keySet().stream()
-    //                .filter(k -> keyValueMap.get(k) != null && keyValueMap.get(k) !=
-    // existingUserMap.get(k))
-    //                .map(k -> set(k, keyValueMap.get(k)))
-    //                .collect(Collectors.toList()));
-    //    userCollection.updateOne(eq("username", user.getUsername()), statement);
   }
 
   @Override

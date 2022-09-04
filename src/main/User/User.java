@@ -1,8 +1,7 @@
 package User;
 
-import Organization.Organization;
-import Organization.Requests.OrganizationUpdateRequest;
 import User.Requests.UserUpdateRequest;
+import User.Services.DocumentType;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -10,13 +9,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.codecs.pojo.annotations.BsonDiscriminator;
-import org.bson.codecs.pojo.annotations.BsonId;
-import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
-import User.Services.DocumentType;
 
 import java.util.*;
 
@@ -77,6 +72,9 @@ public class User {
   @BsonProperty(value = "defaultIds")
   private Map<String, String> defaultIds;
 
+  @BsonProperty(value = "assignedWorkerUsernames")
+  private List<String> assignedWorkerUsernames;
+
   public User() {}
 
   public User(
@@ -134,7 +132,8 @@ public class User {
     this.password = password;
     this.userType = userType;
     this.creationDate = date;
-    this.defaultIds = new HashMap<String, String>();
+    this.defaultIds = new HashMap<>();
+    this.assignedWorkerUsernames = new ArrayList<>();
   }
 
   /** **************** GETTERS ********************* */
@@ -190,7 +189,10 @@ public class User {
     return this.password;
   }
 
-  public Map<String, String> getDefaultIds() { return this.defaultIds; };
+  public Map<String, String> getDefaultIds() {
+    return this.defaultIds;
+  }
+  ;
 
   public UserType getUserType() {
     return this.userType;
@@ -208,7 +210,11 @@ public class User {
     return this.logInHistory;
   }
 
-  /** **************** SETTERS ********************* */
+  public List<String> getAssignedWorkerUsernames() {
+    return this.assignedWorkerUsernames;
+  }
+
+  /** *************** SETTERS ********************* */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
     return this;
@@ -294,6 +300,16 @@ public class User {
     return this;
   }
 
+  public User setAssignedWorkerUsernames(List<String> assignedWorkerUsernames) {
+    this.assignedWorkerUsernames = assignedWorkerUsernames;
+    return this;
+  }
+
+  public User addAssignedWorker(String assignedWorkerUsername) {
+    this.assignedWorkerUsernames.add(assignedWorkerUsername);
+    return this;
+  }
+
   private static UserValidationMessage isValid(
       String firstName,
       String lastName,
@@ -342,7 +358,7 @@ public class User {
       log.error("Invalid city: " + city);
       return UserValidationMessage.INVALID_CITY;
     }
-    if (ValidationUtils.hasValue(state) &&!ValidationUtils.isValidUSState(state)) {
+    if (ValidationUtils.hasValue(state) && !ValidationUtils.isValidUSState(state)) {
       log.error("Invalid state: " + state);
       return UserValidationMessage.INVALID_STATE;
     }
@@ -385,6 +401,7 @@ public class User {
     sb.append(", userType=").append(this.userType);
     sb.append(", twoFactorOn=").append(this.twoFactorOn);
     sb.append(", creationDate=").append(this.creationDate);
+    sb.append(", assignedWorkerUsernames=").append(this.assignedWorkerUsernames.toString());
     sb.append("}");
     return sb.toString();
   }
@@ -428,7 +445,8 @@ public class User {
         this.password,
         this.defaultIds,
         this.userType,
-        this.twoFactorOn);
+        this.twoFactorOn,
+        this.assignedWorkerUsernames);
   }
 
   public JSONObject serialize() {
@@ -450,6 +468,7 @@ public class User {
     userJSON.put("creationDate", creationDate);
     userJSON.put("twoFactorOn", twoFactorOn);
     userJSON.put("defaultIds", defaultIds);
+    userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
     return userJSON;
   }
 
@@ -463,7 +482,7 @@ public class User {
 
   // Should user be able to update defaultIds via updateProperties?
 
-  public User updateProperties (UserUpdateRequest updateRequest) {
+  public User updateProperties(UserUpdateRequest updateRequest) {
     if (updateRequest.getFirstName() != null && updateRequest.getFirstName().isPresent()) {
       this.setFirstName(updateRequest.getFirstName().get());
     }
