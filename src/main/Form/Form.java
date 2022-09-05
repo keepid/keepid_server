@@ -1,12 +1,12 @@
 package Form;
 
-import com.google.api.client.util.DateTime;
 import com.google.gson.Gson;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
@@ -20,10 +20,10 @@ public class Form implements Comparable<Form> {
   private FormSection body;
 
   @BsonProperty(value = "uploadedAt")
-  private DateTime uploadedAt;
+  private LocalDateTime uploadedAt;
 
   @BsonProperty(value = "lastModifiedAt")
-  private DateTime lastModifiedAt;
+  private LocalDateTime lastModifiedAt;
 
   @BsonProperty(value = "username")
   private String username;
@@ -49,20 +49,18 @@ public class Form implements Comparable<Form> {
   @BsonProperty(value = "condition")
   private String condition;
 
-  public Form() {
-  }
+  public Form() {}
 
   @Override
   public int compareTo(@NotNull Form otherForm) {
     return this.getComparator().compare(this, otherForm);
   }
 
-
   public Form(
       String username,
       Optional<String> uploaderUsername,
-      DateTime uploadedAt,
-      Optional<DateTime> lastModifiedAt,
+      LocalDateTime uploadedAt,
+      Optional<LocalDateTime> lastModifiedAt,
       FormType formType,
       boolean isTemplate,
       FormMetadata metadata,
@@ -92,11 +90,11 @@ public class Form implements Comparable<Form> {
     return this.fileId;
   }
 
-  public DateTime getLastModifiedAt() {
+  public LocalDateTime getLastModifiedAt() {
     return lastModifiedAt;
   }
 
-  public DateTime getUploadedAt() {
+  public LocalDateTime getUploadedAt() {
     return uploadedAt;
   }
 
@@ -141,7 +139,7 @@ public class Form implements Comparable<Form> {
     this.id = id;
   }
 
-  public void setLastModifiedAt(DateTime lastModifiedAt) {
+  public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
     this.lastModifiedAt = lastModifiedAt;
   }
 
@@ -153,7 +151,7 @@ public class Form implements Comparable<Form> {
     this.uploaderUsername = uploaderUsername;
   }
 
-  public void setUploadedAt(DateTime uploadedAt) {
+  public void setUploadedAt(LocalDateTime uploadedAt) {
     this.uploadedAt = uploadedAt;
   }
 

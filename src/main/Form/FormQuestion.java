@@ -2,10 +2,10 @@ package Form;
 
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class FormQuestion implements Comparable<FormQuestion> {
   ObjectId id;
@@ -89,10 +89,21 @@ public class FormQuestion implements Comparable<FormQuestion> {
         .thenComparing(FormQuestion::getType)
         .thenComparing(FormQuestion::getConditionalOnField)
         .thenComparing(FormQuestion::getNumLines)
-        .thenComparing(question -> question.getOptions().stream()
-            .flatMap(option -> Stream.of(option.hashCode()))
-            .reduce(Integer::sum)
-            .orElse(0));
+        .thenComparing(question -> question.getOptions().stream().reduce("", String::concat));
+  }
+
+  public JSONObject serialize() {
+    return new JSONObject()
+        .put("_id", id)
+        .put("fieldType", type.toString())
+        .put("question", questionText)
+        .put("options", options)
+        .put("defaultValue", defaultValue)
+        .put("isRequired", this.isRequired())
+        .put("numLines", numLines)
+        .put("isMatched", matched)
+        .put("conditionalOnField", conditionalOnField)
+        .put("isConditionalType", conditionalType);
   }
 
   @Override
