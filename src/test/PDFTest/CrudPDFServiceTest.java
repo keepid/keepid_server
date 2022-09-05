@@ -236,7 +236,7 @@ public class CrudPDFServiceTest {
         .withUsername("workerttfBSM")
         .buildAndPersist(userDao);
     TestUtils.login(username, password);
-    clearAllDocuments();
+    clearAllDocumentsForUser(username, password);
     File applicationPDF = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
     TestUtils.logout();

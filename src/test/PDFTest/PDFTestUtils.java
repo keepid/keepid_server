@@ -75,7 +75,8 @@ public class PDFTestUtils {
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static void clearAllDocuments() {
+  public static void clearAllDocumentsForUser(String username, String password) {
+    TestUtils.login(username, password);
     String[] pdfTypes = {"BLANK_FORM", "IDENTIFICATION_DOCUMENT", "COMPLETED_APPLICATION"};
     boolean[] annotated = {false, true, false};
     for (int j = 0; j < pdfTypes.length; j++) {
