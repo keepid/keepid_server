@@ -1,6 +1,9 @@
 package User.Services;
 
-import Activity.*;
+import Activity.CreateAdminActivity;
+import Activity.CreateClientActivity;
+import Activity.CreateDirectorActivity;
+import Activity.CreateWorkerActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -37,7 +40,6 @@ public class CreateUserService implements Service {
   String username;
   String password;
   UserType userType;
-  ActivityController activityController;
 
   public CreateUserService(
       UserDao userDao,
@@ -59,6 +61,7 @@ public class CreateUserService implements Service {
       String password,
       UserType userType) {
     this.userDao = userDao;
+    this.activityDao = activityDao;
     this.sessionUserLevel = sessionUserLevel;
     this.organizationName = organizationName;
     this.sessionUsername = sessionUsername;
@@ -75,26 +78,6 @@ public class CreateUserService implements Service {
     this.username = username;
     this.password = password;
     this.userType = userType;
-  }
-
-  // for testing
-  CreateUserService(UserDao userDao, User user, String sessionUsername, UserType sessionUserLevel) {
-    this.sessionUserLevel = sessionUserLevel;
-    this.organizationName = user.getOrganization();
-    this.sessionUsername = sessionUsername;
-    this.firstName = user.getFirstName();
-    this.lastName = user.getLastName();
-    this.birthDate = user.getBirthDate();
-    this.email = user.getEmail();
-    this.phone = user.getPhone();
-    this.address = user.getAddress();
-    this.city = user.getCity();
-    this.state = user.getState();
-    this.zipcode = user.getZipcode();
-    this.twoFactorOn = user.getTwoFactorOn();
-    this.username = user.getUsername();
-    this.password = user.getPassword();
-    this.userType = user.getUserType();
   }
 
   @Override
@@ -167,27 +150,27 @@ public class CreateUserService implements Service {
 
     // insert user into database
     userDao.save(user);
-    User sessionUser = userDao.get(username).orElseThrow();
+    if (sessionUsername == null) {
+      sessionUsername = username;
+    }
+
     // create activity
     switch (user.getUserType()) {
       case Worker:
-        CreateWorkerActivity act =
-            new CreateWorkerActivity(sessionUser.getUsername(), user.getUsername());
+        CreateWorkerActivity act = new CreateWorkerActivity(sessionUsername, user.getUsername());
         activityDao.save(act);
         break;
       case Director:
         CreateDirectorActivity dir =
-            new CreateDirectorActivity(sessionUser.getUsername(), user.getUsername());
+            new CreateDirectorActivity(sessionUsername, user.getUsername());
         activityDao.save(dir);
         break;
       case Admin:
-        CreateAdminActivity adm =
-            new CreateAdminActivity(sessionUser.getUsername(), user.getUsername());
+        CreateAdminActivity adm = new CreateAdminActivity(sessionUsername, user.getUsername());
         activityDao.save(adm);
         break;
       case Client:
-        CreateClientActivity cli =
-            new CreateClientActivity(sessionUser.getUsername(), user.getUsername());
+        CreateClientActivity cli = new CreateClientActivity(sessionUsername, user.getUsername());
         activityDao.save(cli);
         break;
     }
