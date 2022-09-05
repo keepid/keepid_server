@@ -11,7 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class FormMetadata implements Comparable<FormMetadata> {
   String title;
@@ -83,27 +82,24 @@ public class FormMetadata implements Comparable<FormMetadata> {
         .thenComparing(FormMetadata::getState)
         .thenComparing(FormMetadata::getNumLines)
         .thenComparing(metadata -> metadata.getLastRevisedAt())
-        .thenComparingInt(
-            metadata ->
-                metadata.getPrerequisites().stream()
-                    .flatMap(objectId -> Stream.of(objectId.hashCode()))
-                    .reduce(Integer::sum)
-                    .orElse(0))
         .thenComparing(
             metadata ->
-                metadata.getPaymentInfo().stream().sorted().reduce(String::concat).orElse(""));
+                metadata.getPrerequisites().stream()
+                    .map(ObjectId::toString)
+                    .sorted()
+                    .reduce("", String::concat))
+        .thenComparing(
+            metadata -> metadata.getPaymentInfo().stream().sorted().reduce("", String::concat));
   }
 
   @Override
   public boolean equals(Object obj) {
-
     if (obj == null) {
       return false;
     }
     if (obj.getClass() != this.getClass()) {
       return false;
     }
-
     final FormMetadata other = (FormMetadata) obj;
     return getComparator().compare(this, other) == 0;
   }
