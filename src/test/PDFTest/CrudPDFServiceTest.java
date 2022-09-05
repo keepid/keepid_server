@@ -48,22 +48,24 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadValidPDFTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestPDF();
   }
 
   @Test
   public void uploadFormTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestFormPDF();
     TestUtils.logout();
@@ -83,11 +85,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadImageToPDFTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
 
     File file = new File(resourcesFolderPath + File.separator + "1.png");
@@ -103,11 +106,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadValidPDFTestExists() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestPDF();
     searchTestPDF();
@@ -125,11 +129,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadValidPDFTestExistsAndDelete() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestPDF();
     JSONObject allDocuments = searchTestPDF();
@@ -140,11 +145,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadInvalidPDFTypeTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File examplePDF =
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
@@ -161,11 +167,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadNullPDFTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File examplePDF = null;
     HttpResponse<String> uploadResponse =
@@ -185,11 +192,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void downloadTestFormTest() throws IOException, GeneralSecurityException {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(testPdf, "BLANK_FORM");
@@ -206,11 +214,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void downloadPDFTypeNullTest() throws IOException, GeneralSecurityException {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(testPdf, "BLANK_FORM");

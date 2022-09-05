@@ -1,42 +1,30 @@
 package FileTest;
 
-import Security.EncryptionUtils;
+import Config.DeploymentLevel;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
+import User.User;
+import User.UserType;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.nio.file.Paths;
-
 import static FileTest.FileControllerIntegrationTestHelperMethods.uploadTestPDF;
-import static PDFTest.PDFTestUtils.username;
 
 public class FileControllerIntegrationTests {
-  private static EncryptionUtils encryptionUtils;
-
-  public static String currentPDFFolderPath =
-      Paths.get("").toAbsolutePath().toString()
-          + File.separator
-          + "src"
-          + File.separator
-          + "test"
-          + File.separator
-          + "PDFTest";
-
-  public static String resourcesFolderPath =
-      Paths.get("").toAbsolutePath().toString()
-          + File.separator
-          + "src"
-          + File.separator
-          + "test"
-          + File.separator
-          + "resources";
+  private final UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
 
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+  }
+
+  @After
+  public void clear() {
+    userDao.clear();
   }
 
   @AfterClass
@@ -46,7 +34,15 @@ public class FileControllerIntegrationTests {
 
   @Test
   public void uploadValidPDFTest() {
-    TestUtils.login(username, username);
+    String username = "username1";
+    String password = "password1";
+    User user =
+        EntityFactory.createUser()
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .withUserType(UserType.Client)
+            .buildAndPersist(userDao);
+    TestUtils.login(username, password);
     uploadTestPDF();
     TestUtils.logout();
   }
