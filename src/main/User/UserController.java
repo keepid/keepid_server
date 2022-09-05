@@ -1,6 +1,7 @@
 package User;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
@@ -30,12 +31,19 @@ public class UserController {
   MongoDatabase db;
   UserDao userDao;
   TokenDao tokenDao;
+  ActivityDao activityDao;
   FileDao fileDao;
 
-  public UserController(UserDao userDao, TokenDao tokenDao, FileDao fileDao, MongoDatabase db) {
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.db = db;
   }
 
@@ -50,7 +58,7 @@ public class UserController {
         log.info("Attempting to login " + username);
 
         LoginService loginService =
-            new LoginService(userDao, tokenDao, username, password, ip, userAgent);
+            new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
         Message response = loginService.executeAndGetResponse();
         log.info(response.toString() + response.getErrorDescription());
         JSONObject responseJSON = response.toJSON();
@@ -136,6 +144,7 @@ public class UserController {
         CreateUserService createUserService =
             new CreateUserService(
                 userDao,
+                activityDao,
                 sessionUserLevel,
                 organizationName,
                 sessionUsername,
@@ -194,6 +203,7 @@ public class UserController {
         CreateUserService createUserService =
             new CreateUserService(
                 userDao,
+                activityDao,
                 UserType.Director,
                 organizationName,
                 null,

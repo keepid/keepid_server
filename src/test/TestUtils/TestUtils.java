@@ -33,15 +33,17 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestUtils {
-  private static final Optional<Integer> SERVER_TEST_PORT = Optional.ofNullable(System.getenv("TEST_PORT")).map(Integer::valueOf);
+  private static final Optional<Integer> SERVER_TEST_PORT =
+      Optional.ofNullable(System.getenv("TEST_PORT")).map(Integer::valueOf);
   private static final String SERVER_TEST_URL = "http://localhost:" + SERVER_TEST_PORT.orElse(7001);
   private static Javalin app;
   private static EncryptionUtils encryptionUtils;
 
   public static Javalin startServer() {
     if (SERVER_TEST_PORT.isEmpty()) {
-      throw new IllegalStateException("Please run test with env file. You can do this by going to the edit configurations " +
-          "menu next to the run test button in the top right hand corner of IntelliJ.");
+      throw new IllegalStateException(
+          "Please run test with env file. You can do this by going to the edit configurations "
+              + "menu next to the run test button in the top right hand corner of IntelliJ.");
     }
     if (app == null) {
       try {
@@ -772,6 +774,9 @@ public class TestUtils {
   }
 
   public static JSONObject responseStringToJSON(String response) {
+    if (response.equals("Internal server error")) {
+      throw new IllegalStateException("Server Failure, check the logs to figure out the error");
+    }
     if (response.charAt(0) == '"') {
       String strippedResponse = response.substring(1, response.length() - 1).replace("\\", "");
       return new JSONObject(strippedResponse);

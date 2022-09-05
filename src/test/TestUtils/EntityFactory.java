@@ -522,13 +522,16 @@ public class EntityFactory {
 
   public static class PartialActivity implements PartialObject<Activity> {
     private ObjectId id = new ObjectId();
-    private LocalDateTime occuredAt = LocalDateTime.now();
-    private User owner = EntityFactory.createUser().build();
+    private LocalDateTime occurredAt = LocalDateTime.of(2022, 9, 4, 12, 12, 12);
+    private String username = "exampleUsername";
     private List<String> type = Collections.emptyList();
 
     @Override
     public Activity build() {
-      Activity newActivity = new Activity().setOccurredAt(occuredAt).setOwner(owner).setType(type);
+      Activity newActivity = new Activity().setOccurredAt(occurredAt).setUsername(username);
+      if (!type.isEmpty()) {
+        newActivity.setType(type);
+      }
       return newActivity;
     }
 
@@ -544,18 +547,23 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialActivity withLocalDateTime(LocalDateTime occuredAt) {
-      this.occuredAt = occuredAt;
+    public PartialActivity withOccurredAt(LocalDateTime occurredAt) {
+      this.occurredAt = occurredAt;
       return this;
     }
 
-    public PartialActivity withOwner(User owner) {
-      this.owner = owner;
+    public PartialActivity withUsername(String username) {
+      this.username = username;
       return this;
     }
 
     public PartialActivity withType(List<String> type) {
       this.type = type;
+      return this;
+    }
+
+    public PartialActivity withType(Activity activity) {
+      this.type = activity.getType();
       return this;
     }
   }

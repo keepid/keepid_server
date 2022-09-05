@@ -1,9 +1,9 @@
 package Security.Services;
 
-import Activity.ActivityController;
 import Activity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
 import User.User;
@@ -16,14 +16,21 @@ import java.util.Optional;
 
 public class ChangeAccountSettingService implements Service {
   UserDao userDao;
+  ActivityDao activityDao;
   private String username;
   private String password;
   private String key;
   private String value;
 
   public ChangeAccountSettingService(
-      UserDao userDao, String username, String password, String key, String value) {
+      UserDao userDao,
+      ActivityDao activityDao,
+      String username,
+      String password,
+      String key,
+      String value) {
     this.userDao = userDao;
+    this.activityDao = activityDao;
     this.username = username;
     this.password = password;
     this.key = key;
@@ -54,9 +61,9 @@ public class ChangeAccountSettingService implements Service {
     }
     JSONObject userAsJson = user.serialize();
     String old = userAsJson.get(key).toString();
-    ActivityController activityController = new ActivityController();
-    ChangeUserAttributesActivity act = new ChangeUserAttributesActivity(user, key, old, value);
-    activityController.addActivity(act);
+    ChangeUserAttributesActivity act =
+        new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
+    activityDao.save(act);
     switch (key) {
       case "firstName":
         if (!ValidationUtils.isValidFirstName(value)) {

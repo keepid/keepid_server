@@ -1,9 +1,9 @@
 package User.Services;
 
-import Activity.ActivityController;
 import Activity.LoginActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Issue.IssueController;
@@ -32,28 +32,29 @@ public class LoginService implements Service {
   public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
   private UserDao userDao;
   private TokenDao tokenDao;
-  private String username;
-  private String password;
+  private ActivityDao activityDao;
+  private final String username;
+  private final String password;
   private User user;
-  private String ip;
-  private String userAgent;
-  private ActivityController activityController;
+  private final String ip;
+  private final String userAgent;
   public static final long JWT_EXPIRATION_IN_MILI = 300000;
 
   public LoginService(
       UserDao userDao,
       TokenDao tokenDao,
+      ActivityDao activityDao,
       String username,
       String password,
       String ip,
       String userAgent) {
     this.userDao = userDao;
+    this.activityDao = activityDao;
     this.tokenDao = tokenDao;
     this.username = username;
     this.password = password;
     this.ip = ip;
     this.userAgent = userAgent;
-    activityController = new ActivityController();
   }
 
   // the execute function will handle all business logic
@@ -89,8 +90,8 @@ public class LoginService implements Service {
   }
 
   public void recordActivityLogin() {
-    LoginActivity log = new LoginActivity(user, user.getTwoFactorOn());
-    activityController.addActivity(log);
+    LoginActivity log = new LoginActivity(user.getUsername(), user.getTwoFactorOn());
+    activityDao.save(log);
   }
 
   public void getLocationOfLogin(User user, String ip, String userAgent) {

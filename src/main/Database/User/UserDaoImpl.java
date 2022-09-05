@@ -15,7 +15,7 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.eq;
 
 public class UserDaoImpl implements UserDao {
-  private MongoCollection<User> userCollection;
+  private final MongoCollection<User> userCollection;
 
   public UserDaoImpl(DeploymentLevel deploymentLevel) {
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);

@@ -3,6 +3,8 @@ package Config;
 import Activity.ActivityController;
 import Admin.AdminController;
 import Billing.BillingController;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -52,6 +54,7 @@ public class AppConfig {
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
+    ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -66,15 +69,15 @@ public class AppConfig {
     //    }
 
     // We need to instantiate the controllers with the database.
-    OrganizationController orgController = new OrganizationController(db);
-    UserController userController = new UserController(userDao, tokenDao, fileDao, db);
+    OrganizationController orgController = new OrganizationController(db, activityDao);
+    UserController userController = new UserController(userDao, tokenDao, fileDao, activityDao, db);
     AccountSecurityController accountSecurityController =
-        new AccountSecurityController(userDao, tokenDao);
+        new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao);
     FormController formController = new FormController(db, formDao);
     FileController fileController = new FileController(db, userDao, fileDao);
     IssueController issueController = new IssueController(db);
-    ActivityController activityController = new ActivityController();
+    ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);

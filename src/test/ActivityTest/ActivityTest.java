@@ -25,7 +25,6 @@ public class ActivityTest {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
   }
 
   @AfterClass
@@ -68,8 +67,8 @@ public class ActivityTest {
     MongoCollection<User> user = db.getCollection("user", User.class);
     User user1 = user.find(eq("username", "createAdminOwner")).first();
     User user2 = user.find(eq("username", "createdAdmin")).first();
-    CreateAdminActivity av = new CreateAdminActivity(user1, user2);
-    CreateWorkerActivity ac = new CreateWorkerActivity(user1, user2);
+    CreateAdminActivity av = new CreateAdminActivity(user1.getUsername(), user2.getUsername());
+    CreateWorkerActivity ac = new CreateWorkerActivity(user1.getUsername(), user2.getUsername());
     act.insertOne(av);
     act.insertOne(ac);
     MongoCollection a = db.getCollection("activity");

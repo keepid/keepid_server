@@ -2,6 +2,8 @@ package UserTest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -22,11 +24,13 @@ import java.security.GeneralSecurityException;
 import static com.mongodb.client.model.Filters.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 public class ChangeTwoFactorSettingIntegrationTests {
   Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+  ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
 
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
@@ -48,7 +52,7 @@ public class ChangeTwoFactorSettingIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
     when(ctx.sessionAttribute("username")).thenReturn("settings-test-2fa");
 
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
+    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
     asc.change2FASetting.handle(ctx);
 
     // Check that setting was changed
@@ -65,7 +69,7 @@ public class ChangeTwoFactorSettingIntegrationTests {
     when(ctx.body()).thenReturn(inputString);
     when(ctx.sessionAttribute("username")).thenReturn("settings-test-2fa");
 
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao);
+    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
     asc.change2FASetting.handle(ctx);
 
     // Check that setting was changed
