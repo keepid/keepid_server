@@ -21,8 +21,8 @@ public class CreateWorkerActivity extends CreateUserActivity {
     super();
   }
 
-  public CreateWorkerActivity(User owner, User created) {
-    super(owner, created);
+  public CreateWorkerActivity(String username, String createdUsername) {
+    super(username, createdUsername);
   }
 
   public User getCreator() {

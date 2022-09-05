@@ -3,6 +3,7 @@ package User.Services;
 import Activity.*;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
 import User.IpObject;
@@ -19,6 +20,7 @@ import java.util.Optional;
 @Slf4j
 public class CreateUserService implements Service {
   UserDao userDao;
+  ActivityDao activityDao;
   UserType sessionUserLevel;
   String organizationName;
   String sessionUsername;
@@ -39,6 +41,7 @@ public class CreateUserService implements Service {
 
   public CreateUserService(
       UserDao userDao,
+      ActivityDao activityDao,
       UserType sessionUserLevel,
       String organizationName,
       String sessionUsername,
@@ -72,7 +75,6 @@ public class CreateUserService implements Service {
     this.username = username;
     this.password = password;
     this.userType = userType;
-    activityController = new ActivityController();
   }
 
   // for testing
@@ -169,20 +171,24 @@ public class CreateUserService implements Service {
     // create activity
     switch (user.getUserType()) {
       case Worker:
-        CreateWorkerActivity act = new CreateWorkerActivity(sessionUser, user);
-        activityController.addActivity(act);
+        CreateWorkerActivity act =
+            new CreateWorkerActivity(sessionUser.getUsername(), user.getUsername());
+        activityDao.save(act);
         break;
       case Director:
-        CreateDirectorActivity dir = new CreateDirectorActivity(sessionUser, user);
-        activityController.addActivity(dir);
+        CreateDirectorActivity dir =
+            new CreateDirectorActivity(sessionUser.getUsername(), user.getUsername());
+        activityDao.save(dir);
         break;
       case Admin:
-        CreateAdminActivity adm = new CreateAdminActivity(sessionUser, user);
-        activityController.addActivity(adm);
+        CreateAdminActivity adm =
+            new CreateAdminActivity(sessionUser.getUsername(), user.getUsername());
+        activityDao.save(adm);
         break;
       case Client:
-        CreateClientActivity cli = new CreateClientActivity(sessionUser, user);
-        activityController.addActivity(cli);
+        CreateClientActivity cli =
+            new CreateClientActivity(sessionUser.getUsername(), user.getUsername());
+        activityDao.save(cli);
         break;
     }
     log.info("Successfully created user, " + user.getUsername());

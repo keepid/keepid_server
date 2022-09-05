@@ -21,8 +21,8 @@ public class CreateClientActivity extends CreateUserActivity {
     super();
   }
 
-  public CreateClientActivity(User owner, User created) {
-    super(owner, created);
+  public CreateClientActivity(String username, String createdUsername) {
+    super(username, createdUsername);
   }
 
   public User getCreator() {

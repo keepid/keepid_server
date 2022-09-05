@@ -1,6 +1,5 @@
 package Activity;
 
-import User.User;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.List;
 public class CreateUserActivity extends Activity {
 
   @BsonProperty(value = "created")
-  private User created;
+  private String createdUsername;
 
   public CreateUserActivity() {}
 
@@ -21,16 +20,16 @@ public class CreateUserActivity extends Activity {
     return a;
   }
 
-  public CreateUserActivity(User user, User created) {
-    super(user);
-    this.created = created;
+  public CreateUserActivity(String usernameOfInvoker, String createdUsername) {
+    super(usernameOfInvoker);
+    this.createdUsername = createdUsername;
   }
 
-  public User getCreated() {
-    return created;
+  public String getCreatedUsername() {
+    return createdUsername;
   }
 
-  public void setCreated(User created) {
-    this.created = created;
+  public void setCreatedUsername(String createdUsername) {
+    this.createdUsername = createdUsername;
   }
 }

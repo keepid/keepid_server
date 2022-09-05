@@ -1,15 +1,13 @@
 package Activity;
 
-import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class AuthenticateActivity extends UserActivity {
   public AuthenticateActivity() {}
 
-  public AuthenticateActivity(User user) {
-    super(user);
+  public AuthenticateActivity(String username) {
+    super(username);
   }
 
   @Override

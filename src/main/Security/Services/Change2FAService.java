@@ -36,7 +36,7 @@ public class Change2FAService implements Service {
     user.setTwoFactorOn(isTwoFactorOn);
     String oldBoolean = booleanToString(!isTwoFactorOn);
     String newBoolean = booleanToString(isTwoFactorOn);
-    new ChangeUserAttributesActivity(user, "twoFactorOn", oldBoolean, newBoolean);
+    new ChangeUserAttributesActivity(user.getUsername(), "twoFactorOn", oldBoolean, newBoolean);
     userDao.update(user);
     return UserMessage.SUCCESS;
   }

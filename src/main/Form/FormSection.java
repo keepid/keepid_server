@@ -7,11 +7,12 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 public class FormSection implements Comparable<FormSection> {
   String title;
@@ -20,7 +21,10 @@ public class FormSection implements Comparable<FormSection> {
   List<FormQuestion> questions;
 
   public FormSection(
-      String title, String description, List<FormSection> subsections, List<FormQuestion> questions) {
+      String title,
+      String description,
+      List<FormSection> subsections,
+      List<FormQuestion> questions) {
     this.title = title;
     this.description = description;
     this.subsections = subsections;
@@ -46,14 +50,34 @@ public class FormSection implements Comparable<FormSection> {
   public Comparator<FormSection> getComparator() {
     return Comparator.comparing(FormSection::getTitle)
         .thenComparing(FormSection::getDescription)
-        .thenComparing(section -> section.getSubsections().stream()
-            .flatMap(formSection -> Stream.of(formSection.hashCode()))
-            .reduce(Integer::sum)
-            .orElse(0))
-        .thenComparing(section -> section.getQuestions().stream()
-            .flatMap(formSection -> Stream.of(formSection.hashCode()))
-            .reduce(Integer::sum)
-            .orElse(0));
+        .thenComparing(
+            section ->
+                section.getSubsections().stream()
+                    .map(subsection -> subsection.serialize().toString())
+                    .reduce("", String::concat))
+        .thenComparing(
+            section ->
+                section.getQuestions().stream()
+                    .map(formQuestion -> formQuestion.serialize().toString())
+                    .reduce("", String::concat));
+  }
+
+  public JSONObject serialize() {
+    JSONObject titleAndDescription =
+        new JSONObject().put("title", title).put("description", description);
+    List<JSONObject> subsectionsSerialized =
+        subsections.stream()
+            .sorted()
+            .map(subsection -> subsection.serialize())
+            .collect(Collectors.toList());
+    List<JSONObject> questionsSerialized =
+        questions.stream()
+            .sorted()
+            .map(questions -> questions.serialize())
+            .collect(Collectors.toList());
+    titleAndDescription.put("subsections", subsectionsSerialized);
+    titleAndDescription.put("questions", questionsSerialized);
+    return titleAndDescription;
   }
 
   @Override
@@ -85,38 +109,47 @@ public class FormSection implements Comparable<FormSection> {
         writer.writeString(value.description);
         writer.writeName("sectionsSize");
         writer.writeInt32(value.subsections.size());
-        value.getSubsections().stream().sorted().forEach(subsection -> {
-          writer.writeName(subsection.title);
-          encode(writer, subsection, encoderContext);
-        });
+        value.getSubsections().stream()
+            .sorted()
+            .forEach(
+                subsection -> {
+                  writer.writeName(subsection.title);
+                  encode(writer, subsection, encoderContext);
+                });
         writer.writeName("questionsSize");
         writer.writeInt32(value.questions.size());
-        value.getQuestions().stream().sorted().forEach(question -> {
-          writer.writeName("text");
-          writer.writeString(question.questionText);
-          writer.writeName("default");
-          writer.writeString(question.defaultValue);
-          writer.writeName("conditionalOnField");
-          writer.writeObjectId(question.conditionalOnField);
-          writer.writeName("id");
-          writer.writeObjectId(question.id);
-          writer.writeName("required");
-          writer.writeBoolean(question.required);
-          writer.writeName("matched");
-          writer.writeBoolean(question.matched);
-          writer.writeName("conditionalType");
-          writer.writeBoolean(question.conditionalType);
-          writer.writeName("type");
-          writer.writeString(question.type.toString());
-          writer.writeName("numLines");
-          writer.writeInt32(question.numLines);
-          writer.writeName("optionsSize");
-          writer.writeInt32(question.options.size());
-          question.options.stream().sorted().forEach(option -> {
-            writer.writeName(option);
-            writer.writeString(option);
-          });
-        });
+        value.getQuestions().stream()
+            .sorted()
+            .forEach(
+                question -> {
+                  writer.writeName("text");
+                  writer.writeString(question.questionText);
+                  writer.writeName("default");
+                  writer.writeString(question.defaultValue);
+                  writer.writeName("conditionalOnField");
+                  writer.writeObjectId(question.conditionalOnField);
+                  writer.writeName("id");
+                  writer.writeObjectId(question.id);
+                  writer.writeName("required");
+                  writer.writeBoolean(question.required);
+                  writer.writeName("matched");
+                  writer.writeBoolean(question.matched);
+                  writer.writeName("conditionalType");
+                  writer.writeBoolean(question.conditionalType);
+                  writer.writeName("type");
+                  writer.writeString(question.type.toString());
+                  writer.writeName("numLines");
+                  writer.writeInt32(question.numLines);
+                  writer.writeName("optionsSize");
+                  writer.writeInt32(question.options.size());
+                  question.options.stream()
+                      .sorted()
+                      .forEach(
+                          option -> {
+                            writer.writeName(option);
+                            writer.writeString(option);
+                          });
+                });
         writer.writeEndDocument();
       }
     }
@@ -204,5 +237,4 @@ public class FormSection implements Comparable<FormSection> {
       return FormSection.class;
     }
   }
-
 }

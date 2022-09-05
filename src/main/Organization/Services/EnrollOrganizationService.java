@@ -4,6 +4,7 @@ import Activity.ActivityController;
 import Activity.CreateOrgActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Issue.IssueController;
 import Organization.OrgEnrollmentStatus;
 import Organization.Organization;
@@ -31,6 +32,7 @@ import static com.mongodb.client.model.Filters.eq;
 public class EnrollOrganizationService implements Service {
   static final String newOrgActualURL = Objects.requireNonNull(System.getenv("NEW_ORG_ACTUALURL"));
   MongoDatabase db;
+  ActivityDao activityDao;
   String firstName;
   String lastName;
   String birthDate;
@@ -57,6 +59,7 @@ public class EnrollOrganizationService implements Service {
 
   public EnrollOrganizationService(
       MongoDatabase db,
+      ActivityDao activityDao,
       String firstName,
       String lastName,
       String birthDate,
@@ -102,7 +105,6 @@ public class EnrollOrganizationService implements Service {
     this.orgWebsite = orgWebsite;
     this.orgStreetAddress = orgStreetAddress;
     this.orgZipcode = orgZipcode;
-    activityController = new ActivityController();
   }
 
   @Override
@@ -139,8 +141,9 @@ public class EnrollOrganizationService implements Service {
               username,
               password,
               userLevel);
-      CreateOrgActivity createOrgActivity = new CreateOrgActivity(user, org);
-      activityController.addActivity(createOrgActivity);
+      CreateOrgActivity createOrgActivity =
+          new CreateOrgActivity(user.getUsername(), org.getOrgName());
+      activityDao.save(createOrgActivity);
     } catch (ValidationException ve) {
       log.error("Could not create user and/or org");
       return OrgEnrollmentStatus.FAIL_TO_CREATE;

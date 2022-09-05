@@ -1,8 +1,5 @@
 package Activity;
 
-import Organization.Organization;
-import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,20 +12,20 @@ public class CreateOrgActivity extends Activity {
     return a;
   }
 
-  private Organization org;
+  private String organizationName;
 
   public CreateOrgActivity() {}
 
-  public CreateOrgActivity(User owner, Organization org) {
-    super(owner);
-    this.org = org;
+  public CreateOrgActivity(String username, String organizationName) {
+    super(username);
+    this.organizationName = organizationName;
   }
 
-  public Organization getOrg() {
-    return org;
+  public String getOrganizationName() {
+    return organizationName;
   }
 
-  public void setOrg(Organization org) {
-    this.org = org;
+  public void setOrganizationName(String organizationName) {
+    this.organizationName = organizationName;
   }
 }

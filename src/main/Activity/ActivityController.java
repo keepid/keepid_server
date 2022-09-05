@@ -1,28 +1,25 @@
 package Activity;
 
-import Config.DeploymentLevel;
+import Activity.Services.GetAllActivitiesForUser;
 import Config.Message;
-import Config.MongoConfig;
+import Database.Activity.ActivityDao;
 import User.UserMessage;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
 @Slf4j
 public class ActivityController {
-  MongoDatabase db;
+  ActivityDao activityDao;
 
-  public ActivityController() {
-    this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+  public ActivityController(ActivityDao activityDao) {
+    this.activityDao = activityDao;
   }
 
   public void addActivity(Activity activity) {
     String type = activity.getType().get(activity.getType().size() - 1);
     log.info("Trying to add an activity of type " + type);
-    MongoCollection<Activity> act = db.getCollection("activity", Activity.class);
-    act.insertOne(activity);
+    activityDao.save(activity);
     log.info("Successfully added an activity of type " + type);
   }
 
@@ -30,7 +27,7 @@ public class ActivityController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
-        FindActivityService fas = new FindActivityService(db, username);
+        GetAllActivitiesForUser fas = new GetAllActivitiesForUser(activityDao, username);
         Message responseMessage = fas.executeAndGetResponse();
         JSONObject res = responseMessage.toJSON();
         if (responseMessage == UserMessage.SUCCESS) {
