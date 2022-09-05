@@ -11,7 +11,6 @@ import Database.User.UserDaoFactory;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
-import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
@@ -24,11 +23,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mock;
 
 public class ChangeAccountSettingsIntegrationTests {
-  private final Context ctx = mock(Context.class);
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
@@ -44,7 +40,6 @@ public class ChangeAccountSettingsIntegrationTests {
     userDao.clear();
     tokenDao.clear();
     activityDao.clear();
-    clearInvocations(ctx);
   }
 
   @AfterClass
