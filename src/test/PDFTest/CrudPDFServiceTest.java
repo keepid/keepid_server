@@ -5,6 +5,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import PDF.PDFType;
 import TestUtils.TestUtils;
+import User.User;
 import User.UserType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -25,7 +26,6 @@ public class CrudPDFServiceTest {
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
   }
 
   @Before
@@ -71,11 +71,12 @@ public class CrudPDFServiceTest {
 
   @Test
   public void uploadAnnotatedPDFFormTest() {
-    createUser()
-        .withUserType(UserType.Admin)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
     uploadTestAnnotatedFormPDF();
   }
@@ -226,17 +227,18 @@ public class CrudPDFServiceTest {
 
   @Test
   public void getDocumentsTargetUser() throws IOException, GeneralSecurityException {
-    createUser()
-        .withUserType(UserType.Worker)
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .buildAndPersist(userDao);
-    createUser()
-        .withUserType(UserType.Worker)
-        .withUsername("workerttfBSM")
-        .buildAndPersist(userDao);
+    User user =
+        createUser()
+            .withUserType(UserType.Worker)
+            .withUsername(username)
+            .withPasswordToHash(password)
+            .buildAndPersist(userDao);
+    User user2 =
+        createUser()
+            .withUserType(UserType.Worker)
+            .withUsername("workerttfBSM")
+            .buildAndPersist(userDao);
     TestUtils.login(username, password);
-    clearAllDocumentsForUser(username, password);
     File applicationPDF = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
     TestUtils.logout();
