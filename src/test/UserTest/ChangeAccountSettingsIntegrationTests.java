@@ -8,23 +8,23 @@ import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
-import Security.AccountSecurityController;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
-import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertTrue;
 
 public class ChangeAccountSettingsIntegrationTests {
-  private Context ctx;
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
@@ -34,17 +34,12 @@ public class ChangeAccountSettingsIntegrationTests {
     TestUtils.startServer();
   }
 
-  @Before
-  public void initialize() {
-    ctx = mock(Context.class);
-  }
-
   @After
   public void reset() {
+    TestUtils.logout();
     userDao.clear();
     tokenDao.clear();
     activityDao.clear();
-    clearInvocations(ctx);
   }
 
   @AfterClass
@@ -53,7 +48,6 @@ public class ChangeAccountSettingsIntegrationTests {
   }
 
   // Make sure to enable .env file configurations for these tests
-  // TODO: Swap new SecurityUtils() for a mock that correctly (or incorrectly hashes passwords.
   private boolean isCorrectAttribute(String username, String attribute, String possibleValue) {
     User user = userDao.get(username).orElseThrow();
     switch (attribute) {
@@ -90,7 +84,7 @@ public class ChangeAccountSettingsIntegrationTests {
   }
 
   @Test
-  public void changeFirstNameTest() throws Exception {
+  public void changeFirstNameTest() {
     String username = "account-settings-test";
     String password = "account-settings-test-password";
     User user =
@@ -100,29 +94,26 @@ public class ChangeAccountSettingsIntegrationTests {
             .withFirstName("David")
             .buildAndPersist(userDao);
     String newFirstName = "Sarah";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"firstName\",\"value\":" + newFirstName + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    JSONObject body = new JSONObject();
-    body.put("username", username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject()
+            .put("password", password)
+            .put("key", "firstName")
+            .put("value", newFirstName);
     TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
-            .body(body.toString())
+            .body(getActivitiesPayload.toString())
             .asString();
     assert (findResponse
         .getBody()
         .toString()
         .contains(ChangeUserAttributesActivity.class.getSimpleName()));
-    TestUtils.logout();
     assert (isCorrectAttribute(username, "firstName", newFirstName));
   }
 
@@ -135,18 +126,24 @@ public class ChangeAccountSettingsIntegrationTests {
         .withPasswordToHash(password)
         .withLastName("Smith")
         .buildAndPersist(userDao);
-
     String newLastName = "Jones";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"lastName\",\"value\":" + newLastName + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "lastName").put("value", newLastName);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "lastName", newLastName));
   }
 
@@ -161,24 +158,26 @@ public class ChangeAccountSettingsIntegrationTests {
         .buildAndPersist(userDao);
 
     String newBirthDate = "05-23-2002";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"birthDate\",\"value\":" + newBirthDate + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    JSONObject body = new JSONObject();
-    body.put("username", username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
+    JSONObject requestPayload =
+        new JSONObject()
+            .put("password", password)
+            .put("key", "birthDate")
+            .put("value", newBirthDate);
     TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
-            .body(body.toString())
+            .body(getActivitiesPayload.toString())
             .asString();
-    TestUtils.logout();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "birthDate", newBirthDate));
   }
 
@@ -192,16 +191,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .withPhoneNumber("215-123-4567")
         .buildAndPersist(userDao);
     String newPhone = "412-123-3456";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"phone\",\"value\":" + newPhone + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "phone").put("value", newPhone);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "phone", newPhone));
   }
 
@@ -215,24 +221,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .withEmail("contact1@example.com")
         .buildAndPersist(userDao);
     String newEmail = "contact2@example.com";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"email\",\"value\":" + newEmail + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    JSONObject body = new JSONObject();
-    body.put("username", username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "email").put("value", newEmail);
     TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
     HttpResponse findResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
-            .body(body.toString())
+            .body(getActivitiesPayload.toString())
             .asString();
-    TestUtils.logout();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "email", newEmail));
   }
 
@@ -247,16 +252,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .buildAndPersist(userDao);
 
     String newAddress = "321 RandomStreet";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"address\",\"value\":" + newAddress + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "address").put("value", newAddress);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "address", newAddress));
   }
 
@@ -271,15 +283,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .buildAndPersist(userDao);
     String newCity = "New York";
 
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"city\",\"value\":" + newCity + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "city").put("value", newCity);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "city", newCity));
   }
 
@@ -294,15 +314,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .buildAndPersist(userDao);
     String newState = "GA";
 
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"state\",\"value\":" + newState + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "state").put("value", newState);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "state", newState));
   }
 
@@ -316,16 +344,23 @@ public class ChangeAccountSettingsIntegrationTests {
         .withZipcode("19091")
         .buildAndPersist(userDao);
     String newZipcode = "19012";
-
-    String inputString =
-        "{\"password\":" + password + ",\"key\":\"zipcode\",\"value\":" + newZipcode + "}";
-
-    when(ctx.body()).thenReturn(inputString);
-    when(ctx.sessionAttribute("username")).thenReturn(username);
-
-    AccountSecurityController asc = new AccountSecurityController(userDao, tokenDao, activityDao);
-    asc.changeAccountSetting.handle(ctx);
-
+    JSONObject requestPayload =
+        new JSONObject().put("password", password).put("key", "zipcode").put("value", newZipcode);
+    TestUtils.login(username, password);
+    HttpResponse<String> createUserResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+    assertTrue(createUserResponse.getBody().contains("SUCCESS"));
+    JSONObject getActivitiesPayload = new JSONObject().put("username", username);
+    HttpResponse findResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-all-activities")
+            .body(getActivitiesPayload.toString())
+            .asString();
+    assert (findResponse
+        .getBody()
+        .toString()
+        .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "zipcode", newZipcode));
   }
 }

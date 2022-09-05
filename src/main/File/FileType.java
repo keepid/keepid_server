@@ -19,6 +19,8 @@ public enum FileType {
 
   public static FileType createFromString(String fileTypeString) {
     switch (fileTypeString.toUpperCase()) {
+      case "APPLICATION_PDF":
+        return FileType.APPLICATION_PDF;
       case "APPLICATION":
         return FileType.APPLICATION_PDF;
       case "IDENTIFICATION":

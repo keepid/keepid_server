@@ -64,6 +64,8 @@ public class ChangeAccountSettingService implements Service {
     ChangeUserAttributesActivity act =
         new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
     activityDao.save(act);
+    System.out.println(
+        "made change user attribute activity here" + act.getType() + ", " + act.getAttributeName());
     switch (key) {
       case "firstName":
         if (!ValidationUtils.isValidFirstName(value)) {

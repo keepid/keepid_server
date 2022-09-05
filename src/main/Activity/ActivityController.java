@@ -8,6 +8,8 @@ import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
+import static com.google.common.base.Preconditions.checkState;
+
 @Slf4j
 public class ActivityController {
   ActivityDao activityDao;
@@ -26,6 +28,7 @@ public class ActivityController {
   public Handler findMyActivities =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
+        checkState(ctx.sessionAttribute("username") != null);
         String username = req.getString("username");
         GetAllActivitiesForUser fas = new GetAllActivitiesForUser(activityDao, username);
         Message responseMessage = fas.executeAndGetResponse();
