@@ -16,7 +16,10 @@ import io.javalin.http.Context;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -24,7 +27,7 @@ import java.security.GeneralSecurityException;
 import static org.mockito.Mockito.*;
 
 public class ChangeAccountSettingsIntegrationTests {
-  private Context ctx;
+  private final Context ctx = mock(Context.class);
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
@@ -32,11 +35,6 @@ public class ChangeAccountSettingsIntegrationTests {
   @BeforeClass
   public static void setUp() throws GeneralSecurityException, IOException {
     TestUtils.startServer();
-  }
-
-  @Before
-  public void initialize() {
-    ctx = mock(Context.class);
   }
 
   @After

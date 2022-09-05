@@ -81,6 +81,7 @@ public class TestUtils {
    *
    * Passwords are the same as usernames.
    */
+  @Deprecated // please don't use this anymore
   public static void setUpTestDB() {
     // If there are entries in the database, they should be cleared before more are added.
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
