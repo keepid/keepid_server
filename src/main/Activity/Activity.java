@@ -90,7 +90,7 @@ public class Activity implements Comparable<Activity> {
     JSONObject activityJson = new JSONObject();
     activityJson.put("username", username);
     activityJson.put("occurredAt", occurredAt);
-    activityJson.put("type", this.getClass().getSimpleName());
+    activityJson.put("type", this.getType().get(this.getType().size() - 1));
     return activityJson;
   }
 
