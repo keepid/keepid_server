@@ -2,6 +2,7 @@ package PDFTest;
 
 import Security.EncryptionUtils;
 import TestUtils.TestUtils;
+import User.UserType;
 import com.opencsv.CSVReader;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -144,6 +145,7 @@ public class PDFTestUtils {
             .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
+            .field("privilegeLevel", UserType.Developer.toString())
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
