@@ -88,6 +88,7 @@ public class Activity implements Comparable<Activity> {
 
   public JSONObject serialize() {
     JSONObject activityJson = new JSONObject();
+    activityJson.put("_id", id);
     activityJson.put("username", username);
     activityJson.put("occurredAt", occurredAt);
     activityJson.put("type", this.getType().get(this.getType().size() - 1));
