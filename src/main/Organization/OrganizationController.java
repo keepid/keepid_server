@@ -1,7 +1,7 @@
 package Organization;
 
-import Activity.ActivityController;
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Organization.Services.EnrollOrganizationService;
 import Organization.Services.FindMemberService;
 import Organization.Services.InviteUserService;
@@ -20,7 +20,7 @@ import java.util.Objects;
 public class OrganizationController {
 
   MongoDatabase db;
-  ActivityController activityController;
+  ActivityDao activityDao;
 
   public static final String newOrgTestURL =
       Objects.requireNonNull(System.getenv("NEW_ORG_TESTURL"));
@@ -28,10 +28,10 @@ public class OrganizationController {
       Objects.requireNonNull(System.getenv("NEW_ORG_ACTUALURL"));
   EncryptionUtils encryptionUtils;
 
-  public OrganizationController(MongoDatabase db) {
+  public OrganizationController(MongoDatabase db, ActivityDao activityDao) {
     this.db = db;
     this.encryptionUtils = EncryptionUtils.getInstance();
-    this.activityController = new ActivityController();
+    this.activityDao = activityDao;
   }
   //
   //  public Handler organizationSignupValidator =
@@ -152,6 +152,7 @@ public class OrganizationController {
         EnrollOrganizationService eoService =
             new EnrollOrganizationService(
                 db,
+                activityDao,
                 firstName,
                 lastName,
                 birthDate,

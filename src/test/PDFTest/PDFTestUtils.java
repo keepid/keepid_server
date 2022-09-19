@@ -2,6 +2,7 @@ package PDFTest;
 
 import Security.EncryptionUtils;
 import TestUtils.TestUtils;
+import User.UserType;
 import com.opencsv.CSVReader;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -75,7 +76,8 @@ public class PDFTestUtils {
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static void clearAllDocuments() {
+  public static void clearAllDocumentsForUser(String username, String password) {
+    TestUtils.login(username, password);
     String[] pdfTypes = {"BLANK_FORM", "IDENTIFICATION_DOCUMENT", "COMPLETED_APPLICATION"};
     boolean[] annotated = {false, true, false};
     for (int j = 0; j < pdfTypes.length; j++) {
@@ -143,6 +145,7 @@ public class PDFTestUtils {
             .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
             .field("file", examplePDF)
+            .field("privilegeLevel", UserType.Developer.toString())
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");

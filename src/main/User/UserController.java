@@ -1,6 +1,7 @@
 package User;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
@@ -10,6 +11,8 @@ import File.FileType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Services.*;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -18,7 +21,9 @@ import org.json.JSONObject;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -26,12 +31,19 @@ public class UserController {
   MongoDatabase db;
   UserDao userDao;
   TokenDao tokenDao;
+  ActivityDao activityDao;
   FileDao fileDao;
 
-  public UserController(UserDao userDao, TokenDao tokenDao, FileDao fileDao, MongoDatabase db) {
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.db = db;
   }
 
@@ -46,7 +58,7 @@ public class UserController {
         log.info("Attempting to login " + username);
 
         LoginService loginService =
-            new LoginService(userDao, tokenDao, username, password, ip, userAgent);
+            new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
         Message response = loginService.executeAndGetResponse();
         log.info(response.toString() + response.getErrorDescription());
         JSONObject responseJSON = response.toJSON();
@@ -132,6 +144,7 @@ public class UserController {
         CreateUserService createUserService =
             new CreateUserService(
                 userDao,
+                activityDao,
                 sessionUserLevel,
                 organizationName,
                 sessionUsername,
@@ -190,6 +203,7 @@ public class UserController {
         CreateUserService createUserService =
             new CreateUserService(
                 userDao,
+                activityDao,
                 UserType.Director,
                 organizationName,
                 null,
@@ -256,6 +270,25 @@ public class UserController {
         if (message == UserMessage.SUCCESS) {
           res.put("people", getMembersService.getPeoplePage());
           res.put("numPeople", getMembersService.getNumReturnedElements());
+          ctx.result(mergeJSON(res, message.toJSON()).toString());
+        } else {
+          ctx.result(message.toResponseString());
+        }
+      };
+
+  public Handler getAllMembersByRole =
+      ctx -> {
+        log.info("Started getAllMembersByRoles handler");
+        JSONObject req = new JSONObject(ctx.body());
+        JSONObject res = new JSONObject();
+        String orgName = ctx.sessionAttribute("orgName");
+        UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
+        GetAllMembersByRoleService getAllMembersByRoleService =
+            new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
+        Message message = getAllMembersByRoleService.executeAndGetResponse();
+        if (message == UserMessage.SUCCESS) {
+          res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
+          res.put("numPeople", getAllMembersByRoleService.getUsersWithSpecificRole().size());
           ctx.result(mergeJSON(res, message.toJSON()).toString());
         } else {
           ctx.result(message.toResponseString());
@@ -354,8 +387,7 @@ public class UserController {
         if (mes == FileMessage.SUCCESS) {
           ctx.header("Content-Type", "image/" + serv.getContentType());
           ctx.result(serv.getInputStream());
-        }
-        else ctx.result(responseJSON.toString());
+        } else ctx.result(responseJSON.toString());
       };
 
   public Handler setDefaultIds =
@@ -413,5 +445,25 @@ public class UserController {
                 ctx.result(response.toResponseString());
             }
         };
+      };
+
+  public Handler assignWorkerToUser =
+      ctx -> {
+        log.info("Started assignWorkerToUser handler");
+        JSONObject req = new JSONObject(ctx.body());
+        String currentlyLoggedInUsername = ctx.sessionAttribute("username");
+        String targetUser = req.getString("user");
+
+        // convert json list to java list
+        Gson gson = new Gson();
+        List<String> workerUsernamesToAdd =
+            gson.fromJson(
+                req.get("workerUsernamesToAdd").toString(),
+                new TypeToken<ArrayList<String>>() {}.getType());
+        AssignWorkerToUserService getMembersService =
+            new AssignWorkerToUserService(
+                userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
+        Message message = getMembersService.executeAndGetResponse();
+        ctx.result(message.toResponseString());
       };
 }

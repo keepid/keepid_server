@@ -1,6 +1,5 @@
 package Activity;
 
-import User.User;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
 import java.util.ArrayList;
@@ -28,8 +27,11 @@ public class ChangeUserAttributesActivity extends UserActivity {
   public ChangeUserAttributesActivity() {}
 
   public ChangeUserAttributesActivity(
-      User user, String attributeName, String oldAttributeValue, String newAttributeValue) {
-    super(user);
+      String usernameOfInvoker,
+      String attributeName,
+      String oldAttributeValue,
+      String newAttributeValue) {
+    super(usernameOfInvoker);
     this.attributeName = attributeName;
     this.oldAttributeValue = oldAttributeValue;
     this.newAttributeValue = newAttributeValue;
