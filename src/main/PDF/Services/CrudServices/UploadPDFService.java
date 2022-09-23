@@ -59,20 +59,16 @@ public class UploadPDFService implements Service {
     } else if (fileStream == null) {
       return PdfMessage.INVALID_PDF;
     } else if (!fileContentType.equals("application/pdf")
-        && !fileContentType.equals("application/octet-stream")
         && !fileContentType.startsWith("image")) {
       return PdfMessage.INVALID_PDF;
     } else {
       if (fileContentType.startsWith("image")) {
         ImageToPDFService imageToPDFService = new ImageToPDFService(fileStream);
         Message response = imageToPDFService.executeAndGetResponse();
+        if (response == PdfMessage.INVALID_PDF) return response;
 
-        if (response == PdfMessage.INVALID_PDF) {
-          return PdfMessage.INVALID_PDF;
-        } else {
-          fileStream = imageToPDFService.fileStream;
-          filename = filename.substring(0, filename.lastIndexOf(".")) + ".pdf";
-        }
+        fileStream = imageToPDFService.fileStream;
+        filename = filename.substring(0, filename.lastIndexOf(".")) + ".pdf";
       }
       if ((pdfType == PDFType.COMPLETED_APPLICATION
               || pdfType == PDFType.IDENTIFICATION_DOCUMENT

@@ -63,8 +63,7 @@ public class UploadAnnotatedPDFService implements Service {
   public Message executeAndGetResponse() {
     if (fileStream == null) {
       return PdfMessage.INVALID_PDF;
-    } else if (!fileContentType.equals("application/pdf")
-        && !fileContentType.equals("application/octet-stream")) {
+    } else if (!fileContentType.equals("application/pdf")) {
       return PdfMessage.INVALID_PDF;
     } else {
       if (privilegeLevel == UserType.Developer) {

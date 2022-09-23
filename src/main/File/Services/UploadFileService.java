@@ -68,8 +68,7 @@ public class UploadFileService implements Service {
     } else if (fileStream == null) {
       return FileMessage.INVALID_FILE;
     } else if (fileType.isPDF()) {
-      if (!fileContentType.equals("application/pdf")
-          && !fileContentType.equals("application/octet-stream")) {
+      if (!fileContentType.equals("application/pdf")) {
         return FileMessage.INVALID_FILE_TYPE;
       }
       if (privilegeLevel.isEmpty()) {
