@@ -87,22 +87,89 @@ public class CrudPDFServiceTest {
   //  }
 
   @Test
-  public void uploadImageToPDFTest() {
+  public void uploadImageJPGToPDFTest() {
     User user =
-        createUser()
-            .withUserType(UserType.Admin)
-            .withUsername(username)
-            .withPasswordToHash(password)
-            .buildAndPersist(userDao);
+      createUser()
+        .withUserType(UserType.Client)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
     TestUtils.login(username, password);
 
-    File file = new File(resourcesFolderPath + File.separator + "1.png");
+    File file = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic.jpg");
     HttpResponse<String> uploadResponse =
-        Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .header("Content-Disposition", "attachment")
-            .field("pdfType", PDFType.IDENTIFICATION_DOCUMENT)
-            .field("file", file)
-            .asString();
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .header("Content-Disposition", "attachment")
+                    .field("file", file)
+                    .asString();
+
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+  }
+
+  @Test
+  public void uploadImagePNGToPDFTest() {
+    User user =
+      createUser()
+        .withUserType(UserType.Client)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File file = new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .header("Content-Disposition", "attachment")
+                    .field("file", file)
+                    .asString();
+
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+  }
+
+  @Test
+  public void uploadImageToRotatedPDFTest() {
+    User user =
+      createUser()
+        .withUserType(UserType.Client)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File file = new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .header("Content-Disposition", "attachment")
+                    .field("file", file)
+                    .asString();
+
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+  }
+
+  @Test
+  public void uploadInvalidImageToPDFTest() {
+    User user =
+      createUser()
+        .withUserType(UserType.Client)
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File file = new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .header("Content-Disposition", "attachment")
+                    .field("file", file)
+                    .asString();
+
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
