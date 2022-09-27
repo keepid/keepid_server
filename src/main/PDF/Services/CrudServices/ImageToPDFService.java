@@ -63,9 +63,9 @@ public class ImageToPDFService implements Service {
 
         // Scale Image
         float finalWidth, finalHeight;
-        if (imageWidth / PDF_HEIGHT > imageHeight / PDF_HEIGHT) {
-            finalWidth = PDF_HEIGHT;
-            finalHeight = imageHeight * PDF_HEIGHT / imageWidth;
+        if (imageWidth / PDF_WIDTH > imageHeight / PDF_HEIGHT) {
+            finalWidth = PDF_WIDTH;
+            finalHeight = imageHeight * PDF_WIDTH / imageWidth;
         } else {
             finalHeight = PDF_HEIGHT;
             finalWidth = imageWidth * PDF_HEIGHT / imageHeight;
