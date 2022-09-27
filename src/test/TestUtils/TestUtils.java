@@ -27,6 +27,8 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -749,7 +751,7 @@ public class TestUtils {
     assertThat(logoutResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static void uploadFile(String username, String password, String filename) {
+  public static void uploadFile(String username, String password, String filename) throws IOException {
     login(username, password);
     String filePath =
         Paths.get("").toAbsolutePath().toString()
@@ -761,13 +763,14 @@ public class TestUtils {
             + "resources"
             + File.separator
             + filename;
+    String mimeType = Files.probeContentType(Path.of(filePath));
 
     File file = new File(filePath);
     HttpResponse<String> uploadResponse =
         Unirest.post(getServerUrl() + "/upload")
             .field("pdfType", "FORM")
             .header("Content-Disposition", "attachment")
-            .field("file", file)
+            .field("file", file, mimeType)
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");

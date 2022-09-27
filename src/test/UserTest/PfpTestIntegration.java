@@ -57,42 +57,42 @@ public class PfpTestIntegration {
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF1)
+            .field("file", PDF1, "image/png")
             .asString();
     HttpResponse<String> upload2 =
         Unirest.post(TestUtils.getServerUrl() + "/upload-pfp")
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF2)
+            .field("file", PDF2, "image/png")
             .asString();
     HttpResponse<String> upload3 =
         Unirest.post(TestUtils.getServerUrl() + "/upload-pfp")
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF2)
+            .field("file", PDF2, "image/png")
             .asString();
     HttpResponse<String> upload4 =
         Unirest.post(TestUtils.getServerUrl() + "/upload-pfp")
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF1)
+            .field("file", PDF1, "image/png")
             .asString();
     HttpResponse<String> upload5 =
         Unirest.post(TestUtils.getServerUrl() + "/upload-pfp")
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF3)
+            .field("file", PDF3, "image/png")
             .asString();
     HttpResponse<String> upload6 =
         Unirest.post(TestUtils.getServerUrl() + "/upload-pfp")
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", PDF4)
+            .field("file", PDF4, "image/png")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(upload6.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
@@ -110,7 +110,7 @@ public class PfpTestIntegration {
             .header("Content-Disposition", "attachment")
             .field("username", "asdf")
             .field("fileName", "ASDF")
-            .field("file", examplePDF)
+            .field("file", examplePDF, "image/png")
             .asString();
     HttpResponse<byte[]> get =
         Unirest.post(TestUtils.getServerUrl() + "/load-pfp")

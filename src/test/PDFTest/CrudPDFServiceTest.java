@@ -142,7 +142,7 @@ public class CrudPDFServiceTest {
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .field("pdfType", "")
             .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+            .field("file", examplePDF, "application/pdf")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_PDF_TYPE");

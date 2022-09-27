@@ -56,7 +56,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file)
+                        .field("file", file, "image/jpeg")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -79,7 +79,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file)
+                        .field("file", file, "image/png")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -102,7 +102,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file)
+                        .field("file", file, "image/jpeg")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -125,7 +125,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file)
+                        .field("file", file, "image/png")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -148,7 +148,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file)
+                        .field("file", file, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
