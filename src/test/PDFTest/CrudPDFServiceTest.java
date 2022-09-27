@@ -9,6 +9,7 @@ import User.User;
 import User.UserType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.junit.*;
 
@@ -186,13 +187,17 @@ public class CrudPDFServiceTest {
     File testPdf = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     String fileId = uploadFileAndGetFileId(testPdf, "BLANK_FORM");
 
+    File tmpFile = File.createTempFile("downloaded_pdf", ".pdf");
+
     JSONObject body = new JSONObject();
     body.put("fileId", fileId);
     body.put("pdfType", "BLANK_FORM");
-    HttpResponse<File> downloadFileResponse =
+    HttpResponse<byte[]> downloadFileResponse =
         Unirest.post(TestUtils.getServerUrl() + "/download")
             .body(body.toString())
-            .asFile(resourcesFolderPath + File.separator + "downloaded_form.pdf");
+            .asBytes();
+    FileUtils.writeByteArrayToFile(tmpFile, downloadFileResponse.getBody());
+
     assertThat(downloadFileResponse.getStatus()).isEqualTo(200);
   }
 
