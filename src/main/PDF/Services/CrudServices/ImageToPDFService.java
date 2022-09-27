@@ -84,8 +84,8 @@ public class ImageToPDFService implements Service {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         document.save(out);
         document.close();
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(out.toByteArray());
-        return inputStream;
+        ByteArrayInputStream convertedInputStream = new ByteArrayInputStream(out.toByteArray());
+        return convertedInputStream;
     }
 
     // Source: https://blog.idrsolutions.com/2019/05/image-rotation-in-java/
