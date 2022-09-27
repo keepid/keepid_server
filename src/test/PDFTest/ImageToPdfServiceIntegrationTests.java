@@ -152,7 +152,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
-        assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_PDF_TYPE");
+        assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_PDF");
         TestUtils.logout();
     }
 }
