@@ -283,7 +283,6 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              InputStream inputStream = file.getContent();
               UploadPDFService uploadService =
                   new UploadPDFService(
                       db,
@@ -293,10 +292,9 @@ public class PdfController {
                       pdfType,
                       file.getFilename(),
                       file.getContentType(),
-                      inputStream,
+                      file.getContent(),
                       encryptionController);
               response = uploadService.executeAndGetResponse();
-              inputStream.close();
             }
           } else {
             response = UserMessage.CROSS_ORG_ACTION_DENIED;

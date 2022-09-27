@@ -121,6 +121,7 @@ public class UploadPDFService implements Service {
                       .append("organizationName", organizationName));
     }
     gridBucket.uploadFromStream(filename, inputStream, options);
+    inputStream.close();
     return PdfMessage.SUCCESS;
   }
 }
