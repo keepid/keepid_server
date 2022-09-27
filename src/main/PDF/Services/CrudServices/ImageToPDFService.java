@@ -30,12 +30,15 @@ public class ImageToPDFService implements Service {
     @Override
     public Message executeAndGetResponse() {
         if (fileStream == null) {
-            return PdfMessage.INVALID_PDF;
+            return PdfMessage.INVALID_IMAGE;
         } else {
             try {
-                fileStream = convertImageToPDF(fileStream);
+                BufferedImage bimg = ImageIO.read(fileStream);
+                if (bimg == null) return PdfMessage.INVALID_IMAGE;
+
+                fileStream = convertImageToPDF(bimg);
             } catch (IOException exception) {
-                return PdfMessage.INVALID_PDF;
+                return PdfMessage.INVALID_IMAGE;
             }
         }
         return PdfMessage.SUCCESS;
@@ -45,13 +48,12 @@ public class ImageToPDFService implements Service {
         return fileStream;
     }
 
-    public InputStream convertImageToPDF(InputStream fileStream) throws IOException {
+    private InputStream convertImageToPDF(BufferedImage bimg) throws IOException {
         PDDocument document = new PDDocument();
         PDPage page = new PDPage();
         document.addPage(page);
 
         // Get new dimensions of rotated & scaled image
-        BufferedImage bimg = ImageIO.read(fileStream);
         float imageWidth = bimg.getWidth();
         float imageHeight = bimg.getHeight();
 
@@ -87,7 +89,7 @@ public class ImageToPDFService implements Service {
     }
 
     // Source: https://blog.idrsolutions.com/2019/05/image-rotation-in-java/
-    public BufferedImage rotateImage(BufferedImage bimg) {
+    private BufferedImage rotateImage(BufferedImage bimg) {
         final double rads = Math.toRadians(90);
         final double sin = Math.abs(Math.sin(rads));
         final double cos = Math.abs(Math.cos(rads));

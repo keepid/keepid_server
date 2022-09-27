@@ -42,30 +42,7 @@ public class ImageToPdfServiceIntegrationTests {
     }
 
     @Test
-    public void uploadImageJPGToPDFTest() {
-        User user =
-                createUser()
-                        .withUserType(UserType.Client)
-                        .withUsername(username)
-                        .withPasswordToHash(password)
-                        .buildAndPersist(userDao);
-        TestUtils.login(username, password);
-
-        File file = new File(resourcesFolderPath + File.separator + "icon-vector-check-mark.jpg");
-        HttpResponse<String> uploadResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/upload")
-                        .field("pdfType", "IDENTIFICATION_DOCUMENT")
-                        .header("Content-Disposition", "attachment")
-                        .field("file", file, "image/jpeg")
-                        .asString();
-
-        JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
-        assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
-        TestUtils.logout();
-    }
-
-    @Test
-    public void uploadImagePNGToPDFTest() {
+    public void uploadPNGImageToPDFTest() {
         User user =
                 createUser()
                         .withUserType(UserType.Client)
@@ -79,7 +56,7 @@ public class ImageToPdfServiceIntegrationTests {
                 Unirest.post(TestUtils.getServerUrl() + "/upload")
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
-                        .field("file", file, "image/png")
+                        .field("file", file, "image/jpeg")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -88,7 +65,7 @@ public class ImageToPdfServiceIntegrationTests {
     }
 
     @Test
-    public void uploadImageJPGToRotatedPDFTest() {
+    public void uploadImageJPEGToPDFTest() {
         User user =
                 createUser()
                         .withUserType(UserType.Client)
@@ -103,29 +80,6 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "image/jpeg")
-                        .asString();
-
-        JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
-        assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
-        TestUtils.logout();
-    }
-
-    @Test
-    public void uploadImagePNGToRotatedPDFTest() {
-        User user =
-                createUser()
-                        .withUserType(UserType.Client)
-                        .withUsername(username)
-                        .withPasswordToHash(password)
-                        .buildAndPersist(userDao);
-        TestUtils.login(username, password);
-
-        File file = new File(resourcesFolderPath + File.separator + "OFW_ID_Card_sample.png");
-        HttpResponse<String> uploadResponse =
-                Unirest.post(TestUtils.getServerUrl() + "/upload")
-                        .field("pdfType", "IDENTIFICATION_DOCUMENT")
-                        .header("Content-Disposition", "attachment")
-                        .field("file", file, "image/png")
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
