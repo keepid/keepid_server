@@ -67,7 +67,7 @@ public class UploadPDFService implements Service {
         Message response = imageToPDFService.executeAndGetResponse();
         if (response == PdfMessage.INVALID_PDF) return response;
 
-        fileStream = imageToPDFService.fileStream;
+        fileStream = imageToPDFService.getFileStream();
         filename = filename.substring(0, filename.lastIndexOf(".")) + ".pdf";
       }
       if ((pdfType == PDFType.COMPLETED_APPLICATION

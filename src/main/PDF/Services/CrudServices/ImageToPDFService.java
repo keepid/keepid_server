@@ -21,8 +21,7 @@ import java.io.InputStream;
 public class ImageToPDFService implements Service {
     public static final int PDF_HEIGHT = 792;
     public static final int PDF_WIDTH = 612;
-
-    InputStream fileStream;
+    private InputStream fileStream;
 
     public ImageToPDFService(InputStream fileStream) {
         this.fileStream = fileStream;
@@ -40,6 +39,10 @@ public class ImageToPDFService implements Service {
             }
         }
         return PdfMessage.SUCCESS;
+    }
+
+    public InputStream getFileStream() {
+        return fileStream;
     }
 
     public InputStream convertImageToPDF(InputStream fileStream) throws IOException {
