@@ -22,6 +22,7 @@ public class ImageToPDFService implements Service {
     public static final int PDF_HEIGHT = 792;
     public static final int PDF_WIDTH = 612;
     private InputStream fileStream;
+    private InputStream convertedInputStream;
 
     public ImageToPDFService(InputStream fileStream) {
         this.fileStream = fileStream;
@@ -32,11 +33,25 @@ public class ImageToPDFService implements Service {
         if (fileStream == null) {
             return PdfMessage.INVALID_IMAGE;
         } else {
+            BufferedImage bimg;
             try {
-                BufferedImage bimg = ImageIO.read(fileStream);
-                if (bimg == null) return PdfMessage.INVALID_IMAGE;
+                bimg = ImageIO.read(fileStream);
+            } catch (IOException exception) {
+                return PdfMessage.INVALID_IMAGE;
+            }
 
-                fileStream = convertImageToPDF(bimg);
+            try {
+                fileStream.close();
+            } catch (IOException exception) {
+                return PdfMessage.SERVER_ERROR;
+            }
+
+            if (bimg == null) {
+                return PdfMessage.INVALID_IMAGE;
+            }
+
+            try {
+                convertedInputStream = convertImageToPDF(bimg);
             } catch (IOException exception) {
                 return PdfMessage.INVALID_IMAGE;
             }
@@ -45,7 +60,7 @@ public class ImageToPDFService implements Service {
     }
 
     public InputStream getFileStream() {
-        return fileStream;
+        return convertedInputStream;
     }
 
     private InputStream convertImageToPDF(BufferedImage bimg) throws IOException {
@@ -79,6 +94,7 @@ public class ImageToPDFService implements Service {
         PDImageXObject imageXObject = LosslessFactory.createFromImage(document, bimg);
         PDPageContentStream contentStream = new PDPageContentStream(document, page);
         contentStream.drawImage(imageXObject, 0, 0, finalWidth, finalHeight);
+        bimg.flush();
         contentStream.close();
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -95,13 +111,18 @@ public class ImageToPDFService implements Service {
         final double cos = Math.abs(Math.cos(rads));
         final int w = (int) Math.floor(bimg.getWidth() * cos + bimg.getHeight() * sin);
         final int h = (int) Math.floor(bimg.getHeight() * cos + bimg.getWidth() * sin);
+
         final BufferedImage rotatedImage = new BufferedImage(w, h, bimg.getType());
         final AffineTransform at = new AffineTransform();
+
         at.translate(w / 2, h / 2);
         at.rotate(rads, 0, 0);
         at.translate(-bimg.getWidth() / 2, -bimg.getHeight() / 2);
+
         final AffineTransformOp rotateOp = new AffineTransformOp(at, AffineTransformOp.TYPE_BILINEAR);
         rotateOp.filter(bimg, rotatedImage);
+
+        bimg.flush();
         return rotatedImage;
     }
 }
