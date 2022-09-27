@@ -18,6 +18,9 @@ import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageTree;
+import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
@@ -33,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.*;
 
 public class TestUtils {
   private static final Optional<Integer> SERVER_TEST_PORT =
@@ -809,6 +813,35 @@ public class TestUtils {
     }
     pdfDocument.close();
     return fieldValues;
+  }
+
+  public static void assertPDFEquals(InputStream inputStream1, InputStream inputStream2) {
+    try {
+      PDDocument pdfDocument1 = Loader.loadPDF(inputStream1);
+      PDDocument pdfDocument2 = Loader.loadPDF(inputStream2);
+
+      PDPageTree pdfDocumentPages1 = pdfDocument1.getPages();
+      PDPageTree pdfDocumentPages2 = pdfDocument2.getPages();
+      Iterator<PDPage> pdfDocumentIterator1 = pdfDocumentPages1.iterator();
+      Iterator<PDPage> pdfDocumentIterator2 = pdfDocumentPages2.iterator();
+
+      while (pdfDocumentIterator1.hasNext() && pdfDocumentIterator2.hasNext()) {
+        Iterator<PDStream> contentIterator1 = pdfDocumentIterator1.next().getContentStreams();
+        Iterator<PDStream> contentIterator2 = pdfDocumentIterator2.next().getContentStreams();
+
+        while (contentIterator1.hasNext() && contentIterator2.hasNext()) {
+          assertArrayEquals(contentIterator1.next().toByteArray(), contentIterator2.next().toByteArray());
+        }
+
+        assertFalse(contentIterator1.hasNext());
+        assertFalse(contentIterator2.hasNext());
+      }
+
+      assertFalse(pdfDocumentIterator1.hasNext());
+      assertFalse(pdfDocumentIterator2.hasNext());
+    } catch (IOException exception) {
+      fail("Invalid PDF Document");
+    }
   }
 
   public static Set<String> validFieldTypes =
