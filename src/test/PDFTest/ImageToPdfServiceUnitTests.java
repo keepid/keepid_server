@@ -96,7 +96,7 @@ public class ImageToPdfServiceUnitTests {
         InputStream convertedPDFInputStream = imageToPDFService.getFileStream();
 
         assertEquals(PdfMessage.INVALID_IMAGE, response);
-        assertEquals(fileInputStream, convertedPDFInputStream); // input stream unchanged
+        assertEquals(null, convertedPDFInputStream);
     }
 
 }

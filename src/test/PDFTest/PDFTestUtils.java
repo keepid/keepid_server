@@ -64,6 +64,42 @@ public class PDFTestUtils {
     return fileId;
   }
 
+  public static String getPDFFileId() {
+      JSONObject body = new JSONObject();
+      body.put("pdfType", "IDENTIFICATION_DOCUMENT");
+      HttpResponse<String> getForm =
+              Unirest.post(TestUtils.getServerUrl() + "/get-documents")
+                      .body(body.toString()).asString();
+      JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
+
+      JSONArray documents = getFormJSON.getJSONArray("documents");
+
+      int lastFileIndex = documents.length() -1;
+      String fileId = documents.getJSONObject(lastFileIndex).getString("id");
+
+      return fileId;
+  }
+
+  public static File downloadPDF(String id, String pdfType) {
+    JSONObject body = new JSONObject();
+    body.put("fileId", id);
+    body.put("pdfType", pdfType);
+
+    try {
+      File tmpFile = File.createTempFile("downloaded_pdf", ".pdf");
+
+      HttpResponse<byte[]> downloadFileResponse =
+              Unirest.post(TestUtils.getServerUrl() + "/download")
+                      .body(body.toString())
+                      .asBytes();
+
+      FileUtils.writeByteArrayToFile(tmpFile, downloadFileResponse.getBody());
+      return tmpFile;
+    } catch (IOException exception) {
+      return null;
+    }
+  }
+
   public static void deletePDF(String id, String pdfType) {
     JSONObject body = new JSONObject();
     body.put("pdfType", pdfType);
