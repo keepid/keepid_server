@@ -30,6 +30,9 @@ public class PDF {
   @BsonProperty(value = "pdfType")
   private PDFType pdfType;
 
+  @BsonProperty(value = "idCategory")
+  private String idCategory;
+
   public PDF() {}
 
   public PDF(
@@ -38,7 +41,8 @@ public class PDF {
       DateTime uploadedAt,
       Optional<DateTime> lastModifiedAt,
       InputStream fileStream,
-      PDFType pdfType) {
+      PDFType pdfType,
+      String idCategory) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
     this.username = username;
@@ -47,6 +51,7 @@ public class PDF {
     this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
     this.fileStream = fileStream;
     this.pdfType = pdfType;
+    this.idCategory = idCategory;
   }
 
   /** **************** GETTERS ********************* */
