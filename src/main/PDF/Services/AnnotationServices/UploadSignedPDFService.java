@@ -75,8 +75,7 @@ public class UploadSignedPDFService implements Service {
       return PdfMessage.INVALID_PDF_TYPE;
     } else if (fileStream == null) {
       return PdfMessage.INVALID_PDF;
-    } else if (!fileContentType.equals("application/pdf")
-        && !fileContentType.equals("application/octet-stream")) {
+    } else if (!fileContentType.equals("application/pdf")){
       return PdfMessage.INVALID_PDF;
     } else {
       if ((pdfType == PDFType.COMPLETED_APPLICATION

@@ -1,7 +1,5 @@
 package Activity;
 
-import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +16,7 @@ public class UserActivity extends Activity {
     super();
   }
 
-  public UserActivity(User owner) {
-    super(owner);
+  public UserActivity(String username) {
+    super(username);
   }
 }

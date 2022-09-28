@@ -2,6 +2,7 @@ package PDFTest;
 
 import Security.EncryptionUtils;
 import TestUtils.TestUtils;
+import User.UserType;
 import com.opencsv.CSVReader;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -46,7 +47,7 @@ public class PDFTestUtils {
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .header("Content-Disposition", "attachment")
             .field("pdfType", pdfType)
-            .field("file", file)
+            .field("file", file, "application/pdf")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
@@ -63,6 +64,42 @@ public class PDFTestUtils {
     return fileId;
   }
 
+  public static String getPDFFileId() {
+      JSONObject body = new JSONObject();
+      body.put("pdfType", "IDENTIFICATION_DOCUMENT");
+      HttpResponse<String> getForm =
+              Unirest.post(TestUtils.getServerUrl() + "/get-documents")
+                      .body(body.toString()).asString();
+      JSONObject getFormJSON = TestUtils.responseStringToJSON(getForm.getBody());
+
+      JSONArray documents = getFormJSON.getJSONArray("documents");
+
+      int lastFileIndex = documents.length() -1;
+      String fileId = documents.getJSONObject(lastFileIndex).getString("id");
+
+      return fileId;
+  }
+
+  public static File downloadPDF(String id, String pdfType) {
+    JSONObject body = new JSONObject();
+    body.put("fileId", id);
+    body.put("pdfType", pdfType);
+
+    try {
+      File tmpFile = File.createTempFile("downloaded_pdf", ".pdf");
+
+      HttpResponse<byte[]> downloadFileResponse =
+              Unirest.post(TestUtils.getServerUrl() + "/download")
+                      .body(body.toString())
+                      .asBytes();
+
+      FileUtils.writeByteArrayToFile(tmpFile, downloadFileResponse.getBody());
+      return tmpFile;
+    } catch (IOException exception) {
+      return null;
+    }
+  }
+
   public static void deletePDF(String id, String pdfType) {
     JSONObject body = new JSONObject();
     body.put("pdfType", pdfType);
@@ -75,7 +112,8 @@ public class PDFTestUtils {
     assertThat(deleteResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
-  public static void clearAllDocuments() {
+  public static void clearAllDocumentsForUser(String username, String password) {
+    TestUtils.login(username, password);
     String[] pdfTypes = {"BLANK_FORM", "IDENTIFICATION_DOCUMENT", "COMPLETED_APPLICATION"};
     boolean[] annotated = {false, true, false};
     for (int j = 0; j < pdfTypes.length; j++) {
@@ -99,13 +137,14 @@ public class PDFTestUtils {
   // ------------------ SPECIFIC HELPER METHODS ------------------------ //
 
   public static void uploadTestPDF() {
-    File examplePDF = new File(resourcesFolderPath + File.separator + "1.png");
+    File examplePDF = new File(resourcesFolderPath + File.separator
+            + "AnnotatedPDFs" + File.separator + "Application_for_a_Birth_Certificate_Annotated.pdf");
 
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .field("pdfType", "COMPLETED_APPLICATION")
-            .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+                .header("Content-Disposition", "attachment")
+                .field("pdfType", "COMPLETED_APPLICATION")
+                .field("file", examplePDF, "application/pdf")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
@@ -116,9 +155,9 @@ public class PDFTestUtils {
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload")
-            .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+            .field("pdfType", "BLANK_FORM")
+            .field("file", examplePDF, "application/pdf")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
@@ -142,7 +181,8 @@ public class PDFTestUtils {
         Unirest.post(TestUtils.getServerUrl() + "/upload")
             .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+            .field("file", examplePDF, "application/pdf")
+            .field("privilegeLevel", UserType.Developer.toString())
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
@@ -166,7 +206,7 @@ public class PDFTestUtils {
         Unirest.post(TestUtils.getServerUrl() + "/upload-annotated")
             .field("pdfType", "BLANK_FORM")
             .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+            .field("file", examplePDF, "application/pdf")
             .field("fileId", fileId)
             .asString();
     uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());

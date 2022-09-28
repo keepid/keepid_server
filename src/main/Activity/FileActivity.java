@@ -1,16 +1,15 @@
 package Activity;
 
-import PDF.PDFType;
-import User.User;
+import File.FileType;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DocumentActivity extends UserActivity {
-  @BsonProperty(value = "documentOwner")
-  private User documentOwner;
+public class FileActivity extends UserActivity {
+  @BsonProperty(value = "documentOwnerUsername")
+  private String documentOwnerUsername;
 
   @BsonProperty(value = "documentType")
   private String documentType;
@@ -23,16 +22,19 @@ public class DocumentActivity extends UserActivity {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());
-    a.add(DocumentActivity.class.getSimpleName());
+    a.add(FileActivity.class.getSimpleName());
     return a;
   }
 
-  public DocumentActivity() {}
+  public FileActivity() {}
 
-  public DocumentActivity(
-      User user, User documentOwner, PDFType documentType, ObjectId documentID) {
-    super(user);
-    this.documentOwner = documentOwner;
+  public FileActivity(
+      String usernameOfInvoker,
+      String documentOwnerUsername,
+      FileType documentType,
+      ObjectId documentID) {
+    super(usernameOfInvoker);
+    this.documentOwnerUsername = documentOwnerUsername;
     this.documentType = documentType.toString();
     this.documentID = documentID;
   }
@@ -45,12 +47,12 @@ public class DocumentActivity extends UserActivity {
     this.documentType = documentType;
   }
 
-  public User getDocumentOwner() {
-    return documentOwner;
+  public String getDocumentOwnerUsername() {
+    return documentOwnerUsername;
   }
 
-  public void setDocumentOwner(User documentOwner) {
-    this.documentOwner = documentOwner;
+  public void setDocumentOwnerUsername(String documentOwnerUsername) {
+    this.documentOwnerUsername = documentOwnerUsername;
   }
 
   public ObjectId getDocumentID() {

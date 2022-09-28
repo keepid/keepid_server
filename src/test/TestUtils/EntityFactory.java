@@ -12,7 +12,6 @@ import User.IpObject;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
-import com.google.api.client.util.DateTime;
 import org.bson.types.ObjectId;
 
 import java.io.InputStream;
@@ -21,7 +20,7 @@ import java.util.*;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
-  public static final DateTime TEST_DATE_TIME = new DateTime(TEST_DATE);
+  public static final LocalDateTime TEST_DATE_TIME = LocalDateTime.of(2020, 1, 1, 0, 0);
 
   public static PartialUser createUser() {
     return new PartialUser();
@@ -112,10 +111,10 @@ public class EntityFactory {
     private int defaultNumLines = 10;
     private String username = "testFirstName";
     private Optional<String> uploaderUsername = Optional.of("testuploadername");
-    private DateTime uploadedAt = TEST_DATE_TIME;
+    private LocalDateTime uploadedAt = TEST_DATE_TIME;
     private ObjectId conditionalFieldId = new ObjectId();
     private String condition = "TEST_CONDITION";
-    private Optional<DateTime> lastModifiedAt = Optional.of(TEST_DATE_TIME);
+    private Optional<LocalDateTime> lastModifiedAt = Optional.of(TEST_DATE_TIME);
     private FormType formType = FormType.FORM;
     private boolean isTemplate = false;
     private FormMetadata metadata =
@@ -130,7 +129,10 @@ public class EntityFactory {
             defaultNumLines);
     private FormSection child =
         new FormSection(
-            "child", "childDescription", new ArrayList<FormSection>(), new ArrayList<FormQuestion>());
+            "child",
+            "childDescription",
+            new ArrayList<FormSection>(),
+            new ArrayList<FormQuestion>());
     List<FormSection> subSections = new ArrayList<>();
     private FormSection body;
 
@@ -184,12 +186,12 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialForm withUploadedAt(DateTime uploadedAt) {
+    public PartialForm withUploadedAt(LocalDateTime uploadedAt) {
       this.uploadedAt = uploadedAt;
       return this;
     }
 
-    public PartialForm withLastModifiedAt(Optional<DateTime> lastModifiedAt) {
+    public PartialForm withLastModifiedAt(Optional<LocalDateTime> lastModifiedAt) {
       this.lastModifiedAt = lastModifiedAt;
       return this;
     }
@@ -233,6 +235,7 @@ public class EntityFactory {
     private boolean twoFactorOn = false;
     private Date creationDate = new Date(TEST_DATE);
     private List<IpObject> logInHistory = new ArrayList<>();
+    private List<String> assignedWorkerUsernames = new ArrayList<>();
 
     @Override
     public User build() {
@@ -255,6 +258,7 @@ public class EntityFactory {
                 userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
+        newUser.setAssignedWorkerUsernames(assignedWorkerUsernames);
         return newUser;
       } catch (ValidationException e) {
         throw new IllegalArgumentException("Illegal Param: " + e.toString());
@@ -355,6 +359,11 @@ public class EntityFactory {
 
     public PartialUser withDefaultId(String category, String id) {
       this.defaultIds.put(category, id);
+      return this;
+    }
+
+    public PartialUser withAssignedWorker(String assignedWorkerUsername) {
+      this.assignedWorkerUsernames.add(assignedWorkerUsername);
       return this;
     }
   }
@@ -512,13 +521,16 @@ public class EntityFactory {
 
   public static class PartialActivity implements PartialObject<Activity> {
     private ObjectId id = new ObjectId();
-    private LocalDateTime occuredAt = LocalDateTime.now();
-    private User owner = EntityFactory.createUser().build();
+    private LocalDateTime occurredAt = LocalDateTime.of(2022, 9, 4, 12, 12, 12);
+    private String username = "exampleUsername";
     private List<String> type = Collections.emptyList();
 
     @Override
     public Activity build() {
-      Activity newActivity = new Activity().setOccurredAt(occuredAt).setOwner(owner).setType(type);
+      Activity newActivity = new Activity().setOccurredAt(occurredAt).setUsername(username);
+      if (!type.isEmpty()) {
+        newActivity.setType(type);
+      }
       return newActivity;
     }
 
@@ -534,18 +546,23 @@ public class EntityFactory {
       return this;
     }
 
-    public PartialActivity withLocalDateTime(LocalDateTime occuredAt) {
-      this.occuredAt = occuredAt;
+    public PartialActivity withOccurredAt(LocalDateTime occurredAt) {
+      this.occurredAt = occurredAt;
       return this;
     }
 
-    public PartialActivity withOwner(User owner) {
-      this.owner = owner;
+    public PartialActivity withUsername(String username) {
+      this.username = username;
       return this;
     }
 
     public PartialActivity withType(List<String> type) {
       this.type = type;
+      return this;
+    }
+
+    public PartialActivity withType(Activity activity) {
+      this.type = activity.getType();
       return this;
     }
   }

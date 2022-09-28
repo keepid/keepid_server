@@ -18,7 +18,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 public class GetQuestionsPDFService implements Service {
@@ -281,7 +284,7 @@ public class GetQuestionsPDFService implements Service {
 
     // TODO: Generalize to multiple field types - only textFields can be autofilled right now
     String[] splitFieldName = fieldName.split(":");
-    if (splitFieldName.length != 1 && splitFieldName.length != 2) {
+    if (splitFieldName.length != 1 && splitFieldName.length != 2 && splitFieldName.length != 3) {
       fieldJSON.put("fieldStatus", "Invalid Number of Colons for Field '" + fieldName + "'");
       return fieldJSON;
     } else {
@@ -293,7 +296,7 @@ public class GetQuestionsPDFService implements Service {
       // TODO: Make a better way of changing the question fieldName (as current method is clumsy)
       fieldQuestion = fieldQuestion.replaceFirst(fieldName, fieldNameBase);
 
-      if (splitFieldName.length == 2) {
+      if (splitFieldName.length == 2 || splitFieldName.length == 3) {
         // Annotation for matched field - has directive at the end
         String fieldDirective = splitFieldName[1];
         if (fieldDirective.startsWith("+")) {

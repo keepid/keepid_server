@@ -2,7 +2,6 @@ package Database.User;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
-import Security.SecurityUtils;
 import User.User;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -16,7 +15,7 @@ import java.util.Optional;
 import static com.mongodb.client.model.Filters.eq;
 
 public class UserDaoImpl implements UserDao {
-  private MongoCollection<User> userCollection;
+  private final MongoCollection<User> userCollection;
 
   public UserDaoImpl(DeploymentLevel deploymentLevel) {
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
@@ -74,30 +73,14 @@ public class UserDaoImpl implements UserDao {
   @Override
   public void update(User user) {
     userCollection.replaceOne(eq("username", user.getUsername()), user);
-    //    User existingUser = userCollection.find(eq("username", user.getUsername())).first();
-    //    Map<String, Object> existingUserMap = user.toMap();
-    //
-    //    Map<String, Object> keyValueMap = user.toMap();
-    //    Bson statement =
-    //        combine(
-    //            keyValueMap.keySet().stream()
-    //                .filter(k -> keyValueMap.get(k) != null && keyValueMap.get(k) !=
-    // existingUserMap.get(k))
-    //                .map(k -> set(k, keyValueMap.get(k)))
-    //                .collect(Collectors.toList()));
-    //    userCollection.updateOne(eq("username", user.getUsername()), statement);
   }
 
   @Override
   public void resetPassword(User user, String password) {
-    String newPassword = SecurityUtils.hashPassword(password);
-    if (newPassword == null) {
-      throw new IllegalStateException(
-          String.format("Hash function failed on User %s", user.getUsername()));
-    }
+    // note that pwd is already hashed
     userCollection.updateOne(
         eq("username", user.getUsername()),
-        new Document("$set", new Document("password", newPassword)));
+        new Document("$set", new Document("password", password)));
   }
 
   @Override

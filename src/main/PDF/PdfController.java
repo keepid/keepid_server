@@ -317,26 +317,21 @@ public class PdfController {
       ctx -> {
         String username = ctx.sessionAttribute("username");
         String organizationName = ctx.sessionAttribute("orgName");
-        UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
-        if (privilegeLevel != UserType.Developer) {
-          ctx.result(PdfMessage.INSUFFICIENT_PRIVILEGE.toResponseString());
-        } else {
-          UploadedFile file = ctx.uploadedFile("file");
-          String fileIDStr = ctx.formParam("fileId");
-          UploadAnnotatedPDFService uploadService =
-              new UploadAnnotatedPDFService(
-                  db,
-                  userDao,
-                  username,
-                  organizationName,
-                  privilegeLevel,
-                  fileIDStr,
-                  file.getFilename(),
-                  file.getContentType(),
-                  file.getContent(),
-                  encryptionController);
-          ctx.result(uploadService.executeAndGetResponse().toResponseString());
-        }
+        UploadedFile file = ctx.uploadedFile("file");
+        String fileIDStr = ctx.formParam("fileId");
+        UploadAnnotatedPDFService uploadService =
+            new UploadAnnotatedPDFService(
+                db,
+                userDao,
+                username,
+                organizationName,
+                UserType.Developer,
+                fileIDStr,
+                file.getFilename(),
+                file.getContentType(),
+                file.getContent(),
+                encryptionController);
+        ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };
 
   /*

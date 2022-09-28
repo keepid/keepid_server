@@ -1,7 +1,5 @@
 package Activity;
 
-import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,7 +17,7 @@ public class CreateAdminActivity extends CreateUserActivity {
     super();
   }
 
-  public CreateAdminActivity(User owner, User created) {
-    super(owner, created);
+  public CreateAdminActivity(String username, String createdUsername) {
+    super(username, createdUsername);
   }
 }

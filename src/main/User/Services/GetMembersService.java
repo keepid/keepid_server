@@ -22,7 +22,6 @@ public class GetMembersService implements Service {
   private UserType privilegeLevel;
   private String searchValue;
   private ListType listType;
-  private JSONArray people;
   private JSONArray peoplePage;
   private int numReturnedElements;
 

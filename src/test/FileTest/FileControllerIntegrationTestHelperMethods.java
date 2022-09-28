@@ -26,9 +26,9 @@ public class FileControllerIntegrationTestHelperMethods {
 
     HttpResponse<String> uploadResponse =
         Unirest.post(TestUtils.getServerUrl() + "/upload-file")
-            .field("fileType", "APPLICATION_PDF")
             .header("Content-Disposition", "attachment")
-            .field("file", examplePDF)
+            .field("fileType", "APPLICATION_PDF")
+            .field("file", examplePDF, "application/pdf")
             .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");

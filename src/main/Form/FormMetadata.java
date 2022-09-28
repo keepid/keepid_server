@@ -1,6 +1,5 @@
 package Form;
 
-import com.google.api.client.util.DateTime;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -9,8 +8,9 @@ import org.bson.codecs.EncoderContext;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class FormMetadata implements Comparable<FormMetadata> {
   String title;
@@ -18,7 +18,7 @@ public class FormMetadata implements Comparable<FormMetadata> {
   String state;
   String county;
   Set<ObjectId> prerequisities;
-  DateTime lastRevisedAt;
+  LocalDateTime lastRevisedAt;
   // In order, amount of payment, method of payment,
   // who to send money to, and address
   List<String> paymentInfo;
@@ -30,7 +30,7 @@ public class FormMetadata implements Comparable<FormMetadata> {
       String state,
       String county,
       Set<ObjectId> prerequisites,
-      DateTime lastRevisedAt,
+      LocalDateTime lastRevisedAt,
       List<String> paymentInfo,
       int numLines) {
     this.title = title;
@@ -59,7 +59,7 @@ public class FormMetadata implements Comparable<FormMetadata> {
     return county;
   }
 
-  public DateTime getLastRevisedAt() {
+  public LocalDateTime getLastRevisedAt() {
     return lastRevisedAt;
   }
 
@@ -81,27 +81,25 @@ public class FormMetadata implements Comparable<FormMetadata> {
         .thenComparing(FormMetadata::getDescription)
         .thenComparing(FormMetadata::getState)
         .thenComparing(FormMetadata::getNumLines)
-        .thenComparingLong(metadata -> metadata.getLastRevisedAt().getValue())
-        .thenComparingInt(metadata -> metadata.getPrerequisites().stream()
-            .flatMap(objectId -> Stream.of(objectId.hashCode()))
-            .reduce(Integer::sum)
-            .orElse(0))
-        .thenComparing(metadata -> metadata.getPaymentInfo().stream()
-            .sorted()
-            .reduce(String::concat)
-            .orElse(""));
+        .thenComparing(metadata -> metadata.getLastRevisedAt())
+        .thenComparing(
+            metadata ->
+                metadata.getPrerequisites().stream()
+                    .map(ObjectId::toString)
+                    .sorted()
+                    .reduce("", String::concat))
+        .thenComparing(
+            metadata -> metadata.getPaymentInfo().stream().sorted().reduce("", String::concat));
   }
 
   @Override
   public boolean equals(Object obj) {
-
     if (obj == null) {
       return false;
     }
     if (obj.getClass() != this.getClass()) {
       return false;
     }
-
     final FormMetadata other = (FormMetadata) obj;
     return getComparator().compare(this, other) == 0;
   }
@@ -127,7 +125,7 @@ public class FormMetadata implements Comparable<FormMetadata> {
         writer.writeName("lines");
         writer.writeInt32(value.numLines);
         writer.writeName("date");
-        writer.writeDateTime(value.lastRevisedAt.getValue());
+        writer.writeDateTime(value.lastRevisedAt.toEpochSecond(ZoneOffset.UTC));
         writer.writeName("prereqsSize");
         writer.writeInt32(value.prerequisities.size());
         for (ObjectId prereq : value.prerequisities) {
@@ -157,7 +155,8 @@ public class FormMetadata implements Comparable<FormMetadata> {
       reader.readName();
       int numLines = reader.readInt32();
       reader.readName();
-      DateTime lastRevisedAt = new DateTime(reader.readDateTime());
+      LocalDateTime lastRevisedAt =
+          LocalDateTime.ofEpochSecond(reader.readDateTime(), 0, ZoneOffset.UTC);
       reader.readName();
       int prereqsSize = reader.readInt32();
       Set<ObjectId> prerequisities = new TreeSet<>();
@@ -173,14 +172,7 @@ public class FormMetadata implements Comparable<FormMetadata> {
       }
       reader.readEndDocument();
       return new FormMetadata(
-          title,
-          description,
-          state,
-          county,
-          prerequisities,
-          lastRevisedAt,
-          paymentInfo,
-          numLines);
+          title, description, state, county, prerequisities, lastRevisedAt, paymentInfo, numLines);
     }
 
     @Override
@@ -188,5 +180,4 @@ public class FormMetadata implements Comparable<FormMetadata> {
       return FormMetadata.class;
     }
   }
-
 }

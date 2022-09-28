@@ -1,7 +1,5 @@
 package Activity;
 
-import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,8 +21,8 @@ public class PasswordRecoveryActivity extends AuthenticateActivity {
   public PasswordRecoveryActivity() {}
 
   public PasswordRecoveryActivity(
-      User user, String oldPasswordHash, String newPasswordHash, String recoveryEmail) {
-    super(user);
+      String username, String oldPasswordHash, String newPasswordHash, String recoveryEmail) {
+    super(username);
     this.oldPasswordHash = oldPasswordHash;
     this.newPasswordHash = newPasswordHash;
     this.recoveryEmail = recoveryEmail;
