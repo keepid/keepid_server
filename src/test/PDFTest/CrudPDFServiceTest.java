@@ -102,16 +102,6 @@ public class CrudPDFServiceTest {
     searchTestPDF();
   }
 
-  public static JSONObject searchTestPDF() {
-    JSONObject body = new JSONObject();
-    body.put("pdfType", "COMPLETED_APPLICATION");
-    HttpResponse<String> getAllDocuments =
-        Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
-    JSONObject getAllDocumentsJSON = TestUtils.responseStringToJSON(getAllDocuments.getBody());
-    assertThat(getAllDocumentsJSON.getString("status")).isEqualTo("SUCCESS");
-    return getAllDocumentsJSON;
-  }
-
   @Test
   public void uploadValidPDFTestExistsAndDelete() {
     User user =
