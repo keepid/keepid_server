@@ -72,6 +72,55 @@ public class CrudPDFServiceTest {
     TestUtils.logout();
   }
 
+  @Test
+  public void uploadValidIdCategory() {
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File examplePDF = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic_converted.pdf");
+
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .header("Content-Disposition", "attachment")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .field("file", examplePDF, "application/pdf")
+                    .field("idCategory", "Veteran ID Card")
+                    .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void uploadInvalidNoIdCategoryTest() {
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File examplePDF = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic_converted.pdf");
+
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .header("Content-Disposition", "attachment")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .field("file", examplePDF, "application/pdf")
+                    .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_ID_CATEGORY");
+
+    TestUtils.logout();
+  }
+
   // this test does not work TODO: @Steffen please fix
   //  @Test
   //  public void uploadAnnotatedPDFFormTest() {
