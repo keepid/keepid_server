@@ -249,7 +249,7 @@ public class PdfController {
         JSONObject req;
         String reqString = null;
         String targetUser = ctx.formParam("targetUser");
-        String idCategory = "";
+        String idCategory;
 
         try {
           req = new JSONObject();
@@ -284,22 +284,25 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              if (pdfType == PDFType.IDENTIFICATION_DOCUMENT) {
-                  idCategory = ctx.formParam("idCategory");
+              idCategory = ctx.formParam("idCategory");
+
+              if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && idCategory == null) {
+                  response = PdfMessage.INVALID_ID_CATEGORY;
+              } else {
+                  UploadPDFService uploadService =
+                          new UploadPDFService(
+                                  db,
+                                  username,
+                                  organizationName,
+                                  privilegeLevel,
+                                  pdfType,
+                                  file.getFilename(),
+                                  file.getContentType(),
+                                  file.getContent(),
+                                  encryptionController,
+                                  idCategory);
+                  response = uploadService.executeAndGetResponse();
               }
-              UploadPDFService uploadService =
-                  new UploadPDFService(
-                      db,
-                      username,
-                      organizationName,
-                      privilegeLevel,
-                      pdfType,
-                      file.getFilename(),
-                      file.getContentType(),
-                      file.getContent(),
-                      encryptionController,
-                      idCategory);
-              response = uploadService.executeAndGetResponse();
             }
           } else {
             response = UserMessage.CROSS_ORG_ACTION_DENIED;
