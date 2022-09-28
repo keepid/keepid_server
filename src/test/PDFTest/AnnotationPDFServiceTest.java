@@ -98,6 +98,43 @@ public class AnnotationPDFServiceTest {
   }
 
   @Test
+  public void getApplicationQuestionsPennsylvaniaSNAPTest()
+          throws IOException, GeneralSecurityException {
+    String username = "username";
+    String password = "password";
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+    // when running entire file, other documents interfere with retrieving the form.
+    // clearAllDocuments();
+
+    File applicationPDF =
+            new File(
+                    resourcesFolderPath
+                            + File.separator
+                            + "AnnotatedPDFs"
+                            + File.separator
+                            + "Pennsylvania - Application for SNAP Simple.pdf");
+    String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
+
+    JSONObject body = new JSONObject();
+    body.put("applicationId", fileId);
+    HttpResponse<String> applicationsQuestionsResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/get-application-questions")
+                    .body(body.toString())
+                    .asString();
+    JSONObject applicationsQuestionsResponseJSON =
+            TestUtils.responseStringToJSON(applicationsQuestionsResponse.getBody());
+    JSONArray fields = applicationsQuestionsResponseJSON.getJSONArray("fields");
+    assertThat(applicationsQuestionsResponseJSON.getString("status")).isEqualTo("SUCCESS");
+    TestUtils.logout();
+  }
+
+  @Test
   public void getApplicationQuestionsSocialSecurityCardTest()
       throws IOException, GeneralSecurityException {
     String username = "username";
