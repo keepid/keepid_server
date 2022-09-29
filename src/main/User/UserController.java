@@ -351,6 +351,7 @@ public class UserController {
                 uploadDate,
                 file.getContent(),
                 FileType.PROFILE_PICTURE,
+                "None",
                 file.getFilename(),
                 user.getOrganization(),
                 false,
