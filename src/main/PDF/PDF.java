@@ -42,7 +42,7 @@ public class PDF {
       Optional<DateTime> lastModifiedAt,
       InputStream fileStream,
       PDFType pdfType,
-      String idCategory) {
+      Optional<String> idCategory) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
     this.username = username;
@@ -51,7 +51,7 @@ public class PDF {
     this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
     this.fileStream = fileStream;
     this.pdfType = pdfType;
-    this.idCategory = idCategory;
+    this.idCategory = idCategory.orElse("None");
   }
 
   /** **************** GETTERS ********************* */
@@ -77,6 +77,10 @@ public class PDF {
 
   public PDFType getPdfType() {
     return pdfType;
+  }
+
+  public String getIdCategory() {
+    return idCategory;
   }
 
   public String getUsername() {
