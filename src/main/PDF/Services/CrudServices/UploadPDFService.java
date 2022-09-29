@@ -95,46 +95,30 @@ public class UploadPDFService implements Service {
   public Message mongodbUpload() throws GeneralSecurityException, IOException {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    GridFSUploadOptions options;
     InputStream inputStream;
+    Document metadata =
+      new Document("type", "pdf")
+        .append("upload_date", String.valueOf(LocalDate.now()))
+        .append("title", title)
+        .append("uploader", uploader)
+        .append("organizationName", organizationName);
 
     if (pdfType == PDFType.BLANK_FORM) {
       inputStream = fileStream;
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("title", title)
-                      .append("annotated", false)
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
-// sorry I made a whole new else if I couldn't figure out how to edit the metadata after the fact
+      metadata = metadata.append("annotated", false);
     } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT){
       inputStream = encryptionController.encryptFile(fileStream, uploader);
-      options =
-          new GridFSUploadOptions()
-                .chunkSizeBytes(CHUNK_SIZE_BYTES)
-                .metadata(
-                    new Document("type", "pdf")
-                        .append("upload_date", String.valueOf(LocalDate.now()))
-                        .append("title", title)
-                        .append("uploader", uploader)
-                        .append("organizationName", organizationName)
-                        .append("idCategory", idCategory));
+      metadata = metadata.append("idCategory", idCategory);
     } else {
+      // pdfType == PDFType.COMPLETED_APPLICATION
       inputStream = encryptionController.encryptFile(fileStream, uploader);
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("title", title)
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
     }
+
+    GridFSUploadOptions options =
+      new GridFSUploadOptions()
+          .chunkSizeBytes(CHUNK_SIZE_BYTES)
+          .metadata(metadata);
+
     gridBucket.uploadFromStream(filename, inputStream, options);
     inputStream.close();
     return PdfMessage.SUCCESS;
