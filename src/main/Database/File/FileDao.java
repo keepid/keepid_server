@@ -29,6 +29,7 @@ public interface FileDao extends Dao<File> {
       String uploaderUsername,
       InputStream fileInputStream,
       FileType fileType,
+      String idCategory,
       Date uploadedAt,
       String organizationName,
       boolean annotated,

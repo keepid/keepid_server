@@ -102,7 +102,6 @@ public class GetFilesInformationService implements Service {
               .put("uploadDate", file_out.getUploadedAt().toString());
       if (fileType.isPDF()) {
         fileMetadata.put("organizationName", file_out.getOrganizationName());
-        fileMetadata.put("annotated", file_out.isAnnotated());
         if (fileType == FileType.FORM_PDF) {
           String title = file_out.getFilename();
           if (title != null) {
@@ -112,9 +111,11 @@ public class GetFilesInformationService implements Service {
           }
           fileMetadata.put("annotated", file_out.isAnnotated());
 
-        } else if (fileType == FileType.APPLICATION_PDF
-            || fileType == FileType.IDENTIFICATION_PDF) {
+        } else if (fileType == FileType.APPLICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());
+        } else if (fileType == FileType.IDENTIFICATION_PDF) {
+          fileMetadata.put("filename", file_out.getFilename());
+          fileMetadata.put("idCategory", file_out.getIdCategory());
         }
       } else if (fileType == FileType.MISC) {
         fileMetadata.put("filename", file_out.getFilename());

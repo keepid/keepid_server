@@ -37,6 +37,7 @@ public class FileDaoTestImpl implements FileDao {
       String uploaderUsername,
       InputStream fileInputStream,
       FileType fileType,
+      String idCategory,
       Date uploadedAt,
       String organizationName,
       boolean annotated,

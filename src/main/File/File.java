@@ -29,7 +29,6 @@ public class File {
 
   @Getter
   @Setter
-  @BsonProperty(value = "idCategory")
   private String idCategory;
 
   @Getter @Setter private String contentType;
@@ -54,29 +53,11 @@ public class File {
   }
 
   public File(
-          ObjectId id,
-          String filename,
-          FileType fileType,
-          String idCategory,
-          Date uploadedAt,
-          String username,
-          String organizationName,
-          String contentType) {
-    this.id = id;
-    this.filename = filename;
-    this.fileType = fileType;
-    this.idCategory = idCategory;
-    this.uploadedAt = uploadedAt;
-    this.username = username;
-    this.organizationName = organizationName;
-    this.contentType = contentType;
-  }
-
-  public File(
       String username,
       Date uploadedAt,
       InputStream fileStream,
       FileType fileType,
+      String idCategory,
       String fileName,
       String organizationName,
       boolean isAnnotated,
@@ -86,6 +67,7 @@ public class File {
     this.uploadedAt = uploadedAt;
     this.fileStream = fileStream;
     this.fileType = fileType;
+    this.idCategory = idCategory;
     this.filename = fileName;
     this.organizationName = organizationName;
     this.isAnnotated = isAnnotated;
