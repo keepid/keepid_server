@@ -109,7 +109,7 @@ public class UploadPDFService implements Service {
       metadata = metadata.append("annotated", false);
     } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT){
       inputStream = encryptionController.encryptFile(fileStream, uploader);
-      metadata = metadata.append("idCategory", idCategory);
+      metadata = metadata.append("idCategory", idCategory.toString());
     } else {
       // pdfType == PDFType.COMPLETED_APPLICATION
       inputStream = encryptionController.encryptFile(fileStream, uploader);
