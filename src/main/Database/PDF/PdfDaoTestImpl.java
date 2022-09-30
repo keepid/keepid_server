@@ -46,7 +46,8 @@ public class PdfDaoTestImpl implements PdfDao {
             new DateTime(new Date()),
             Optional.empty(),
             fileInputStream,
-            BLANK_FORM);
+            BLANK_FORM,
+            Optional.empty());
     pdfMap.put(uploaderUsername, pdf);
     objectIdPDFMap.put(pdf.getId(), pdf);
   }
@@ -60,7 +61,8 @@ public class PdfDaoTestImpl implements PdfDao {
             uploadedAt,
             Optional.empty(),
             fileInputStream,
-            BLANK_FORM);
+            BLANK_FORM,
+            Optional.empty());
     pdfMap.put(uploaderUsername, pdf);
     objectIdPDFMap.put(pdf.getId(), pdf);
   }

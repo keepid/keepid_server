@@ -2,6 +2,7 @@ package PDF.Services.CrudServices;
 
 import Config.Message;
 import Config.Service;
+import File.IdCategoryType;
 import PDF.PDFType;
 import PDF.PdfController;
 import PDF.PdfMessage;
@@ -30,6 +31,7 @@ public class UploadPDFService implements Service {
   PDFType pdfType;
   MongoDatabase db;
   EncryptionController encryptionController;
+  IdCategoryType idCategory;
 
   public UploadPDFService(
       MongoDatabase db,
@@ -40,7 +42,8 @@ public class UploadPDFService implements Service {
       String filename,
       String fileContentType,
       InputStream fileStream,
-      EncryptionController encryptionController) {
+      EncryptionController encryptionController,
+      IdCategoryType idCategory) {
     this.db = db;
     this.uploader = uploaderUsername;
     this.organizationName = organizationName;
@@ -50,6 +53,7 @@ public class UploadPDFService implements Service {
     this.fileContentType = fileContentType;
     this.fileStream = fileStream;
     this.encryptionController = encryptionController;
+    this.idCategory = idCategory;
   }
 
   @Override
@@ -92,34 +96,30 @@ public class UploadPDFService implements Service {
   public Message mongodbUpload() throws GeneralSecurityException, IOException {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    GridFSUploadOptions options;
     InputStream inputStream;
+    Document metadata =
+      new Document("type", "pdf")
+        .append("upload_date", String.valueOf(LocalDate.now()))
+        .append("title", title)
+        .append("uploader", uploader)
+        .append("organizationName", organizationName);
 
     if (pdfType == PDFType.BLANK_FORM) {
       inputStream = fileStream;
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("title", title)
-                      .append("annotated", false)
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
-
-    } else {
+      metadata = metadata.append("annotated", false);
+    } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT){
       inputStream = encryptionController.encryptFile(fileStream, uploader);
-      options =
-          new GridFSUploadOptions()
-              .chunkSizeBytes(CHUNK_SIZE_BYTES)
-              .metadata(
-                  new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
-                      .append("title", title)
-                      .append("uploader", uploader)
-                      .append("organizationName", organizationName));
+      metadata = metadata.append("idCategory", idCategory.toString());
+    } else {
+      // pdfType == PDFType.COMPLETED_APPLICATION
+      inputStream = encryptionController.encryptFile(fileStream, uploader);
     }
+
+    GridFSUploadOptions options =
+      new GridFSUploadOptions()
+          .chunkSizeBytes(CHUNK_SIZE_BYTES)
+          .metadata(metadata);
+
     gridBucket.uploadFromStream(filename, inputStream, options);
     inputStream.close();
     return PdfMessage.SUCCESS;

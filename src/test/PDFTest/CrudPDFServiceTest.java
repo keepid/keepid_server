@@ -4,6 +4,7 @@ import Config.DeploymentLevel;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import PDF.PDFType;
+import File.IdCategoryType;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
@@ -72,6 +73,81 @@ public class CrudPDFServiceTest {
     TestUtils.logout();
   }
 
+  @Test
+  public void uploadValidIdCategory() {
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File examplePDF = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic_converted.pdf");
+
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .header("Content-Disposition", "attachment")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .field("file", examplePDF, "application/pdf")
+                    .field("idCategory", IdCategoryType.VETERAN_ID_CARD.toString())
+                    .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void uploadInvalidNoIdCategoryTest() {
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File examplePDF = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic_converted.pdf");
+
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .header("Content-Disposition", "attachment")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .field("file", examplePDF, "application/pdf")
+                    .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_ID_CATEGORY");
+
+    TestUtils.logout();
+  }
+
+
+  @Test
+  public void uploadInvalidIdCategoryTest() {
+    User user =
+            createUser()
+                    .withUserType(UserType.Admin)
+                    .withUsername(username)
+                    .withPasswordToHash(password)
+                    .buildAndPersist(userDao);
+    TestUtils.login(username, password);
+
+    File examplePDF = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic_converted.pdf");
+
+    HttpResponse<String> uploadResponse =
+            Unirest.post(TestUtils.getServerUrl() + "/upload")
+                    .header("Content-Disposition", "attachment")
+                    .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                    .field("file", examplePDF, "application/pdf")
+                    .field("idCategory", "game card")
+                    .asString();
+    JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+    assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_ID_CATEGORY");
+
+    TestUtils.logout();
+  }
+
   // this test does not work TODO: @Steffen please fix
   //  @Test
   //  public void uploadAnnotatedPDFFormTest() {
@@ -100,16 +176,6 @@ public class CrudPDFServiceTest {
     TestUtils.login(username, password);
     uploadTestPDF();
     searchTestPDF();
-  }
-
-  public static JSONObject searchTestPDF() {
-    JSONObject body = new JSONObject();
-    body.put("pdfType", "COMPLETED_APPLICATION");
-    HttpResponse<String> getAllDocuments =
-        Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
-    JSONObject getAllDocumentsJSON = TestUtils.responseStringToJSON(getAllDocuments.getBody());
-    assertThat(getAllDocumentsJSON.getString("status")).isEqualTo("SUCCESS");
-    return getAllDocumentsJSON;
   }
 
   @Test

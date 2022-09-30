@@ -43,6 +43,7 @@ public class FileDaoImplUnitTests {
     assertEquals(testUsername, fileFromDao.getUsername());
     assertEquals("testOrganizationName", fileFromDao.getOrganizationName());
     assertEquals("testContentType", fileFromDao.getContentType());
+    assertEquals(file.getIdCategory(), fileFromDao.getIdCategory());
     assertEquals(file.isAnnotated(), fileFromDao.isAnnotated());
     assertEquals(file.getUploadedAt().toString(), fileFromDao.getUploadedAt().toString());
     assertEquals(file.getFileId(), fileFromDao.getFileId());

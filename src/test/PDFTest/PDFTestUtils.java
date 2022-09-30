@@ -150,6 +150,16 @@ public class PDFTestUtils {
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");
   }
 
+  public static JSONObject searchTestPDF() {
+    JSONObject body = new JSONObject();
+    body.put("pdfType", "COMPLETED_APPLICATION");
+    HttpResponse<String> getAllDocuments =
+            Unirest.post(TestUtils.getServerUrl() + "/get-documents").body(body.toString()).asString();
+    JSONObject getAllDocumentsJSON = TestUtils.responseStringToJSON(getAllDocuments.getBody());
+    assertThat(getAllDocumentsJSON.getString("status")).isEqualTo("SUCCESS");
+    return getAllDocumentsJSON;
+  }
+
   public static void uploadTestFormPDF() {
     File examplePDF =
         new File(resourcesFolderPath + File.separator + "CIS_401_Final_Progress_Report.pdf");

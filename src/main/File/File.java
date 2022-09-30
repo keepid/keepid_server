@@ -27,6 +27,10 @@ public class File {
   @BsonProperty(value = "annotated")
   private boolean isAnnotated;
 
+  @Getter
+  @Setter
+  private IdCategoryType idCategory;
+
   @Getter @Setter private String contentType;
 
   public File() {}
@@ -53,6 +57,7 @@ public class File {
       Date uploadedAt,
       InputStream fileStream,
       FileType fileType,
+      IdCategoryType idCategory,
       String fileName,
       String organizationName,
       boolean isAnnotated,
@@ -62,6 +67,7 @@ public class File {
     this.uploadedAt = uploadedAt;
     this.fileStream = fileStream;
     this.fileType = fileType;
+    this.idCategory = idCategory;
     this.filename = fileName;
     this.organizationName = organizationName;
     this.isAnnotated = isAnnotated;
@@ -78,6 +84,7 @@ public class File {
         && fileId.equals(file.fileId)
         && filename.equals(file.filename)
         && fileType == file.fileType
+        && idCategory == file.idCategory
         && uploadedAt.equals(file.uploadedAt)
         && username.equals(file.username)
         && organizationName.equals(file.organizationName)
@@ -91,6 +98,7 @@ public class File {
         fileId,
         filename,
         fileType,
+        idCategory,
         uploadedAt,
         username,
         organizationName,
@@ -110,6 +118,8 @@ public class File {
         + '\''
         + ", fileType="
         + fileType
+        + ", idCategory="
+        + idCategory
         + ", uploadedAt="
         + uploadedAt
         + ", username='"
