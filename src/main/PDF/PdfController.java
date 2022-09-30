@@ -2,6 +2,7 @@ package PDF;
 
 import Config.Message;
 import Database.User.UserDao;
+import File.IdCategoryType;
 import PDF.Services.AnnotationServices.FillPDFService;
 import PDF.Services.AnnotationServices.GetQuestionsPDFService;
 import PDF.Services.AnnotationServices.UploadSignedPDFService;
@@ -249,7 +250,7 @@ public class PdfController {
         JSONObject req;
         String reqString = null;
         String targetUser = ctx.formParam("targetUser");
-        String idCategory;
+        IdCategoryType idCategory = IdCategoryType.NONE;
 
         try {
           req = new JSONObject();
@@ -284,9 +285,11 @@ public class PdfController {
               response = PdfMessage.INVALID_PDF;
             } else {
               PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
-              idCategory = ctx.formParam("idCategory");
+              if (ctx.formParam("idCategory") != null) {
+                idCategory = IdCategoryType.createFromString(ctx.formParam("idCategory"));
+              }
 
-              if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && idCategory == null) {
+              if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && idCategory == IdCategoryType.NONE) {
                   response = PdfMessage.INVALID_ID_CATEGORY;
               } else {
                   UploadPDFService uploadService =

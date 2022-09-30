@@ -103,13 +103,13 @@ public class FileController {
               log.info("Received file type of {}", fileType.toString());
               String title = null;
               boolean annotated = false;
-              String idCategory = "None";
+              IdCategoryType idCategory = IdCategoryType.NONE;
               boolean toSign = false;
               if (ctx.formParam("annotated") != null) {
                 annotated = Boolean.parseBoolean(ctx.formParam("annotated"));
               }
-              if (ctx.formParam("annotated") != null) {
-                idCategory = ctx.formParam("idCategory");
+              if (ctx.formParam("idCategory") != null) {
+                idCategory = IdCategoryType.createFromString(ctx.formParam("idCategory"));
               }
               if (ctx.formParam("toSign") != null) {
                 toSign = Boolean.parseBoolean(ctx.formParam("toSign"));

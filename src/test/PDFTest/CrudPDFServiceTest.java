@@ -4,6 +4,7 @@ import Config.DeploymentLevel;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import PDF.PDFType;
+import File.IdCategoryType;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
@@ -89,7 +90,7 @@ public class CrudPDFServiceTest {
                     .header("Content-Disposition", "attachment")
                     .field("pdfType", "IDENTIFICATION_DOCUMENT")
                     .field("file", examplePDF, "application/pdf")
-                    .field("idCategory", "Veteran ID Card")
+                    .field("idCategory", IdCategoryType.VETERAN_ID_CARD.toString())
                     .asString();
     JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
     assertThat(uploadResponseJSON.getString("status")).isEqualTo("SUCCESS");

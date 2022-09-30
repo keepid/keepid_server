@@ -5,6 +5,7 @@ import Config.MongoConfig;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import File.IdCategoryType;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
@@ -125,7 +126,7 @@ public class FileDaoImpl implements FileDao {
       String uploaderUsername,
       InputStream fileInputStream,
       FileType fileType,
-      String idCategory,
+      IdCategoryType idCategory,
       Date uploadedAt,
       String organizationName,
       boolean annotated,

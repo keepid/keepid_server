@@ -29,7 +29,7 @@ public class File {
 
   @Getter
   @Setter
-  private String idCategory;
+  private IdCategoryType idCategory;
 
   @Getter @Setter private String contentType;
 
@@ -57,7 +57,7 @@ public class File {
       Date uploadedAt,
       InputStream fileStream,
       FileType fileType,
-      String idCategory,
+      IdCategoryType idCategory,
       String fileName,
       String organizationName,
       boolean isAnnotated,

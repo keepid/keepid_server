@@ -2,6 +2,7 @@ package PDF.Services.CrudServices;
 
 import Config.Message;
 import Config.Service;
+import File.IdCategoryType;
 import PDF.PDFType;
 import PDF.PdfController;
 import PDF.PdfMessage;
@@ -30,7 +31,7 @@ public class UploadPDFService implements Service {
   PDFType pdfType;
   MongoDatabase db;
   EncryptionController encryptionController;
-  String idCategory;
+  IdCategoryType idCategory;
 
   public UploadPDFService(
       MongoDatabase db,
@@ -42,7 +43,7 @@ public class UploadPDFService implements Service {
       String fileContentType,
       InputStream fileStream,
       EncryptionController encryptionController,
-      String idCategory) {
+      IdCategoryType idCategory) {
     this.db = db;
     this.uploader = uploaderUsername;
     this.organizationName = organizationName;

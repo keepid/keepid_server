@@ -8,6 +8,7 @@ import Database.User.UserDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Services.*;
@@ -351,7 +352,7 @@ public class UserController {
                 uploadDate,
                 file.getContent(),
                 FileType.PROFILE_PICTURE,
-                "None",
+                IdCategoryType.NONE,
                 file.getFilename(),
                 user.getOrganization(),
                 false,

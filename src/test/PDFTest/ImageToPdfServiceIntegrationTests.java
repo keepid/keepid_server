@@ -6,6 +6,7 @@ import Database.User.UserDaoFactory;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
+import File.IdCategoryType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
@@ -64,7 +65,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "image/jpeg")
-                        .field("idCategory", "Other")
+                        .field("idCategory", IdCategoryType.OTHER.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -97,7 +98,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "image/jpeg")
-                        .field("idCategory", "Veteran ID Card")
+                        .field("idCategory", IdCategoryType.VETERAN_ID_CARD.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -151,7 +152,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                        .field("idCategory", "Other")
+                        .field("idCategory", IdCategoryType.OTHER.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
