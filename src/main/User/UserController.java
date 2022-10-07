@@ -406,45 +406,55 @@ public class UserController {
             new SetUserDefaultIdService(userDao, username, documentType, id);
         Message response = setUserDefaultIdService.executeAndGetResponse();
 
-        if (response == UserMessage.SUCCESS){
-            // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
-            JSONObject responseJSON = new JSONObject();
-            responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been set");
-            responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
-            JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
-            ctx.result(mergedInfo.toString());
+        if (response == UserMessage.SUCCESS) {
+          // Instead of a success message, would be better to return the new ID to be displayed or
+          // something similar for get
+          JSONObject responseJSON = new JSONObject();
+          responseJSON.put(
+              "Message",
+              "DefaultId for "
+                  + DocumentType.stringFromDocumentType(documentType)
+                  + " has successfully been set");
+          responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
+          JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+          ctx.result(mergedInfo.toString());
         }
       };
 
-    public Handler getDefaultIds =
-        ctx -> {
-            JSONObject req = new JSONObject(ctx.body());
-            String username = ctx.sessionAttribute("username");
-            String docTypeString = req.getString("documentType");
-            DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
+  public Handler getDefaultIds =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String username = ctx.sessionAttribute("username");
+        String docTypeString = req.getString("documentType");
+        DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-            // Session attributes contains the following information: {orgName=Stripe testing, privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
-            log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
+        // Session attributes contains the following information: {orgName=Stripe testing,
+        // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+        log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
 
-            GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, username, documentType);
-            Message response = getUserDefaultIdService.executeAndGetResponse();
+        GetUserDefaultIdService getUserDefaultIdService =
+            new GetUserDefaultIdService(userDao, username, documentType);
+        Message response = getUserDefaultIdService.executeAndGetResponse();
 
-            if (response == UserMessage.SUCCESS){
-                String fileId = getUserDefaultIdService.getId(documentType);
-                log.info("fileId retrieved is " + fileId);
-                // Instead of a success message, would be better to return the new ID to be displayed or something similar for get
-                JSONObject responseJSON = new JSONObject();
-                responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been retrieved");
-                responseJSON.put("fileId", fileId);
-                responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
-                JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
-                ctx.result(mergedInfo.toString());
-            }
-            else{
-                log.info("Error: {}", response.getErrorName());
-                ctx.result(response.toResponseString());
-            }
-        };
+        if (response == UserMessage.SUCCESS) {
+          String fileId = getUserDefaultIdService.getId(documentType);
+          log.info("fileId retrieved is " + fileId);
+          // Instead of a success message, would be better to return the new ID to be displayed or
+          // something similar for get
+          JSONObject responseJSON = new JSONObject();
+          responseJSON.put(
+              "Message",
+              "DefaultId for "
+                  + DocumentType.stringFromDocumentType(documentType)
+                  + " has successfully been retrieved");
+          responseJSON.put("fileId", fileId);
+          responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
+          JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+          ctx.result(mergedInfo.toString());
+        } else {
+          log.info("Error: {}", response.getErrorName());
+          ctx.result(response.toResponseString());
+        }
       };
 
   public Handler assignWorkerToUser =
