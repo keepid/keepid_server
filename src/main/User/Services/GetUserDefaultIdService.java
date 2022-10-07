@@ -34,13 +34,12 @@ public class GetUserDefaultIdService implements Service{
         user = optionalUser.get();
 
         Map<String, String> defaultIds = user.getDefaultIds();
-        id = defaultIds.get(DocumentType.stringFromDocumentType(documentType));
 
         return UserMessage.SUCCESS;
     }
 
-    public String getId(){
-        return id;
+    public String getId(DocumentType documentType) {
+        return user.getDefaultIds().get(DocumentType.stringFromDocumentType(documentType));
     }
     public User getUser(){
         return user;
