@@ -128,7 +128,7 @@ public class OrganizationController {
         String firstName = req.getString("firstname").toUpperCase().strip();
         String lastName = req.getString("lastname").toUpperCase().strip();
         String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("email").toLowerCase().strip();
+        String email = req.getString("organizationEmail").toLowerCase().strip();
         String phone = req.getString("phonenumber").strip();
         String address = req.getString("address").toUpperCase().strip();
         String city = req.getString("city").toUpperCase().strip();
