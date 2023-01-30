@@ -215,8 +215,9 @@ public class GetQuestionsPDFService implements Service {
     String fieldName = field.getFullyQualifiedName();
     String fieldType = "CheckBox";
     JSONArray fieldValueOptions = new JSONArray();
-    fieldValueOptions.put(field.getOnValue());
-    Boolean fieldDefaultValue = Boolean.FALSE;
+    fieldValueOptions.put("Yes");
+    fieldValueOptions.put("No");
+    String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     String fieldQuestion = "Please Select: " + fieldName;
@@ -251,6 +252,7 @@ public class GetQuestionsPDFService implements Service {
         fieldQuestion);
   }
 
+  // TODO Fix this for listboxes - make into a series of checkboxes
   private JSONObject getChoiceField(PDChoice field) {
     String fieldName = field.getFullyQualifiedName();
     String fieldType, fieldQuestion;
