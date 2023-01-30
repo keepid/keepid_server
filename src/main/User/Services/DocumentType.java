@@ -10,13 +10,13 @@ public enum DocumentType {
     public static DocumentType documentTypeFromString(String s){
         s = s.toLowerCase();
         switch (s) {
-            case "social_security_card":
+            case "social-security":
                 return SOCIAL_SECURITY_CARD;
-            case "driver_license":
+            case "drivers-license":
                 return DRIVER_LICENSE;
-            case "birth_certificate":
+            case "birth-certificate":
                 return BIRTH_CERTIFICATE;
-            case "vaccine_card":
+            case "vaccine-card":
                 return VACCINE_CARD;
             default:
                 return ERROR;
@@ -26,13 +26,13 @@ public enum DocumentType {
     public static String stringFromDocumentType(DocumentType docType){
         switch (docType) {
             case SOCIAL_SECURITY_CARD:
-                return "social_security_card";
+                return "social-security";
             case DRIVER_LICENSE:
-                return "driver_license";
+                return "drivers-license";
             case BIRTH_CERTIFICATE:
-                return "birth_certificate";
+                return "birth-certificate";
             case VACCINE_CARD:
-                return "vaccine_card";
+                return "vaccine-card";
             default:
                 return "error";
         }

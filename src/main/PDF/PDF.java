@@ -1,5 +1,6 @@
 package PDF;
 
+import File.IdCategoryType;
 import com.google.api.client.util.DateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonProperty;
@@ -30,6 +31,9 @@ public class PDF {
   @BsonProperty(value = "pdfType")
   private PDFType pdfType;
 
+  @BsonProperty(value = "idCategory")
+  private IdCategoryType idCategory;
+
   public PDF() {}
 
   public PDF(
@@ -38,7 +42,8 @@ public class PDF {
       DateTime uploadedAt,
       Optional<DateTime> lastModifiedAt,
       InputStream fileStream,
-      PDFType pdfType) {
+      PDFType pdfType,
+      Optional<IdCategoryType> idCategory) {
     this.id = new ObjectId();
     this.fileId = new ObjectId();
     this.username = username;
@@ -47,6 +52,7 @@ public class PDF {
     this.lastModifiedAt = lastModifiedAt.orElse(uploadedAt);
     this.fileStream = fileStream;
     this.pdfType = pdfType;
+    this.idCategory = idCategory.orElse(IdCategoryType.NONE);
   }
 
   /** **************** GETTERS ********************* */
@@ -72,6 +78,10 @@ public class PDF {
 
   public PDFType getPdfType() {
     return pdfType;
+  }
+
+  public IdCategoryType getIdCategory() {
+    return idCategory;
   }
 
   public String getUsername() {

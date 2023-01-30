@@ -6,6 +6,7 @@ import Database.User.UserDaoFactory;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
+import File.IdCategoryType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
@@ -64,6 +65,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "image/jpeg")
+                        .field("idCategory", IdCategoryType.OTHER.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -96,6 +98,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "image/jpeg")
+                        .field("idCategory", IdCategoryType.VETERAN_ID_CARD.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
@@ -105,6 +108,30 @@ public class ImageToPdfServiceIntegrationTests {
         File downloadedPDF = downloadPDF(fileId, "IDENTIFICATION_DOCUMENT");
         InputStream downloadedPDFInputStream = FileUtils.openInputStream(downloadedPDF);
         assertPDFEquals(expectedOutputFileStream, downloadedPDFInputStream);
+
+        TestUtils.logout();
+    }
+
+    @Test
+    public void uploadImageJPEGToPDFInvalidIdCategoryTest() {
+        User user =
+                createUser()
+                        .withUserType(UserType.Client)
+                        .withUsername(username)
+                        .withPasswordToHash(password)
+                        .buildAndPersist(userDao);
+        TestUtils.login(username, password);
+
+        File file = new File(resourcesFolderPath + File.separator + "veteran-id-card-vic.jpg");
+        HttpResponse<String> uploadResponse =
+                Unirest.post(TestUtils.getServerUrl() + "/upload")
+                        .field("pdfType", "IDENTIFICATION_DOCUMENT")
+                        .header("Content-Disposition", "attachment")
+                        .field("file", file, "image/jpeg")
+                        .asString();
+
+        JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());
+        assertThat(uploadResponseJSON.getString("status")).isEqualTo("INVALID_ID_CATEGORY");
 
         TestUtils.logout();
     }
@@ -125,6 +152,7 @@ public class ImageToPdfServiceIntegrationTests {
                         .field("pdfType", "IDENTIFICATION_DOCUMENT")
                         .header("Content-Disposition", "attachment")
                         .field("file", file, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                        .field("idCategory", IdCategoryType.OTHER.toString())
                         .asString();
 
         JSONObject uploadResponseJSON = TestUtils.responseStringToJSON(uploadResponse.getBody());

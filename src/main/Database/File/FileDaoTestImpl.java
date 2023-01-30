@@ -4,6 +4,7 @@ import Config.DeploymentLevel;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import File.IdCategoryType;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
@@ -37,6 +38,7 @@ public class FileDaoTestImpl implements FileDao {
       String uploaderUsername,
       InputStream fileInputStream,
       FileType fileType,
+      IdCategoryType idCategory,
       Date uploadedAt,
       String organizationName,
       boolean annotated,

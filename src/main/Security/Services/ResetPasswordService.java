@@ -14,6 +14,8 @@ import io.jsonwebtoken.Claims;
 import java.util.Date;
 import java.util.Optional;
 
+import static Security.SecurityUtils.hashPassword;
+
 public class ResetPasswordService implements Service {
   UserDao userDao;
   TokenDao tokenDao;
@@ -65,7 +67,7 @@ public class ResetPasswordService implements Service {
       return UserMessage.AUTH_FAILURE.withMessage("Invalid reset token.");
     }
     tokenDao.removeTokenIfLast(username, tokens, Tokens.TokenType.PASSWORD_RESET);
-    userDao.resetPassword(user, newPassword);
+    userDao.resetPassword(user, hashPassword(newPassword));
     return UserMessage.SUCCESS;
   }
 }

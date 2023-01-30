@@ -1,6 +1,5 @@
 package Organization.Services;
 
-import Activity.ActivityController;
 import Activity.CreateOrgActivity;
 import Config.Message;
 import Config.Service;
@@ -55,7 +54,6 @@ public class EnrollOrganizationService implements Service {
   String orgZipcode;
   String orgEmail;
   String orgPhoneNumber;
-  ActivityController activityController;
 
   public EnrollOrganizationService(
       MongoDatabase db,
@@ -105,6 +103,7 @@ public class EnrollOrganizationService implements Service {
     this.orgWebsite = orgWebsite;
     this.orgStreetAddress = orgStreetAddress;
     this.orgZipcode = orgZipcode;
+    this.activityDao = activityDao;
   }
 
   @Override

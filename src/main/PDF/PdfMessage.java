@@ -5,6 +5,7 @@ import org.json.JSONObject;
 
 public enum PdfMessage implements Message {
   INVALID_PDF_TYPE("INVALID_PDF_TYPE;Invalid PDF Type."),
+  INVALID_ID_CATEGORY("INVALID_ID_CATEGORY;Invalid ID Category."),
   INVALID_IMAGE("INVALID_IMAGE;File is not a valid image"),
   INVALID_PDF("INVALID_PDF;File is not a valid pdf"),
   INVALID_PRIVILEGE_TYPE("INVALID_PRIVILEGE_TYPE;The privilege type is invalid"),
