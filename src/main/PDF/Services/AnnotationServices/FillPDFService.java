@@ -74,8 +74,8 @@ public class FillPDFService implements Service {
       if (field instanceof PDButton) {
         if (field instanceof PDCheckBox) {
           PDCheckBox checkBoxField = (PDCheckBox) field;
-          boolean formAnswer = formAnswers.getBoolean(fieldName);
-          if (formAnswer) {
+          String formAnswer = formAnswers.getString(fieldName);
+          if (formAnswer.equals("Yes")) {
             checkBoxField.check();
           } else {
             checkBoxField.unCheck();
