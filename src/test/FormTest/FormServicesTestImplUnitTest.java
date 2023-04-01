@@ -14,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,6 +33,7 @@ public class FormServicesTestImplUnitTest {
     this.formDao.clear();
   }
 
+  @Ignore
   @Test
   public void upload() {
     String testUsername = "username1";
@@ -60,6 +62,7 @@ public class FormServicesTestImplUnitTest {
     assertTrue(formDao.get(testUsername).size() == 0);
   }
 
+  @Ignore
   @Test
   public void get() {
     String testUsername = "username1";

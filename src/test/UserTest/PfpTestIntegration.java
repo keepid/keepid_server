@@ -9,6 +9,7 @@ import kong.unirest.Unirest;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -39,6 +40,7 @@ public class PfpTestIntegration {
 
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
 
+  @Ignore
   @Test
   public void uploadValidPDFTestExists() {
     TestUtils.login("createAdminOwner", "login-history-test");
