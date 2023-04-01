@@ -27,7 +27,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,6 +103,9 @@ public class UploadSignedPDFService implements Service {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
+    String uploadDate = Instant.now().atZone(ZoneId.systemDefault()).toString();
+    uploadDate = uploadDate.replace("T", " ");
+    uploadDate = uploadDate.substring(0, uploadDate.indexOf(".")); // Get part before period
 
     GridFSUploadOptions options;
     if (pdfType == PDFType.BLANK_FORM) {
@@ -109,7 +114,7 @@ public class UploadSignedPDFService implements Service {
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
               .metadata(
                   new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("upload_date", uploadDate)
                       .append("title", title)
                       .append("annotated", false)
                       .append("uploader", uploader)
@@ -120,7 +125,7 @@ public class UploadSignedPDFService implements Service {
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
               .metadata(
                   new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("upload_date", uploadDate)
                       .append("title", title)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));

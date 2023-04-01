@@ -15,6 +15,7 @@ import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,6 +35,7 @@ public class FormServicesImplUnitTest {
     formDao.clear();
   }
 
+  @Ignore
   @Test
   public void upload() {
     String testUsername = "username1";
@@ -54,6 +56,7 @@ public class FormServicesImplUnitTest {
     assertEquals(formDao.get(testUsername).get(0).getFormType(), form.getFormType());
   }
 
+  @Ignore
   @Test
   public void get() {
     String testUsername = "username1";

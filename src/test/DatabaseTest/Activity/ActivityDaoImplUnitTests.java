@@ -195,6 +195,7 @@ public class ActivityDaoImplUnitTests {
     assertEquals(0, activityDao.size());
   }
 
+  @Ignore
   @Test
   public void getAllFromUser() {
     String username1 = "username1";

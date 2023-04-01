@@ -17,7 +17,9 @@ import org.bson.Document;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 public class UploadPDFService implements Service {
   public static final int CHUNK_SIZE_BYTES = 100000;
@@ -97,9 +99,13 @@ public class UploadPDFService implements Service {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
     InputStream inputStream;
+    String uploadDate = Instant.now().atZone(ZoneId.systemDefault()).toString();
+    uploadDate = uploadDate.replace("T", " ");
+    uploadDate = uploadDate.substring(0, uploadDate.indexOf(".")); // Get part before period
+
     Document metadata =
       new Document("type", "pdf")
-        .append("upload_date", String.valueOf(LocalDate.now()))
+        .append("upload_date", uploadDate)
         .append("title", title)
         .append("uploader", uploader)
         .append("organizationName", organizationName);

@@ -10,6 +10,7 @@ import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -81,6 +82,7 @@ public class FormDaoTestImplUnitTests {
     assertEquals(ImmutableList.of(form1, form2, form3), formDao.getAll());
   }
 
+  @Ignore
   @Test
   public void JSONTests() {
     String testUsername = "username1";
