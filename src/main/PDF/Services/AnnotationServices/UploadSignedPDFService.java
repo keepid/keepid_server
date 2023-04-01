@@ -114,7 +114,7 @@ public class UploadSignedPDFService implements Service {
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
               .metadata(
                   new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(uploadDate))
+                      .append("upload_date", uploadDate)
                       .append("title", title)
                       .append("annotated", false)
                       .append("uploader", uploader)
@@ -125,7 +125,7 @@ public class UploadSignedPDFService implements Service {
               .chunkSizeBytes(CHUNK_SIZE_BYTES)
               .metadata(
                   new Document("type", "pdf")
-                      .append("upload_date", String.valueOf(LocalDate.now()))
+                      .append("upload_date", uploadDate)
                       .append("title", title)
                       .append("uploader", uploader)
                       .append("organizationName", organizationName));
