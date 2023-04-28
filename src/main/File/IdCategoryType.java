@@ -1,7 +1,7 @@
 package File;
 
 public enum IdCategoryType {
-    DRIVERS_LICENSE("Drivers License"),
+    DRIVERS_LICENSE_PHOTO_ID("Drivers License / Photo ID"),
     BIRTH_CERTIFICATE("Birth Certificate"),
     SOCIAL_SECURITY_CARD("Social Security Card"),
     VACCINE_CARD("Vaccine Card"),
@@ -23,8 +23,8 @@ public enum IdCategoryType {
 
     public static IdCategoryType createFromString(String idCategoryTypeString) {
         switch (idCategoryTypeString) {
-            case "Drivers License":
-                return IdCategoryType.DRIVERS_LICENSE;
+            case "Drivers License / Photo ID":
+                return IdCategoryType.DRIVERS_LICENSE_PHOTO_ID;
             case "Birth Certificate":
                 return IdCategoryType.BIRTH_CERTIFICATE;
             case "Social Security Card":
