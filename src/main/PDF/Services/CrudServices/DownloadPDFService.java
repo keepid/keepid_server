@@ -78,21 +78,22 @@ public class DownloadPDFService implements Service {
     if (grid_out == null || grid_out.getMetadata() == null) {
       return PdfMessage.NO_SUCH_FILE;
     }
+
+    String uploaderUsername = grid_out.getMetadata().getString("uploader");
     if (pdfType == PDFType.COMPLETED_APPLICATION
         && (privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Worker)) {
       if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
-        String uploaderUsername = grid_out.getMetadata().getString("uploader");
         this.inputStream =
             encryptionController.decryptFile(gridBucket.openDownloadStream(id), uploaderUsername);
         return PdfMessage.SUCCESS;
       }
     } else if (pdfType == PDFType.IDENTIFICATION_DOCUMENT
-        && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
-      if (grid_out.getMetadata().getString("uploader").equals(username)) {
+        && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker || privilegeLevel == UserType.Admin)) {
+      if (grid_out.getMetadata().getString("organizationName").equals(orgName)) {
         this.inputStream =
-            encryptionController.decryptFile(gridBucket.openDownloadStream(id), username);
+            encryptionController.decryptFile(gridBucket.openDownloadStream(id), uploaderUsername);
         return PdfMessage.SUCCESS;
       }
     } else if (pdfType == PDFType.BLANK_FORM) {
