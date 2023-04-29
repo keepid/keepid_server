@@ -145,7 +145,7 @@
         <dependency>
             <groupId>io.javalin</groupId>
             <artifactId>javalin</artifactId>
-            <version>3.13.10</version>
+            <version>5.4.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
         <dependency>
@@ -260,7 +260,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-nosql</artifactId>
-            <version>9.4.41.v20210516</version>
+            <version>9.4.51.v20230217</version>
         </dependency>
         <!-- For Testing -->
         <!-- https://mvnrepository.com/artifact/com.konghq/unirest-java -->
