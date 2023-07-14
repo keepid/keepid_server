@@ -11,6 +11,16 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
@@ -22,22 +32,11 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.bson.Document;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
-
 public class UploadSignedPDFService implements Service {
   public static final int CHUNK_SIZE_BYTES = 100000;
 
-  String uploader;
+  String uploaderUsername;
+  String clientUsername;
   String organizationName;
   UserType privilegeLevel;
   String filename;
@@ -50,7 +49,7 @@ public class UploadSignedPDFService implements Service {
 
   public UploadSignedPDFService(
       MongoDatabase db,
-      String uploaderUsername,
+      String clientUsername,
       String organizationName,
       UserType privilegeLevel,
       PDFType pdfType,
@@ -60,7 +59,7 @@ public class UploadSignedPDFService implements Service {
       InputStream signatureFileStream,
       EncryptionController encryptionController) {
     this.db = db;
-    this.uploader = uploaderUsername;
+    this.clientUsername = clientUsername;
     this.organizationName = organizationName;
     this.privilegeLevel = privilegeLevel;
     this.pdfType = pdfType;
@@ -77,7 +76,7 @@ public class UploadSignedPDFService implements Service {
       return PdfMessage.INVALID_PDF_TYPE;
     } else if (fileStream == null) {
       return PdfMessage.INVALID_PDF;
-    } else if (!fileContentType.equals("application/pdf")){
+    } else if (!fileContentType.equals("application/pdf")) {
       return PdfMessage.INVALID_PDF;
     } else {
       if ((pdfType == PDFType.COMPLETED_APPLICATION
@@ -88,7 +87,7 @@ public class UploadSignedPDFService implements Service {
               || privilegeLevel == UserType.Director
               || privilegeLevel == UserType.Admin)) {
         try {
-          InputStream signedPDF = signPDF(uploader, fileStream, signatureFileStream);
+          InputStream signedPDF = signPDF(clientUsername, fileStream, signatureFileStream);
           return mongodbUpload(signedPDF);
         } catch (GeneralSecurityException | IOException e) {
           return PdfMessage.ENCRYPTION_ERROR;
@@ -102,7 +101,7 @@ public class UploadSignedPDFService implements Service {
   public Message mongodbUpload(InputStream signedPDF) throws GeneralSecurityException, IOException {
     String title = PdfController.getPDFTitle(filename, fileStream, pdfType);
     GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
-    InputStream inputStream = encryptionController.encryptFile(signedPDF, uploader);
+    InputStream inputStream = encryptionController.encryptFile(signedPDF, clientUsername);
     String uploadDate = Instant.now().atZone(ZoneId.systemDefault()).toString();
     uploadDate = uploadDate.replace("T", " ");
     uploadDate = uploadDate.substring(0, uploadDate.indexOf(".")); // Get part before period
@@ -117,7 +116,7 @@ public class UploadSignedPDFService implements Service {
                       .append("upload_date", uploadDate)
                       .append("title", title)
                       .append("annotated", false)
-                      .append("uploader", uploader)
+                      .append("uploader", clientUsername)
                       .append("organizationName", organizationName));
     } else {
       options =
@@ -127,7 +126,7 @@ public class UploadSignedPDFService implements Service {
                   new Document("type", "pdf")
                       .append("upload_date", uploadDate)
                       .append("title", title)
-                      .append("uploader", uploader)
+                      .append("uploader", clientUsername)
                       .append("organizationName", organizationName));
     }
     gridBucket.uploadFromStream(filename, inputStream, options);
