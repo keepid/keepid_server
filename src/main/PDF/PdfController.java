@@ -1,5 +1,8 @@
 package PDF;
 
+import static User.UserController.mergeJSON;
+import static com.mongodb.client.model.Filters.eq;
+
 import Config.Message;
 import Database.User.UserDao;
 import File.IdCategoryType;
@@ -15,18 +18,14 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Objects;
-
-import static User.UserController.mergeJSON;
-import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
 public class PdfController {
@@ -290,21 +289,21 @@ public class PdfController {
               }
 
               if (pdfType == PDFType.IDENTIFICATION_DOCUMENT && idCategory == IdCategoryType.NONE) {
-                  response = PdfMessage.INVALID_ID_CATEGORY;
+                response = PdfMessage.INVALID_ID_CATEGORY;
               } else {
-                  UploadPDFService uploadService =
-                          new UploadPDFService(
-                                  db,
-                                  username,
-                                  organizationName,
-                                  privilegeLevel,
-                                  pdfType,
-                                  file.getFilename(),
-                                  file.getContentType(),
-                                  file.getContent(),
-                                  encryptionController,
-                                  idCategory);
-                  response = uploadService.executeAndGetResponse();
+                UploadPDFService uploadService =
+                    new UploadPDFService(
+                        db,
+                        username,
+                        organizationName,
+                        privilegeLevel,
+                        pdfType,
+                        file.getFilename(),
+                        file.getContentType(),
+                        file.getContent(),
+                        encryptionController,
+                        idCategory);
+                response = uploadService.executeAndGetResponse();
               }
             }
           } else {
@@ -348,7 +347,7 @@ public class PdfController {
    */
   public Handler pdfSignedUpload =
       ctx -> {
-        String username = Objects.requireNonNull(ctx.sessionAttribute("username"));
+        String uploaderUsername = Objects.requireNonNull(ctx.sessionAttribute("username"));
         String organizationName = Objects.requireNonNull(ctx.sessionAttribute("orgName"));
         UserType privilegeLevel = Objects.requireNonNull(ctx.sessionAttribute("privilegeLevel"));
 
@@ -356,11 +355,15 @@ public class PdfController {
         UploadedFile file = Objects.requireNonNull(ctx.uploadedFile("file"));
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
+        String clientUsernameParameter = ctx.formParam("clientUsername");
+        assert clientUsernameParameter != null;
+        String clientUsername =
+            clientUsernameParameter.equals("") ? uploaderUsername : clientUsernameParameter;
 
         UploadSignedPDFService uploadService =
             new UploadSignedPDFService(
                 db,
-                username,
+                clientUsername,
                 organizationName,
                 privilegeLevel,
                 pdfType,
@@ -380,13 +383,17 @@ public class PdfController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String applicationId = req.getString("applicationId");
-        String username = ctx.sessionAttribute("username");
+        // Client username in case worker view, empty string in client view
+        String clientUsernameParameter = req.getString("clientUsername");
+        String uploaderUsername = ctx.sessionAttribute("username");
+        String clientUsername =
+            clientUsernameParameter.equals("") ? uploaderUsername : clientUsernameParameter;
         String organizationName = ctx.sessionAttribute("orgName");
         UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
         DownloadPDFService downloadPDFService =
             new DownloadPDFService(
                 db,
-                username,
+                clientUsername,
                 organizationName,
                 privilegeLevel,
                 applicationId,
@@ -396,7 +403,7 @@ public class PdfController {
         if (responseDownload == PdfMessage.SUCCESS) {
           InputStream inputStream = downloadPDFService.getInputStream();
           GetQuestionsPDFService getQuestionsPDFService =
-              new GetQuestionsPDFService(userDao, privilegeLevel, username, inputStream);
+              new GetQuestionsPDFService(userDao, privilegeLevel, clientUsername, inputStream);
           Message response = getQuestionsPDFService.executeAndGetResponse();
           if (response == PdfMessage.SUCCESS) {
             JSONObject information = getQuestionsPDFService.getApplicationInformation();
@@ -423,7 +430,11 @@ public class PdfController {
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
         String applicationId = req.getString("applicationId");
-        String username = ctx.sessionAttribute("username");
+        // Client username in case worker view, empty string in client view
+        String clientUsernameParameter = req.getString("clientUsername");
+        String uploaderUsername = ctx.sessionAttribute("username");
+        String clientUsername =
+            clientUsernameParameter.equals("") ? uploaderUsername : clientUsernameParameter;
         String organizationName = ctx.sessionAttribute("orgName");
         UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
         JSONObject formAnswers = req.getJSONObject("formAnswers");
@@ -431,7 +442,7 @@ public class PdfController {
         DownloadPDFService downloadPDFService =
             new DownloadPDFService(
                 db,
-                username,
+                clientUsername,
                 organizationName,
                 privilegeLevel,
                 applicationId,

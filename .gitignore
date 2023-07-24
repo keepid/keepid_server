@@ -38,6 +38,7 @@ session-store/*
 .env
 env
 
+.DS_Store
 google-credentials.json
 key.json
 
