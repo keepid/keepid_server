@@ -356,7 +356,6 @@ public class PdfController {
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         PDFType pdfType = PDFType.createFromString(ctx.formParam("pdfType"));
         String clientUsernameParameter = ctx.formParam("clientUsername");
-        System.out.println(clientUsernameParameter);
         assert clientUsernameParameter != null;
         String clientUsername =
             clientUsernameParameter.equals("") ? uploaderUsername : clientUsernameParameter;

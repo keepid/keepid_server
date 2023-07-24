@@ -18,7 +18,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.Collections;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.apache.commons.io.FileUtils;
@@ -399,6 +402,51 @@ public class AnnotationPDFServiceTest {
     assertThat(fieldValues).isNotNull();
     // checkFormAnswersSS5Form(fieldValues);
     // delete(fileId, "BLANK_FORM");
+    TestUtils.logout();
+  }
+
+  // ------------------ UPLOAD SIGNED PDF TESTS ------------------------ //\
+
+  @Test
+  public void uploadSignedSSPDF() throws IOException, GeneralSecurityException {
+    String caseWorkerUsername = "username1";
+    String caseWorkerPassword = "password1";
+    String clientUsername = "username2";
+    String clientPassword = "password2";
+    String organization = "org1";
+    User caseWorker =
+        createUser()
+            .withUserType(UserType.Admin)
+            .withUsername(caseWorkerUsername)
+            .withPasswordToHash(caseWorkerPassword)
+            .withOrgName(organization)
+            .buildAndPersist(userDao);
+    TestUtils.login(caseWorkerUsername, caseWorkerPassword);
+    User client =
+        createUser()
+            .withUserType(UserType.Client)
+            .withUsername(clientUsername)
+            .withPasswordToHash(clientPassword)
+            .withOrgName(organization)
+            .buildAndPersist(userDao);
+    String filledApplicationPDFFilePath =
+        resourcesFolderPath + File.separator + "ss-5_filled_out.pdf";
+    File filledApplicationPDF = new File(filledApplicationPDFFilePath);
+    String mimeTypePDF = Files.probeContentType(Path.of(filledApplicationPDFFilePath));
+    String signatureImagePath = resourcesFolderPath + File.separator + "sample-signature.png";
+    File signatureImage = new File(signatureImagePath);
+    String mimeTypeSignature = Files.probeContentType(Path.of(signatureImagePath));
+    HttpResponse<String> uploadSignedPDFResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/upload-signed-pdf")
+            .header("Content-Disposition", "attachment")
+            .field("file", filledApplicationPDF, mimeTypePDF)
+            .field("pdfType", Collections.singleton(PDFType.COMPLETED_APPLICATION))
+            .field("signature", signatureImage, mimeTypeSignature)
+            .field("clientUsername", clientUsername)
+            .asString();
+    JSONObject responseJSON = TestUtils.responseStringToJSON(uploadSignedPDFResponse.getBody());
+    System.out.println(responseJSON);
+    assertThat(responseJSON.getString("status")).isEqualTo("SUCCESS");
     TestUtils.logout();
   }
 
