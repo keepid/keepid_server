@@ -348,21 +348,21 @@ public class AnnotationPDFServiceTest {
     String clientUsername = "username2";
     String clientPassword = "password2";
     String organization = "org1";
-    User caseWorker =
-        createUser()
-            .withUserType(UserType.Admin)
-            .withUsername(caseWorkerUsername)
-            .withPasswordToHash(caseWorkerPassword)
-            .withOrgName(organization)
-            .buildAndPersist(userDao);
+    // Case worker
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(caseWorkerUsername)
+        .withPasswordToHash(caseWorkerPassword)
+        .withOrgName(organization)
+        .buildAndPersist(userDao);
     TestUtils.login(caseWorkerUsername, caseWorkerPassword);
-    User client =
-        createUser()
-            .withUserType(UserType.Client)
-            .withUsername(clientUsername)
-            .withPasswordToHash(clientPassword)
-            .withOrgName(organization)
-            .buildAndPersist(userDao);
+    // Client
+    createUser()
+        .withUserType(UserType.Client)
+        .withUsername(clientUsername)
+        .withPasswordToHash(clientPassword)
+        .withOrgName(organization)
+        .buildAndPersist(userDao);
 
     File applicationPDF = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     String fileId = uploadFileAndGetFileId(applicationPDF, "BLANK_FORM");
@@ -414,21 +414,21 @@ public class AnnotationPDFServiceTest {
     String clientUsername = "username2";
     String clientPassword = "password2";
     String organization = "org1";
-    User caseWorker =
-        createUser()
-            .withUserType(UserType.Admin)
-            .withUsername(caseWorkerUsername)
-            .withPasswordToHash(caseWorkerPassword)
-            .withOrgName(organization)
-            .buildAndPersist(userDao);
+    // Case worker
+    createUser()
+        .withUserType(UserType.Admin)
+        .withUsername(caseWorkerUsername)
+        .withPasswordToHash(caseWorkerPassword)
+        .withOrgName(organization)
+        .buildAndPersist(userDao);
     TestUtils.login(caseWorkerUsername, caseWorkerPassword);
-    User client =
-        createUser()
-            .withUserType(UserType.Client)
-            .withUsername(clientUsername)
-            .withPasswordToHash(clientPassword)
-            .withOrgName(organization)
-            .buildAndPersist(userDao);
+    // Client
+    createUser()
+        .withUserType(UserType.Client)
+        .withUsername(clientUsername)
+        .withPasswordToHash(clientPassword)
+        .withOrgName(organization)
+        .buildAndPersist(userDao);
     String filledApplicationPDFFilePath =
         resourcesFolderPath + File.separator + "ss-5_filled_out.pdf";
     File filledApplicationPDF = new File(filledApplicationPDFFilePath);
