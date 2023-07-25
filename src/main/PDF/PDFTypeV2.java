@@ -18,11 +18,11 @@ public enum PDFTypeV2 {
   public static PDFTypeV2 createFromString(String pdfTypeString) {
     switch (pdfTypeString) {
       case "ANNOTATED_APPLICATION":
-        return PDFTypeV2.ANNOTATED_APPLICATION;
+        return ANNOTATED_APPLICATION;
       case "BLANK_APPLICATION":
-        return PDFTypeV2.BLANK_APPLICATION;
+        return BLANK_APPLICATION;
       case "CLIENT_UPLOADED_DOCUMENT":
-        return PDFTypeV2.CLIENT_UPLOADED_DOCUMENT;
+        return CLIENT_UPLOADED_DOCUMENT;
       default:
         return null;
     }
