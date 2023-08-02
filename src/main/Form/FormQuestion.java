@@ -1,29 +1,37 @@
 package Form;
 
-import org.bson.types.ObjectId;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
-
 import java.util.Comparator;
 import java.util.List;
+import org.bson.types.ObjectId;
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class FormQuestion implements Comparable<FormQuestion> {
   ObjectId id;
   FieldType type;
+  String questionName;
   String questionText;
+  String answerText;
+  boolean answerBoolean;
+  JSONArray answerArray;
   List<String> options;
   String defaultValue;
   boolean required;
   int numLines;
   boolean matched;
   ObjectId conditionalOnField;
-  // true for positive, false for negative
+  // true for positive, false for negative/none
   boolean conditionalType;
 
   public FormQuestion(
       ObjectId id,
       FieldType type,
+      String questionName,
       String questionText,
+      String answerText,
+      boolean answerBoolean,
+      JSONArray answerArray,
       List<String> options,
       String defaultValue,
       boolean required,
@@ -33,7 +41,11 @@ public class FormQuestion implements Comparable<FormQuestion> {
       boolean conditionalType) {
     this.id = id;
     this.type = type;
+    this.questionName = questionName;
     this.questionText = questionText;
+    this.answerText = answerText;
+    this.answerBoolean = answerBoolean;
+    this.answerArray = answerArray;
     this.options = options;
     this.defaultValue = defaultValue;
     this.required = required;
@@ -51,8 +63,36 @@ public class FormQuestion implements Comparable<FormQuestion> {
     return type;
   }
 
+  public String getQuestionName() {
+    return questionName;
+  }
+
   public String getQuestionText() {
     return questionText;
+  }
+
+  public String getAnswerText() {
+    return answerText;
+  }
+
+  public void setAnswerText(String answerText) {
+    this.answerText = answerText;
+  }
+
+  public boolean getAnswerBoolean() {
+    return answerBoolean;
+  }
+
+  public void setAnswerBoolean(boolean answerBoolean) {
+    this.answerBoolean = answerBoolean;
+  }
+
+  public JSONArray getAnswerArray() {
+    return answerArray;
+  }
+
+  public void setAnswerArray(JSONArray answerArray) {
+    this.answerArray = answerArray;
   }
 
   public List<String> getOptions() {
@@ -96,7 +136,11 @@ public class FormQuestion implements Comparable<FormQuestion> {
     return new JSONObject()
         .put("_id", id)
         .put("fieldType", type.toString())
+        .put("name", questionName)
         .put("question", questionText)
+        .put("answerText", answerText)
+        .put("answerBoolean", answerBoolean)
+        .put("answerArray", answerArray)
         .put("options", options)
         .put("defaultValue", defaultValue)
         .put("isRequired", this.isRequired())

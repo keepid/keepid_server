@@ -3,6 +3,7 @@ package PDF.Services.V2Services;
 import Config.Message;
 import Config.Service;
 import Database.File.FileDao;
+import File.FileMessage;
 import File.FileType;
 import File.IdCategoryType;
 import PDF.PDFTypeV2;
@@ -64,25 +65,26 @@ public class UploadPDFServiceV2 implements Service {
   }
 
   public Message checkUploadConditions() {
-    if (pdfType == null) {
+    if (this.pdfType == null) {
       return PdfMessage.INVALID_PDF_TYPE;
     }
-    if (fileStream == null
-        || (!fileContentType.equals("application/pdf") && !fileContentType.startsWith("image"))) {
+    if (this.fileStream == null
+        || (!this.fileContentType.equals("application/pdf")
+            && !this.fileContentType.startsWith("image"))) {
       return PdfMessage.INVALID_PDF;
     }
-    if (privilegeLevel != UserType.Client
-        && privilegeLevel != UserType.Worker
-        && privilegeLevel != UserType.Director
-        && privilegeLevel != UserType.Admin
-        && privilegeLevel != UserType.Developer) {
+    if (this.privilegeLevel != UserType.Client
+        && this.privilegeLevel != UserType.Worker
+        && this.privilegeLevel != UserType.Director
+        && this.privilegeLevel != UserType.Admin
+        && this.privilegeLevel != UserType.Developer) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
     return null;
   }
 
   public Message convertImageToPDF() {
-    ImageToPDFService imageToPDFService = new ImageToPDFService(fileStream);
+    ImageToPDFService imageToPDFService = new ImageToPDFService(this.fileStream);
     Message imageToPDFResponse = imageToPDFService.executeAndGetResponse();
     if (imageToPDFResponse != PdfMessage.SUCCESS) return imageToPDFResponse;
     InputStream tempFileStream = imageToPDFService.getFileStream();
@@ -91,8 +93,8 @@ public class UploadPDFServiceV2 implements Service {
     } catch (IOException e) {
       return PdfMessage.SERVER_ERROR;
     }
-    fileStream = tempFileStream;
-    fileName = fileName.substring(0, fileName.lastIndexOf(".")) + ".pdf";
+    this.fileStream = tempFileStream;
+    this.fileName = this.fileName.substring(0, this.fileName.lastIndexOf(".")) + ".pdf";
     return null;
   }
 
@@ -114,42 +116,57 @@ public class UploadPDFServiceV2 implements Service {
   }
 
   public Message upload() {
-    fileName = getPDFTitle(fileName, fileStream, pdfType);
+    this.fileName = getPDFTitle(fileName, fileStream, pdfType);
     Date currentDate = new Date();
     FileType fileType = null;
     boolean annotated = false;
-    if (pdfType == PDFTypeV2.BLANK_APPLICATION) {
-      fileType = FileType.FORM_PDF;
-    } else if (pdfType == PDFTypeV2.ANNOTATED_APPLICATION) {
-      fileType = FileType.APPLICATION_PDF;
-      try {
-        fileStream = encryptionController.encryptFile(fileStream, username);
-      } catch (GeneralSecurityException | IOException e) {
-        return PdfMessage.SERVER_ERROR;
-      }
-      annotated = true;
-    } else if (pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
-      try {
-        fileStream = encryptionController.encryptFile(fileStream, username);
-      } catch (GeneralSecurityException | IOException e) {
-        return PdfMessage.SERVER_ERROR;
-      }
-      fileType = FileType.IDENTIFICATION_PDF;
-    } else {
+    // This service should only upload client_uploaded_documents like identification documents and
+    // images
+    if (this.pdfType != PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
       return PdfMessage.INVALID_PDF_TYPE;
     }
-    fileDao.save(
-        username,
-        fileStream,
-        fileType,
-        idCategoryType,
-        currentDate,
-        organizationName,
-        annotated,
-        fileName,
-        fileContentType);
+    //    if (pdfType == PDFTypeV2.BLANK_APPLICATION) {
+    //      fileType = FileType.FORM_PDF;
+    //    } else if (pdfType == PDFTypeV2.ANNOTATED_APPLICATION) {
+    //      fileType = FileType.APPLICATION_PDF;
+    //      try {
+    //        fileStream = encryptionController.encryptFile(fileStream, username);
+    //      } catch (GeneralSecurityException | IOException e) {
+    //        return PdfMessage.SERVER_ERROR;
+    //      }
+    //      annotated = true;
+    //    } else if (pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
+    //      try {
+    //        fileStream = encryptionController.encryptFile(fileStream, username);
+    //      } catch (GeneralSecurityException | IOException e) {
+    //        return PdfMessage.SERVER_ERROR;
+    //      }
+    //      fileType = FileType.IDENTIFICATION_PDF;
+    //    } else {
+    //      return PdfMessage.INVALID_PDF_TYPE;
+    //    }
     try {
-      fileStream.close();
+      this.fileStream = encryptionController.encryptFile(this.fileStream, this.username);
+    } catch (GeneralSecurityException | IOException e) {
+      return PdfMessage.SERVER_ERROR;
+    }
+    fileType = FileType.IDENTIFICATION_PDF;
+    Message fileDaoSaveMessage =
+        this.fileDao.save(
+            this.username,
+            this.fileStream,
+            fileType,
+            this.idCategoryType,
+            currentDate,
+            this.organizationName,
+            annotated,
+            this.fileName,
+            this.fileContentType);
+    if (fileDaoSaveMessage != FileMessage.SUCCESS) {
+      return fileDaoSaveMessage;
+    }
+    try {
+      this.fileStream.close();
     } catch (IOException e) {
       return PdfMessage.SERVER_ERROR;
     }

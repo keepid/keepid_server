@@ -76,10 +76,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
     List<JSONObject> formFields = new LinkedList<>();
     for (FormQuestion formQuestion : formQuestions) {
       JSONObject formField = new JSONObject();
-      // WHAT TO DO WITH TITLE? IT IS NOT IN formQuestion
-      //
-      //
-      formField.put("fieldName", "HELP THIS STRING PLEASE");
+      formField.put("fieldName", formQuestion.getQuestionName());
       formField.put("fieldType", formQuestion.getType().toString());
       formField.put("fieldValueOptions", new JSONArray(formQuestion.getOptions()));
       formField.put("fieldDefaultValue", formQuestion.getDefaultValue());

@@ -12,11 +12,11 @@ import User.IpObject;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
-import org.bson.types.ObjectId;
-
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.bson.types.ObjectId;
+import org.json.JSONArray;
 
 public class EntityFactory {
   public static final long TEST_DATE = 1577862000000L; // Jan 1 2020
@@ -142,7 +142,11 @@ public class EntityFactory {
           new FormQuestion(
               new ObjectId(),
               FieldType.TEXT_FIELD,
+              "question name",
               "question text",
+              "question answer",
+              true,
+              new JSONArray(),
               new ArrayList<>(),
               "default",
               true,

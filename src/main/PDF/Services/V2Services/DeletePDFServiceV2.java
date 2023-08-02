@@ -47,25 +47,26 @@ public class DeletePDFServiceV2 implements Service {
   }
 
   public Message checkDeleteConditions() {
-    if (!ValidationUtils.isValidObjectId(fileId) || pdfType == null) {
+    if (!ValidationUtils.isValidObjectId(this.fileId) || this.pdfType == null) {
       return PdfMessage.INVALID_PARAMETER;
     }
-    fileObjectId = new ObjectId(fileId);
-    Optional<File> fileOptional = fileDao.get(fileObjectId);
+    this.fileObjectId = new ObjectId(this.fileId);
+    Optional<File> fileOptional = fileDao.get(this.fileObjectId);
     if (fileOptional.isEmpty()) {
       return PdfMessage.NO_SUCH_FILE;
     }
-    file = fileOptional.get();
+    this.file = fileOptional.get();
     // Check Privileges
-    if (privilegeLevel == null) {
+    if (this.privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
-    if ((pdfType == PDFTypeV2.ANNOTATED_APPLICATION
-            && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Developer))
-        || (pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT
-            && (privilegeLevel == UserType.Director
-                || privilegeLevel == UserType.Admin
-                || privilegeLevel == UserType.Developer))) {
+    if ((this.pdfType == PDFTypeV2.ANNOTATED_APPLICATION
+            && (this.privilegeLevel == UserType.Client
+                || this.privilegeLevel == UserType.Developer))
+        || (this.pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT
+            && (this.privilegeLevel == UserType.Director
+                || this.privilegeLevel == UserType.Admin
+                || this.privilegeLevel == UserType.Developer))) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
     return null;
@@ -75,31 +76,31 @@ public class DeletePDFServiceV2 implements Service {
     // NEED TO FIGURE OUT WHAT EXACTLY TO DELETE
     //
     //
-    if (pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
-      if (!file.getOrganizationName().equals(organizationName)) {
+    if (this.pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
+      if (!this.file.getOrganizationName().equals(this.organizationName)) {
         return PdfMessage.CROSS_ORG_ACTION_DENIED;
       }
-      fileDao.delete(fileObjectId);
+      this.fileDao.delete(this.fileObjectId);
       return PdfMessage.SUCCESS;
     }
-    Optional<Form> formOptional = formDao.getByFileId(fileObjectId);
+    Optional<Form> formOptional = this.formDao.getByFileId(this.fileObjectId);
     if (formOptional.isEmpty()) {
       return PdfMessage.MISSING_FORM;
     }
     ObjectId formObjectId = formOptional.get().getId();
-    if (pdfType == PDFTypeV2.ANNOTATED_APPLICATION) {
-      if (!file.getOrganizationName().equals(organizationName)) {
+    if (this.pdfType == PDFTypeV2.ANNOTATED_APPLICATION) {
+      if (!this.file.getOrganizationName().equals(this.organizationName)) {
         return PdfMessage.CROSS_ORG_ACTION_DENIED;
       }
-      fileDao.delete(fileObjectId);
-      formDao.delete(formObjectId);
+      this.fileDao.delete(this.fileObjectId);
+      this.formDao.delete(formObjectId);
       return PdfMessage.SUCCESS;
     }
-    if (pdfType == PDFTypeV2.BLANK_APPLICATION) { // THIS PDFTYPE IS NOT USED IN THE FRONTEND
-      if (!file.getUsername().equals(username)) {
+    if (this.pdfType == PDFTypeV2.BLANK_APPLICATION) { // THIS PDFTYPE IS NOT USED IN THE FRONTEND
+      if (!this.file.getUsername().equals(this.username)) {
         return PdfMessage.INSUFFICIENT_USER_PRIVILEGE;
       }
-      fileDao.delete(fileObjectId);
+      fileDao.delete(this.fileObjectId);
       formDao.delete(formObjectId);
       return PdfMessage.SUCCESS;
     }

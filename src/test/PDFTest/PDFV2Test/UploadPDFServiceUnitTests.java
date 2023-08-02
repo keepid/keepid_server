@@ -8,8 +8,7 @@ import Config.Message;
 import Config.MongoConfig;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
-import Database.Form.FormDao;
-import Database.User.UserDao;
+import File.FileMessage;
 import File.IdCategoryType;
 import PDF.PDFTypeV2;
 import PDF.PdfControllerV2.FileParams;
@@ -23,6 +22,7 @@ import com.mongodb.client.MongoDatabase;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
@@ -30,39 +30,32 @@ import org.junit.*;
 @Slf4j
 public class UploadPDFServiceUnitTests {
   private FileDao fileDao;
-  private FormDao formDao;
-  private UserDao userDao;
-  private UserParams exampleUserParams;
-  private FileParams exampleFileParams;
   private MongoDatabase db;
   private EncryptionController encryptionController;
   private FileInputStream sampleFileStream;
+  private FileInputStream sampleImageStream;
+  private FileInputStream sampleAnnotatedFileStream;
 
   @BeforeClass
-  public static void startDatabaseConnection() {
+  public static void start() {
     TestUtils.startServer();
   }
 
   @Before
   public void initialize() {
-    fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
-    db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-    File sampleFile = new File(resourcesFolderPath + File.separator + "1_converted.pdf");
+    this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
+    this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+    File sampleFile = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
+    File sampleAnnotatedFile =
+        new File(resourcesFolderPath + File.separator + "ss-5_filled_out.pdf");
+    File sampleImage = new File(resourcesFolderPath + File.separator + "first-love.png");
     try {
-      sampleFileStream = FileUtils.openInputStream(sampleFile);
+      this.sampleFileStream = FileUtils.openInputStream(sampleFile);
+      this.sampleAnnotatedFileStream = FileUtils.openInputStream(sampleAnnotatedFile);
+      this.sampleImageStream = FileUtils.openInputStream(sampleImage);
     } catch (IOException e) {
-      log.error("Opening sampleFileStream failed");
+      log.error("Opening file stream failed");
     }
-    exampleUserParams = new UserParams("username1", "org1", UserType.Client);
-    exampleFileParams =
-        new FileParams(
-            null,
-            PDFTypeV2.BLANK_APPLICATION,
-            "file1",
-            "application/pdf",
-            sampleFileStream,
-            IdCategoryType.NONE,
-            false);
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
@@ -73,27 +66,178 @@ public class UploadPDFServiceUnitTests {
   @After
   public void reset() {
     fileDao.clear();
-    exampleFileParams = null;
-    exampleUserParams = null;
     try {
       sampleFileStream.close();
+      sampleImageStream.close();
+      sampleAnnotatedFileStream.close();
     } catch (IOException e) {
-      log.error("Closing sampleFileStream failed");
+      log.error("Closing file stream failed");
     }
-    MongoConfig.dropDatabase(DeploymentLevel.TEST);
   }
 
   @AfterClass
-  public static void closeDatabaseConnection() {
+  public static void tearDown() {
     TestUtils.tearDownTestDB();
   }
 
   @Test
   public void uploadPDFServiceNullPDFType() {
-    exampleFileParams.setPdfType(null);
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Client);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(null)
+            .setFileName("ss-5.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(sampleFileStream)
+            .setIdCategoryType(IdCategoryType.NONE);
     UploadPDFServiceV2 service =
-        new UploadPDFServiceV2(fileDao, exampleUserParams, exampleFileParams, encryptionController);
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
     assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
+  }
+
+  @Test
+  public void uploadPDFServiceNullFileStream() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Worker);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.BLANK_APPLICATION)
+            .setFileName("ss-5.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(null)
+            .setIdCategoryType(IdCategoryType.NONE);
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.INVALID_PDF, response);
+  }
+
+  @Test
+  public void uploadPDFServiceInvalidFileContentType() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Worker);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.BLANK_APPLICATION)
+            .setFileName("ss-5.pdf")
+            .setFileContentType("invalid")
+            .setFileStream(sampleFileStream)
+            .setIdCategoryType(IdCategoryType.NONE);
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.INVALID_PDF, response);
+  }
+
+  @Test
+  public void uploadPDFServiceImageSuccess() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Client);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
+            .setFileName("first-love.png")
+            .setFileContentType("image")
+            .setFileStream(sampleImageStream)
+            .setIdCategoryType(IdCategoryType.OTHER);
+    assertEquals(0, fileDao.size());
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.SUCCESS, response);
+    assertEquals(1, fileDao.size());
+  }
+
+  @Test
+  public void uploadPDFServiceBlankPDFFailure() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Worker);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.BLANK_APPLICATION)
+            .setFileName("ss-5.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(sampleFileStream)
+            .setIdCategoryType(IdCategoryType.NONE);
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
+  }
+
+  @Test
+  public void uploadPDFServiceAnnotatedPDFFailure() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Client);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.ANNOTATED_APPLICATION)
+            .setFileName("ss-5_filled_out.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(sampleAnnotatedFileStream)
+            .setIdCategoryType(IdCategoryType.NONE);
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
+  }
+
+  @Test
+  public void uploadPDFServiceDuplicateUpload() {
+    UserParams userParams =
+        new UserParams()
+            .setUsername("user1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Client);
+    FileParams fileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
+            .setFileName("first-love.png")
+            .setFileContentType("image")
+            .setFileStream(sampleImageStream)
+            .setIdCategoryType(IdCategoryType.OTHER);
+    File duplicateSampleImageFile =
+        new File(resourcesFolderPath + File.separator + "first-love.png");
+    InputStream duplicateSampleImageStream = null;
+    try {
+      duplicateSampleImageStream = FileUtils.openInputStream(duplicateSampleImageFile);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    FileParams fileParamsDuplicate =
+        new FileParams()
+            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
+            .setFileName("first-love.png")
+            .setFileContentType("image")
+            .setFileStream(duplicateSampleImageStream)
+            .setIdCategoryType(IdCategoryType.OTHER);
+    UploadPDFServiceV2 service =
+        new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
+    Message response = service.executeAndGetResponse();
+    assertEquals(PdfMessage.SUCCESS, response);
+    UploadPDFServiceV2 duplicateService =
+        new UploadPDFServiceV2(fileDao, userParams, fileParamsDuplicate, encryptionController);
+    Message duplicateResponse = duplicateService.executeAndGetResponse();
+    assertEquals(FileMessage.FILE_EXISTS, duplicateResponse);
   }
 }

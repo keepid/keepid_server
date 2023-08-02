@@ -1,5 +1,9 @@
 package Form;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -7,12 +11,8 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class FormSection implements Comparable<FormSection> {
   String title;
@@ -122,8 +122,16 @@ public class FormSection implements Comparable<FormSection> {
             .sorted()
             .forEach(
                 question -> {
+                  writer.writeName("questionName");
+                  writer.writeString(question.questionName);
                   writer.writeName("text");
                   writer.writeString(question.questionText);
+                  writer.writeName("answerText");
+                  writer.writeString(question.answerText);
+                  writer.writeName("answerBoolean");
+                  writer.writeBoolean(question.answerBoolean);
+                  writer.writeName("answerArray");
+                  writer.writeString(question.answerArray.toString());
                   writer.writeName("default");
                   writer.writeString(question.defaultValue);
                   writer.writeName("conditionalOnField");
@@ -172,7 +180,15 @@ public class FormSection implements Comparable<FormSection> {
       List<FormQuestion> questions = new ArrayList<>();
       for (int i = 0; i < questionsSize; i++) {
         reader.readName();
-        String questiontext = reader.readString();
+        String questionName = reader.readString();
+        reader.readName();
+        String questionText = reader.readString();
+        reader.readName();
+        String answerText = reader.readString();
+        reader.readName();
+        boolean answerBoolean = reader.readBoolean();
+        reader.readName();
+        JSONArray answerArray = new JSONArray(reader.readString());
         reader.readName();
         String defaultValue = reader.readString();
         reader.readName();
@@ -218,7 +234,11 @@ public class FormSection implements Comparable<FormSection> {
             new FormQuestion(
                 id,
                 type,
-                questiontext,
+                questionName,
+                questionText,
+                answerText,
+                answerBoolean,
+                answerArray,
                 options,
                 defaultValue,
                 required,
