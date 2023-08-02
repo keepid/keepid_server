@@ -105,6 +105,7 @@ public class DownloadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
     service.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     ObjectId fileObjectId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId();
     String fileId = fileObjectId.toString();
     FileParams downloadFileParams = new FileParams().setFileId(fileId.toString()).setPdfType(null);
@@ -150,6 +151,7 @@ public class DownloadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
     service.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     ObjectId fileObjectId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId();
     InputStream encryptedInputStream = fileDao.getStream(fileObjectId).get();
     InputStream expectedInputStream = null;
@@ -167,6 +169,7 @@ public class DownloadPDFServiceUnitTests {
         new DownloadPDFServiceV2(
             fileDao, formDao, userParams, downloadFileParams, encryptionController);
     Message response = service1.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     assertEquals(PdfMessage.SUCCESS, response);
     InputStream downloadedInputStream = service1.getDownloadedInputStream();
     try {

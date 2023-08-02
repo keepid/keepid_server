@@ -97,6 +97,7 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(0, fileDao.size());
     assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
   }
 
@@ -117,6 +118,7 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(0, fileDao.size());
     assertEquals(PdfMessage.INVALID_PDF, response);
   }
 
@@ -137,6 +139,7 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(0, fileDao.size());
     assertEquals(PdfMessage.INVALID_PDF, response);
   }
 
@@ -179,6 +182,7 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(0, fileDao.size());
     assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
   }
 
@@ -199,6 +203,7 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(0, fileDao.size());
     assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
   }
 
@@ -234,10 +239,12 @@ public class UploadPDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, fileParams, encryptionController);
     Message response = service.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     assertEquals(PdfMessage.SUCCESS, response);
     UploadPDFServiceV2 duplicateService =
         new UploadPDFServiceV2(fileDao, userParams, fileParamsDuplicate, encryptionController);
     Message duplicateResponse = duplicateService.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     assertEquals(FileMessage.FILE_EXISTS, duplicateResponse);
   }
 }

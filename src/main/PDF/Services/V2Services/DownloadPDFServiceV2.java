@@ -100,7 +100,7 @@ public class DownloadPDFServiceV2 implements Service {
       return PdfMessage.MISSING_FORM;
     }
     Form form = formOptional.get();
-    List<FormQuestion> formQuestions = form.getBody().getQuestions();
+    List<FormQuestion> formQuestions = form.getAllQuestionsFromForm();
     InputStream fileStream = null;
     try {
       fileStream =

@@ -103,11 +103,13 @@ public class DeletePDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
     service.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     String fileId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId().toString();
     FileParams deleteFileParams = new FileParams().setFileId(fileId).setPdfType(null);
     DeletePDFServiceV2 service1 =
         new DeletePDFServiceV2(fileDao, formDao, userParams, deleteFileParams);
     Message response = service1.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     assertEquals(PdfMessage.INVALID_PARAMETER, response);
   }
 
@@ -145,12 +147,14 @@ public class DeletePDFServiceUnitTests {
     UploadPDFServiceV2 service =
         new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
     service.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     String fileId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId().toString();
     FileParams deleteFileParams =
         new FileParams().setFileId(fileId).setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
     DeletePDFServiceV2 service1 =
         new DeletePDFServiceV2(fileDao, formDao, userParams, deleteFileParams);
     Message response = service1.executeAndGetResponse();
+    assertEquals(1, fileDao.size());
     assertEquals(PdfMessage.INSUFFICIENT_PRIVILEGE, response);
   }
 
