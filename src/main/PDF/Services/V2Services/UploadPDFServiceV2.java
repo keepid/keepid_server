@@ -55,7 +55,7 @@ public class UploadPDFServiceV2 implements Service {
     if (uploadConditionsErrorMessage != null) {
       return uploadConditionsErrorMessage;
     }
-    if (fileContentType.startsWith("image")) {
+    if (this.fileContentType.startsWith("image")) {
       Message convertImageToPDFErrorMessage = convertImageToPDF();
       if (convertImageToPDFErrorMessage != null) {
         return convertImageToPDFErrorMessage;
@@ -89,7 +89,7 @@ public class UploadPDFServiceV2 implements Service {
     if (imageToPDFResponse != PdfMessage.SUCCESS) return imageToPDFResponse;
     InputStream tempFileStream = imageToPDFService.getFileStream();
     try {
-      fileStream.close();
+      this.fileStream.close();
     } catch (IOException e) {
       return PdfMessage.SERVER_ERROR;
     }
@@ -116,7 +116,7 @@ public class UploadPDFServiceV2 implements Service {
   }
 
   public Message upload() {
-    this.fileName = getPDFTitle(fileName, fileStream, pdfType);
+    this.fileName = getPDFTitle(this.fileName, this.fileStream, this.pdfType);
     Date currentDate = new Date();
     FileType fileType = null;
     boolean annotated = false;
@@ -146,7 +146,7 @@ public class UploadPDFServiceV2 implements Service {
     //      return PdfMessage.INVALID_PDF_TYPE;
     //    }
     try {
-      this.fileStream = encryptionController.encryptFile(this.fileStream, this.username);
+      this.fileStream = this.encryptionController.encryptFile(this.fileStream, this.username);
     } catch (GeneralSecurityException | IOException e) {
       return PdfMessage.SERVER_ERROR;
     }

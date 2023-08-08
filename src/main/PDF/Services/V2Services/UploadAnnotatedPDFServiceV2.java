@@ -5,17 +5,40 @@ import Config.Service;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
+import File.File;
+import File.FileType;
+import File.IdCategoryType;
+import Form.FieldType;
+import Form.Form;
+import Form.FormQuestion;
+import Form.FormSection;
+import Form.FormType;
+import PDF.PdfAnnotationError;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
+import User.Services.GetUserInfoService;
+import User.UserMessage;
 import User.UserType;
 import Validation.ValidationUtils;
+import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 
 public class UploadAnnotatedPDFServiceV2 implements Service {
-  public static final int CHUNK_SIZE_BYTES = 100000;
+  public static final int DEFAULT_FIELD_NUM_LINES = 3;
+  public static final String successStatus = "Success";
+
   private FileDao fileDao;
   private FormDao formDao;
   private UserDao userDao;
@@ -27,6 +50,8 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   private String fileContentType;
   private InputStream fileStream;
   private EncryptionController encryptionController;
+  private List<FormQuestion> formQuestions;
+  private JSONObject userInfo;
 
   public UploadAnnotatedPDFServiceV2(
       FileDao fileDao,
@@ -54,27 +79,290 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     if (uploadConditionsErrorMessage != null) {
       return uploadConditionsErrorMessage;
     }
+    GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, username);
+    Message getUserInfoServiceResponse = getUserInfoService.executeAndGetResponse();
+    if (getUserInfoServiceResponse != UserMessage.SUCCESS) {
+      return getUserInfoServiceResponse;
+    }
+    this.userInfo = getUserInfoService.getUserFields();
     return upload();
   }
 
   public Message checkUploadConditions() {
-    if (!ValidationUtils.isValidObjectId(fileId)) {
+    if (!ValidationUtils.isValidObjectId(this.fileId)) {
       return PdfMessage.INVALID_PARAMETER;
     }
-    if (fileStream == null || !fileContentType.equals("application/pdf")) {
+    if (this.fileStream == null || !this.fileContentType.equals("application/pdf")) {
       return PdfMessage.INVALID_PDF;
     }
-    if (privilegeLevel != UserType.Developer) {
+    if (this.privilegeLevel != UserType.Developer) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
     return null;
   }
 
+  public void generateFormQuestionFromFields(List<PDField> fields) throws Exception {
+    for (PDField field : fields) {
+      if (field instanceof PDNonTerminalField) {
+        generateFormQuestionFromFields(((PDNonTerminalField) field).getChildren());
+      }
+      FormQuestion generatedFormQuestion = generateFormQuestionFromTerminalField(field);
+      if (generatedFormQuestion != null) {
+        this.formQuestions.add(generateFormQuestionFromTerminalField(field));
+      }
+    }
+  }
+
+  public FormQuestion getCheckBoxFormQuestion(PDCheckBox field) {
+    ObjectId id = new ObjectId();
+    FieldType type = FieldType.CHECKBOX;
+    String questionName = field.getFullyQualifiedName();
+    String questionText = questionName;
+    String answerText = "";
+    List<String> options = new LinkedList<>();
+    options.add(field.getOnValue());
+    String defaultValue = Boolean.FALSE.toString();
+    boolean required = field.isRequired();
+    int numLines = DEFAULT_FIELD_NUM_LINES;
+    boolean matched = false;
+    ObjectId conditionalOnField = null;
+    String conditionalType = "NONE";
+    return new FormQuestion(
+        id,
+        type,
+        questionName,
+        questionText,
+        answerText,
+        options,
+        defaultValue,
+        required,
+        numLines,
+        matched,
+        conditionalOnField,
+        conditionalType);
+  }
+
+  public FormQuestion getRadioButtonFormQuestion(PDRadioButton field) {
+    ObjectId id = new ObjectId();
+    FieldType type = FieldType.RADIO_BUTTON;
+    String questionName = field.getFullyQualifiedName();
+    String questionText = questionName;
+    String answerText = "";
+    List<String> options = new LinkedList<>(field.getOnValues());
+    String defaultValue = "Off";
+    boolean required = field.isRequired();
+    int numLines = options.size();
+    boolean matched = false;
+    ObjectId conditionalOnField = null;
+    String conditionalType = "NONE";
+    return new FormQuestion(
+        id,
+        type,
+        questionName,
+        questionText,
+        answerText,
+        options,
+        defaultValue,
+        required,
+        numLines,
+        matched,
+        conditionalOnField,
+        conditionalType);
+  }
+
+  public FormQuestion getChoiceFieldFormQuestion(PDChoice field) {
+    ObjectId id = new ObjectId();
+    FieldType type = (field instanceof PDComboBox) ? FieldType.COMBOBOX : FieldType.LISTBOX;
+    String questionName = field.getFullyQualifiedName();
+    String questionText =
+        field.isMultiSelect()
+            ? questionName + " (you can select multiple options with CTRL)"
+            : questionName;
+    String answerText = "";
+    List<String> options = new LinkedList<>(field.getOptions());
+    String defaultValue = "Off";
+    boolean required = field.isRequired();
+    int numLines = options.size();
+    boolean matched = false;
+    ObjectId conditionalOnField = null;
+    String conditionalType = "NONE";
+    return new FormQuestion(
+        id,
+        type,
+        questionName,
+        questionText,
+        answerText,
+        options,
+        defaultValue,
+        required,
+        numLines,
+        matched,
+        conditionalOnField,
+        conditionalType);
+  }
+
+  public FormQuestion getTextFieldFormQuestion(PDTextField field) {
+    ObjectId id = new ObjectId();
+    FieldType type;
+    String questionName = field.getFullyQualifiedName();
+    String questionText = null;
+    if (field.isReadOnly()) {
+      type = FieldType.READ_ONLY_FIELD;
+      String fieldValue = field.getValue();
+      if (fieldValue != null && !fieldValue.equals("")) {
+        questionText = questionName + ": " + fieldValue;
+      }
+    } else if (field.isMultiline()) {
+      type = FieldType.MULTILINE_TEXT_FIELD;
+      questionText = questionName;
+    } else {
+      type = FieldType.TEXT_FIELD;
+      questionText = questionName;
+    }
+    String answerText = "";
+    List<String> options = new LinkedList<>();
+    String defaultValue = "";
+    boolean required = field.isRequired();
+    int numLines = DEFAULT_FIELD_NUM_LINES;
+    boolean matched = false;
+    ObjectId conditionalOnField = null;
+    String conditionalType = "NONE";
+    return new FormQuestion(
+        id,
+        type,
+        questionName,
+        questionText,
+        answerText,
+        options,
+        defaultValue,
+        required,
+        numLines,
+        matched,
+        conditionalOnField,
+        conditionalType);
+  }
+
+  public void setMatchedAndConditionalFields(FormQuestion formQuestion) throws Exception {
+    String questionName = formQuestion.getQuestionName();
+    String[] splitQuestionName = questionName.split(":");
+    if (splitQuestionName.length != 1
+        && splitQuestionName.length != 2
+        && splitQuestionName.length != 3) {
+      throw new Exception("Invalid number of colons in questionName");
+    }
+
+    formQuestion.setQuestionText(splitQuestionName[0]);
+    if (splitQuestionName.length == 1) {
+      return;
+    }
+    String fieldTypeIndicatorString = splitQuestionName[1];
+    if (fieldTypeIndicatorString.startsWith("+")) {
+      // Positively linked field
+      formQuestion.setConditionalType("POSITIVE");
+      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+    } else if (fieldTypeIndicatorString.startsWith("-")) {
+      // Negatively linked field
+      formQuestion.setConditionalType("NEGATIVE");
+      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+    } else if (fieldTypeIndicatorString.equals("anyDate")) {
+      // Make it a date field that can be selected by the client
+      formQuestion.setType(FieldType.DATE_FIELD);
+    } else if (fieldTypeIndicatorString.equals("currentDate")) {
+      // Make a date field with the current date that cannot be changed (value set on frontend)
+      formQuestion.setType(FieldType.DATE_FIELD);
+      formQuestion.setMatched(true);
+    } else if (fieldTypeIndicatorString.equals("signature")) {
+      // Signatures not handled in first round of form completion
+      formQuestion.setType(FieldType.SIGNATURE);
+    } else if (this.userInfo.has(fieldTypeIndicatorString)) {
+      // Field has a matched database variable, so make that the autofilled value
+      formQuestion.setMatched(true);
+      formQuestion.setDefaultValue((String) this.userInfo.get(fieldTypeIndicatorString));
+    } else {
+      throw new Exception("FieldTypeIndicatorString invalid");
+    }
+  }
+
+  public FormQuestion generateFormQuestionFromTerminalField(PDField field) throws Exception {
+    FormQuestion generatedFormQuestion = null;
+    if (field instanceof PDButton) {
+      if (field instanceof PDCheckBox) {
+        generatedFormQuestion = getCheckBoxFormQuestion((PDCheckBox) field);
+      } else if (field instanceof PDPushButton) {
+        // Do nothing for a push button, as we don't need to support them right now
+        return null;
+      } else if (field instanceof PDRadioButton) {
+        generatedFormQuestion = getRadioButtonFormQuestion((PDRadioButton) field);
+      }
+    } else if (field instanceof PDVariableText) {
+      if (field instanceof PDChoice) {
+        generatedFormQuestion = getChoiceFieldFormQuestion((PDChoice) field);
+      } else if (field instanceof PDTextField) {
+        generatedFormQuestion = getTextFieldFormQuestion((PDTextField) field);
+      }
+    } else if (field instanceof PDSignatureField) {
+      // Do nothing, as signatures are dealt with in findSignatureFields
+      return null;
+    } else {
+      throw new Exception("Failed to generate FormQuestion");
+    }
+
+    try {
+      setMatchedAndConditionalFields(generatedFormQuestion);
+    } catch (Exception e) {
+      throw new Exception("Failed to generate matched and conditional fields: " + e.getMessage());
+    }
+    // Figure out FIELDLINKEDTO RENAMING
+    return generatedFormQuestion;
+  }
+
   public Message upload() {
     ObjectId fileObjectId = new ObjectId(fileId);
-    return null;
-    // NEED TO FINISH GETQUESTIONSPDFSERVICE?
-    //
-    //
+    PDDocument pdfDocument;
+    try {
+      pdfDocument = Loader.loadPDF(this.fileStream);
+    } catch (IOException e) {
+      return PdfMessage.INVALID_PDF;
+    }
+    pdfDocument.setAllSecurityToBeRemoved(true);
+    PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
+    if (acroForm == null) {
+      return PdfMessage.INVALID_PDF;
+    }
+    File file =
+        new File(
+            this.username,
+            new Date(),
+            this.fileStream,
+            FileType.FORM_PDF,
+            IdCategoryType.NONE,
+            this.fileName,
+            this.organizationName,
+            true,
+            this.fileContentType);
+    ObjectId fileId = file.getId();
+    this.formQuestions = new LinkedList<FormQuestion>();
+    try {
+      generateFormQuestionFromFields(acroForm.getFields());
+    } catch (Exception e) {
+      return new PdfAnnotationError(e.getMessage());
+    }
+    FormSection body = new FormSection("Form Body", "Form Body", null, formQuestions);
+    Form form =
+        new Form(
+            this.username,
+            Optional.of(this.username),
+            LocalDateTime.now(),
+            Optional.of(LocalDateTime.now()),
+            FormType.FORM,
+            true,
+            null,
+            body,
+            null,
+            null);
+    form.setFileId(fileId);
+    fileDao.save(file);
+    formDao.save(form);
+    return PdfMessage.SUCCESS;
   }
 }

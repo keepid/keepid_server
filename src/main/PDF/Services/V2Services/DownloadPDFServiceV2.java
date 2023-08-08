@@ -26,6 +26,7 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
 
 public class DownloadPDFServiceV2 implements Service {
   private FileDao fileDao;
@@ -77,6 +78,75 @@ public class DownloadPDFServiceV2 implements Service {
     return null;
   }
 
+  public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
+      throws IOException {
+    for (FormQuestion formQuestion : formQuestions) {
+      PDField field = acroForm.getField(formQuestion.getQuestionName());
+      if (field instanceof PDButton) {
+        if (field instanceof PDCheckBox) {
+          PDCheckBox checkBoxField = (PDCheckBox) field;
+          boolean fieldAnswer = Boolean.parseBoolean(formQuestion.getAnswerText());
+          if (fieldAnswer) {
+            checkBoxField.check();
+          } else {
+            checkBoxField.unCheck();
+          }
+        } else if (field instanceof PDPushButton) {
+          // Do nothing. Maybe in the future make it clickable
+        } else if (field instanceof PDRadioButton) {
+          PDRadioButton radioButtonField = (PDRadioButton) field;
+          String fieldAnswer = formQuestion.getAnswerText();
+          radioButtonField.setValue(fieldAnswer);
+        }
+      } else if (field instanceof PDVariableText) {
+        if (field instanceof PDChoice) {
+          if (field instanceof PDListBox) {
+            PDListBox listBoxField = (PDListBox) field;
+            List<String> values = new LinkedList<>();
+            for (Object value : new JSONArray(formQuestion.getAnswerText())) {
+              String stringValue = (String) value;
+              values.add(stringValue);
+            }
+            listBoxField.setValue(values);
+          } else if (field instanceof PDComboBox) {
+            PDComboBox listBoxField = (PDComboBox) field;
+            String formAnswer = formQuestion.getAnswerText();
+            listBoxField.setValue(formAnswer);
+          }
+        } else if (field instanceof PDTextField) {
+          String value = formQuestion.getAnswerText();
+          field.setValue(value);
+        }
+      } else if (field instanceof PDSignatureField) {
+        // Do nothing, implemented separately in pdfSignedUpload
+      }
+    }
+  }
+
+  public Message mergeFileAndForm(InputStream fileStream, List<FormQuestion> formQuestions) {
+    PDDocument pdfDocument;
+    try {
+      pdfDocument = Loader.loadPDF(fileStream);
+    } catch (IOException e) {
+      return PdfMessage.INVALID_PDF;
+    }
+    pdfDocument.setAllSecurityToBeRemoved(true);
+    PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
+    if (acroForm == null) {
+      return PdfMessage.INVALID_PDF;
+    }
+    try {
+      setPDFFieldsFromFormQuestions(formQuestions, acroForm);
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      pdfDocument.save(outputStream);
+      pdfDocument.close();
+      this.downloadedInputStream = new ByteArrayInputStream(outputStream.toByteArray());
+      return PdfMessage.SUCCESS;
+    } catch (Exception e) {
+      return PdfMessage.SERVER_ERROR;
+    }
+  }
+
   public Message download() {
     ObjectId fileObjectId = new ObjectId(this.fileId);
     Optional<File> fileOptional = this.fileDao.get(fileObjectId);
@@ -109,66 +179,6 @@ public class DownloadPDFServiceV2 implements Service {
     } catch (Exception e) {
       return PdfMessage.SERVER_ERROR;
     }
-    PDDocument pdfDocument;
-    try {
-      pdfDocument = Loader.loadPDF(fileStream);
-    } catch (IOException e) {
-      return PdfMessage.INVALID_PDF;
-    }
-    pdfDocument.setAllSecurityToBeRemoved(true);
-    PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
-    if (acroForm == null) {
-      return PdfMessage.INVALID_PDF;
-    }
-    try {
-      for (FormQuestion formQuestion : formQuestions) {
-        PDField field = acroForm.getField(formQuestion.getQuestionName());
-        if (field instanceof PDButton) {
-          if (field instanceof PDCheckBox) {
-            PDCheckBox checkBoxField = (PDCheckBox) field;
-            boolean fieldAnswer = formQuestion.getAnswerBoolean();
-            if (fieldAnswer) {
-              checkBoxField.check();
-            } else {
-              checkBoxField.unCheck();
-            }
-          } else if (field instanceof PDPushButton) {
-            // Do nothing. Maybe in the future make it clickable
-          } else if (field instanceof PDRadioButton) {
-            PDRadioButton radioButtonField = (PDRadioButton) field;
-            String fieldAnswer = formQuestion.getAnswerText();
-            radioButtonField.setValue(fieldAnswer);
-          }
-        } else if (field instanceof PDVariableText) {
-          if (field instanceof PDChoice) {
-            if (field instanceof PDListBox) {
-              PDListBox listBoxField = (PDListBox) field;
-              List<String> values = new LinkedList<>();
-              for (Object value : formQuestion.getAnswerArray()) {
-                String stringValue = (String) value;
-                values.add(stringValue);
-              }
-              listBoxField.setValue(values);
-            } else if (field instanceof PDComboBox) {
-              PDComboBox listBoxField = (PDComboBox) field;
-              String formAnswer = formQuestion.getAnswerText();
-              listBoxField.setValue(formAnswer);
-            }
-          } else if (field instanceof PDTextField) {
-            String value = formQuestion.getAnswerText();
-            field.setValue(value);
-          }
-        } else if (field instanceof PDSignatureField) {
-          // Do nothing, implemented separately in pdfSignedUpload
-        }
-      }
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      pdfDocument.save(outputStream);
-      pdfDocument.close();
-      this.downloadedInputStream = new ByteArrayInputStream(outputStream.toByteArray());
-      return PdfMessage.SUCCESS;
-    } catch (Exception e) {
-      return PdfMessage.SERVER_ERROR;
-    }
+    return mergeFileAndForm(fileStream, formQuestions);
   }
 }

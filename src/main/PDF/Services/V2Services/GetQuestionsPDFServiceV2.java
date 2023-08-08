@@ -84,12 +84,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
       formField.put("fieldNumLines", formQuestion.getNumLines());
       formField.put("fieldIsMatched", formQuestion.isMatched());
       formField.put("fieldQuestion", formQuestion.getQuestionText());
-      // WHAT TO DO WITH THESE THREE FIELDS?
-      //
-      //
-      formField.put("fieldLinkageType", "HELP THIS STRING PLEASE");
-      formField.put("fieldLinkedTo", "HELP THIS STRING PLEASE");
-      formField.put("fieldStatus", "HELP THIS STRING PLEASE");
+      formField.put("fieldLinkageType", formQuestion.getConditionalType());
+      formField.put("fieldLinkedTo", formQuestion.getConditionalOnField());
+      formField.put("fieldStatus", "SUCCESS");
       formFields.add(formField);
     }
     applicationInformation.put("fields", formFields);

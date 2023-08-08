@@ -11,7 +11,6 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class FormSection implements Comparable<FormSection> {
@@ -128,10 +127,6 @@ public class FormSection implements Comparable<FormSection> {
                   writer.writeString(question.questionText);
                   writer.writeName("answerText");
                   writer.writeString(question.answerText);
-                  writer.writeName("answerBoolean");
-                  writer.writeBoolean(question.answerBoolean);
-                  writer.writeName("answerArray");
-                  writer.writeString(question.answerArray.toString());
                   writer.writeName("default");
                   writer.writeString(question.defaultValue);
                   writer.writeName("conditionalOnField");
@@ -143,7 +138,7 @@ public class FormSection implements Comparable<FormSection> {
                   writer.writeName("matched");
                   writer.writeBoolean(question.matched);
                   writer.writeName("conditionalType");
-                  writer.writeBoolean(question.conditionalType);
+                  writer.writeString(question.conditionalType);
                   writer.writeName("type");
                   writer.writeString(question.type.toString());
                   writer.writeName("numLines");
@@ -186,10 +181,6 @@ public class FormSection implements Comparable<FormSection> {
         reader.readName();
         String answerText = reader.readString();
         reader.readName();
-        boolean answerBoolean = reader.readBoolean();
-        reader.readName();
-        JSONArray answerArray = new JSONArray(reader.readString());
-        reader.readName();
         String defaultValue = reader.readString();
         reader.readName();
         ObjectId conditionalOnField = reader.readObjectId();
@@ -200,7 +191,7 @@ public class FormSection implements Comparable<FormSection> {
         reader.readName();
         boolean matched = reader.readBoolean();
         reader.readName();
-        boolean conditionalType = reader.readBoolean();
+        String conditionalType = reader.readString();
         reader.readName();
         String enumType = reader.readString();
         FieldType type;
@@ -237,8 +228,6 @@ public class FormSection implements Comparable<FormSection> {
                 questionName,
                 questionText,
                 answerText,
-                answerBoolean,
-                answerArray,
                 options,
                 defaultValue,
                 required,
