@@ -1,5 +1,6 @@
 package Form;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import org.bson.types.ObjectId;
@@ -122,6 +123,22 @@ public class FormQuestion implements Comparable<FormQuestion> {
 
   public void setConditionalType(String conditionalType) {
     this.conditionalType = conditionalType;
+  }
+
+  public FormQuestion copyOfFormQuestion() {
+    return new FormQuestion(
+        new ObjectId(this.id.toString()),
+        FieldType.createFromString(this.type.toString()),
+        this.questionName,
+        this.questionText,
+        this.answerText,
+        new ArrayList<>(this.options),
+        this.defaultValue,
+        this.required,
+        this.numLines,
+        this.matched,
+        new ObjectId(this.conditionalOnField.toString()),
+        this.conditionalType);
   }
 
   public Comparator<FormQuestion> getComparator() {

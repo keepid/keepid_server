@@ -196,14 +196,29 @@ public class FormSection implements Comparable<FormSection> {
         String enumType = reader.readString();
         FieldType type;
         switch (enumType) {
+          case "dateField":
+            type = FieldType.DATE_FIELD;
+            break;
+          case "readOnlyField":
+            type = FieldType.READ_ONLY_FIELD;
+            break;
+          case "multilineTextField":
+            type = FieldType.MULTILINE_TEXT_FIELD;
+            break;
           case "textField":
             type = FieldType.TEXT_FIELD;
             break;
           case "checkBox":
             type = FieldType.CHECKBOX;
             break;
-          case "multipleChoice":
-            type = FieldType.MULTIPLE_CHOICE;
+          case "radioButton":
+            type = FieldType.RADIO_BUTTON;
+            break;
+          case "comboBox":
+            type = FieldType.COMBOBOX;
+            break;
+          case "listBox":
+            type = FieldType.LISTBOX;
             break;
           case "signature":
             type = FieldType.SIGNATURE;
