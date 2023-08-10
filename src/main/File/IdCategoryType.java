@@ -5,7 +5,7 @@ public enum IdCategoryType {
     BIRTH_CERTIFICATE("Birth Certificate"),
     SOCIAL_SECURITY_CARD("Social Security Card"),
     VACCINE_CARD("Vaccine Card"),
-    MEDICAID_CARD("Medicaid Card"),
+    MEDICAID_CARD("Medical Insurance Card"),
     VETERAN_ID_CARD("Veteran ID Card"),
     SCHOOL_TRANSCRIPT("School Transcript"),
     OTHER("Other"),
