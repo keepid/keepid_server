@@ -31,7 +31,7 @@ public enum IdCategoryType {
                 return IdCategoryType.SOCIAL_SECURITY_CARD;
             case "Vaccine Card":
                 return IdCategoryType.VACCINE_CARD;
-            case "Medicaid Card":
+            case "Medical Insurance Card":
                 return IdCategoryType.MEDICAID_CARD;
             case "Veteran ID Card":
                 return IdCategoryType.VETERAN_ID_CARD;
