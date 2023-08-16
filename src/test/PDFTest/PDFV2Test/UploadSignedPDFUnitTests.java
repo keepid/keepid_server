@@ -25,6 +25,7 @@ import org.apache.commons.io.FileUtils;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class UploadSignedPDFUnitTests {
   private FileDao fileDao;
@@ -98,7 +99,7 @@ public class UploadSignedPDFUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

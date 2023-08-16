@@ -29,6 +29,7 @@ import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class FilterPDFServiceUnitTests {
 
@@ -158,7 +159,7 @@ public class FilterPDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

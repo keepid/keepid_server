@@ -30,6 +30,7 @@ import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class GetQuestionsPDFServiceV2UnitTests {
   private FileDao fileDao;
@@ -104,7 +105,7 @@ public class GetQuestionsPDFServiceV2UnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class UploadAnnotatedPDFServiceUnitTests {
   private FileDao fileDao;
@@ -90,7 +91,7 @@ public class UploadAnnotatedPDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

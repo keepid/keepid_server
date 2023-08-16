@@ -31,6 +31,7 @@ import org.apache.commons.io.FileUtils;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class DeletePDFServiceUnitTests {
   private FileDao fileDao;
@@ -128,7 +129,7 @@ public class DeletePDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

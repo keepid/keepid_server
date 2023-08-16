@@ -32,6 +32,7 @@ import org.apache.commons.io.IOUtils;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 @Slf4j
 public class DownloadPDFServiceUnitTests {
@@ -130,7 +131,7 @@ public class DownloadPDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }
