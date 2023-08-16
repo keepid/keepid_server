@@ -172,23 +172,6 @@ public class Form implements Comparable<Form> {
     this.condition = condition;
   }
 
-  public List<FormQuestion> getAllQuestionsFromForm() {
-    List<FormQuestion> formQuestions = new LinkedList<FormQuestion>();
-    getAllQuestionsFromFormRecursion(this.body, formQuestions);
-    return formQuestions;
-  }
-
-  public void getAllQuestionsFromFormRecursion(
-      FormSection formSection, List<FormQuestion> formQuestions) {
-    formQuestions.addAll(formSection.getQuestions());
-    if (formSection.getSubsections().size() == 0) {
-      return;
-    }
-    for (FormSection formSubsection : formSection.getSubsections()) {
-      getAllQuestionsFromFormRecursion(formSubsection, formQuestions);
-    }
-  }
-
   // Create a json string from the object
   public JSONObject toJSON() {
     Gson gson = new Gson();

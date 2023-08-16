@@ -1,5 +1,7 @@
 package File;
 
+import static User.UserController.mergeJSON;
+
 import Config.Message;
 import Database.File.FileDao;
 import Database.User.UserDao;
@@ -12,20 +14,17 @@ import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
-
-import static User.UserController.mergeJSON;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 @Slf4j
 public class FileController {
@@ -122,7 +121,7 @@ public class FileController {
               switch (fileType) {
                 case APPLICATION_PDF:
                 case IDENTIFICATION_PDF:
-                case FORM_PDF:
+                case FORM:
                   log.info("Got PDF file to upload!");
                   try {
                     InputStream content = file.getContent();
@@ -138,7 +137,7 @@ public class FileController {
                     signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
                   }
 
-                  if (fileType == FileType.FORM_PDF && annotated) {
+                  if (fileType == FileType.FORM && annotated) {
                     fileId = Objects.requireNonNull(ctx.formParam("fileID"));
                   }
                   File fileToUpload =
@@ -366,7 +365,7 @@ public class FileController {
           if (orgFlag) {
             FileType fileType = FileType.createFromString(req.getString("fileType"));
             boolean annotated = false;
-            if (fileType == FileType.FORM_PDF) {
+            if (fileType == FileType.FORM) {
               annotated = Objects.requireNonNull(req.getBoolean("annotated"));
             }
             GetFilesInformationService getFilesInformationService =
@@ -402,7 +401,7 @@ public class FileController {
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
-                FileType.FORM_PDF,
+                FileType.FORM,
                 Optional.ofNullable(applicationId),
                 Optional.ofNullable(encryptionController));
         Message responseDownload = downloadFileService.executeAndGetResponse();
@@ -447,7 +446,7 @@ public class FileController {
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
-                FileType.FORM_PDF,
+                FileType.FORM,
                 Optional.ofNullable(applicationId),
                 Optional.ofNullable(encryptionController));
         Message responseDownload = downloadFileService.executeAndGetResponse();

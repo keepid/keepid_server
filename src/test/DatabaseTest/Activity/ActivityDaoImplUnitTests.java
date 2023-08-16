@@ -1,5 +1,7 @@
 package DatabaseTest.Activity;
 
+import static org.junit.Assert.*;
+
 import Activity.*;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
@@ -7,13 +9,10 @@ import Database.Activity.ActivityDaoFactory;
 import File.FileType;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
-import org.bson.types.ObjectId;
-import org.junit.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
-
-import static org.junit.Assert.*;
+import org.bson.types.ObjectId;
+import org.junit.*;
 
 public class ActivityDaoImplUnitTests {
   private ActivityDao activityDao;
@@ -71,8 +70,7 @@ public class ActivityDaoImplUnitTests {
     assertTrue(areActivitiesEqual(createAdminActivity, readCreateAdminActivity));
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity(
-            "usernameOfInvoker", "documentOwner", FileType.FORM_PDF, new ObjectId());
+        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
     Activity readDeleteFileActivity = activityDao.get(deleteFileActivity.getId()).orElseThrow();
@@ -104,8 +102,7 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivity);
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity(
-            "usernameOfInvoker", "documentOwner", FileType.FORM_PDF, new ObjectId());
+        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
 
@@ -138,8 +135,7 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivity);
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity(
-            "usernameOfInvoker", "documentOwner", FileType.FORM_PDF, new ObjectId());
+        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
 
@@ -222,8 +218,7 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivityUsername2);
 
     DeleteFileActivity deleteFileActivityUsername3 =
-        new DeleteFileActivity(
-            "usernameOfInvoker", "documentOwner", FileType.FORM_PDF, new ObjectId());
+        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
     deleteFileActivityUsername3.setOccurredAt(now);
     activityDao.save(deleteFileActivityUsername3);
 

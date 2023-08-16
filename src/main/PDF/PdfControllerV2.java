@@ -376,6 +376,7 @@ public class PdfControllerV2 {
     private boolean annotated;
     private JSONObject formAnswers;
     private InputStream signatureStream;
+    private String fileOrgName;
 
     public FileParams() {}
 
@@ -388,7 +389,8 @@ public class PdfControllerV2 {
         IdCategoryType idCategoryType,
         boolean annotated,
         JSONObject formAnswers,
-        InputStream signatureStream) {
+        InputStream signatureStream,
+        String fileOrgName) {
       this.fileId = fileId;
       this.pdfType = pdfType;
       this.fileName = fileName;
@@ -398,6 +400,7 @@ public class PdfControllerV2 {
       this.annotated = annotated;
       this.formAnswers = formAnswers;
       this.signatureStream = signatureStream;
+      this.fileOrgName = fileOrgName;
     }
 
     public Message setfileParamsFillAndUploadSignedPDF(Context ctx) {
@@ -462,7 +465,7 @@ public class PdfControllerV2 {
         log.info("File is null");
         return PdfMessage.INVALID_PDF;
       }
-      this.fileId = ctx.formParam("fileId");
+      this.fileOrgName = ctx.formParam("fileOrgName");
       this.fileName = file.getFilename();
       this.fileContentType = file.getContentType();
       this.fileStream = file.getContent();
@@ -547,6 +550,15 @@ public class PdfControllerV2 {
 
     public FileParams setSignatureStream(InputStream signatureStream) {
       this.signatureStream = signatureStream;
+      return this;
+    }
+
+    public String getFileOrgName() {
+      return fileOrgName;
+    }
+
+    public FileParams setFileOrgName(String fileOrgName) {
+      this.fileOrgName = fileOrgName;
       return this;
     }
   }

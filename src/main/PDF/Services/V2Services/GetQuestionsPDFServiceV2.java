@@ -90,6 +90,6 @@ public class GetQuestionsPDFServiceV2 implements Service {
       formFields.add(formField);
     }
     applicationInformation.put("fields", formFields);
-    return null;
+    return PdfMessage.SUCCESS;
   }
 }

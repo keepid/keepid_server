@@ -72,11 +72,11 @@ public class FilterPDFServiceV2 implements Service {
   public Message setFilter() {
     if (this.pdfType == PDFTypeV2.BLANK_APPLICATION) {
       if (this.privilegeLevel == UserType.Developer) {
-        this.filter = and(eq("fileType", "FORM"), eq("annotated", annotated));
+        this.filter = and(eq("fileType", FileType.FORM.toString()), eq("annotated", annotated));
       } else {
         this.filter =
             and(
-                eq("fileType", FileType.FORM_PDF.toString()),
+                eq("fileType", FileType.FORM.toString()),
                 eq("organizationName", organizationName),
                 eq("annotated", annotated));
       }

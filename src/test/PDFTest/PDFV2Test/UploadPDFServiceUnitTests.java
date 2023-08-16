@@ -1,6 +1,6 @@
 package PDFTest.PDFV2Test;
 
-import static PDFTest.PDFTestUtils.resourcesFolderPath;
+import static PDFTest.PDFV2Test.PDFTestUtilsV2.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Config.DeploymentLevel;

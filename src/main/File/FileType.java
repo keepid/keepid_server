@@ -3,7 +3,7 @@ package File;
 public enum FileType {
   APPLICATION_PDF("APPLICATION_PDF"),
   IDENTIFICATION_PDF("IDENTIFICATION_PDF"),
-  FORM_PDF("FORM"),
+  FORM("FORM"),
   PROFILE_PICTURE("PROFILE_PICTURE"),
   MISC("MISC");
 
@@ -26,7 +26,7 @@ public enum FileType {
       case "IDENTIFICATION":
         return FileType.IDENTIFICATION_PDF;
       case "FORM":
-        return FileType.FORM_PDF;
+        return FileType.FORM;
       case "PROFILE_PIC":
         return FileType.PROFILE_PICTURE;
       case "MISC":
@@ -37,7 +37,7 @@ public enum FileType {
   }
 
   public boolean isPDF() {
-    return this == APPLICATION_PDF || this == IDENTIFICATION_PDF || this == FORM_PDF;
+    return this == APPLICATION_PDF || this == IDENTIFICATION_PDF || this == FORM;
   }
 
   public boolean isProfilePic() {

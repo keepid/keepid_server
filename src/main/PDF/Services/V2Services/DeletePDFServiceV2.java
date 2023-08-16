@@ -98,7 +98,9 @@ public class DeletePDFServiceV2 implements Service {
       return PdfMessage.SUCCESS;
     }
     if (this.pdfType == PDFTypeV2.BLANK_APPLICATION) { // THIS PDFTYPE IS NOT USED IN THE FRONTEND
-      if (!this.file.getUsername().equals(this.username)) {
+      if (!this.file
+          .getUsername()
+          .equals(this.username)) { // Only the person who uploaded the blank app can delete
         return PdfMessage.INSUFFICIENT_USER_PRIVILEGE;
       }
       this.fileDao.delete(this.fileObjectId);
