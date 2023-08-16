@@ -1,5 +1,8 @@
 package UserTest;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
@@ -10,19 +13,15 @@ import Database.User.UserDaoFactory;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.AfterAll;
 
 public class ChangeTwoFactorSettingIntegrationTests {
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
@@ -42,7 +41,7 @@ public class ChangeTwoFactorSettingIntegrationTests {
     activityDao.clear();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }
