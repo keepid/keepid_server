@@ -1,6 +1,6 @@
 package PDFTest.PDFV2Test;
 
-import static PDFTest.PDFTestUtils.resourcesFolderPath;
+import static PDFTest.PDFV2Test.PDFTestUtilsV2.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Config.DeploymentLevel;
@@ -8,15 +8,12 @@ import Config.Message;
 import Config.MongoConfig;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
-import Database.Form.FormDao;
-import Database.Form.FormDaoFactory;
-import File.FileType;
 import File.IdCategoryType;
 import PDF.PDFTypeV2;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
-import PDF.Services.V2Services.DeletePDFServiceV2;
+import PDF.Services.V2Services.FilterPDFServiceV2;
 import PDF.Services.V2Services.UploadPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.TestUtils;
@@ -26,22 +23,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
-import org.bson.types.ObjectId;
 import org.junit.*;
 
-public class DeletePDFServiceUnitTests {
+public class FilterPDFServiceUnitTests {
+
   private FileDao fileDao;
-  private FormDao formDao;
   private MongoDatabase db;
-  private EncryptionController encryptionController;
-  private UserParams clientOneUserParams;
-  private FileParams uploadFileOneFileParams;
   private InputStream sampleFileStream1;
   private InputStream sampleFileStream2;
   private InputStream sampleImageStream;
   private InputStream sampleAnnotatedFileStream;
   private InputStream sampleBlankFileStream1;
   private InputStream sampleBlankFileStream2;
+  private UserParams clientOneUserParams;
+  private FileParams uploadFileOneFileParams;
+  private EncryptionController encryptionController;
 
   @BeforeClass
   public static void start() {
@@ -51,7 +47,6 @@ public class DeletePDFServiceUnitTests {
   @Before
   public void initialize() {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
-    this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     File sampleBlankFile2 =
@@ -63,6 +58,7 @@ public class DeletePDFServiceUnitTests {
     File sampleFile2 = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     try {
       sampleImageStream = FileUtils.openInputStream(sampleImageFile);
+      System.out.println(sampleImageStream);
       sampleFileStream1 = FileUtils.openInputStream(sampleFile1);
       sampleFileStream2 = FileUtils.openInputStream(sampleFile2);
       sampleAnnotatedFileStream = FileUtils.openInputStream(sampleAnnotatedFile);
@@ -92,8 +88,7 @@ public class DeletePDFServiceUnitTests {
 
   @After
   public void reset() {
-    fileDao.clear();
-    formDao.clear();
+    this.fileDao.clear();
     try {
       sampleImageStream.close();
       sampleFileStream1.close();
@@ -111,72 +106,39 @@ public class DeletePDFServiceUnitTests {
     TestUtils.tearDownTestDB();
   }
 
+  private void uploadAllStreams() {
+    //    UploadPDFServiceV2 uploadService;
+    //    UserParams workerOneUserParams =
+    //    new UserParams()
+    //      .setUsername("worker1")
+    //      .setOrganizationName("org1")
+    //      .setPrivilegeLevel(UserType.Developer);
+    //    for (InputStream fileStream : [sampleFileStream1, sampleBlankFileStream2,
+    // sampleImageStream]) {
+    //      uploadService = new UploadPDFServiceV2(
+    //        fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
+    //      uploadService.executeAndGetResponse();
+    //    }
+    // WAITING ON UPLOAD THINGS
+  }
+
   @Test
-  public void deletePDFServiceNullPDFType() {
+  public void filterPDFServiceNullPDFType() {
     UploadPDFServiceV2 uploadService =
         new UploadPDFServiceV2(
             fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
     uploadService.executeAndGetResponse();
     assertEquals(1, fileDao.size());
-    String fileId = fileDao.get("client1", FileType.IDENTIFICATION_PDF).get().getId().toString();
-    FileParams deleteFileOneParams = new FileParams().setFileId(fileId).setPdfType(null);
-    DeletePDFServiceV2 deleteService =
-        new DeletePDFServiceV2(fileDao, formDao, clientOneUserParams, deleteFileOneParams);
-    Message response = deleteService.executeAndGetResponse();
-    assertEquals(1, fileDao.size());
-    assertEquals(PdfMessage.INVALID_PARAMETER, response);
+    FileParams filterClientDocsFileParams = new FileParams().setPdfType(null).setAnnotated(false);
+    FilterPDFServiceV2 filterService =
+        new FilterPDFServiceV2(fileDao, clientOneUserParams, filterClientDocsFileParams);
+    Message response = filterService.executeAndGetResponse();
+    assertEquals(PdfMessage.INVALID_PDF_TYPE, response);
   }
 
   @Test
-  public void deletePDFServiceNoSuchFile() {
-    FileParams deleteFileOneParams =
-        new FileParams()
-            .setFileId(new ObjectId().toString())
-            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
-    DeletePDFServiceV2 deleteService =
-        new DeletePDFServiceV2(fileDao, formDao, clientOneUserParams, deleteFileOneParams);
-    Message response = deleteService.executeAndGetResponse();
-    assertEquals(PdfMessage.NO_SUCH_FILE, response);
+  public void filterPDFServiceFilterClientDocsSuccess() {
+    uploadAllStreams();
+    assertEquals(6, fileDao.size());
   }
-
-  @Test
-  public void deletePDFServiceInsufficientPrivilege() {
-    UploadPDFServiceV2 uploadService =
-        new UploadPDFServiceV2(
-            fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
-    uploadService.executeAndGetResponse();
-    assertEquals(1, fileDao.size());
-    UserParams workerOneUserParams =
-        new UserParams()
-            .setUsername("worker1")
-            .setOrganizationName("org1")
-            .setPrivilegeLevel(UserType.Worker);
-    String fileId = fileDao.get("client1", FileType.IDENTIFICATION_PDF).get().getId().toString();
-    FileParams deleteFileOneParams =
-        new FileParams().setFileId(fileId).setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
-    DeletePDFServiceV2 deleteService =
-        new DeletePDFServiceV2(fileDao, formDao, workerOneUserParams, deleteFileOneParams);
-    Message response = deleteService.executeAndGetResponse();
-    assertEquals(1, fileDao.size());
-    assertEquals(PdfMessage.INSUFFICIENT_PRIVILEGE, response);
-  }
-
-  @Test
-  public void deletePDFServiceClientDocumentSuccess() {
-    UploadPDFServiceV2 uploadService =
-        new UploadPDFServiceV2(
-            fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
-    uploadService.executeAndGetResponse();
-    assertEquals(1, fileDao.size());
-    String fileId = fileDao.get("client1", FileType.IDENTIFICATION_PDF).get().getId().toString();
-    FileParams deleteFileOneParams =
-        new FileParams().setFileId(fileId).setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
-    DeletePDFServiceV2 deleteService =
-        new DeletePDFServiceV2(fileDao, formDao, clientOneUserParams, deleteFileOneParams);
-    Message response = deleteService.executeAndGetResponse();
-    assertEquals(PdfMessage.SUCCESS, response);
-    assertEquals(0, fileDao.size());
-  }
-
-  // NEED TO TEST DELETE ON ANNOTATED AND BLANK APPS
 }

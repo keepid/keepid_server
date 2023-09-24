@@ -38,9 +38,14 @@ public class DownloadPDFServiceUnitTests {
   private FormDao formDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
-  private InputStream sampleFileStream;
-  private InputStream sampleAnnotatedFileStream;
+  private UserParams clientOneUserParams;
+  private FileParams uploadFileOneFileParams;
+  private InputStream sampleFileStream1;
+  private InputStream sampleFileStream2;
   private InputStream sampleImageStream;
+  private InputStream sampleAnnotatedFileStream;
+  private InputStream sampleBlankFileStream1;
+  private InputStream sampleBlankFileStream2;
 
   @BeforeClass
   public static void start() {
@@ -52,22 +57,41 @@ public class DownloadPDFServiceUnitTests {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
-    File sampleFile = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
+    File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
+    File sampleBlankFile2 =
+        new File(resourcesFolderPath + File.separator + "Application_for_a_Birth_Certificate.pdf");
     File sampleAnnotatedFile =
         new File(resourcesFolderPath + File.separator + "ss-5_filled_out.pdf");
-    File sampleImage = new File(resourcesFolderPath + File.separator + "first-love.png");
+    File sampleImageFile = new File(resourcesFolderPath + File.separator + "first-love.png");
+    File sampleFile1 = new File(resourcesFolderPath + File.separator + "test_out_signature.pdf");
+    File sampleFile2 = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
     try {
-      this.sampleFileStream = FileUtils.openInputStream(sampleFile);
-      this.sampleAnnotatedFileStream = FileUtils.openInputStream(sampleAnnotatedFile);
-      this.sampleImageStream = FileUtils.openInputStream(sampleImage);
+      sampleImageStream = FileUtils.openInputStream(sampleImageFile);
+      sampleFileStream1 = FileUtils.openInputStream(sampleFile1);
+      sampleFileStream2 = FileUtils.openInputStream(sampleFile2);
+      sampleAnnotatedFileStream = FileUtils.openInputStream(sampleAnnotatedFile);
+      sampleBlankFileStream1 = FileUtils.openInputStream(sampleBlankFile1);
+      sampleBlankFileStream2 = FileUtils.openInputStream(sampleBlankFile2);
     } catch (IOException e) {
-      log.error("Opening file stream failed");
+      throw new RuntimeException(e);
     }
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
       log.error("Generating test encryption controller failed");
     }
+    this.clientOneUserParams =
+        new UserParams()
+            .setUsername("client1")
+            .setOrganizationName("org1")
+            .setPrivilegeLevel(UserType.Client);
+    this.uploadFileOneFileParams =
+        new FileParams()
+            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
+            .setFileName("test_out_signature.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(sampleFileStream1)
+            .setIdCategoryType(IdCategoryType.OTHER);
   }
 
   @After
@@ -75,11 +99,14 @@ public class DownloadPDFServiceUnitTests {
     fileDao.clear();
     formDao.clear();
     try {
-      sampleFileStream.close();
       sampleImageStream.close();
+      sampleFileStream1.close();
+      sampleFileStream2.close();
       sampleAnnotatedFileStream.close();
+      sampleBlankFileStream1.close();
+      sampleBlankFileStream2.close();
     } catch (IOException e) {
-      log.error("Closing file stream failed");
+      throw new RuntimeException(e);
     }
   }
 
@@ -90,73 +117,47 @@ public class DownloadPDFServiceUnitTests {
 
   @Test
   public void downloadPDFServiceNullPDFType() {
-    UserParams userParams =
-        new UserParams()
-            .setUsername("user1")
-            .setOrganizationName("org1")
-            .setPrivilegeLevel(UserType.Client);
-    FileParams uploadFileParams =
-        new FileParams()
-            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
-            .setFileName("ss-5_filled_out.pdf")
-            .setFileContentType("application/pdf")
-            .setFileStream(sampleAnnotatedFileStream)
-            .setIdCategoryType(IdCategoryType.NONE);
-    UploadPDFServiceV2 service =
-        new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
-    service.executeAndGetResponse();
+    UploadPDFServiceV2 uploadService =
+        new UploadPDFServiceV2(
+            fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
+    uploadService.executeAndGetResponse();
     assertEquals(1, fileDao.size());
-    ObjectId fileObjectId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId();
+    ObjectId fileObjectId = fileDao.get("client1", FileType.IDENTIFICATION_PDF).get().getId();
     String fileId = fileObjectId.toString();
-    FileParams downloadFileParams = new FileParams().setFileId(fileId.toString()).setPdfType(null);
-    DownloadPDFServiceV2 service1 =
+    FileParams downloadFileOneParams =
+        new FileParams().setFileId(fileId.toString()).setPdfType(null);
+    DownloadPDFServiceV2 downloadService =
         new DownloadPDFServiceV2(
-            fileDao, formDao, userParams, downloadFileParams, encryptionController);
-    Message response = service1.executeAndGetResponse();
+            fileDao, formDao, clientOneUserParams, downloadFileOneParams, encryptionController);
+    Message response = downloadService.executeAndGetResponse();
     assertEquals(PdfMessage.INVALID_PARAMETER, response);
   }
 
   @Test
   public void downloadPDFServiceMissingFile() {
-    UserParams userParams =
-        new UserParams()
-            .setUsername("user1")
-            .setOrganizationName("org1")
-            .setPrivilegeLevel(UserType.Client);
-    FileParams downloadFileParams =
+    FileParams downloadFileOneParams =
         new FileParams()
             .setFileId(new ObjectId().toString())
             .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
-    DownloadPDFServiceV2 service1 =
+    DownloadPDFServiceV2 downloadService =
         new DownloadPDFServiceV2(
-            fileDao, formDao, userParams, downloadFileParams, encryptionController);
-    Message response = service1.executeAndGetResponse();
+            fileDao, formDao, clientOneUserParams, downloadFileOneParams, encryptionController);
+    Message response = downloadService.executeAndGetResponse();
     assertEquals(PdfMessage.NO_SUCH_FILE, response);
   }
 
   @Test
   public void downloadPDFServiceJustFileSuccess() {
-    UserParams userParams =
-        new UserParams()
-            .setUsername("user1")
-            .setOrganizationName("org1")
-            .setPrivilegeLevel(UserType.Client);
-    FileParams uploadFileParams =
-        new FileParams()
-            .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT)
-            .setFileName("ss-5_filled_out.pdf")
-            .setFileContentType("application/pdf")
-            .setFileStream(sampleAnnotatedFileStream)
-            .setIdCategoryType(IdCategoryType.NONE);
-    UploadPDFServiceV2 service =
-        new UploadPDFServiceV2(fileDao, userParams, uploadFileParams, encryptionController);
-    service.executeAndGetResponse();
+    UploadPDFServiceV2 uploadService =
+        new UploadPDFServiceV2(
+            fileDao, clientOneUserParams, uploadFileOneFileParams, encryptionController);
+    uploadService.executeAndGetResponse();
     assertEquals(1, fileDao.size());
-    ObjectId fileObjectId = fileDao.get("user1", FileType.IDENTIFICATION_PDF).get().getId();
+    ObjectId fileObjectId = fileDao.get("client1", FileType.IDENTIFICATION_PDF).get().getId();
     InputStream encryptedInputStream = fileDao.getStream(fileObjectId).get();
     InputStream expectedInputStream = null;
     try {
-      expectedInputStream = encryptionController.decryptFile(encryptedInputStream, "user1");
+      expectedInputStream = encryptionController.decryptFile(encryptedInputStream, "client1");
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -165,13 +166,13 @@ public class DownloadPDFServiceUnitTests {
         new FileParams()
             .setFileId(fileId.toString())
             .setPdfType(PDFTypeV2.CLIENT_UPLOADED_DOCUMENT);
-    DownloadPDFServiceV2 service1 =
+    DownloadPDFServiceV2 downloadService =
         new DownloadPDFServiceV2(
-            fileDao, formDao, userParams, downloadFileParams, encryptionController);
-    Message response = service1.executeAndGetResponse();
+            fileDao, formDao, clientOneUserParams, downloadFileParams, encryptionController);
+    Message response = downloadService.executeAndGetResponse();
     assertEquals(1, fileDao.size());
     assertEquals(PdfMessage.SUCCESS, response);
-    InputStream downloadedInputStream = service1.getDownloadedInputStream();
+    InputStream downloadedInputStream = downloadService.getDownloadedInputStream();
     try {
       assertTrue(IOUtils.contentEquals(expectedInputStream, downloadedInputStream));
     } catch (IOException e) {

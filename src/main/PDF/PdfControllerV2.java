@@ -44,9 +44,9 @@ public class PdfControllerV2 {
     }
   }
 
-  public Handler pdfDelete =
+  public Handler deletePDF =
       ctx -> {
-        log.info("Starting pdfDelete handler");
+        log.info("Starting deletePDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         JSONObject req = new JSONObject(ctx.body());
@@ -62,9 +62,9 @@ public class PdfControllerV2 {
         ctx.result(deletePDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
-  public Handler pdfDownload =
+  public Handler downloadPDF =
       ctx -> {
-        log.info("Starting pdfDownload handler");
+        log.info("Starting downloadPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         JSONObject req = new JSONObject(ctx.body());
@@ -79,9 +79,6 @@ public class PdfControllerV2 {
         DownloadPDFServiceV2 downloadPDFServiceV2 =
             new DownloadPDFServiceV2(
                 fileDao, formDao, userParams, fileParams, encryptionController);
-        // NEED TO FINISH SERVICE
-        //
-        //
         Message response = downloadPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
@@ -91,9 +88,9 @@ public class PdfControllerV2 {
         ctx.result(downloadPDFServiceV2.getDownloadedInputStream());
       };
 
-  public Handler pdfGetFilesInformation =
+  public Handler filterPDF =
       ctx -> {
-        log.info("Starting pdfGetFilesInformation handler");
+        log.info("Starting filterPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         JSONObject req = new JSONObject(ctx.body());
@@ -104,24 +101,21 @@ public class PdfControllerV2 {
           return;
         }
         fileParams.setFileParamsGetFilesInformation(req);
-        GetFileInformationPDFServiceV2 getFileInformationPDFServiceV2 =
-            new GetFileInformationPDFServiceV2(fileDao, formDao, userParams, fileParams);
-        // NEED TO FINISH SERVICE
-        //
-        //
-        Message response = getFileInformationPDFServiceV2.executeAndGetResponse();
+        FilterPDFServiceV2 filterPDFServiceV2 =
+            new FilterPDFServiceV2(fileDao, userParams, fileParams);
+        Message response = filterPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
           return;
         }
         JSONObject responseJSON = response.toJSON();
-        responseJSON.put("documents", getFileInformationPDFServiceV2.getFiles());
+        responseJSON.put("documents", filterPDFServiceV2.getFiles());
         ctx.result(responseJSON.toString());
       };
 
-  public Handler pdfUpload =
+  public Handler uploadPDF =
       ctx -> {
-        log.info("Starting pdfUpload handler");
+        log.info("Starting uploadPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
 
@@ -141,9 +135,9 @@ public class PdfControllerV2 {
         ctx.result(uploadPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
-  public Handler pdfUploadAnnotated =
+  public Handler uploadAnnotatedPDF =
       ctx -> {
-        log.info("Starting pdfUploadAnnotated handler");
+        log.info("Starting uploadAnnotatedPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
 
@@ -153,18 +147,15 @@ public class PdfControllerV2 {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
         }
-        // NEED TO FINISH SERVICE
-        //
-        //
         UploadAnnotatedPDFServiceV2 uploadAnnotatedPDFServiceV2 =
             new UploadAnnotatedPDFServiceV2(
                 fileDao, formDao, userDao, userParams, fileParams, encryptionController);
         ctx.result(uploadAnnotatedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
-  public Handler pdfSignedUpload =
+  public Handler uploadSignedPDF =
       ctx -> {
-        log.info("Starting pdfSignedUpload handler");
+        log.info("Starting uploadSignedPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         Message setUserParamsErrorMessage = userParams.setUserParamsUploadSignedPDF(ctx);
@@ -177,18 +168,15 @@ public class PdfControllerV2 {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
         }
-        // NEED TO FINISH SERVICE
-        //
-        //
         UploadSignedPDFServiceV2 uploadSignedPDFServiceV2 =
             new UploadSignedPDFServiceV2(
                 fileDao, formDao, userParams, fileParams, encryptionController);
         ctx.result(uploadSignedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
-  public Handler getApplicationQuestions =
+  public Handler getQuestions =
       ctx -> {
-        log.info("Starting getApplicationQuestions handler");
+        log.info("Starting getQuestions handler");
         JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
@@ -201,14 +189,11 @@ public class PdfControllerV2 {
           ctx.result(response.toResponseString());
           return;
         }
-        // WRAP UP SERVICE
-        //
-        //
         JSONObject applicationInformation = getQuestionsPDFServiceV2.getApplicationInformation();
         ctx.result(mergeJSON(response.toJSON(), applicationInformation).toString());
       };
 
-  public Handler fillPdfForm =
+  public Handler fillPDF =
       ctx -> {
         log.info("Starting fillPdfForm handler");
         JSONObject req = new JSONObject(ctx.body());
@@ -226,7 +211,7 @@ public class PdfControllerV2 {
           ctx.result(response.toResponseString());
           return;
         }
-        ctx.result(fillPDFServiceV2.getFilledForm());
+        ctx.result(fillPDFServiceV2.getFilledFileStream());
       };
 
   public static class UserParams {

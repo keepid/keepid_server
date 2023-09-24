@@ -51,7 +51,7 @@ public class DeletePDFServiceV2 implements Service {
       return PdfMessage.INVALID_PARAMETER;
     }
     this.fileObjectId = new ObjectId(this.fileId);
-    Optional<File> fileOptional = fileDao.get(this.fileObjectId);
+    Optional<File> fileOptional = this.fileDao.get(this.fileObjectId);
     if (fileOptional.isEmpty()) {
       return PdfMessage.NO_SUCH_FILE;
     }
@@ -66,6 +66,7 @@ public class DeletePDFServiceV2 implements Service {
         || (this.pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT
             && (this.privilegeLevel == UserType.Director
                 || this.privilegeLevel == UserType.Admin
+                || this.privilegeLevel == UserType.Worker
                 || this.privilegeLevel == UserType.Developer))) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
@@ -100,8 +101,8 @@ public class DeletePDFServiceV2 implements Service {
       if (!this.file.getUsername().equals(this.username)) {
         return PdfMessage.INSUFFICIENT_USER_PRIVILEGE;
       }
-      fileDao.delete(this.fileObjectId);
-      formDao.delete(formObjectId);
+      this.fileDao.delete(this.fileObjectId);
+      this.formDao.delete(formObjectId);
       return PdfMessage.SUCCESS;
     }
     return PdfMessage.INVALID_PDF_TYPE;
