@@ -1,15 +1,12 @@
 package Form;
 
 import com.google.gson.Gson;
+import java.time.LocalDateTime;
+import java.util.*;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Optional;
 
 public class Form implements Comparable<Form> {
   private ObjectId id;
@@ -173,6 +170,23 @@ public class Form implements Comparable<Form> {
 
   public void setCondition(String condition) {
     this.condition = condition;
+  }
+
+  public List<FormQuestion> getAllQuestionsFromForm() {
+    List<FormQuestion> formQuestions = new LinkedList<FormQuestion>();
+    getAllQuestionsFromFormRecursion(this.body, formQuestions);
+    return formQuestions;
+  }
+
+  public void getAllQuestionsFromFormRecursion(
+      FormSection formSection, List<FormQuestion> formQuestions) {
+    formQuestions.addAll(formSection.getQuestions());
+    if (formSection.getSubsections().size() == 0) {
+      return;
+    }
+    for (FormSection formSubsection : formSection.getSubsections()) {
+      getAllQuestionsFromFormRecursion(formSubsection, formQuestions);
+    }
   }
 
   // Create a json string from the object

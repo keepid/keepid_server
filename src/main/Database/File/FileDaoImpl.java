@@ -1,5 +1,8 @@
 package Database.File;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import File.File;
@@ -13,19 +16,15 @@ import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import com.mongodb.client.model.Filters;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 @Slf4j
 public class FileDaoImpl implements FileDao {
@@ -148,7 +147,7 @@ public class FileDaoImpl implements FileDao {
             .find(
                 and(
                     Filters.eq("filename", filename),
-                    Filters.eq("fileType", fileType),
+                    // Filters.eq("fileType", fileType),
                     Filters.eq("username", uploaderUsername)))
             .first();
     if (foundFile != null) {
@@ -175,10 +174,7 @@ public class FileDaoImpl implements FileDao {
   public Optional<File> get(String uploaderUsername, FileType fileType) {
     File foundFile =
         fileCollection
-            .find(
-                and(
-                    eq("fileType", fileType.toString()),
-                    eq("username", uploaderUsername)))
+            .find(and(eq("fileType", fileType.toString()), eq("username", uploaderUsername)))
             .first();
 
     return Optional.ofNullable(foundFile);

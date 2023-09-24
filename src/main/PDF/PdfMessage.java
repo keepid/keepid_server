@@ -14,7 +14,12 @@ public enum PdfMessage implements Message {
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE;Privilege level too low."),
   SUCCESS("SUCCESS;Success."),
   NO_SUCH_FILE("NO_SUCH_FILE;PDF does not exist"),
-  ENCRYPTION_ERROR("ENCRYPTION_ERROR;Error encrypting/decrypting");
+  ENCRYPTION_ERROR("ENCRYPTION_ERROR;Error encrypting/decrypting"),
+  CROSS_ORG_ACTION_DENIED(
+      "CROSS_ORG_ACTION_DENIED:You are trying to modify another organization's pdf."),
+  INSUFFICIENT_USER_PRIVILEGE(
+      "INSUFFICIENT_USER_PRIVILEGE: The user is not allowed to access this pdf."),
+  MISSING_FORM("MISSING_FORM: Annotated file is missing corresponding form.");
 
   private String errorMessage;
 
