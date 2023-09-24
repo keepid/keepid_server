@@ -1,21 +1,21 @@
 package Security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import TestUtils.TestUtils;
 import com.google.common.io.Files;
 import com.mongodb.client.MongoDatabase;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
 
 public class EncryptionTest {
 
@@ -28,6 +28,11 @@ public class EncryptionTest {
     TestUtils.startServer();
     testDB = MongoConfig.getDatabase(DeploymentLevel.STAGING);
     encryptionController = new EncryptionController(testDB);
+  }
+
+  @AfterAll
+  public static void tearDown() {
+    TestUtils.tearDownTestDB();
   }
 
   @Test

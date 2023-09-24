@@ -8,6 +8,7 @@ import File.File;
 import File.FileType;
 import File.IdCategoryType;
 import Form.Form;
+import Form.FormMetadata;
 import Form.FormQuestion;
 import Form.FormSection;
 import Form.FormType;
@@ -17,15 +18,16 @@ import PDF.PdfMessage;
 import Security.EncryptionController;
 import User.UserType;
 import Validation.ValidationUtils;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
+import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSignDesigner;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -46,7 +48,9 @@ public class FillPDFServiceV2 implements Service {
   private File filledFile;
   private Form filledForm;
   private FormSection filledFormBody;
+  private PDDocument pdfDocument;
   private EncryptionController encryptionController;
+  private ByteArrayOutputStream filledFileOutputStream;
 
   public FillPDFServiceV2(
       FileDao fileDao,
@@ -65,8 +69,10 @@ public class FillPDFServiceV2 implements Service {
     this.encryptionController = encryptionController;
   }
 
+  // FILE STREAM MUST BE CLOSED EXTERNALLY
   public InputStream getFilledFileStream() {
-    return Objects.requireNonNull(filledFileStream);
+    return Objects.requireNonNull(
+        new ByteArrayInputStream(this.filledFileOutputStream.toByteArray()));
   }
 
   public File getFilledFile() {
@@ -102,10 +108,39 @@ public class FillPDFServiceV2 implements Service {
     return null;
   }
 
+  public void fillInSignature(PDSignatureField signatureField) throws IOException {
+    PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(this.signatureStream);
+    visibleSignDesigner.zoom(0);
+    PDVisibleSigProperties visibleSigProperties =
+        new PDVisibleSigProperties()
+            .visualSignEnabled(true)
+            .setPdVisibleSignature(visibleSignDesigner);
+    visibleSigProperties.buildSignature();
+
+    SignatureOptions signatureOptions = new SignatureOptions();
+    signatureOptions.setVisualSignature(visibleSigProperties.getVisibleSignature());
+
+    PDSignature signature = new PDSignature();
+    signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
+    signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
+    signature.setName(username);
+    signature.setSignDate(Calendar.getInstance());
+
+    signatureField.setValue(signature);
+
+    this.pdfDocument.addSignature(signature, signatureOptions);
+  }
+
   public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
       throws IOException {
     List<FormQuestion> filledFormBodyQuestions = new LinkedList<>();
     for (FormQuestion formQuestion : formQuestions) {
+      String fieldName = formQuestion.getQuestionName();
+      if (!formAnswers.has(fieldName)) {
+        continue;
+      }
+      String formAnswerText = String.valueOf(formAnswers.get(fieldName));
+      formQuestion.setAnswerText(formAnswerText);
       FormQuestion filledFormNewQuestion = formQuestion.copyOfFormQuestion();
       PDField field = acroForm.getField(formQuestion.getQuestionName());
       if (field instanceof PDButton) {
@@ -150,8 +185,8 @@ public class FillPDFServiceV2 implements Service {
           field.setValue(value);
         }
       } else if (field instanceof PDSignatureField) {
-        // Do nothing, implemented separately in pdfSignedUpload
-        continue;
+        fillInSignature((PDSignatureField) field);
+        filledFormNewQuestion.setAnswerText("Signed by " + this.username);
       }
       filledFormBodyQuestions.add(filledFormNewQuestion);
     }
@@ -159,15 +194,14 @@ public class FillPDFServiceV2 implements Service {
         new FormSection(
             this.templateForm.getBody().getTitle(),
             this.templateForm.getBody().getDescription(),
-            null,
+            new ArrayList<>(),
             filledFormBodyQuestions);
   }
 
-  public Message mergeFileAndForm(
+  public Message mergeFileAndFormQuestions(
       InputStream templateFileStream, List<FormQuestion> formQuestions) {
-    PDDocument pdfDocument;
     try {
-      pdfDocument = Loader.loadPDF(templateFileStream);
+      this.pdfDocument = Loader.loadPDF(templateFileStream);
     } catch (IOException e) {
       return PdfMessage.INVALID_PDF;
     }
@@ -178,10 +212,10 @@ public class FillPDFServiceV2 implements Service {
     }
     try {
       setPDFFieldsFromFormQuestions(formQuestions, acroForm);
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      pdfDocument.save(outputStream);
+      this.filledFileOutputStream = new ByteArrayOutputStream();
+      pdfDocument.save(this.filledFileOutputStream);
       pdfDocument.close();
-      this.filledFileStream = new ByteArrayInputStream(outputStream.toByteArray());
+      this.filledFileStream = new ByteArrayInputStream(this.filledFileOutputStream.toByteArray());
       return null;
     } catch (Exception e) {
       return PdfMessage.SERVER_ERROR;
@@ -207,6 +241,7 @@ public class FillPDFServiceV2 implements Service {
             this.organizationName,
             true,
             this.templateFile.getContentType());
+    ObjectId filledFileObjectId = this.filledFile.getId();
     this.filledForm =
         new Form(
             this.username,
@@ -215,11 +250,37 @@ public class FillPDFServiceV2 implements Service {
             Optional.of(LocalDateTime.now()),
             FormType.APPLICATION,
             false,
-            null,
+            new FormMetadata(
+                this.templateFile.getFilename() + " Form",
+                this.templateFile.getFilename() + " Form",
+                "Pennsylvania",
+                "Philadelphia",
+                new HashSet<>(),
+                LocalDateTime.now(),
+                new ArrayList<>(),
+                0),
             this.filledFormBody,
-            null,
+            new ObjectId(),
             "");
+    this.filledForm.setFileId(filledFileObjectId);
     return PdfMessage.SUCCESS;
+  }
+
+  public List<FormQuestion> getAllQuestionsFromForm(FormSection formSection) {
+    List<FormQuestion> formQuestions = new LinkedList<FormQuestion>();
+    getAllQuestionsFromFormRecursion(formSection, formQuestions);
+    return formQuestions;
+  }
+
+  public void getAllQuestionsFromFormRecursion(
+      FormSection formSection, List<FormQuestion> formQuestions) {
+    formQuestions.addAll(formSection.getQuestions());
+    if (formSection.getSubsections().size() == 0) {
+      return;
+    }
+    for (FormSection formSubsection : formSection.getSubsections()) {
+      getAllQuestionsFromFormRecursion(formSubsection, formQuestions);
+    }
   }
 
   public Message fill() {
@@ -229,21 +290,19 @@ public class FillPDFServiceV2 implements Service {
       return PdfMessage.NO_SUCH_FILE;
     }
     this.templateFile = templateFileOptional.get();
-    InputStream templateFileStream = null;
+    InputStream templateFileStream;
     try {
-      templateFileStream =
-          this.encryptionController.decryptFile(
-              this.fileDao.getStream(fileObjectId).get(), this.username);
+      templateFileStream = this.fileDao.getStream(fileObjectId).get();
     } catch (Exception e) {
-      return PdfMessage.SERVER_ERROR;
+      return PdfMessage.NO_SUCH_FILE;
     }
     Optional<Form> templateFormOptional = this.formDao.getByFileId(fileObjectId);
     if (templateFormOptional.isEmpty()) {
       return PdfMessage.MISSING_FORM;
     }
     this.templateForm = templateFormOptional.get();
-    List<FormQuestion> formQuestions = templateForm.getAllQuestionsFromForm();
-    Message mergeMessage = mergeFileAndForm(templateFileStream, formQuestions);
+    List<FormQuestion> formQuestions = getAllQuestionsFromForm(templateForm.getBody());
+    Message mergeMessage = mergeFileAndFormQuestions(templateFileStream, formQuestions);
     if (mergeMessage != null) {
       return mergeMessage;
     }

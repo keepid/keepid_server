@@ -1,14 +1,14 @@
 package UserTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterAll;
 
 public class UserControllerIntegrationTest {
 
@@ -18,7 +18,7 @@ public class UserControllerIntegrationTest {
     TestUtils.setUpTestDB();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

@@ -10,6 +10,7 @@ import File.FileType;
 import File.IdCategoryType;
 import Form.FieldType;
 import Form.Form;
+import Form.FormMetadata;
 import Form.FormQuestion;
 import Form.FormSection;
 import Form.FormType;
@@ -21,14 +22,12 @@ import Security.EncryptionController;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
-import Validation.ValidationUtils;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -45,13 +44,14 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   private String username;
   private String organizationName;
   private UserType privilegeLevel;
-  private String fileId;
   private String fileName;
   private String fileContentType;
   private InputStream fileStream;
   private EncryptionController encryptionController;
   private List<FormQuestion> formQuestions;
   private JSONObject userInfo;
+  private ObjectId uploadedFileId;
+  private String fileOrganizationName;
 
   public UploadAnnotatedPDFServiceV2(
       FileDao fileDao,
@@ -66,11 +66,15 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
     this.privilegeLevel = userParams.getPrivilegeLevel();
-    this.fileId = fileParams.getFileId();
     this.fileName = fileParams.getFileName();
     this.fileContentType = fileParams.getFileContentType();
     this.fileStream = fileParams.getFileStream();
+    this.fileOrganizationName = fileParams.getFileOrgName();
     this.encryptionController = encryptionController;
+  }
+
+  public ObjectId getUploadedFileId() {
+    return this.uploadedFileId;
   }
 
   @Override
@@ -89,9 +93,6 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   }
 
   public Message checkUploadConditions() {
-    if (!ValidationUtils.isValidObjectId(this.fileId)) {
-      return PdfMessage.INVALID_PARAMETER;
-    }
     if (this.fileStream == null || !this.fileContentType.equals("application/pdf")) {
       return PdfMessage.INVALID_PDF;
     }
@@ -103,12 +104,13 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
 
   public void generateFormQuestionFromFields(List<PDField> fields) throws Exception {
     for (PDField field : fields) {
-      if (field instanceof PDNonTerminalField) {
+      if (!(field instanceof PDNonTerminalField)) {
+        FormQuestion generatedFormQuestion = generateFormQuestionFromTerminalField(field);
+        if (generatedFormQuestion != null) {
+          this.formQuestions.add(generatedFormQuestion);
+        }
+      } else {
         generateFormQuestionFromFields(((PDNonTerminalField) field).getChildren());
-      }
-      FormQuestion generatedFormQuestion = generateFormQuestionFromTerminalField(field);
-      if (generatedFormQuestion != null) {
-        this.formQuestions.add(generateFormQuestionFromTerminalField(field));
       }
     }
   }
@@ -125,7 +127,9 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     boolean required = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     boolean matched = false;
-    ObjectId conditionalOnField = null;
+    // New ObjectId is used, this value is not read unless needed
+    // in which case this value will be replaced with the correct ObjectId
+    ObjectId conditionalOnField = new ObjectId();
     String conditionalType = "NONE";
     return new FormQuestion(
         id,
@@ -153,7 +157,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     boolean required = field.isRequired();
     int numLines = options.size();
     boolean matched = false;
-    ObjectId conditionalOnField = null;
+    ObjectId conditionalOnField = new ObjectId();
     String conditionalType = "NONE";
     return new FormQuestion(
         id,
@@ -184,7 +188,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     boolean required = field.isRequired();
     int numLines = options.size();
     boolean matched = false;
-    ObjectId conditionalOnField = null;
+    ObjectId conditionalOnField = new ObjectId();
     String conditionalType = "NONE";
     return new FormQuestion(
         id,
@@ -225,7 +229,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     boolean required = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     boolean matched = false;
-    ObjectId conditionalOnField = null;
+    ObjectId conditionalOnField = new ObjectId();
     String conditionalType = "NONE";
     return new FormQuestion(
         id,
@@ -242,6 +246,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         conditionalType);
   }
 
+  // Conditional fields may be deprecated from previous PdfController
   public void setMatchedAndConditionalFields(FormQuestion formQuestion) throws Exception {
     String questionName = formQuestion.getQuestionName();
     String[] splitQuestionName = questionName.split(":");
@@ -312,15 +317,20 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     } catch (Exception e) {
       throw new Exception("Failed to generate matched and conditional fields: " + e.getMessage());
     }
-    // Figure out FIELDLINKEDTO RENAMING
     return generatedFormQuestion;
   }
 
   public Message upload() {
-    ObjectId fileObjectId = new ObjectId(fileId);
     PDDocument pdfDocument;
+    // Create copies of inputstream as Loader.loadPDF closes the parameter input stream
+    ByteArrayOutputStream fileOutputStream = new ByteArrayOutputStream();
     try {
-      pdfDocument = Loader.loadPDF(this.fileStream);
+      fileStream.transferTo(fileOutputStream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    try {
+      pdfDocument = Loader.loadPDF(new ByteArrayInputStream(fileOutputStream.toByteArray()));
     } catch (IOException e) {
       return PdfMessage.INVALID_PDF;
     }
@@ -333,11 +343,11 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         new File(
             this.username,
             new Date(),
-            this.fileStream,
-            FileType.FORM_PDF,
+            new ByteArrayInputStream(fileOutputStream.toByteArray()),
+            FileType.FORM,
             IdCategoryType.NONE,
             this.fileName,
-            this.organizationName,
+            this.fileOrganizationName,
             true,
             this.fileContentType);
     ObjectId fileId = file.getId();
@@ -347,7 +357,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     } catch (Exception e) {
       return new PdfAnnotationError(e.getMessage());
     }
-    FormSection body = new FormSection("Form Body", "Form Body", null, formQuestions);
+    FormSection body = new FormSection("Form Body", "Form Body", new LinkedList<>(), formQuestions);
     Form form =
         new Form(
             this.username,
@@ -356,13 +366,22 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             Optional.of(LocalDateTime.now()),
             FormType.FORM,
             true,
-            null,
+            new FormMetadata(
+                this.fileName + " Form",
+                this.fileName + " Form",
+                "Pennsylvania",
+                "Philadelphia",
+                new HashSet<>(),
+                LocalDateTime.now(),
+                new ArrayList<>(),
+                0),
             body,
-            null,
-            null);
+            new ObjectId(),
+            "");
     form.setFileId(fileId);
     fileDao.save(file);
     formDao.save(form);
+    this.uploadedFileId = file.getId();
     return PdfMessage.SUCCESS;
   }
 }

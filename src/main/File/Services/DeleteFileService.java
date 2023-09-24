@@ -8,9 +8,8 @@ import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import Validation.ValidationUtils;
-import org.bson.types.ObjectId;
-
 import java.util.Optional;
+import org.bson.types.ObjectId;
 
 public class DeleteFileService implements Service {
   private FileDao fileDao;
@@ -70,7 +69,7 @@ public class DeleteFileService implements Service {
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
-    } else if (fileType == FileType.FORM_PDF) {
+    } else if (fileType == FileType.FORM) {
       if (file.getOrganizationName().equals(organizationName)) {
         fileDao.delete(id);
         return FileMessage.SUCCESS;

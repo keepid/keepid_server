@@ -5,11 +5,6 @@ import Config.Service;
 import PDF.PdfMessage;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.interactive.form.*;
-import org.json.JSONObject;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -17,6 +12,10 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.interactive.form.*;
+import org.json.JSONObject;
 
 public class FillPDFService implements Service {
   UserType privilegeLevel;

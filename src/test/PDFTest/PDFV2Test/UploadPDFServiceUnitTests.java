@@ -1,6 +1,6 @@
 package PDFTest.PDFV2Test;
 
-import static PDFTest.PDFTestUtils.resourcesFolderPath;
+import static PDFTest.PDFV2Test.PDFTestUtilsV2.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Config.DeploymentLevel;
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class UploadPDFServiceUnitTests {
   private FileDao fileDao;
@@ -91,7 +92,7 @@ public class UploadPDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

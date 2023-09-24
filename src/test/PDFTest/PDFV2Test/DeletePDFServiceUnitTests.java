@@ -1,6 +1,6 @@
 package PDFTest.PDFV2Test;
 
-import static PDFTest.PDFTestUtils.resourcesFolderPath;
+import static PDFTest.PDFV2Test.PDFTestUtilsV2.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Config.DeploymentLevel;
@@ -10,6 +10,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import File.FileType;
 import File.IdCategoryType;
 import PDF.PDFTypeV2;
@@ -27,14 +29,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
 import org.bson.types.ObjectId;
+import org.json.JSONObject;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class DeletePDFServiceUnitTests {
   private FileDao fileDao;
   private FormDao formDao;
+  private UserDao userDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
   private UserParams clientOneUserParams;
+  private UserParams developerUserParams;
+  private FileParams blankFileParams;
   private FileParams uploadFileOneFileParams;
   private InputStream sampleFileStream1;
   private InputStream sampleFileStream2;
@@ -42,6 +49,7 @@ public class DeletePDFServiceUnitTests {
   private InputStream sampleAnnotatedFileStream;
   private InputStream sampleBlankFileStream1;
   private InputStream sampleBlankFileStream2;
+  private InputStream signatureStream;
 
   @BeforeClass
   public static void start() {
@@ -52,6 +60,7 @@ public class DeletePDFServiceUnitTests {
   public void initialize() {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
+    this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     File sampleBlankFile2 =
@@ -61,6 +70,7 @@ public class DeletePDFServiceUnitTests {
     File sampleImageFile = new File(resourcesFolderPath + File.separator + "first-love.png");
     File sampleFile1 = new File(resourcesFolderPath + File.separator + "test_out_signature.pdf");
     File sampleFile2 = new File(resourcesFolderPath + File.separator + "testpdf.pdf");
+    File signatureFile = new File(resourcesFolderPath + File.separator + "sample-signature.png");
     try {
       sampleImageStream = FileUtils.openInputStream(sampleImageFile);
       sampleFileStream1 = FileUtils.openInputStream(sampleFile1);
@@ -68,6 +78,7 @@ public class DeletePDFServiceUnitTests {
       sampleAnnotatedFileStream = FileUtils.openInputStream(sampleAnnotatedFile);
       sampleBlankFileStream1 = FileUtils.openInputStream(sampleBlankFile1);
       sampleBlankFileStream2 = FileUtils.openInputStream(sampleBlankFile2);
+      signatureStream = FileUtils.openInputStream(signatureFile);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -76,10 +87,21 @@ public class DeletePDFServiceUnitTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    this.developerUserParams =
+        new UserParams()
+            .setUsername("dev1")
+            .setOrganizationName("org0")
+            .setPrivilegeLevel(UserType.Developer);
+    this.blankFileParams =
+        new FileParams()
+            .setFileName("ss-5.pdf")
+            .setFileContentType("application/pdf")
+            .setFileStream(sampleBlankFileStream1)
+            .setFileOrgName("org2");
     this.clientOneUserParams =
         new UserParams()
             .setUsername("client1")
-            .setOrganizationName("org1")
+            .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Client);
     this.uploadFileOneFileParams =
         new FileParams()
@@ -94,6 +116,7 @@ public class DeletePDFServiceUnitTests {
   public void reset() {
     fileDao.clear();
     formDao.clear();
+    userDao.clear();
     try {
       sampleImageStream.close();
       sampleFileStream1.close();
@@ -106,7 +129,7 @@ public class DeletePDFServiceUnitTests {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }
@@ -178,5 +201,50 @@ public class DeletePDFServiceUnitTests {
     assertEquals(0, fileDao.size());
   }
 
-  // NEED TO TEST DELETE ON ANNOTATED AND BLANK APPS
+  @Test
+  public void deletePDFServiceApplicationsSuccess() {
+    ObjectId uploadedBlankFileId =
+        uploadBlankSSFormAndGetFileId(
+            fileDao, formDao, userDao, developerUserParams, blankFileParams, encryptionController);
+    JSONObject formQuestions =
+        getQuestionsSSForm(formDao, userDao, clientOneUserParams, uploadedBlankFileId);
+    JSONObject formAnswers = getSampleFormAnswersFromSSFormQuestions(formQuestions);
+    ObjectId filledFileObjectId =
+        uploadAnnotatedSSFormAndGetFileId(
+            fileDao,
+            formDao,
+            clientOneUserParams,
+            encryptionController,
+            signatureStream,
+            formAnswers,
+            uploadedBlankFileId);
+    assertEquals(2, fileDao.size());
+    assertEquals(2, fileDao.size());
+    FileParams deleteAnnotatedFileParams =
+        new FileParams()
+            .setFileId(filledFileObjectId.toString())
+            .setPdfType(PDFTypeV2.ANNOTATED_APPLICATION);
+    UserParams workerUserParams =
+        new UserParams()
+            .setUsername("worker1")
+            .setOrganizationName("org2")
+            .setPrivilegeLevel(UserType.Worker);
+    DeletePDFServiceV2 deleteAnnotatedService =
+        new DeletePDFServiceV2(fileDao, formDao, workerUserParams, deleteAnnotatedFileParams);
+    Message deleteAnnotatedResponse = deleteAnnotatedService.executeAndGetResponse();
+    assertEquals(PdfMessage.SUCCESS, deleteAnnotatedResponse);
+    assertEquals(1, fileDao.size());
+    assertEquals(1, formDao.size());
+
+    FileParams deleteBlankFileParams =
+        new FileParams()
+            .setFileId(uploadedBlankFileId.toString())
+            .setPdfType(PDFTypeV2.BLANK_APPLICATION);
+    DeletePDFServiceV2 deleteBlankService =
+        new DeletePDFServiceV2(fileDao, formDao, developerUserParams, deleteBlankFileParams);
+    Message deleteBlankResponse = deleteBlankService.executeAndGetResponse();
+    assertEquals(PdfMessage.SUCCESS, deleteAnnotatedResponse);
+    assertEquals(0, fileDao.size());
+    assertEquals(0, formDao.size());
+  }
 }

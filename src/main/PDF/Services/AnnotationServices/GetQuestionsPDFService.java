@@ -8,6 +8,12 @@ import PDF.PdfMessage;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -15,13 +21,6 @@ import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 public class GetQuestionsPDFService implements Service {
@@ -327,6 +326,7 @@ public class GetQuestionsPDFService implements Service {
           return fieldJSON;
         }
       }
+      System.out.println(fieldName);
 
       fieldJSON.put("fieldName", fieldName);
       fieldJSON.put("fieldType", fieldType);

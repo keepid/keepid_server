@@ -9,6 +9,7 @@ import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import TestUtils.TestUtils;
 import org.junit.*;
+import org.junit.jupiter.api.AfterAll;
 
 public class PDFControllerV2Tests {
   private FileDao fileDao;
@@ -35,7 +36,7 @@ public class PDFControllerV2Tests {
     TestUtils.logout();
   }
 
-  @AfterClass
+  @AfterAll
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }

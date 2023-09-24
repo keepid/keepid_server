@@ -13,6 +13,7 @@ import Security.EncryptionController;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.InputStream;
+import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
 public class UploadSignedPDFServiceV2 implements Service {
@@ -47,6 +48,10 @@ public class UploadSignedPDFServiceV2 implements Service {
     this.formAnswers = fileParams.getFormAnswers();
     this.signatureStream = fileParams.getSignatureStream();
     this.encryptionController = encryptionController;
+  }
+
+  public ObjectId getFilledFileObjectId() {
+    return this.filledFile.getId();
   }
 
   @Override

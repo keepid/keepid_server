@@ -75,9 +75,13 @@ public class DownloadPDFServiceV2 implements Service {
       return PdfMessage.NO_SUCH_FILE;
     }
     try {
-      this.downloadedInputStream =
-          this.encryptionController.decryptFile(
-              this.fileDao.getStream(fileObjectId).get(), this.username);
+      if (pdfType == PDFTypeV2.BLANK_APPLICATION) {
+        this.downloadedInputStream = this.fileDao.getStream(fileObjectId).get();
+      } else { // Client documents and annotated applications are encrypted
+        this.downloadedInputStream =
+            this.encryptionController.decryptFile(
+                this.fileDao.getStream(fileObjectId).get(), this.username);
+      }
       return PdfMessage.SUCCESS;
     } catch (Exception e) {
       return PdfMessage.SERVER_ERROR;
