@@ -1,5 +1,8 @@
 package File.Services;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+
 import Config.Message;
 import Config.Service;
 import Database.File.FileDao;
@@ -7,14 +10,10 @@ import File.File;
 import File.FileMessage;
 import File.FileType;
 import User.UserType;
+import java.util.Objects;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.Objects;
-
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
 
 public class GetFilesInformationService implements Service {
   private FileDao fileDao;
@@ -63,12 +62,12 @@ public class GetFilesInformationService implements Service {
                     eq("username", username),
                     eq("fileType", FileType.IDENTIFICATION_PDF.toString()));
             return getAllFiles(filter, fileType, fileDao);
-          } else if (fileType == FileType.FORM_PDF) {
+          } else if (fileType == FileType.FORM) {
             filter =
                 and(
                     eq("organizationName", orgName),
                     eq("annotated", annotated),
-                    eq("fileType", FileType.FORM_PDF.toString()));
+                    eq("fileType", FileType.FORM.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
@@ -102,7 +101,7 @@ public class GetFilesInformationService implements Service {
               .put("uploadDate", file_out.getUploadedAt().toString());
       if (fileType.isPDF()) {
         fileMetadata.put("organizationName", file_out.getOrganizationName());
-        if (fileType == FileType.FORM_PDF) {
+        if (fileType == FileType.FORM) {
           String title = file_out.getFilename();
           if (title != null) {
             fileMetadata.put("filename", title);

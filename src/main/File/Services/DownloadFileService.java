@@ -8,14 +8,13 @@ import File.FileMessage;
 import File.FileType;
 import Security.EncryptionController;
 import User.UserType;
-import lombok.extern.slf4j.Slf4j;
-import org.bson.types.ObjectId;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 
 @Slf4j
 public class DownloadFileService implements Service {
@@ -51,7 +50,7 @@ public class DownloadFileService implements Service {
     if (fileType == null) {
       return FileMessage.INVALID_FILE_TYPE;
     }
-    //quick fix to make sure everyone can access profile pictures. edit later
+    // quick fix to make sure everyone can access profile pictures. edit later
     if (fileType.isProfilePic()) this.privilegeLevel = Optional.of(UserType.Worker);
     if (privilegeLevel.isEmpty()) {
       return FileMessage.INSUFFICIENT_PRIVILEGE;
@@ -131,7 +130,7 @@ public class DownloadFileService implements Service {
           }
           return FileMessage.NO_SUCH_FILE;
         }
-      } else if (fileType == FileType.FORM_PDF) {
+      } else if (fileType == FileType.FORM) {
         if (file.getOrganizationName().equals(organizationName.get())) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {

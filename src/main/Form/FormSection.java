@@ -1,5 +1,9 @@
 package Form;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -8,11 +12,6 @@ import org.bson.codecs.EncoderContext;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class FormSection implements Comparable<FormSection> {
   String title;
@@ -122,8 +121,12 @@ public class FormSection implements Comparable<FormSection> {
             .sorted()
             .forEach(
                 question -> {
+                  writer.writeName("questionName");
+                  writer.writeString(question.questionName);
                   writer.writeName("text");
                   writer.writeString(question.questionText);
+                  writer.writeName("answerText");
+                  writer.writeString(question.answerText);
                   writer.writeName("default");
                   writer.writeString(question.defaultValue);
                   writer.writeName("conditionalOnField");
@@ -135,7 +138,7 @@ public class FormSection implements Comparable<FormSection> {
                   writer.writeName("matched");
                   writer.writeBoolean(question.matched);
                   writer.writeName("conditionalType");
-                  writer.writeBoolean(question.conditionalType);
+                  writer.writeString(question.conditionalType);
                   writer.writeName("type");
                   writer.writeString(question.type.toString());
                   writer.writeName("numLines");
@@ -172,7 +175,11 @@ public class FormSection implements Comparable<FormSection> {
       List<FormQuestion> questions = new ArrayList<>();
       for (int i = 0; i < questionsSize; i++) {
         reader.readName();
-        String questiontext = reader.readString();
+        String questionName = reader.readString();
+        reader.readName();
+        String questionText = reader.readString();
+        reader.readName();
+        String answerText = reader.readString();
         reader.readName();
         String defaultValue = reader.readString();
         reader.readName();
@@ -184,19 +191,34 @@ public class FormSection implements Comparable<FormSection> {
         reader.readName();
         boolean matched = reader.readBoolean();
         reader.readName();
-        boolean conditionalType = reader.readBoolean();
+        String conditionalType = reader.readString();
         reader.readName();
         String enumType = reader.readString();
         FieldType type;
         switch (enumType) {
+          case "dateField":
+            type = FieldType.DATE_FIELD;
+            break;
+          case "readOnlyField":
+            type = FieldType.READ_ONLY_FIELD;
+            break;
+          case "multilineTextField":
+            type = FieldType.MULTILINE_TEXT_FIELD;
+            break;
           case "textField":
             type = FieldType.TEXT_FIELD;
             break;
           case "checkBox":
             type = FieldType.CHECKBOX;
             break;
-          case "multipleChoice":
-            type = FieldType.MULTIPLE_CHOICE;
+          case "radioButton":
+            type = FieldType.RADIO_BUTTON;
+            break;
+          case "comboBox":
+            type = FieldType.COMBOBOX;
+            break;
+          case "listBox":
+            type = FieldType.LISTBOX;
             break;
           case "signature":
             type = FieldType.SIGNATURE;
@@ -218,7 +240,9 @@ public class FormSection implements Comparable<FormSection> {
             new FormQuestion(
                 id,
                 type,
-                questiontext,
+                questionName,
+                questionText,
+                answerText,
                 options,
                 defaultValue,
                 required,

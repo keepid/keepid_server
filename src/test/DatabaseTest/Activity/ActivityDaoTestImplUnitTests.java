@@ -1,21 +1,20 @@
 package DatabaseTest.Activity;
 
+import static DatabaseTest.Activity.ActivityDaoImplUnitTests.areActivitiesEqual;
+import static org.junit.Assert.*;
+
 import Activity.*;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
 import File.FileType;
 import TestUtils.EntityFactory;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static DatabaseTest.Activity.ActivityDaoImplUnitTests.areActivitiesEqual;
-import static org.junit.Assert.*;
 
 public class ActivityDaoTestImplUnitTests {
   private ActivityDao activityDao;
@@ -63,8 +62,7 @@ public class ActivityDaoTestImplUnitTests {
     assertTrue(areActivitiesEqual(createAdminActivity, readCreateAdminActivity));
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity(
-            "usernameOfInvoker", "documentOwner", FileType.FORM_PDF, new ObjectId());
+        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
     Activity readDeleteFileActivity = activityDao.get(deleteFileActivity.getId()).orElseThrow();
