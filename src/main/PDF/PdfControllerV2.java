@@ -158,12 +158,12 @@ public class PdfControllerV2 {
         log.info("Starting uploadSignedPDF handler");
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
-        Message setUserParamsErrorMessage = userParams.setUserParamsUploadSignedPDF(ctx);
+        Message setUserParamsErrorMessage = userParams.setUserParamsFillAndUploadSignedPDF(ctx);
         if (setUserParamsErrorMessage != null) {
           ctx.result(setUserParamsErrorMessage.toResponseString());
           return;
         }
-        Message setFileParamsErrorMessage = fileParams.setFileParamsUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
         if (setFileParamsErrorMessage != null) {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
@@ -199,13 +199,14 @@ public class PdfControllerV2 {
         JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
-        userParams.setUserParamsFillPDFForm(ctx);
-        fileParams.setFileParamsFillPDFForm(ctx, req);
+        userParams.setUserParamsFillAndUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
+        if (setFileParamsErrorMessage != null) {
+          ctx.result(setFileParamsErrorMessage.toResponseString());
+          return;
+        }
         FillPDFServiceV2 fillPDFServiceV2 =
-            new FillPDFServiceV2(fileDao, formDao, userParams, fileParams);
-        // NEED TO FINISH SERVICE
-        //
-        //
+            new FillPDFServiceV2(fileDao, formDao, userParams, fileParams, encryptionController);
         Message response = fillPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
@@ -257,7 +258,7 @@ public class PdfControllerV2 {
       return user;
     }
 
-    public Message setUserParamsUploadSignedPDF(Context ctx) {
+    public Message setUserParamsFillAndUploadSignedPDF(Context ctx) {
       try {
         String sessionUsername = ctx.sessionAttribute("username");
         String clientUsernameParameter = Objects.requireNonNull(ctx.formParam("clientUsername"));
@@ -269,10 +270,6 @@ public class PdfControllerV2 {
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
       this.organizationName = ctx.sessionAttribute("orgName");
       return null;
-    }
-
-    public void setUserParamsFillPDFForm(Context ctx) {
-      this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
     }
 
     public void setUserParamsUploadAnnotatedPDF(Context ctx) {
@@ -403,24 +400,16 @@ public class PdfControllerV2 {
       this.signatureStream = signatureStream;
     }
 
-    public Message setFileParamsUploadSignedPDF(Context ctx) {
+    public Message setfileParamsFillAndUploadSignedPDF(Context ctx) {
       try {
-        UploadedFile file = Objects.requireNonNull(ctx.uploadedFile("file"));
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
-        this.pdfType = PDFTypeV2.createFromString(Objects.requireNonNull(ctx.formParam("pdfType")));
-        this.fileName = file.getFilename();
-        this.fileContentType = file.getContentType();
-        this.fileStream = file.getContent();
+        this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
+        this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
         this.signatureStream = signature.getContent();
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
       return null;
-    }
-
-    public void setFileParamsFillPDFForm(Context ctx, JSONObject req) {
-      this.fileId = req.getString("applicationId");
-      this.formAnswers = req.getJSONObject("formAnswers");
     }
 
     public void setFileParamsGetFilesInformation(JSONObject req) {
