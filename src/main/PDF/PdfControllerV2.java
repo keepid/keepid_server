@@ -465,7 +465,7 @@ public class PdfControllerV2 {
         log.info("File is null");
         return PdfMessage.INVALID_PDF;
       }
-      this.fileOrgName = ctx.formParam("fileOrgName");
+      //      this.fileOrgName = ctx.formParam("fileOrgName");
       this.fileName = file.getFilename();
       this.fileContentType = file.getContentType();
       this.fileStream = file.getContent();

@@ -23,6 +23,7 @@ import Issue.IssueController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
+import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
 import Security.EncryptionTools;
@@ -34,10 +35,9 @@ import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
-import org.bson.types.ObjectId;
-
 import java.util.HashMap;
 import java.util.Optional;
+import org.bson.types.ObjectId;
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -82,6 +82,7 @@ public class AppConfig {
     ProductionController productionController = new ProductionController(orgDao, userDao);
     UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);
     BillingController billingController = new BillingController();
+    PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -115,6 +116,16 @@ public class AppConfig {
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
+
+    /* -------------- PDF CONTROLLER v2 --------------------- */
+    app.post("/delete-pdf-2", pdfControllerV2.deletePDF);
+    app.post("/download-pdf-2", pdfControllerV2.downloadPDF);
+    app.post("/filter-pdf-2", pdfControllerV2.filterPDF);
+    app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
+    app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
+    app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/get-questions-2", pdfControllerV2.getQuestions);
+    app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

@@ -109,7 +109,10 @@ public class FilterPDFServiceV2 implements Service {
 
   public Message filter() {
     List<File> filteredFiles = this.fileDao.getAll(this.filter);
-    this.files = new JSONArray(filteredFiles);
+    this.files = new JSONArray();
+    for (File filteredFile : filteredFiles) {
+      this.files.put(filteredFile.toJsonView());
+    }
     return PdfMessage.SUCCESS;
   }
 }
