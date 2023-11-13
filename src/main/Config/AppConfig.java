@@ -115,6 +115,7 @@ public class AppConfig {
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
+    app.post("/mail-form", formController.formMail);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

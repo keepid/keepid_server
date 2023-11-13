@@ -12,7 +12,9 @@ public enum FormMessage implements Message {
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE:Privilege level too low."),
   SUCCESS("SUCCESS:Success."),
   NO_SUCH_FILE("NO_SUCH_FILE:Form does not exist"),
-  ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting");
+  ALREADY_MAILED_RECENTLY("ALREADY_MAILED_RECENTLY:The form has been mailed recently and cannot be mailed again so soon.");
+
+  //ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting");
 
   private String errorMessage;
 
