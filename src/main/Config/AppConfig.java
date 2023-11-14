@@ -103,6 +103,7 @@ public class AppConfig {
     app.post("/get-documents", pdfController.pdfGetFilesInformation);
     app.post("/get-application-questions", pdfController.getApplicationQuestions);
     app.post("/fill-application", pdfController.fillPDFForm);
+    app.post("/mail-file", fileController.fileMail);
 
     /* -------------- FILE MANAGEMENT v2 --------------------- */
     app.post("/upload-file", fileController.fileUpload);
@@ -115,7 +116,6 @@ public class AppConfig {
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
-    app.post("/mail-form", formController.formMail);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

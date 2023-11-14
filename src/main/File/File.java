@@ -8,6 +8,7 @@ import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Objects;
 
@@ -21,6 +22,7 @@ public class File {
   @Getter @Setter private Date uploadedAt;
   @Getter @Setter private String username;
   @Getter @Setter private String organizationName;
+  @Getter @Setter private LocalDateTime lastMailedAt;
 
   @Getter
   @Setter

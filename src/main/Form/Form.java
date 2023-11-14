@@ -34,9 +34,6 @@ public class Form implements Comparable<Form> {
   @BsonProperty(value = "isTemplate")
   private boolean isTemplate;
 
-  @BsonProperty(value = "lastMailedAt")
-  private LocalDateTime lastMailedAt;
-
   @BsonProperty(value = "conditionalFieldId")
   private ObjectId conditionalFieldId;
 
@@ -113,9 +110,6 @@ public class Form implements Comparable<Form> {
   public boolean isTemplate() {
     return isTemplate;
   }
-
-  public LocalDateTime getLastMailedAt() { return lastMailedAt; }
-
   public FormMetadata getMetadata() {
     return metadata;
   }
@@ -168,8 +162,6 @@ public class Form implements Comparable<Form> {
   public void setBody(FormSection body) {
     this.body = body;
   }
-
-  public void setLastMailedAt(LocalDateTime lastMailedAt) {this.lastMailedAt = lastMailedAt;}
 
   public void setConditionalFieldId(ObjectId fieldId) {
     this.conditionalFieldId = fieldId;

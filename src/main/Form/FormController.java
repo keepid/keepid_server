@@ -5,7 +5,6 @@ import Database.Form.FormDao;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
-import Form.Services.MailFormService;
 import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
@@ -177,40 +176,6 @@ public class FormController {
 
         ctx.result(response.toResponseString());
       };
-
-    public Handler formMail =
-            ctx -> {
-                String username;
-                UserType userType;
-                JSONObject req = new JSONObject(ctx.body());
-                User check = userCheck(ctx.body());
-                if (check == null && req.has("targetUser")) {
-                    ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
-                } else {
-                    boolean orgFlag;
-                    if (check != null && req.has("targetUser")) {
-                        log.info("Target form found");
-                        username = check.getUsername();
-                        userType = check.getUserType();
-                        orgFlag = check.getOrganization().equals(ctx.sessionAttribute("orgName"));
-                    } else {
-                        username = ctx.sessionAttribute("username");
-                        userType = ctx.sessionAttribute("privilegeLevel");
-                        orgFlag = true;
-                    }
-
-                    if (orgFlag) {
-                        String formIDStr = req.getString("formId");
-                        ObjectId formId = new ObjectId(formIDStr);
-
-                        MailFormService mailFormService =
-                                new MailFormService(formDao, formId, username, userType);
-                        ctx.result(mailFormService.executeAndGetResponse().toResponseString());
-                    } else {
-                        ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
-                    }
-                }
-            };
 
     public User userCheck(String req) {
     log.info("userCheck Helper started");

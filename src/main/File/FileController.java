@@ -1,6 +1,7 @@
 package File;
 
 import static User.UserController.mergeJSON;
+import static com.mongodb.client.model.Filters.eq;
 
 import Config.Message;
 import Database.File.FileDao;
@@ -11,6 +12,7 @@ import User.Services.GetUserInfoService;
 import User.User;
 import User.UserMessage;
 import User.UserType;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -23,6 +25,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.bson.types.ObjectId;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -465,6 +468,24 @@ public class FileController {
           ctx.result(responseDownload.toResponseString());
         }
       };
+
+    public Handler fileMail =
+        ctx -> {
+            String username;
+            UserType userType;
+            JSONObject req = new JSONObject(ctx.body());
+            username = ctx.sessionAttribute("username");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            //file ID is still not working. Not used
+            String fileIDStr = req.getString("fileId");
+            ObjectId fileId = new ObjectId(fileIDStr);
+            Optional<File> maybefile = fileDao.get(fileId);
+            String description = req.getString("description");
+
+            MailFileService mailFileService =
+                    new MailFileService(fileDao, fileId, username, userType, description);
+            ctx.result(mailFileService.executeAndGetResponse().toResponseString());
+        };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {
     String title = fileName;
