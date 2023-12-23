@@ -1,4 +1,4 @@
-package User.V2;
+package User;
 
 import lombok.*;
 

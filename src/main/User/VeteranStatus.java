@@ -1,4 +1,4 @@
-package User.V2;
+package User;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,15 +11,14 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class DemographicInfo {
-  private String languagePreference;
-  // false is Non-Hispanic/Latino, true is Hispanic/Latino
-  @NonNull private Boolean ethnicity;
-  @NonNull private Race race;
-  @NonNull private String cityOfBirth;
-  @NonNull private String stateOfBirth;
-  @NonNull private String countryOfBirth;
-  @NonNull private Citizenship americanCitizen;
+public class VeteranStatus {
+
+  @NonNull private boolean isVeteran;
+  @NonNull private boolean isProtectedVeteran;
+  private String branch;
+  private String yearsOfService;
+  private String rank;
+  private String discharge;
 
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();

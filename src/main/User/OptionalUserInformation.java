@@ -1,4 +1,4 @@
-package User.V2;
+package User;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -14,23 +14,25 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class BaseUser {
-
+public class OptionalUserInformation {
   private ObjectId id;
+  private ObjectId userId;
+  private String username;
   private Person self;
-  private String password;
   private BasicInfo basicInfo;
   private DemographicInfo demographicInfo;
   private FamilyInfo familyInfo;
   private VeteranStatus veteranStatus;
 
   @JsonIgnore
-  public Map<String, Object> getBaseUser() {
+  public Map<String, Object> getOptionalUserInformation() {
     Map<String, Object> result = new HashMap<>();
     if (self != null) {
       result.put("firstName", self.getFirstName());
+      result.put("middleName", self.getMiddleName());
       result.put("lastName", self.getLastName());
       result.put("birthDate", self.getBirthDate());
+      result.put("ssn", self.getSsn());
     }
     return result;
   }
