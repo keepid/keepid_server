@@ -10,24 +10,17 @@ import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
 public class UpdateOptionalInfoService implements Service {
-    ObjectMapper objectMapper;
     OptionalUserInformationDao optionalUserInformationDao;
-    String json;
+    OptionalUserInformation optionalUserInformation;
 
-    public UpdateOptionalInfoService(ObjectMapper objectMapper, OptionalUserInformationDao dao, String json) {
-        this.objectMapper = objectMapper;
+    public UpdateOptionalInfoService(OptionalUserInformationDao dao, OptionalUserInformation optionalUserInformation) {
         this.optionalUserInformationDao = dao;
-        this.json = json;
+        this.optionalUserInformation = optionalUserInformation;
     }
 
     @Override
     public Message executeAndGetResponse() {
-        try{
-            OptionalUserInformation userInfo = objectMapper.readValue(json, OptionalUserInformation.class);
-            optionalUserInformationDao.update(userInfo);
-            return UserMessage.SUCCESS;
-        } catch (JsonProcessingException e) {
-            return UserMessage.INVALID_PARAMETER;
-        }
+        optionalUserInformationDao.update(optionalUserInformation);
+        return UserMessage.SUCCESS;
     }
 }

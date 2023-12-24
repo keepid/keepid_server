@@ -16,18 +16,18 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class GetOptionalInfoService implements Service {
     OptionalUserInformationDao optionalUserInformationDao;
-    ObjectId id;
+    String username;
     OptionalUserInformation optionalUserInformation;
 
-    public GetOptionalInfoService(OptionalUserInformationDao dao, ObjectId id) {
+    public GetOptionalInfoService(OptionalUserInformationDao dao, String username) {
         this.optionalUserInformationDao = dao;
-        this.id = id;
+        this.username = username;
         this.optionalUserInformation = null;
     }
 
     @Override
     public Message executeAndGetResponse() {
-        Optional<OptionalUserInformation> userOptional = optionalUserInformationDao.get(id);
+        Optional<OptionalUserInformation> userOptional = optionalUserInformationDao.get(username);
         if (userOptional.isPresent()) {
             this.optionalUserInformation = userOptional.get();
             return UserMessage.SUCCESS;
