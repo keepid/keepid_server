@@ -34,12 +34,7 @@ public class OptionalUserInformationDaoImpl implements OptionalUserInformationDa
     public Optional<OptionalUserInformation> get(String username){
         return Optional.ofNullable(optUserInfoCollection.find(eq("username", username)).first());
     }
-
-    @Override
-    public Optional<OptionalUserInformation> getByUserId(ObjectId userId) {
-        return Optional.ofNullable(optUserInfoCollection.find(eq("userId", userId)).first());
-    }
-
+    
     @Override
     public void delete(String username) {
         optUserInfoCollection.deleteOne(eq("username", username));
