@@ -126,14 +126,20 @@ public class EnrollOrganizationService implements Service {
               orgPhoneNumber);
       user =
           new User(
-              firstName,
-              lastName,
-              email,
-              orgName,
-              twoFactorOn,
-              username,
-              password,
-              userLevel);
+                  firstName,
+                  lastName,
+                  birthDate,
+                  email,
+                  phone,
+                  orgName,
+                  address,
+                  city,
+                  state,
+                  zipcode,
+                  twoFactorOn,
+                  username,
+                  password,
+                  userLevel);
       CreateOrgActivity createOrgActivity =
           new CreateOrgActivity(user.getUsername(), org.getOrgName());
       activityDao.save(createOrgActivity);

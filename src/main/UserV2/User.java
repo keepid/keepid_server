@@ -1,7 +1,7 @@
-package User;
+package UserV2;
 
-import User.Requests.UserUpdateRequest;
-import User.Services.DocumentType;
+import UserV2.Services.Requests.UserUpdateRequest;
+import UserV2.Services.DocumentType;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -26,29 +26,11 @@ public class User {
   @BsonProperty(value = "lastName")
   private String lastName;
 
-  @BsonProperty(value = "birthDate")
-  private String birthDate;
-
   @BsonProperty(value = "email")
   private String email;
 
-  @BsonProperty(value = "phone")
-  private String phone;
-
   @BsonProperty(value = "organization")
   private String organization;
-
-  @BsonProperty(value = "address")
-  private String address;
-
-  @BsonProperty(value = "city")
-  private String city;
-
-  @BsonProperty(value = "state")
-  private String state;
-
-  @BsonProperty(value = "zipcode")
-  private String zipcode;
 
   @BsonProperty(value = "username")
   private String username;
@@ -75,41 +57,26 @@ public class User {
   @BsonProperty(value = "assignedWorkerUsernames")
   private List<String> assignedWorkerUsernames;
 
-  public User() {}
-
   public User(
-      String firstName,
-      String lastName,
-      String birthDate,
-      String email,
-      String phone,
-      String organization,
-      String address,
-      String city,
-      String state,
-      String zipcode,
-      Boolean twoFactorOn,
-      String username,
-      String password,
-      UserType userType)
-      throws ValidationException {
+          String firstName,
+          String lastName,
+          String email,
+          String organization,
+          Boolean twoFactorOn,
+          String username,
+          String password,
+          UserType userType)
+          throws ValidationException {
 
     UserValidationMessage validationMessage =
-        User.isValid(
-            firstName,
-            lastName,
-            birthDate,
-            email,
-            phone,
-            organization,
-            address,
-            city,
-            state,
-            zipcode,
-            username,
-            password,
-            defaultIds,
-            userType);
+            User.isValid(
+                    firstName,
+                    lastName,
+                    email,
+                    organization,
+                    username,
+                    password,
+                    userType);
 
     if (validationMessage != UserValidationMessage.VALID)
       throw new ValidationException(UserValidationMessage.toUserMessageJSON(validationMessage));
@@ -119,14 +86,8 @@ public class User {
     this.id = new ObjectId();
     this.firstName = firstName;
     this.lastName = lastName;
-    this.birthDate = birthDate;
     this.email = email;
-    this.phone = phone;
     this.organization = organization;
-    this.address = address;
-    this.city = city;
-    this.state = state;
-    this.zipcode = zipcode;
     this.twoFactorOn = twoFactorOn;
     this.username = username;
     this.password = password;
@@ -137,6 +98,8 @@ public class User {
   }
 
   /** **************** GETTERS ********************* */
+  public User getSelf() {return this;}
+
   public ObjectId getId() {
     return this.id;
   }
@@ -149,36 +112,12 @@ public class User {
     return this.lastName;
   }
 
-  public String getBirthDate() {
-    return this.birthDate;
-  }
-
   public String getEmail() {
     return this.email;
   }
 
-  public String getPhone() {
-    return this.phone;
-  }
-
   public String getOrganization() {
     return this.organization;
-  }
-
-  public String getAddress() {
-    return this.address;
-  }
-
-  public String getCity() {
-    return this.city;
-  }
-
-  public String getState() {
-    return this.state;
-  }
-
-  public String getZipcode() {
-    return this.zipcode;
   }
 
   public String getUsername() {
@@ -225,18 +164,9 @@ public class User {
     return this;
   }
 
-  public User setBirthDate(String birthDate) {
-    this.birthDate = birthDate;
-    return this;
-  }
 
   public User setEmail(String email) {
     this.email = email;
-    return this;
-  }
-
-  public User setPhone(String phone) {
-    this.phone = phone;
     return this;
   }
 
@@ -245,30 +175,11 @@ public class User {
     return this;
   }
 
-  public User setAddress(String address) {
-    this.address = address;
-    return this;
-  }
-
-  public User setCity(String city) {
-    this.city = city;
-    return this;
-  }
-
   public User setCreationDate(Date date) {
     this.creationDate = date;
     return this;
   }
 
-  public User setState(String state) {
-    this.state = state;
-    return this;
-  }
-
-  public User setZipcode(String zipcode) {
-    this.zipcode = zipcode;
-    return this;
-  }
 
   public User setTwoFactorOn(Boolean twoFactorOn) {
     this.twoFactorOn = twoFactorOn;
@@ -311,20 +222,13 @@ public class User {
   }
 
   private static UserValidationMessage isValid(
-      String firstName,
-      String lastName,
-      String birthDate,
-      String email,
-      String phone,
-      String organization,
-      String address,
-      String city,
-      String state,
-      String zipcode,
-      String username,
-      String password,
-      Map<String, String> defaultIds,
-      UserType userType) {
+          String firstName,
+          String lastName,
+          String email,
+          String organization,
+          String username,
+          String password,
+          UserType userType) {
 
     if (!ValidationUtils.isValidFirstName(firstName)) {
       log.error("Invalid firstName: " + firstName);
@@ -334,14 +238,6 @@ public class User {
       log.error("Invalid lastName: " + lastName);
       return UserValidationMessage.INVALID_LASTNAME;
     }
-    if (!ValidationUtils.isValidBirthDate(birthDate)) {
-      log.error("Invalid birthDate: " + birthDate);
-      return UserValidationMessage.INVALID_BIRTHDATE;
-    }
-    if (ValidationUtils.hasValue(phone) && !ValidationUtils.isValidPhoneNumber(phone)) {
-      log.error("Invalid orgContactPhoneNumber: " + phone);
-      return UserValidationMessage.INVALID_PHONENUMBER;
-    }
     if (!ValidationUtils.isValidOrganizationName(organization)) {
       log.error("Invalid organization: " + organization);
       return UserValidationMessage.INVALID_ORGANIZATION;
@@ -349,22 +245,6 @@ public class User {
     if (ValidationUtils.hasValue(email) && !ValidationUtils.isValidEmail(email)) {
       log.error("Invalid email: " + email);
       return UserValidationMessage.INVALID_EMAIL;
-    }
-    if (ValidationUtils.hasValue(address) && !ValidationUtils.isValidAddress(address)) {
-      log.error("Invalid address: " + address);
-      return UserValidationMessage.INVALID_ADDRESS;
-    }
-    if (ValidationUtils.hasValue(city) && !ValidationUtils.isValidCity(city)) {
-      log.error("Invalid city: " + city);
-      return UserValidationMessage.INVALID_CITY;
-    }
-    if (ValidationUtils.hasValue(state) && !ValidationUtils.isValidUSState(state)) {
-      log.error("Invalid state: " + state);
-      return UserValidationMessage.INVALID_STATE;
-    }
-    if (ValidationUtils.hasValue(zipcode) && !ValidationUtils.isValidZipCode(zipcode)) {
-      log.error("Invalid zipcode: " + zipcode);
-      return UserValidationMessage.INVALID_ZIPCODE;
     }
     if (!ValidationUtils.isValidUsername(username)) {
       log.error("Invalid username: " + username);
@@ -388,13 +268,7 @@ public class User {
     sb.append("id=").append(this.id.toHexString());
     sb.append(", firstName=").append(this.firstName);
     sb.append(", lastName=").append(this.lastName);
-    sb.append(", birthDate=").append(this.birthDate);
     sb.append(", email=").append(this.email);
-    sb.append(", phone=").append(this.phone);
-    sb.append(", address=").append(this.address);
-    sb.append(", city=").append(this.city);
-    sb.append(", state=").append(this.state);
-    sb.append(", zipcode=").append(this.zipcode);
     sb.append(", username=").append(this.username);
     sb.append(", password=").append(this.password);
     sb.append(", defaultIds=").append(this.defaultIds.toString());
@@ -412,57 +286,39 @@ public class User {
     if (o == null || getClass() != o.getClass()) return false;
     User user = (User) o;
     return Objects.equals(this.id, user.id)
-        && Objects.equals(this.firstName, user.firstName)
-        && Objects.equals(this.lastName, user.lastName)
-        && Objects.equals(this.birthDate, user.birthDate)
-        && Objects.equals(this.email, user.email)
-        && Objects.equals(this.phone, user.phone)
-        && Objects.equals(this.address, user.address)
-        && Objects.equals(this.city, user.city)
-        && Objects.equals(this.state, user.state)
-        && Objects.equals(this.zipcode, user.zipcode)
-        && Objects.equals(this.username, user.username)
-        && Objects.equals(this.password, user.password)
-        && Objects.equals(this.defaultIds, user.defaultIds)
-        && Objects.equals(this.userType, user.userType)
-        && Objects.equals(this.twoFactorOn, user.twoFactorOn);
+            && Objects.equals(this.firstName, user.firstName)
+            && Objects.equals(this.lastName, user.lastName)
+            && Objects.equals(this.email, user.email)
+            && Objects.equals(this.username, user.username)
+            && Objects.equals(this.password, user.password)
+            && Objects.equals(this.defaultIds, user.defaultIds)
+            && Objects.equals(this.userType, user.userType)
+            && Objects.equals(this.twoFactorOn, user.twoFactorOn);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        this.id,
-        this.firstName,
-        this.lastName,
-        this.birthDate,
-        this.email,
-        this.phone,
-        this.address,
-        this.city,
-        this.state,
-        this.zipcode,
-        this.username,
-        this.password,
-        this.defaultIds,
-        this.userType,
-        this.twoFactorOn,
-        this.assignedWorkerUsernames);
+            this.id,
+            this.firstName,
+            this.lastName,
+            this.email,
+            this.username,
+            this.password,
+            this.defaultIds,
+            this.userType,
+            this.twoFactorOn,
+            this.assignedWorkerUsernames);
   }
 
   public JSONObject serialize() {
     JSONObject userJSON = new JSONObject();
     userJSON.put("username", username);
-    userJSON.put("birthDate", birthDate);
     userJSON.put("privilegeLevel", userType);
     userJSON.put("userType", userType);
     userJSON.put("firstName", firstName);
     userJSON.put("lastName", lastName);
     userJSON.put("email", email);
-    userJSON.put("phone", phone);
-    userJSON.put("address", address);
-    userJSON.put("city", city);
-    userJSON.put("state", state);
-    userJSON.put("zipcode", zipcode);
     userJSON.put("organization", organization);
     userJSON.put("logInHistory", logInHistory);
     userJSON.put("creationDate", creationDate);
@@ -475,12 +331,10 @@ public class User {
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();
     Map<String, Object> result =
-        objectMapper.convertValue(this, new TypeReference<Map<String, Object>>() {});
+            objectMapper.convertValue(this, new TypeReference<Map<String, Object>>() {});
     result.remove("id");
     return result;
   }
-
-  // Should user be able to update defaultIds via updateProperties?
 
   public User updateProperties(UserUpdateRequest updateRequest) {
     if (updateRequest.getFirstName() != null && updateRequest.getFirstName().isPresent()) {
@@ -491,34 +345,11 @@ public class User {
       this.setLastName(updateRequest.getLastName().get());
     }
 
-    if (updateRequest.getBirthDate() != null && updateRequest.getBirthDate().isPresent()) {
-      this.setBirthDate(updateRequest.getBirthDate().get());
-    }
-
     if (updateRequest.getEmail() != null && updateRequest.getEmail().isPresent()) {
       this.setEmail(updateRequest.getEmail().get());
     }
 
-    if (updateRequest.getPhone() != null && updateRequest.getPhone().isPresent()) {
-      this.setPhone(updateRequest.getPhone().get());
-    }
-
-    if (updateRequest.getAddress() != null && updateRequest.getAddress().isPresent()) {
-      this.setAddress(updateRequest.getAddress().get());
-    }
-
-    if (updateRequest.getCity() != null && updateRequest.getCity().isPresent()) {
-      this.setCity(updateRequest.getCity().get());
-    }
-
-    if (updateRequest.getState() != null && updateRequest.getState().isPresent()) {
-      this.setState(updateRequest.getState().get());
-    }
-
-    if (updateRequest.getZipcode() != null && updateRequest.getZipcode().isPresent()) {
-      this.setZipcode(updateRequest.getZipcode().get());
-    }
-
     return this;
   }
+
 }
