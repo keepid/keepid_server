@@ -1,7 +1,7 @@
 package Database.OptionalUserInformation;
 
 import Config.DeploymentLevel;
-import User.OptionalUserInformation;
+import UserV2.OptionalUserInformation;
 import org.bson.types.ObjectId;
 
 import java.util.*;

@@ -6,18 +6,20 @@ import Database.OptionalUserInformation.OptionalUserInformationDao;
 import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import UserV2.*;
 import UserV2.Services.CreateOptionalInfoService;
-import UserV2.Services.DeleteOptionalInfoService;
+import UserV2.Services.GetOptionalInfoService;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
-public class DeleteOptionalUserInformationUnitTest {
+public class GetOptionalUserInformationUnitTest {
     OptionalUserInformationDao optionalUserInformationDao = OptionalUserInformationDaoFactory.create(DeploymentLevel.IN_MEMORY);
 
     @After
@@ -66,16 +68,18 @@ public class DeleteOptionalUserInformationUnitTest {
 
         assertEquals("testUser", savedInfo.getUsername());
 
-        DeleteOptionalInfoService deleteOptionalInfoService = new DeleteOptionalInfoService(optionalUserInformationDao
-            ,savedInfo.getUsername());
-        Message response1 = deleteOptionalInfoService.executeAndGetResponse();
+
+        GetOptionalInfoService getOptionalInfoService = new GetOptionalInfoService(optionalUserInformationDao,
+                savedInfo.getUsername());
+        Message response1 = getOptionalInfoService.executeAndGetResponse();
         assertEquals(UserMessage.SUCCESS, response1);
-        OptionalUserInformation savedInfo1 = optionalUserInformationDao.get("testUser").orElse(null);
-        assertNull(savedInfo1);
-        }
+        JSONObject savedInfo1 = getOptionalInfoService.getOptionalInformationFields();
+
+        assertTrue(savedInfo.serialize().similar(savedInfo1));
+    }
 
     @Test
-    public void success2(){
+    public void get_different_user(){
         CreateOptionalInfoService createOptionalInfoService = new CreateOptionalInfoService(
                 optionalUserInformationDao,
                 "testUser",
@@ -121,31 +125,31 @@ public class DeleteOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser1",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John12", "Doe12", "Doe12", "123-45-678912", new Date(),
                 // Parameters for BasicInfo
-                "Male", "test@example.com", "123-456-7890",
+                "Male", "test12@example.com", "123-456-1212",
                 Address.builder()
-                        .streetAddress("123 Main St")
-                        .apartmentNumber("101")
-                        .city("City")
-                        .state("State")
-                        .zip("12345")
+                        .streetAddress("12312 Main St")
+                        .apartmentNumber("10112")
+                        .city("City1212")
+                        .state("State1212")
+                        .zip("123451212")
                         .build(),
                 Address.builder()
-                        .streetAddress("456 Elm St")
-                        .apartmentNumber("101")
-                        .city("City")
-                        .state("State")
-                        .zip("54321")
+                        .streetAddress("4561212 Elm St")
+                        .apartmentNumber("1011212")
+                        .city("City1212")
+                        .state("State1212")
+                        .zip("543211212")
                         .build(),
                 true,
-                "Jr.", "John", "M", "Doe",
-                "Jr.", "987654321", true,
+                "Jr.12", "John12", "M12", "Doe12",
+                "Jr.12", "98765432112", true,
                 // Parameters for DemographicInfo
-                "English", true, Race.WHITE,
-                "City", "State", "Country", Citizenship.US_CITIZEN,
+                "English", true, Race.ASIAN,
+                "City12", "State12", "Country12", Citizenship.OTHER,
                 // Parameters for FamilyInfo
-                new ArrayList<>(), new ArrayList<>(), MaritalStatus.SINGLE, new Person(),
+                new ArrayList<>(), new ArrayList<>(), MaritalStatus.MARRIED, new Person(),
                 new ArrayList<>(), new ArrayList<>(),
                 // Parameters for VeteranStatus
                 true, false, "Navy",
@@ -158,21 +162,26 @@ public class DeleteOptionalUserInformationUnitTest {
 
         assertEquals("testUser1", savedInfo1.getUsername());
 
-        //Deleted second user
-        DeleteOptionalInfoService deleteOptionalInfoService = new DeleteOptionalInfoService(optionalUserInformationDao
-                ,savedInfo1.getUsername());
-        Message response2 = deleteOptionalInfoService.executeAndGetResponse();
+        GetOptionalInfoService getOptionalInfoService = new GetOptionalInfoService(optionalUserInformationDao,
+                savedInfo.getUsername());
+        Message response2 = getOptionalInfoService.executeAndGetResponse();
         assertEquals(UserMessage.SUCCESS, response2);
-        OptionalUserInformation DeletedInfo = optionalUserInformationDao.get("testUser1").orElse(null);
-        assertNull(DeletedInfo);
+        JSONObject SerializedInfo = getOptionalInfoService.getOptionalInformationFields();
 
-        //Check if first user still exists
-        OptionalUserInformation notDeletedInfo = optionalUserInformationDao.get("testUser").orElse(null);
-        assertNotNull(notDeletedInfo);
+        GetOptionalInfoService getOptionalInfoService1 = new GetOptionalInfoService(optionalUserInformationDao,
+                savedInfo1.getUsername());
+        Message response3 = getOptionalInfoService1.executeAndGetResponse();
+        assertEquals(UserMessage.SUCCESS, response3);
+        JSONObject SerializedInfo1 = getOptionalInfoService1.getOptionalInformationFields();
+
+        assertTrue(savedInfo.serialize().similar(SerializedInfo));
+        assertFalse(savedInfo.serialize().similar(SerializedInfo1));
+        assertTrue(savedInfo1.serialize().similar(SerializedInfo1));
+        assertFalse(savedInfo1.serialize().similar(SerializedInfo));
     }
 
     @Test
-    public void username_not_found(){
+    public void no_user_found(){
         CreateOptionalInfoService createOptionalInfoService = new CreateOptionalInfoService(
                 optionalUserInformationDao,
                 "testUser",
@@ -214,11 +223,9 @@ public class DeleteOptionalUserInformationUnitTest {
 
         assertEquals("testUser", savedInfo.getUsername());
 
-        DeleteOptionalInfoService deleteOptionalInfoService = new DeleteOptionalInfoService(optionalUserInformationDao
-                ,"testUser1");
-        Message response1 = deleteOptionalInfoService.executeAndGetResponse();
+        GetOptionalInfoService getOptionalInfoService = new GetOptionalInfoService(optionalUserInformationDao,
+                "testUser1");
+        Message response1 = getOptionalInfoService.executeAndGetResponse();
         assertEquals(UserMessage.USER_NOT_FOUND, response1);
-        OptionalUserInformation savedInfo1 = optionalUserInformationDao.get("testUser").orElse(null);
-        assertNotNull(savedInfo1);
-    }
+        }
 }

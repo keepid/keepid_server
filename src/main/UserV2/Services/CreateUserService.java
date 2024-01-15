@@ -1,4 +1,4 @@
-package User.Services;
+package UserV2.Services;
 
 import Activity.CreateAdminActivity;
 import Activity.CreateClientActivity;
@@ -7,12 +7,12 @@ import Activity.CreateWorkerActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
-import Database.User.UserDao;
+import Database.UserV2.UserDao;
 import Security.SecurityUtils;
-import User.IpObject;
-import User.User;
-import User.UserMessage;
-import User.UserType;
+import UserV2.IpObject;
+import UserV2.User;
+import UserV2.UserMessage;
+import UserV2.UserType;
 import Validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -98,14 +98,8 @@ public class CreateUserService implements Service {
           new User(
               firstName,
               lastName,
-              birthDate,
               email,
-              phone,
               organizationName,
-              address,
-              city,
-              state,
-              zipcode,
               twoFactorOn,
               username,
               password,
