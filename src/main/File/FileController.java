@@ -23,6 +23,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.bson.types.ObjectId;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -32,9 +33,13 @@ public class FileController {
   private FileDao fileDao;
   private EncryptionController encryptionController;
 
+  // need to include while viewDocuments used PDF controller (for mailing)
+  private MongoDatabase db;
+
   public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.db = db;
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
@@ -463,6 +468,49 @@ public class FileController {
           }
         } else {
           ctx.result(responseDownload.toResponseString());
+        }
+      };
+
+  public Handler fileMail =
+      ctx -> {
+        String username = ctx.sessionAttribute("username");
+        UserType userType = ctx.sessionAttribute("privilegeLevel");
+        JSONObject req = new JSONObject(ctx.body());
+        String fileIDStr = req.getString("fileId");
+        String price = req.getString("price");
+        String mailAddress = req.getString("mailAddress");
+        String returnAddress = req.getString("returnAddress");
+        ObjectId fileId = new ObjectId(fileIDStr);
+        String description = req.getString("description");
+
+        MailFileService mailFileService =
+            new MailFileService(
+                db,
+                fileId,
+                username,
+                userType,
+                description,
+                price,
+                mailAddress,
+                returnAddress,
+                encryptionController);
+
+        Message response = mailFileService.executeAndGetResponse();
+        ctx.result(response.toResponseString());
+      };
+  public Handler getMailInformation =
+      ctx -> {
+        log.error("hello");
+        String username = ctx.sessionAttribute("username");
+        String organization = ctx.sessionAttribute("organization");
+        String applicationType = ctx.sessionAttribute("applicationType");
+
+        GetMailInformationService getMailInformationService =
+            new GetMailInformationService(username, organization, applicationType);
+
+        Message response = getMailInformationService.executeAndGetResponse();
+        if (response == FileMessage.SUCCESS) {
+          ctx.result(getMailInformationService.getMailInformation().toString());
         }
       };
 

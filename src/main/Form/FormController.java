@@ -177,7 +177,7 @@ public class FormController {
         ctx.result(response.toResponseString());
       };
 
-  public User userCheck(String req) {
+    public User userCheck(String req) {
     log.info("userCheck Helper started");
     String username;
     User user = null;

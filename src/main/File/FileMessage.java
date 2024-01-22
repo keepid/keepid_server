@@ -13,7 +13,8 @@ public enum FileMessage implements Message {
   SUCCESS("SUCCESS:Success."),
   NO_SUCH_FILE("NO_SUCH_FILE:PDF does not exist"),
   ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting"),
-  FILE_EXISTS("ERROR: File already exists!");
+  FILE_EXISTS("ERROR: File already exists!"),
+  ALREADY_MAILED_RECENTLY("ALREADY_MAILED_RECENTLY:The form has been mailed recently and cannot be mailed again so soon.");
 
   private String errorMessage;
   private String fileId; // optional

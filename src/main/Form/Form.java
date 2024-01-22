@@ -110,7 +110,6 @@ public class Form implements Comparable<Form> {
   public boolean isTemplate() {
     return isTemplate;
   }
-
   public FormMetadata getMetadata() {
     return metadata;
   }
