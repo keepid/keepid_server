@@ -34,10 +34,9 @@ import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
-import org.bson.types.ObjectId;
-
 import java.util.HashMap;
 import java.util.Optional;
+import org.bson.types.ObjectId;
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -104,6 +103,7 @@ public class AppConfig {
     app.post("/get-application-questions", pdfController.getApplicationQuestions);
     app.post("/fill-application", pdfController.fillPDFForm);
     app.post("/mail-file", fileController.fileMail);
+    app.post("/get-mail-info", fileController.getMailInformation);
 
     /* -------------- FILE MANAGEMENT v2 --------------------- */
     app.post("/upload-file", fileController.fileUpload);

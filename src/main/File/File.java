@@ -22,7 +22,7 @@ public class File {
   @Getter @Setter private Date uploadedAt;
   @Getter @Setter private String username;
   @Getter @Setter private String organizationName;
-  @Getter @Setter private LocalDateTime lastMailedAt;
+  @Getter @Setter private LocalDateTime lastMailedAt; // not used yet while mail form uses GridFS
 
   @Getter
   @Setter

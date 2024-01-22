@@ -1,7 +1,6 @@
 package File;
 
 import static User.UserController.mergeJSON;
-import static com.mongodb.client.model.Filters.eq;
 
 import Config.Message;
 import Database.File.FileDao;
@@ -12,7 +11,6 @@ import User.Services.GetUserInfoService;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -35,9 +33,13 @@ public class FileController {
   private FileDao fileDao;
   private EncryptionController encryptionController;
 
+  // need to include while viewDocuments used PDF controller (for mailing)
+  private MongoDatabase db;
+
   public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.db = db;
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
@@ -469,23 +471,48 @@ public class FileController {
         }
       };
 
-    public Handler fileMail =
-        ctx -> {
-            String username;
-            UserType userType;
-            JSONObject req = new JSONObject(ctx.body());
-            username = ctx.sessionAttribute("username");
-            userType = ctx.sessionAttribute("privilegeLevel");
-            //file ID is still not working. Not used
-            String fileIDStr = req.getString("fileId");
-            ObjectId fileId = new ObjectId(fileIDStr);
-            Optional<File> maybefile = fileDao.get(fileId);
-            String description = req.getString("description");
+  public Handler fileMail =
+      ctx -> {
+        String username = ctx.sessionAttribute("username");
+        UserType userType = ctx.sessionAttribute("privilegeLevel");
+        JSONObject req = new JSONObject(ctx.body());
+        String fileIDStr = req.getString("fileId");
+        String price = req.getString("price");
+        String mailAddress = req.getString("mailAddress");
+        String returnAddress = req.getString("returnAddress");
+        ObjectId fileId = new ObjectId(fileIDStr);
+        String description = req.getString("description");
 
-            MailFileService mailFileService =
-                    new MailFileService(fileDao, fileId, username, userType, description);
-            ctx.result(mailFileService.executeAndGetResponse().toResponseString());
-        };
+        MailFileService mailFileService =
+            new MailFileService(
+                db,
+                fileId,
+                username,
+                userType,
+                description,
+                price,
+                mailAddress,
+                returnAddress,
+                encryptionController);
+
+        Message response = mailFileService.executeAndGetResponse();
+        ctx.result(response.toResponseString());
+      };
+  public Handler getMailInformation =
+      ctx -> {
+        log.error("hello");
+        String username = ctx.sessionAttribute("username");
+        String organization = ctx.sessionAttribute("organization");
+        String applicationType = ctx.sessionAttribute("applicationType");
+
+        GetMailInformationService getMailInformationService =
+            new GetMailInformationService(username, organization, applicationType);
+
+        Message response = getMailInformationService.executeAndGetResponse();
+        if (response == FileMessage.SUCCESS) {
+          ctx.result(getMailInformationService.getMailInformation().toString());
+        }
+      };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {
     String title = fileName;
