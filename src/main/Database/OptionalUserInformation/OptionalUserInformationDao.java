@@ -1,8 +1,7 @@
 package Database.OptionalUserInformation;
 
 import Database.Dao;
-import UserV2.OptionalUserInformation;
-import org.bson.types.ObjectId;
+import OptionalUserInformation.OptionalUserInformation;
 
 import java.util.Optional;
 

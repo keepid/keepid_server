@@ -97,16 +97,22 @@ public class ProductionController {
   public Handler createUser =
       ctx -> {
         UserCreateRequest userCreateRequest = ctx.bodyAsClass(UserCreateRequest.class);
-        User user = new User(
-            userCreateRequest.getFirstName(),
-            userCreateRequest.getLastName(),
-            userCreateRequest.getEmail(),
-            userCreateRequest.getOrganization(),
-            false,
-            userCreateRequest.getUsername(),
-            userCreateRequest.getPassword(),
-            userCreateRequest.getUserType()
-        );
+          User user = new User(
+                  userCreateRequest.getFirstName(),
+                  userCreateRequest.getLastName(),
+                  userCreateRequest.getBirthDate(),
+                  userCreateRequest.getEmail(),
+                  userCreateRequest.getPhone(),
+                  userCreateRequest.getOrganization(),
+                  userCreateRequest.getAddress(),
+                  userCreateRequest.getCity(),
+                  userCreateRequest.getState(),
+                  userCreateRequest.getZipcode(),
+                  false,
+                  userCreateRequest.getUsername(),
+                  userCreateRequest.getPassword(),
+                  userCreateRequest.getUserType()
+          );
         user.setId(new ObjectId());
         user.setCreationDate(new Date());
         String hashedPassword = SecurityUtils.hashPassword(user.getPassword());

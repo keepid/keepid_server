@@ -242,15 +242,21 @@ public class EntityFactory {
     public User build() {
       try {
         User newUser =
-            new User(
-                firstName,
-                lastName,
-                email,
-                organization,
-                twoFactorOn,
-                username,
-                password,
-                userType);
+                new User(
+                        firstName,
+                        lastName,
+                        birthDate,
+                        email,
+                        phone,
+                        organization,
+                        address,
+                        city,
+                        state,
+                        zipcode,
+                        twoFactorOn,
+                        username,
+                        password,
+                        userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
         newUser.setAssignedWorkerUsernames(assignedWorkerUsernames);

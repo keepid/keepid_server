@@ -2,7 +2,7 @@ package Database.OptionalUserInformation;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
-import UserV2.OptionalUserInformation;
+import OptionalUserInformation.OptionalUserInformation;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.types.ObjectId;

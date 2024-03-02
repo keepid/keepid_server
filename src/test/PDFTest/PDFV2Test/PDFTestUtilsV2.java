@@ -42,15 +42,21 @@ public class PDFTestUtilsV2 {
       EncryptionController encryptionController) {
     try {
       userDao.save(
-          new User(
-              "testFirstName",
-              "testLastName",
-              "testemail@keep.id",
-              "org0",
-              false,
-              "dev1",
-              "devPass123",
-              UserType.Developer));
+              new User(
+                      "testFirstName",
+                      "testLastName",
+                      "12-12-2012",
+                      "testemail@keep.id",
+                      "2652623333",
+                      "org0",
+                      "1 Keep Ave",
+                      "Keep",
+                      "PA",
+                      "11111",
+                      false,
+                      "dev1",
+                      "devPass123",
+                      UserType.Developer));
     } catch (ValidationException e) {
       throw new RuntimeException(e);
     }

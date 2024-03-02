@@ -133,16 +133,21 @@ public class UploadAnnotatedPDFServiceUnitTests {
   @Test
   public void uploadAnnotatedPDFServiceSuccess() {
     try {
-      userDao.save(
-          new User(
+      new User(
               "testFirstName",
               "testLastName",
+              "12-12-2012",
               "testemail@keep.id",
+              "2652623333",
               "org0",
+              "1 Keep Ave",
+              "Keep",
+              "PA",
+              "11111",
               false,
               "dev1",
               "devPass123",
-              UserType.Developer));
+              UserType.Developer);
     } catch (ValidationException e) {
       throw new RuntimeException(e);
     }

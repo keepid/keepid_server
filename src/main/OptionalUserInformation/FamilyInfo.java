@@ -1,4 +1,4 @@
-package UserV2;
+package OptionalUserInformation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

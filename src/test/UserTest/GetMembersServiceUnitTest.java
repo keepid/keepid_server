@@ -35,25 +35,37 @@ public class GetMembersServiceUnitTest {
     User user2 = null;
     try {
       user1 =
-          new User(
-              "Firstname",
-              "Lastname",
-              "workertff@broadstreetministry.org",
-              "Broad Street Ministry",
-              false,
-              "testUsername",
-              "testPassword",
-              UserType.Client);
+              new User(
+                      "Firstname",
+                      "Lastname",
+                      "09-04-1978",
+                      "workertff@broadstreetministry.org",
+                      "2152839504",
+                      "Broad Street Ministry",
+                      "311 Broad Street",
+                      "Philadelphia",
+                      "PA",
+                      "19104",
+                      false,
+                      "testUsername",
+                      "testPassword",
+                      UserType.Client);
       user2 =
-          new User(
-              "Testfirssttwo",
-              "Testlasttwo",
-              "workertff@broadstreetministry.org",
-              "Broad Street Ministry",
-              false,
-              "testUsername",
-              "testPassword",
-              UserType.Client);
+              new User(
+                      "Testfirssttwo",
+                      "Testlasttwo",
+                      "09-04-1978",
+                      "workertff@broadstreetministry.org",
+                      "2152839504",
+                      "Broad Street Ministry",
+                      "311 Broad Street",
+                      "Philadelphia",
+                      "PA",
+                      "19104",
+                      false,
+                      "testUsername",
+                      "testPassword",
+                      UserType.Client);
     } catch (ValidationException ve) {
       log.error("Validation exception");
     }

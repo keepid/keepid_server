@@ -1,4 +1,4 @@
-package UserV2;
+package OptionalUserInformation;
 
 import Config.Message;
 import org.json.JSONObject;

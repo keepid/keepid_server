@@ -29,7 +29,7 @@ import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
 import User.UserController;
-import UserV2.OptionalUserInformationController;
+import OptionalUserInformation.OptionalUserInformationController;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
@@ -49,7 +49,6 @@ public class AppConfig {
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
-    Database.UserV2.UserDao userDao1 = Database.UserV2.UserDaoFactory.create(deploymentLevel);
     OptionalUserInformationDao optionalUserInformationDao = OptionalUserInformationDaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
@@ -81,7 +80,7 @@ public class AppConfig {
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
-    OptionalUserInformationController optionalUserInformationController = new OptionalUserInformationController(userDao1,
+    OptionalUserInformationController optionalUserInformationController = new OptionalUserInformationController(
             optionalUserInformationDao);
     BillingController billingController = new BillingController();
     //    try { do not recomment this block of code, this will delete and regenerate our encryption

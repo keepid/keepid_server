@@ -1,4 +1,4 @@
-package UserV2;
+package OptionalUserInformation;
 
 public enum Citizenship {
   US_CITIZEN,

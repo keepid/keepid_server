@@ -87,15 +87,21 @@ public class DeveloperConsole {
     User user;
     try {
       user =
-          new User(
-              firstName,
-              lastName,
-              email,
-              organization,
-              twoFactorOn,
-              username,
-              password,
-              userType);
+              new User(
+                      firstName,
+                      lastName,
+                      birthDate,
+                      email,
+                      phone,
+                      organization,
+                      address,
+                      city,
+                      state,
+                      zipcode,
+                      twoFactorOn,
+                      username,
+                      password,
+                      userType);
     } catch (ValidationException ve) {
       System.out.println(ve.getJSON().toString());
       return;

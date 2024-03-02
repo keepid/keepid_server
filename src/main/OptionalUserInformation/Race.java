@@ -1,4 +1,4 @@
-package UserV2;
+package OptionalUserInformation;
 
 public enum Race {
   NATIVE_HAWAIIAN,

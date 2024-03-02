@@ -1,9 +1,9 @@
-package UserV2.Services;
+package OptionalUserInformation.Services;
 
 import Config.Message;
 import Config.Service;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
-import UserV2.UserMessage;
+import OptionalUserInformation.UserMessage;
 
 public class DeleteOptionalInfoService implements Service {
     OptionalUserInformationDao optionalUserInformationDao;

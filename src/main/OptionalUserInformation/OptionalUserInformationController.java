@@ -1,13 +1,11 @@
-package UserV2;
+package OptionalUserInformation;
 
 import Config.Message;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
-import Database.UserV2.UserDao;
-import Security.SecurityUtils;
-import UserV2.Services.CreateOptionalInfoService;
-import UserV2.Services.DeleteOptionalInfoService;
-import UserV2.Services.GetOptionalInfoService;
-import UserV2.Services.UpdateOptionalInfoService;
+import OptionalUserInformation.Services.CreateOptionalInfoService;
+import OptionalUserInformation.Services.DeleteOptionalInfoService;
+import OptionalUserInformation.Services.GetOptionalInfoService;
+import OptionalUserInformation.Services.UpdateOptionalInfoService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Handler;
@@ -21,28 +19,11 @@ import static User.UserController.mergeJSON;
 
 @Slf4j
 public class OptionalUserInformationController {
-
-  private UserDao userDao;
   private OptionalUserInformationDao optInfoDao;
-  public OptionalUserInformationController(UserDao userDao, OptionalUserInformationDao optInfoDao) {
-    this.userDao = userDao;
+  public OptionalUserInformationController(OptionalUserInformationDao optInfoDao) {
     this.optInfoDao = optInfoDao;
   }
-
-  public Handler signup =
-      ctx -> {
-        User payload = ctx.bodyAsClass(User.class);
-        String hash = SecurityUtils.hashPassword(payload.getPassword());
-        if (hash == null) {
-          log.error("Could not hash password");
-          ctx.result(UserMessage.HASH_FAILURE.toResponseString());
-        }
-        verifyBaseUser(payload);
-        payload.setPassword(hash);
-        userDao.save(payload);
-        ctx.result(UserMessage.SUCCESS.toResponseString());
-      };
-
+  
   public Handler updateInformation =
       ctx -> {
           JSONObject req = new JSONObject(ctx.body());
@@ -185,16 +166,4 @@ public class OptionalUserInformationController {
               ctx.result(response.toJSON().toString());
           };
 
-
-  private void verifyBaseUser(User user) throws Exception {
-    if (user.getSelf() == null) {
-      throw new Exception();
-    }
-    if (user.getPassword() == null) {
-      throw new Exception();
-    }
-    if (user.getPassword() != null && user.getPassword().equals("")) {
-      throw new Exception();
-    }
-  }
 }
