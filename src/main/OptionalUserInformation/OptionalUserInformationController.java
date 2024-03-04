@@ -115,8 +115,8 @@ public class OptionalUserInformationController {
                       req.getString("genderAssignedAtBirth"),
                       req.getString("emailAddress"),
                       req.getString("phoneNumber"),
-                      objectMapper.readValue(req.getString("mailingAddress"), Address.class),
-                      objectMapper.readValue(req.getString("residentialAddress"), Address.class),
+                      objectMapper.readValue(req.getJSONObject("mailingAddress").toString(), Address.class),
+                      objectMapper.readValue(req.getJSONObject("residentialAddress").toString(), Address.class),
                       req.getBoolean("differentBirthName"),
                       req.getString("suffix"),
                       req.getString("birthFirstName"),
@@ -134,12 +134,12 @@ public class OptionalUserInformationController {
                       req.getString("countryOfBirth"),
                       Citizenship.valueOf(req.getString("citizenship")),
                       // Parameters for FamilyInfo
-                      objectMapper.readValue(req.getString("parents"), new TypeReference<List<Person>>() {}),
-                      objectMapper.readValue(req.getString("legalGuardians"), new TypeReference<List<Person>>() {}),
-                      objectMapper.readValue(req.getString("maritalStatus"), MaritalStatus.class),
-                      objectMapper.readValue(req.getString("spouse"), Person.class),
-                      objectMapper.readValue(req.getString("children"), new TypeReference<List<Person>>() {}),
-                      objectMapper.readValue(req.getString("siblings"), new TypeReference<List<Person>>() {}),
+                      objectMapper.readValue(req.getJSONArray("parents").toString(), new TypeReference<List<Person>>() {}),
+                      objectMapper.readValue(req.getJSONArray("legalGuardians").toString(), new TypeReference<List<Person>>() {}),
+                      MaritalStatus.valueOf(req.getString("maritalStatus")),
+                      objectMapper.readValue(req.getJSONObject("spouse").toString(), Person.class),
+                      objectMapper.readValue(req.getJSONArray("children").toString(), new TypeReference<List<Person>>() {}),
+                      objectMapper.readValue(req.getJSONArray("siblings").toString(), new TypeReference<List<Person>>() {}),
 
 
                       // Parameters for VeteranStatus

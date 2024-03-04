@@ -240,8 +240,8 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.patch("/change-optional-info/:username", optionalUserInformationController.updateInformation);
     app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
-    app.get("/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
-    app.get("/save-optional-info/:username", optionalUserInformationController.saveInformation);
+    app.delete("/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
+    app.post("/save-optional-info/:username", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
