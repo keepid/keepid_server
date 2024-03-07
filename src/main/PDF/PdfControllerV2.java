@@ -196,7 +196,6 @@ public class PdfControllerV2 {
   public Handler fillPDF =
       ctx -> {
         log.info("Starting fillPdfForm handler");
-        JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         userParams.setUserParamsFillAndUploadSignedPDF(ctx);
