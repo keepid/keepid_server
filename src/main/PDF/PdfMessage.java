@@ -19,7 +19,8 @@ public enum PdfMessage implements Message {
       "CROSS_ORG_ACTION_DENIED:You are trying to modify another organization's pdf."),
   INSUFFICIENT_USER_PRIVILEGE(
       "INSUFFICIENT_USER_PRIVILEGE: The user is not allowed to access this pdf."),
-  MISSING_FORM("MISSING_FORM: Annotated file is missing corresponding form.");
+  MISSING_FORM("MISSING_FORM: Annotated file is missing corresponding form."),
+  INVALID_MATCHED_FIELD("INVALID_MATCHED_FIELD: One of the matched fields is invalid.");
 
   private String errorMessage;
 
