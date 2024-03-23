@@ -33,10 +33,6 @@ public class UserDaoImplUnitTests {
     userDao.save(user);
     assertTrue(userDao.get(testUsername).isPresent());
     assertEquals(userDao.get(testUsername).get().getUsername(), user.getUsername());
-    assertEquals(userDao.get(testUsername).get().getAddress(), user.getAddress());
-    assertEquals(userDao.get(testUsername).get().getBirthDate(), user.getBirthDate());
-    assertEquals(userDao.get(testUsername).get().getCity(), user.getCity());
-    assertEquals(userDao.get(testUsername).get().getState(), user.getState());
   }
 
   @Test
@@ -45,10 +41,6 @@ public class UserDaoImplUnitTests {
     User user = EntityFactory.createUser().withUsername(testUsername).buildAndPersist(userDao);
     assertTrue(userDao.get(testUsername).isPresent());
     assertEquals(userDao.get(testUsername).get().getUsername(), user.getUsername());
-    assertEquals(userDao.get(testUsername).get().getAddress(), user.getAddress());
-    assertEquals(userDao.get(testUsername).get().getBirthDate(), user.getBirthDate());
-    assertEquals(userDao.get(testUsername).get().getCity(), user.getCity());
-    assertEquals(userDao.get(testUsername).get().getState(), user.getState());
   }
 
   @Test

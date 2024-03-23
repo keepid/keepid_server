@@ -31,41 +31,41 @@ public class GetMembersServiceUnitTest {
   @Before
   public void setup() {
     userDao = mock(UserDao.class);
-    User user1 = new User();
-    User user2 = new User();
+    User user1 = null;
+    User user2 = null;
     try {
       user1 =
-          new User(
-              "Firstname",
-              "Lastname",
-              "09-04-1978",
-              "workertff@broadstreetministry.org",
-              "2152839504",
-              "Broad Street Ministry",
-              "311 Broad Street",
-              "Philadelphia",
-              "PA",
-              "19104",
-              false,
-              "testUsername",
-              "testPassword",
-              UserType.Client);
+              new User(
+                      "Firstname",
+                      "Lastname",
+                      "09-04-1978",
+                      "workertff@broadstreetministry.org",
+                      "2152839504",
+                      "Broad Street Ministry",
+                      "311 Broad Street",
+                      "Philadelphia",
+                      "PA",
+                      "19104",
+                      false,
+                      "testUsername",
+                      "testPassword",
+                      UserType.Client);
       user2 =
-          new User(
-              "Testfirssttwo",
-              "Testlasttwo",
-              "09-04-1978",
-              "workertff@broadstreetministry.org",
-              "2152839504",
-              "Broad Street Ministry",
-              "311 Broad Street",
-              "Philadelphia",
-              "PA",
-              "19104",
-              false,
-              "testUsername",
-              "testPassword",
-              UserType.Client);
+              new User(
+                      "Testfirssttwo",
+                      "Testlasttwo",
+                      "09-04-1978",
+                      "workertff@broadstreetministry.org",
+                      "2152839504",
+                      "Broad Street Ministry",
+                      "311 Broad Street",
+                      "Philadelphia",
+                      "PA",
+                      "19104",
+                      false,
+                      "testUsername",
+                      "testPassword",
+                      UserType.Client);
     } catch (ValidationException ve) {
       log.error("Validation exception");
     }

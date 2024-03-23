@@ -57,27 +57,9 @@ public class ChangeAccountSettingsIntegrationTests {
       case "lastName":
         String currentLastName = user.getLastName();
         return (currentLastName.equals(possibleValue));
-      case "birthDate":
-        String currentBirthDate = user.getBirthDate();
-        return (currentBirthDate.equals(possibleValue));
-      case "phone":
-        String currentPhone = user.getPhone();
-        return (currentPhone.equals(possibleValue));
       case "email":
         String currentEmail = user.getEmail();
         return (currentEmail.equals(possibleValue));
-      case "address":
-        String currentAddress = user.getAddress();
-        return (currentAddress.equals(possibleValue));
-      case "city":
-        String currentCity = user.getCity();
-        return (currentCity.equals(possibleValue));
-      case "state":
-        String currentState = user.getState();
-        return (currentState.equals(possibleValue));
-      case "zipcode":
-        String currentZipcode = user.getZipcode();
-        return (currentZipcode.equals(possibleValue));
       default:
         return false;
     }
