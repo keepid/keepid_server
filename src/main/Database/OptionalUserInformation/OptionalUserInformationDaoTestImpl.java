@@ -56,7 +56,11 @@ public class OptionalUserInformationDaoTestImpl implements OptionalUserInformati
 
     @Override
     public void save(OptionalUserInformation optionalUserInformation){
-        optionalUserInformationMap.put(optionalUserInformation.getUsername(), optionalUserInformation);
+        if(optionalUserInformationMap.containsKey(optionalUserInformation.getUsername())){
+            optionalUserInformationMap.replace(optionalUserInformation.getUsername(), optionalUserInformation);
+        }else{
+            optionalUserInformationMap.put(optionalUserInformation.getUsername(), optionalUserInformation);
+        }
     }
 
     @Override
