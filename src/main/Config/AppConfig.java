@@ -238,10 +238,10 @@ public class AppConfig {
     app.delete("/users/:username", productionController.deleteUser);
 
     /* --------------- SEARCH FUNCTIONALITY ------------- */
-    app.patch("/change-optional-info/:username", optionalUserInformationController.updateInformation);
+    app.patch("/change-optional-info/", optionalUserInformationController.updateInformation);
     app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
     app.delete("/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
-    app.post("/save-optional-info/:username", optionalUserInformationController.saveInformation);
+    app.post("/save-optional-info/", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
