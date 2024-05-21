@@ -1,6 +1,7 @@
 package Mail;
 
 import org.bson.types.ObjectId;
+import java.util.Date;
 
 public class Mail {
 
@@ -9,7 +10,20 @@ public class Mail {
   FormMailAddress mailing_address;
   MailStatus mailStatus; // CREATED, FAILED, MAILED
   String lob_id;
-  Datetime lob_created_at;
+  Date lob_created_at;
+
+  public Mail(ObjectId form_id,
+              ObjectId file_id,
+              FormMailAddress mailing_address,
+              String lob_id,
+              Date lob_created_at) {
+    this.form_id = form_id;
+    this.file_id = file_id;
+    this.mailing_address = mailing_address;
+    this.mailStatus = MailStatus.CREATED;
+    this.lob_id = lob_id;
+    this.lob_created_at = lob_created_at;
+  }
 
   // First, Daniel calls this get all endpoint for all the form mail addresses
   // he will select one and return it in the response
