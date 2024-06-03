@@ -29,14 +29,9 @@ public class MailController{
     public Handler saveMail =
             ctx -> {
                 JSONObject request = new JSONObject(ctx.body());
-                ObjectId form_id = new ObjectId(request.getString("form_id"));
-                ObjectId file_id = new ObjectId(request.getString("file_id"));
                 ObjectMapper objectMapper = new ObjectMapper();
                 FormMailAddress formMailAddress = objectMapper.readValue(request.getString("mailing_address"), FormMailAddress.class);
-                String lob_id = request.getString("lob_id");
-                Date lob_created_at = objectMapper.readValue(request.getString("lob_created_at"), Date.class);
-
-                Mail mail = new Mail(form_id, file_id, formMailAddress, lob_id, lob_created_at);
+                Mail mail = new Mail(null, null, formMailAddress, null, null);
                 SaveFormMailAddressService saveFormMailAddressService = new SaveFormMailAddressService(mailDao, mail);
                 Message response = saveFormMailAddressService.executeAndGetResponse();
                 ctx.result(response.toJSON().toString());

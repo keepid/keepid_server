@@ -16,8 +16,8 @@ public class SaveFormMailAddressService implements Service {
 
     @Override
     public Message executeAndGetResponse() {
+        //Do lob here
         mailDao.save(mail);
-        //More about lob
         return null;
     }
     
