@@ -3,6 +3,7 @@ package Mail;
 import Config.Message;
 import Database.Mail.MailDao;
 import Mail.Services.SaveFormMailAddressService;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +31,16 @@ public class MailController{
             ctx -> {
                 JSONObject request = new JSONObject(ctx.body());
                 ObjectMapper objectMapper = new ObjectMapper();
-                FormMailAddress formMailAddress = objectMapper.readValue(request.getString("mailing_address"), FormMailAddress.class);
-                Mail mail = new Mail(null, null, formMailAddress, null, null);
-                SaveFormMailAddressService saveFormMailAddressService = new SaveFormMailAddressService(mailDao, mail);
-                Message response = saveFormMailAddressService.executeAndGetResponse();
-                ctx.result(response.toJSON().toString());
+                try{
+                    FormMailAddress formMailAddress = objectMapper.readValue(request.getString("mailing_address"), FormMailAddress.class);
+                    Mail mail = new Mail(null, null, formMailAddress, null, null);
+                    SaveFormMailAddressService saveFormMailAddressService = new SaveFormMailAddressService(mailDao, mail);
+                    Message response = saveFormMailAddressService.executeAndGetResponse();
+                    ctx.result(response.toJSON().toString());
+                } catch ( JsonMappingException jsonMappingException ){
+                    Message response = MailMessage.FAILED_WHEN_MAPPING_FORM_MAIL_ADDRESS;
+                    ctx.result(response.toJSON().toString());
+                }
+
             };
 }

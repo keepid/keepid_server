@@ -1,8 +1,12 @@
 package Mail;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.bson.types.ObjectId;
 import java.util.Date;
 
+@Getter
+@Setter
 public class Mail {
 
   ObjectId form_id;
