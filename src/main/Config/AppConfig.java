@@ -9,14 +9,14 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.OptionalUserInformation.OptionalUserInformationDao;
+import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
-import Database.UserV2.UserV2Dao;
-import Database.UserV2.UserV2DaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
@@ -29,7 +29,7 @@ import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
 import User.UserController;
-import User.UserControllerV2;
+import OptionalUserInformation.OptionalUserInformationController;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
@@ -49,7 +49,7 @@ public class AppConfig {
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
-    UserV2Dao userV2Dao = UserV2DaoFactory.create(deploymentLevel);
+    OptionalUserInformationDao optionalUserInformationDao = OptionalUserInformationDaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
@@ -80,7 +80,8 @@ public class AppConfig {
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
-    UserControllerV2 userControllerV2 = new UserControllerV2(userV2Dao);
+    OptionalUserInformationController optionalUserInformationController = new OptionalUserInformationController(
+            optionalUserInformationDao);
     BillingController billingController = new BillingController();
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
@@ -237,9 +238,10 @@ public class AppConfig {
     app.delete("/users/:username", productionController.deleteUser);
 
     /* --------------- SEARCH FUNCTIONALITY ------------- */
-    app.post("/signup", userControllerV2.signup);
-    app.patch("/users/:id", userControllerV2.addInformation);
-    app.get("/info/:id", userControllerV2.getInformation);
+    app.patch("/change-optional-info/", optionalUserInformationController.updateInformation);
+    app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
+    app.delete("/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
+    app.post("/save-optional-info/", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);

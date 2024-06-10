@@ -39,20 +39,20 @@ public class ProductionControllerIntegrationTests {
     YMCAOrganizationId = YMCAOrg.getId().toHexString();
 
     var developerUser = new User(
-        "Test",
-        "Developer",
-        "06-16-1960",
-        "developer@keep.id",
-        "1234567890",
-        "YMCA",
-        "234 Main St",
-        "Philadelphia",
-        "PA",
-        "19104",
-        false,
-        "devYMCA",
-        TestUtils.hashPassword("devYMCA123"),
-        UserType.Developer);
+            "Test",
+            "Developer",
+            "06-16-1960",
+            "developer@keep.id",
+            "1234567890",
+            "YMCA",
+            "234 Main St",
+            "Philadelphia",
+            "PA",
+            "19104",
+            false,
+            "devYMCA",
+            TestUtils.hashPassword("devYMCA123"),
+            UserType.Developer);
     MongoCollection<User> userCollection = testDB.getCollection("user", User.class);
     userCollection.insertOne(developerUser);
   }
