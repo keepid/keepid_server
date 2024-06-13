@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
@@ -151,10 +153,10 @@ public class GetQuestionsPDFService implements Service {
           }
         }
 
-        if (fieldLinkedToFieldName == null) {
-          return new PdfAnnotationError(
-              "Field Directive not Understood for Field '" + fieldName + "'");
-        }
+//        if (fieldLinkedToFieldName == null) {
+//          return new PdfAnnotationError(
+//              "Field Directive not Understood for Field '" + fieldName + "'");
+//        }
         fieldJSON.put("fieldLinkedTo", fieldLinkedToFieldName);
       }
     }
@@ -166,6 +168,17 @@ public class GetQuestionsPDFService implements Service {
   }
 
   private JSONObject getTextField(PDTextField field) {
+    System.out.println("Mapping Name " + field.getMappingName());
+    System.out.println("Fully Qualified Name " + field.getFullyQualifiedName());
+    System.out.println("Alternative Field Name " + field.getAlternateFieldName());
+    System.out.println(field);
+    COSDictionary fieldDictionary = field.getCOSObject();
+
+    for (COSName fieldAttribute: fieldDictionary.keySet()) {
+      System.out.println("Attribute Name " + fieldAttribute);
+      System.out.println("Attribute Value " + fieldDictionary.getItem(fieldAttribute));
+    }
+
     String fieldName = field.getFullyQualifiedName();
     String fieldType;
     String fieldQuestion;
@@ -201,8 +214,9 @@ public class GetQuestionsPDFService implements Service {
     String fieldName = field.getFullyQualifiedName();
     String fieldType = "CheckBox";
     JSONArray fieldValueOptions = new JSONArray();
-    fieldValueOptions.put(field.getOnValue());
-    Boolean fieldDefaultValue = Boolean.FALSE;
+    fieldValueOptions.put("Yes");
+    fieldValueOptions.put("No");
+    String fieldDefaultValue = "Off";
     Boolean fieldIsRequired = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     String fieldQuestion = "Please Select: " + fieldName;
@@ -237,6 +251,7 @@ public class GetQuestionsPDFService implements Service {
         fieldQuestion);
   }
 
+  // TODO Fix this for listboxes - make into a series of checkboxes
   private JSONObject getChoiceField(PDChoice field) {
     String fieldName = field.getFullyQualifiedName();
     String fieldType, fieldQuestion;
@@ -323,7 +338,7 @@ public class GetQuestionsPDFService implements Service {
         } else {
           String fieldStatus = "Field Directive not Understood for Field '" + fieldName + "'";
           fieldJSON.put("fieldStatus", fieldStatus);
-          return fieldJSON;
+          // return fieldJSON;
         }
       }
       System.out.println(fieldName);
