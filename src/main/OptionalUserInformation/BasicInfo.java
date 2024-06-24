@@ -4,7 +4,9 @@ package OptionalUserInformation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
+import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.Map;
 
 @Getter
@@ -12,7 +14,9 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class BasicInfo {
+public class BasicInfo implements Serializable {
+  private static final long serialVersionUID = 1L;
+
   // M is male, F is female
   private String genderAssignedAtBirth;
   private Address mailingAddress;
@@ -35,5 +39,9 @@ public class BasicInfo {
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.convertValue(this, new TypeReference<>() {});
+  }
+
+  public JSONObject serialize() {
+    return new JSONObject(this);
   }
 }

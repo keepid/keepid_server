@@ -36,7 +36,7 @@ public class OptionalUserInformationController {
                   req.getString("middleName"),
                   req.getString("lastName"),
                   req.getString("ssn"),
-                  objectMapper.readValue(req.getString("birthDate"), Date.class),
+                  req.getString("birthDate"),
                   // Parameters for BasicInfo
                   req.getString("genderAssignedAtBirth"),
                   req.getString("emailAddress"),
@@ -110,7 +110,7 @@ public class OptionalUserInformationController {
                       req.getString("middleName"),
                       req.getString("lastName"),
                       req.getString("ssn"),
-                      objectMapper.readValue(req.getString("birthDate"), Date.class),
+                      req.getString("birthDate"),
                       // Parameters for BasicInfo
                       req.getString("genderAssignedAtBirth"),
                       req.getString("emailAddress"),

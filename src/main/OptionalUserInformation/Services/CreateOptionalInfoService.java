@@ -14,9 +14,7 @@ public class CreateOptionalInfoService implements Service {
     private String username;
 
     // Attributes for Person
-    private String firstName, middleName, lastName, ssn;
-    private Date birthDate;
-
+    private String firstName, middleName, lastName, ssn, birthDate;
     // Attributes for BasicInfo (including Address)
     private String genderAssignedAtBirth, emailAddress, phoneNumber, suffix, birthFirstName,
             birthMiddleName, birthLastName, birthSuffix, stateIdNumber;
@@ -45,7 +43,7 @@ public class CreateOptionalInfoService implements Service {
             OptionalUserInformationDao dao,
             String username,
             // Parameters for Person
-            String firstName, String middleName, String lastName, String ssn, Date birthDate,
+            String firstName, String middleName, String lastName, String ssn, String birthDate,
             // Parameters for BasicInfo
             String genderAssignedAtBirth, String emailAddress, String phoneNumber,
             Address mailingAddress, Address residentialAddress, Boolean differentBirthName,

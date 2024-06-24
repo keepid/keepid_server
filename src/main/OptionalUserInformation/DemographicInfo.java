@@ -3,7 +3,9 @@ package OptionalUserInformation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
+import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.Map;
 
 @Getter
@@ -11,7 +13,9 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class DemographicInfo {
+public class DemographicInfo implements Serializable {
+  private static final long serialVersionUID = 1L;
+
   private String languagePreference;
   // false is Non-Hispanic/Latino, true is Hispanic/Latino
   @NonNull private Boolean isEthnicityHispanicLatino;
@@ -24,5 +28,9 @@ public class DemographicInfo {
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.convertValue(this, new TypeReference<>() {});
+  }
+
+  public JSONObject serialize() {
+    return new JSONObject(this);
   }
 }

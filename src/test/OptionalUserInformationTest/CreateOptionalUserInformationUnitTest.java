@@ -28,7 +28,7 @@ public class CreateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -70,7 +70,7 @@ public class CreateOptionalUserInformationUnitTest {
         assertEquals("Doe", savedInfo.getPerson().getMiddleName());
         assertEquals("Doe", savedInfo.getPerson().getLastName());
         assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-        assertEquals(Date.class, savedInfo.getPerson().getBirthDate().getClass());
+        assertEquals("2020-01-01", savedInfo.getPerson().getBirthDate());
 
         // For BasicInfo
         assertEquals("Male", savedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -109,7 +109,7 @@ public class CreateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -150,7 +150,7 @@ public class CreateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -190,7 +190,7 @@ public class CreateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -232,7 +232,7 @@ public class CreateOptionalUserInformationUnitTest {
         assertEquals("Doe", savedInfo.getPerson().getMiddleName());
         assertEquals("Doe", savedInfo.getPerson().getLastName());
         assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-        assertEquals(Date.class, savedInfo.getPerson().getBirthDate().getClass());
+        assertEquals("2020-01-01", savedInfo.getPerson().getBirthDate());
 
         // For BasicInfo
         assertEquals("Male", savedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -268,7 +268,7 @@ public class CreateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser1",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -310,7 +310,7 @@ public class CreateOptionalUserInformationUnitTest {
         assertEquals("Doe", savedInfo1.getPerson().getMiddleName());
         assertEquals("Doe", savedInfo1.getPerson().getLastName());
         assertEquals("123-45-6789", savedInfo1.getPerson().getSsn());
-        assertEquals(Date.class, savedInfo1.getPerson().getBirthDate().getClass());
+        assertEquals("2020-01-01", savedInfo1.getPerson().getBirthDate());
 
         // For BasicInfo
         assertEquals("Male", savedInfo1.getBasicInfo().getGenderAssignedAtBirth());

@@ -29,7 +29,7 @@ public class DeleteOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -80,7 +80,7 @@ public class DeleteOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -121,7 +121,7 @@ public class DeleteOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser1",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -177,7 +177,7 @@ public class DeleteOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()

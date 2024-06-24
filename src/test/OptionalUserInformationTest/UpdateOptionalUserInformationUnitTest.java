@@ -13,6 +13,8 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Calendar;
+import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,12 +27,23 @@ public class UpdateOptionalUserInformationUnitTest {
     public void reset() {optionalUserInformationDao.clear();}
 
     @Test
-    public void success(){
+    public void success() throws IOException, ClassNotFoundException {
+        int year = 2023;
+        int month = Calendar.JUNE;
+        int dayOfMonth = 24;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, year);
+        calendar.set(Calendar.MONTH, month);
+        calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+        Date date = calendar.getTime();
+
         CreateOptionalInfoService createOptionalInfoService = new CreateOptionalInfoService(
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -71,13 +84,25 @@ public class UpdateOptionalUserInformationUnitTest {
         assertEquals("Doe", savedInfo.getPerson().getMiddleName());
         assertEquals("Doe", savedInfo.getPerson().getLastName());
         assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-        assertEquals(Date.class, savedInfo.getPerson().getBirthDate().getClass());
+        assertEquals(date, savedInfo.getPerson().getBirthDate());
 
-        savedInfo.setPerson(new Person("Jet", "Stream", "Sam", "987-65-4321"
-                , new Date()));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(savedInfo);
+        oos.close();
+
+        // Deserialize the object
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        OptionalUserInformation copiedOpt = (OptionalUserInformation) ois.readObject();
+        ois.close();
+
+
+        copiedOpt.setPerson(new Person("Jet", "Stream", "Sam", "987-65-4321"
+                , "2022-01-01"));
 
         UpdateOptionalInfoService updateOptionalInfoService = new UpdateOptionalInfoService(optionalUserInformationDao,
-                savedInfo);
+                copiedOpt);
         Message response1 = updateOptionalInfoService.executeAndGetResponse();
         assertEquals(UserMessage.SUCCESS, response1);
         OptionalUserInformation updatedInfo = optionalUserInformationDao.get("testUser").orElse(null);
@@ -90,7 +115,7 @@ public class UpdateOptionalUserInformationUnitTest {
         assertEquals("Stream", updatedInfo.getPerson().getMiddleName());
         assertEquals("Sam", updatedInfo.getPerson().getLastName());
         assertEquals("987-65-4321", updatedInfo.getPerson().getSsn());
-        assertEquals(Date.class, updatedInfo.getPerson().getBirthDate().getClass());
+        assertEquals("2022-01-01", updatedInfo.getPerson().getBirthDate());
 
         // For BasicInfo
         assertEquals("Male", updatedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -129,7 +154,7 @@ public class UpdateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -181,7 +206,7 @@ public class UpdateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -229,7 +254,7 @@ public class UpdateOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser1",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -267,7 +292,7 @@ public class UpdateOptionalUserInformationUnitTest {
         assertEquals("testUser1", savedInfo1.getUsername());
 
         savedInfo.setPerson(new Person("Jet", "Stream", "Sam", "987-65-4321"
-                , new Date()));
+                , "2022-01-01"));
 
         UpdateOptionalInfoService updateOptionalInfoService = new UpdateOptionalInfoService(optionalUserInformationDao,
                 savedInfo);
@@ -283,7 +308,7 @@ public class UpdateOptionalUserInformationUnitTest {
         assertEquals("Stream", updatedInfo.getPerson().getMiddleName());
         assertEquals("Sam", updatedInfo.getPerson().getLastName());
         assertEquals("987-65-4321", updatedInfo.getPerson().getSsn());
-        assertEquals(Date.class, updatedInfo.getPerson().getBirthDate().getClass());
+        assertEquals("2022-01-01", updatedInfo.getPerson().getBirthDate());
 
         OptionalUserInformation notUpdatedInfo = optionalUserInformationDao.get("testUser1").orElse(null);
         assertNotNull(notUpdatedInfo);
@@ -294,7 +319,7 @@ public class UpdateOptionalUserInformationUnitTest {
         assertEquals("Doe", notUpdatedInfo.getPerson().getMiddleName());
         assertEquals("Doe", notUpdatedInfo.getPerson().getLastName());
         assertEquals("123-45-6789", notUpdatedInfo.getPerson().getSsn());
-        assertEquals(Date.class, notUpdatedInfo.getPerson().getBirthDate().getClass());
+        assertEquals("2020-01-01", notUpdatedInfo.getPerson().getBirthDate());
 
     }
 }

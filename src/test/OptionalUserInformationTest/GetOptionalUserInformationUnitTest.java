@@ -31,7 +31,7 @@ public class GetOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -84,7 +84,7 @@ public class GetOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
@@ -125,7 +125,7 @@ public class GetOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser1",
                 // Parameters for Person
-                "John12", "Doe12", "Doe12", "123-45-678912", new Date(),
+                "John12", "Doe12", "Doe12", "123-45-678912", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test12@example.com", "123-456-1212",
                 Address.builder()
@@ -186,7 +186,7 @@ public class GetOptionalUserInformationUnitTest {
                 optionalUserInformationDao,
                 "testUser",
                 // Parameters for Person
-                "John", "Doe", "Doe", "123-45-6789", new Date(),
+                "John", "Doe", "Doe", "123-45-6789", "2020-01-01",
                 // Parameters for BasicInfo
                 "Male", "test@example.com", "123-456-7890",
                 Address.builder()
