@@ -87,6 +87,11 @@
     </build>
     <dependencies>
         <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.8.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.lob</groupId>
             <artifactId>lob-java</artifactId>
             <version>13.0.0</version>
@@ -178,7 +183,7 @@
         <dependency>
             <groupId>de.mkammerer</groupId>
             <artifactId>argon2-jvm</artifactId>
-            <version>2.6</version>
+            <version>2.11</version>
         </dependency>
         <dependency>
             <groupId>com.nixxcode.jvmbrotli</groupId>
@@ -299,7 +304,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.16</version>
+            <version>1.18.34</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

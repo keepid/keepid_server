@@ -5,7 +5,7 @@ import java.util.Set;
 
 public enum FormMailAddress {
   PA_BIRTH_CERTIFICATE(
-      "PA Birth Certificate",
+      "Pennsylvania Birth Certificate", // changed to match the Document Name recieved on view documents (front end)
       "Birth Certificate Address for Pennsylvania",
       "Department of Health Division of Vital Records",
       "PO Box 1528",
@@ -14,7 +14,7 @@ public enum FormMailAddress {
       "PA",
       "16103",
       ImmutableSet.of("PA"),
-      ImmutableSet.of("ANY")),
+      ImmutableSet.of("A  NY")),
   PA_DRIVERS_LICENSE(
       "PA Drivers License",
       "Driver's License for Pennsylvania",

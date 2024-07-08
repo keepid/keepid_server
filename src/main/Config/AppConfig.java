@@ -9,6 +9,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.Mail.MailDao;
+import Database.Mail.MailDaoImpl;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
 import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import Database.Organization.OrgDao;
@@ -20,6 +22,7 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
+import Mail.MailController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
@@ -55,6 +58,8 @@ public class AppConfig {
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
+    MailDao mailDao = new MailDaoImpl();
+    MailController mailController = new MailController(mailDao);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -162,6 +167,10 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+
+      /* -------------- MAIL SERVICE ------------------------ */
+      app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
+      app.post("/save-mail", mailController.saveMail);
 
     /* --------------- PRODUCTION API --------------- */
 

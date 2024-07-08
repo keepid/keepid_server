@@ -20,12 +20,26 @@ public class MailController{
         this.mailDao = mailDao;
     }
 
-    public Handler getFormMailAddresses =
-            ctx -> {
-                FormMailAddress[] formMailAddresses = FormMailAddress.values();
-                JSONObject response = new JSONObject(formMailAddresses);
-                ctx.result(response.toString());
-            };
+    public Handler getFormMailAddresses = ctx -> {
+        FormMailAddress[] formMailAddresses = FormMailAddress.values();
+        JSONObject response = new JSONObject();
+        for (FormMailAddress address : formMailAddresses) {
+            JSONObject addressJson = new JSONObject();
+            addressJson.put("name", address.getName());
+            addressJson.put("description", address.getDescription());
+            addressJson.put("office_name", address.getOffice_name());
+            addressJson.put("street1", address.getStreet1());
+            addressJson.put("street2", address.getStreet2());
+            addressJson.put("city", address.getCity());
+            addressJson.put("state", address.getState());
+            addressJson.put("zipcode", address.getZipcode());
+            addressJson.put("acceptable_states", address.getAcceptable_states());
+            addressJson.put("acceptable_counties", address.getAcceptable_counties());
+
+            response.put(address.name(), addressJson);
+        }
+        ctx.result(response.toString());
+    };
 
     public Handler saveMail =
             ctx -> {
