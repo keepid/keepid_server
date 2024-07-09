@@ -4,30 +4,52 @@ import java.util.Date;
 import org.bson.types.ObjectId;
 
 public class Mail {
-
-  ObjectId form_id;
-  ObjectId file_id;
+  ObjectId id;
+  ObjectId fileId;
   FormMailAddress mailing_address;
   MailStatus mailStatus; // CREATED, FAILED, MAILED
   String lobId;
   Date lobCreatedAt;
+  String targetUsername;
+  String requesterUsername;
 
   public Mail(
-      ObjectId form_id,
-      ObjectId file_id,
+      ObjectId fileId,
       FormMailAddress mailing_address,
-      String lob_id,
-      Date lob_created_at) {
-    this.form_id = form_id;
-    this.file_id = file_id;
+      String targetUsername,
+      String requesterUsername) {
+    this.id = new ObjectId();
+    this.fileId = fileId;
     this.mailing_address = mailing_address;
     this.mailStatus = MailStatus.CREATED;
-    this.lobId = lob_id;
-    this.lobCreatedAt = lob_created_at;
+    this.lobId = null;
+    this.lobCreatedAt = null;
+    this.targetUsername = targetUsername;
+    this.requesterUsername = requesterUsername;
+  }
+
+  public ObjectId getId() {
+    return id;
   }
 
   public FormMailAddress getMailingAddress() {
     return this.mailing_address;
+  }
+
+  public String getTargetUsername() {
+    return targetUsername;
+  }
+
+  public String getRequesterUsername() {
+    return requesterUsername;
+  }
+
+  public String getLobId() {
+    return lobId;
+  }
+
+  public Date getLobCreatedAt() {
+    return lobCreatedAt;
   }
 
   public void setLobId(String id) {
@@ -36,6 +58,14 @@ public class Mail {
 
   public void setLobCreatedAt(Date lobCreatedAt) {
     this.lobCreatedAt = lobCreatedAt;
+  }
+
+  public ObjectId getFileId() {
+    return this.fileId;
+  }
+
+  public void setMailStatus(MailStatus mailStatus) {
+    this.mailStatus = mailStatus;
   }
 
   // First, Daniel calls this get all endpoint for all the form mail addresses

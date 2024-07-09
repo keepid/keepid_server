@@ -5,9 +5,10 @@ import java.util.Set;
 
 public enum FormMailAddress {
   PA_BIRTH_CERTIFICATE(
-      "PA Birth Certificate",
+      "PA Birth Certificate.pdf",
       "Birth Certificate Address for Pennsylvania",
       "Department of Health Division of Vital Records",
+      "VITAL RECORDS",
       "PO Box 1528",
       "",
       "New Castle",
@@ -16,8 +17,9 @@ public enum FormMailAddress {
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_DRIVERS_LICENSE(
-      "PA Drivers License",
+      "PA Drivers License.pdf",
       "Driver's License for Pennsylvania",
+      "Bureau of Driver Licensing",
       "PennDOT",
       "P.O. Box 68272",
       "",
@@ -30,6 +32,7 @@ public enum FormMailAddress {
       "PA Voter Registration and PA Mail-In Ballot Request for Philadelphia",
       "PA Voter Registration and PA Mail-In Ballot Request specific to county of Philadelphia",
       "City Hall",
+      "",
       "1400 John F Kennedy Blvd",
       "Room 142",
       "Philadelphia",
@@ -41,6 +44,7 @@ public enum FormMailAddress {
       "PA Voter Registration and PA Mail-In Ballot Request for Montgomery",
       "PA Voter Registration and PA Mail-In Ballot Request specific to county of Montgomery",
       "Montgomery County Voter Services",
+      "",
       "425 Swede St",
       "Suite 602",
       "Norristown",
@@ -51,6 +55,7 @@ public enum FormMailAddress {
   PA_VOTER_REGISTRATION_BUCK(
       "PA Voter Registration and PA Mail-In Ballot Request for Bucks",
       "PA Voter Registration and PA Mail-In Ballot Request specific to county of Bucks",
+      "",
       "",
       "55 E Court St",
       "",
@@ -63,6 +68,7 @@ public enum FormMailAddress {
       "PA Voter Registration and PA Mail-In Ballot Request for Delaware",
       "PA Voter Registration and PA Mail-In Ballot Request specific to county of Delaware",
       "Govt Center Bldg",
+      "",
       "201 W Front St",
       "",
       "Media",
@@ -73,6 +79,7 @@ public enum FormMailAddress {
   PA_VOTER_REGISTRATION_CHEST(
       "PA Voter Registration and PA Mail-In Ballot Request for Chester",
       "PA Voter Registration and PA Mail-In Ballot Request specific to county of Chester",
+      "",
       "",
       "601 Westtown Rd Ste 150",
       "PO Box 2747",
@@ -85,6 +92,7 @@ public enum FormMailAddress {
   private String name;
   private String description;
   private String office_name;
+  private String nameForCheck;
   private String street1;
   private String street2;
   private String city;
@@ -97,6 +105,7 @@ public enum FormMailAddress {
       String name,
       String description,
       String office_name,
+      String nameForCheck,
       String street1,
       String street2,
       String city,
@@ -107,6 +116,7 @@ public enum FormMailAddress {
     this.name = name;
     this.description = description;
     this.office_name = office_name;
+    this.nameForCheck = nameForCheck;
     this.street1 = street1;
     this.street2 = street2;
     this.city = city;
@@ -154,5 +164,9 @@ public enum FormMailAddress {
 
   public Set<String> getAcceptable_counties() {
     return acceptable_counties;
+  }
+
+  public String getNameForCheck() {
+    return nameForCheck;
   }
 }

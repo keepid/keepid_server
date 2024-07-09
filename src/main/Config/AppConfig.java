@@ -9,6 +9,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.Mail.MailDao;
+import Database.Mail.MailDaoFactory;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
 import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import Database.Organization.OrgDao;
@@ -20,6 +22,8 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
+import Mail.MailController;
+import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
@@ -29,15 +33,13 @@ import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
 import User.UserController;
-import OptionalUserInformation.OptionalUserInformationController;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
-import org.bson.types.ObjectId;
-
 import java.util.HashMap;
 import java.util.Optional;
+import org.bson.types.ObjectId;
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -49,12 +51,14 @@ public class AppConfig {
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
-    OptionalUserInformationDao optionalUserInformationDao = OptionalUserInformationDaoFactory.create(deploymentLevel);
+    OptionalUserInformationDao optionalUserInformationDao =
+        OptionalUserInformationDaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
+    MailDao mailDao = MailDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -80,9 +84,10 @@ public class AppConfig {
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
-    OptionalUserInformationController optionalUserInformationController = new OptionalUserInformationController(
-            optionalUserInformationDao);
+    OptionalUserInformationController optionalUserInformationController =
+        new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
+    MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -240,13 +245,17 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.patch("/change-optional-info/", optionalUserInformationController.updateInformation);
     app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
-    app.delete("/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
+    app.delete(
+        "/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
     app.post("/save-optional-info/", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
     app.post("/donation-checkout", billingController.donationCheckout);
 
+    /* --------------- MAIL FORM FEATURES ------------- */
+    app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
+    app.post("/submit-mail", mailController.saveMail);
     return app;
   }
 
