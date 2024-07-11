@@ -1,5 +1,5 @@
 package Config;
 
 public interface Service {
-  Message executeAndGetResponse();
+  Message executeAndGetResponse() throws Exception;
 }

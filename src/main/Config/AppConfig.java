@@ -22,6 +22,7 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
+import Mail.FileBackfillController;
 import Mail.MailController;
 import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
@@ -88,6 +89,8 @@ public class AppConfig {
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
     MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
+    FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
+
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -167,6 +170,9 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+
+    /* --------------- FILE BACKFILL ROUTE ------------- */
+    app.get("/backfill", backfillController.backfillSingleFile);
 
     /* --------------- PRODUCTION API --------------- */
 

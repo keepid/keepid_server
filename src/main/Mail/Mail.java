@@ -1,13 +1,24 @@
 package Mail;
 
 import java.util.Date;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+@Slf4j
+@Setter
 public class Mail {
+
   ObjectId id;
   ObjectId fileId;
-  FormMailAddress mailing_address;
+
+  @BsonProperty(value = "mailingAddress")
+  FormMailAddress mailingAddress;
+
+  @BsonProperty(value = "mailStatus")
   MailStatus mailStatus; // CREATED, FAILED, MAILED
+
   String lobId;
   Date lobCreatedAt;
   String targetUsername;
@@ -15,12 +26,12 @@ public class Mail {
 
   public Mail(
       ObjectId fileId,
-      FormMailAddress mailing_address,
+      FormMailAddress mailingAddress,
       String targetUsername,
       String requesterUsername) {
     this.id = new ObjectId();
     this.fileId = fileId;
-    this.mailing_address = mailing_address;
+    this.mailingAddress = mailingAddress;
     this.mailStatus = MailStatus.CREATED;
     this.lobId = null;
     this.lobCreatedAt = null;
@@ -33,7 +44,7 @@ public class Mail {
   }
 
   public FormMailAddress getMailingAddress() {
-    return this.mailing_address;
+    return this.mailingAddress;
   }
 
   public String getTargetUsername() {
@@ -42,6 +53,10 @@ public class Mail {
 
   public String getRequesterUsername() {
     return requesterUsername;
+  }
+
+  public MailStatus getMailStatus() {
+    return this.mailStatus;
   }
 
   public String getLobId() {

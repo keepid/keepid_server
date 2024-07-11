@@ -126,6 +126,22 @@ public enum FormMailAddress {
     this.acceptable_counties = acceptable_counties;
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("FormMailAddress {");
+    sb.append(", name=").append(this.name);
+    sb.append(", description=").append(this.description);
+    sb.append(", office_name=").append(this.office_name);
+    sb.append(", nameForCheck=").append(this.nameForCheck);
+    sb.append(", street1=").append(this.street1);
+    sb.append(", street2=").append(this.street2);
+    sb.append(", city=").append(this.city);
+    sb.append(", state=").append(this.state);
+    sb.append(", zipcode=").append(this.zipcode);
+    sb.append("}");
+    return sb.toString();
+  }
+
   public String getName() {
     return name;
   }

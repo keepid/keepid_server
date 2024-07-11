@@ -5,7 +5,6 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.Mail.MailDao;
 import Mail.Services.SubmitToLobMailService;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Handler;
 import java.util.Objects;
@@ -18,8 +17,9 @@ public class MailController {
   private FileDao fileDao;
   private String lobApiKey;
 
-  public MailController(MailDao mailDao, FileDao FileDao, DeploymentLevel deploymentLevel) {
+  public MailController(MailDao mailDao, FileDao fileDao, DeploymentLevel deploymentLevel) {
     this.mailDao = mailDao;
+    this.fileDao = fileDao;
     if (deploymentLevel == DeploymentLevel.PRODUCTION
         || deploymentLevel == DeploymentLevel.STAGING) {
       this.lobApiKey = Objects.requireNonNull(System.getenv("LOB_API_KEY_PROD"));
@@ -57,19 +57,18 @@ public class MailController {
         ObjectMapper objectMapper = new ObjectMapper();
         String username = request.getString("username");
         String loggedInUser = ctx.sessionAttribute("username");
-        try {
-          System.out.println("ADDRESS: " + request.getString("mailAddress"));
-          FormMailAddress formMailAddress =
-              objectMapper.readValue(request.getString("mailAddress"), FormMailAddress.class);
-          String fileId = request.getString("fileId");
-          SubmitToLobMailService submitToLobMailService =
-              new SubmitToLobMailService(
-                  fileDao, mailDao, fileId, formMailAddress, username, loggedInUser, lobApiKey);
-          Message response = submitToLobMailService.executeAndGetResponse();
-          ctx.result(response.toJSON().toString());
-        } catch (JsonMappingException jsonMappingException) {
-          Message response = MailMessage.FAILED_WHEN_MAPPING_FORM_MAIL_ADDRESS;
-          ctx.result(response.toJSON().toString());
-        }
+
+        System.out.println("ADDRESS: " + request.getJSONObject("mailAddress").toString());
+        FormMailAddress formMailAddress = FormMailAddress.PA_DRIVERS_LICENSE;
+        String fileId = request.getString("fileId");
+        SubmitToLobMailService submitToLobMailService =
+            new SubmitToLobMailService(
+                fileDao, mailDao, formMailAddress, username, loggedInUser, lobApiKey);
+        Message response = submitToLobMailService.executeAndGetResponse();
+        ctx.result(response.toJSON().toString());
+        //        } catch (Exception e) {
+        //          Message response = MailMessage.FAILED_WHEN_MAPPING_FORM_MAIL_ADDRESS;
+        //          ctx.result(response.toJSON().toString());
+        //        }
       };
 }
