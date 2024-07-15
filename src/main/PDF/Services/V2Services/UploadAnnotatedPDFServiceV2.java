@@ -51,7 +51,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   private List<FormQuestion> formQuestions;
   private JSONObject userInfo;
   private ObjectId uploadedFileId;
-  private String fileOrganizationName;
+  //  private String fileOrganizationName;
 
   public UploadAnnotatedPDFServiceV2(
       FileDao fileDao,
@@ -69,7 +69,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     this.fileName = fileParams.getFileName();
     this.fileContentType = fileParams.getFileContentType();
     this.fileStream = fileParams.getFileStream();
-    this.fileOrganizationName = fileParams.getFileOrgName();
+    //    this.fileOrganizationName = fileParams.getFileOrgName();
     this.encryptionController = encryptionController;
   }
 
@@ -347,7 +347,8 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             FileType.FORM,
             IdCategoryType.NONE,
             this.fileName,
-            this.fileOrganizationName,
+            this.organizationName,
+            //            this.fileOrganizatiofileOrganizationNamenName,
             true,
             this.fileContentType);
     ObjectId fileId = file.getId();
