@@ -8,6 +8,7 @@ import Database.OptionalUserInformation.OptionalUserInformationDao;
 import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import OptionalUserInformation.*;
 import OptionalUserInformation.Services.CreateOptionalInfoService;
+import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import org.junit.Test;
 public class CreateOptionalUserInformationUnitTest {
   OptionalUserInformationDao optionalUserInformationDao =
       OptionalUserInformationDaoFactory.create(DeploymentLevel.IN_MEMORY);
+  Format formatter = new SimpleDateFormat("yyyy-MM-dd");
 
   @After
   public void reset() {
@@ -97,7 +99,7 @@ public class CreateOptionalUserInformationUnitTest {
     assertEquals("Doe", savedInfo.getPerson().getMiddleName());
     assertEquals("Doe", savedInfo.getPerson().getLastName());
     assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-    assertEquals("2020-01-01", savedInfo.getPerson().getBirthDate());
+    assertEquals("2020-01-01", formatter.format(savedInfo.getPerson().getBirthDate()));
 
     // For BasicInfo
     assertEquals("Male", savedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -331,7 +333,7 @@ public class CreateOptionalUserInformationUnitTest {
     assertEquals("Doe", savedInfo.getPerson().getMiddleName());
     assertEquals("Doe", savedInfo.getPerson().getLastName());
     assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-    assertEquals("2020-01-01", savedInfo.getPerson().getBirthDate());
+    assertEquals("2020-01-01", formatter.format(savedInfo.getPerson().getBirthDate()));
 
     // For BasicInfo
     assertEquals("Male", savedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -433,7 +435,7 @@ public class CreateOptionalUserInformationUnitTest {
     assertEquals("Doe", savedInfo1.getPerson().getMiddleName());
     assertEquals("Doe", savedInfo1.getPerson().getLastName());
     assertEquals("123-45-6789", savedInfo1.getPerson().getSsn());
-    assertEquals("2020-01-01", savedInfo1.getPerson().getBirthDate());
+    assertEquals("2020-01-01", formatter.format(savedInfo1.getPerson().getBirthDate()));
 
     // For BasicInfo
     assertEquals("Male", savedInfo1.getBasicInfo().getGenderAssignedAtBirth());

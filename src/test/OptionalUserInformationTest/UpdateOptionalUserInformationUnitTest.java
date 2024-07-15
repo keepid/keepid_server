@@ -11,6 +11,7 @@ import OptionalUserInformation.*;
 import OptionalUserInformation.Services.CreateOptionalInfoService;
 import OptionalUserInformation.Services.UpdateOptionalInfoService;
 import java.io.*;
+import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import org.junit.Test;
 public class UpdateOptionalUserInformationUnitTest {
   OptionalUserInformationDao optionalUserInformationDao =
       OptionalUserInformationDaoFactory.create(DeploymentLevel.IN_MEMORY);
+  Format formatter = new SimpleDateFormat("yyyy-MM-dd");
 
   @After
   public void reset() {
@@ -52,7 +54,7 @@ public class UpdateOptionalUserInformationUnitTest {
             "Doe",
             "Doe",
             "123-45-6789",
-            new SimpleDateFormat("yyyy-MM-dd").parse("2020-01-01"),
+            new SimpleDateFormat("yyyy-MM-dd").parse("2023-06-24"),
             // Parameters for BasicInfo
             "Male",
             "test@example.com",
@@ -112,7 +114,7 @@ public class UpdateOptionalUserInformationUnitTest {
     assertEquals("Doe", savedInfo.getPerson().getMiddleName());
     assertEquals("Doe", savedInfo.getPerson().getLastName());
     assertEquals("123-45-6789", savedInfo.getPerson().getSsn());
-    assertEquals(date, savedInfo.getPerson().getBirthDate());
+    assertEquals(formatter.format(date), formatter.format(savedInfo.getPerson().getBirthDate()));
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -147,7 +149,7 @@ public class UpdateOptionalUserInformationUnitTest {
     assertEquals("Stream", updatedInfo.getPerson().getMiddleName());
     assertEquals("Sam", updatedInfo.getPerson().getLastName());
     assertEquals("987-65-4321", updatedInfo.getPerson().getSsn());
-    assertEquals("2022-01-01", updatedInfo.getPerson().getBirthDate());
+    assertEquals("2022-01-01", formatter.format(updatedInfo.getPerson().getBirthDate()));
 
     // For BasicInfo
     assertEquals("Male", updatedInfo.getBasicInfo().getGenderAssignedAtBirth());
@@ -420,7 +422,7 @@ public class UpdateOptionalUserInformationUnitTest {
     assertEquals("Stream", updatedInfo.getPerson().getMiddleName());
     assertEquals("Sam", updatedInfo.getPerson().getLastName());
     assertEquals("987-65-4321", updatedInfo.getPerson().getSsn());
-    assertEquals("2022-01-01", updatedInfo.getPerson().getBirthDate());
+    assertEquals("2022-01-01", formatter.format(updatedInfo.getPerson().getBirthDate()));
 
     OptionalUserInformation notUpdatedInfo =
         optionalUserInformationDao.get("testUser1").orElse(null);
@@ -432,6 +434,6 @@ public class UpdateOptionalUserInformationUnitTest {
     assertEquals("Doe", notUpdatedInfo.getPerson().getMiddleName());
     assertEquals("Doe", notUpdatedInfo.getPerson().getLastName());
     assertEquals("123-45-6789", notUpdatedInfo.getPerson().getSsn());
-    assertEquals("2020-01-01", notUpdatedInfo.getPerson().getBirthDate());
+    assertEquals("2020-01-01", formatter.format(notUpdatedInfo.getPerson().getBirthDate()));
   }
 }
