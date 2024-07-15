@@ -1,16 +1,16 @@
 package OptionalUserInformation;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.*;
-import org.json.JSONObject;
-import org.bson.codecs.pojo.annotations.BsonProperty;
-
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.Date;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 
 @Getter
 @Setter
 @Builder(toBuilder = true)
+@Slf4j
 @AllArgsConstructor
 @NoArgsConstructor
 public class Person implements Serializable {
@@ -20,8 +20,9 @@ public class Person implements Serializable {
   private String middleName;
   private String lastName;
   private String ssn;
+
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-  private String birthDate;
+  private Date birthDate;
 
   public JSONObject serialize() {
     return new JSONObject(this);
