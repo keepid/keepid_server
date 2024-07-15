@@ -9,10 +9,9 @@ import Security.SecurityUtils;
 import User.User;
 import User.UserMessage;
 import Validation.ValidationUtils;
-import org.json.JSONObject;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.json.JSONObject;
 
 public class ChangeAccountSettingService implements Service {
   UserDao userDao;
@@ -79,11 +78,47 @@ public class ChangeAccountSettingService implements Service {
         }
         user.setLastName(value);
         break;
+      case "birthDate":
+        if (!ValidationUtils.isValidBirthDate(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Birth Date Name");
+        }
+        user.setBirthDate(value);
+        break;
+      case "phone":
+        if (!ValidationUtils.isValidPhoneNumber(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Phone Number");
+        }
+        user.setPhone(value);
+        break;
       case "email":
         if (!ValidationUtils.isValidEmail(value)) {
           return UserMessage.INVALID_PARAMETER.withMessage("Invalid Email");
         }
         user.setEmail(value);
+        break;
+      case "address":
+        if (!ValidationUtils.isValidAddress(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Address");
+        }
+        user.setAddress(value);
+        break;
+      case "city":
+        if (!ValidationUtils.isValidCity(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid City Name");
+        }
+        user.setCity(value);
+        break;
+      case "state":
+        if (!ValidationUtils.isValidUSState(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid US State");
+        }
+        user.setState(value);
+        break;
+      case "zipcode":
+        if (!ValidationUtils.isValidZipCode(value)) {
+          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Zip Code");
+        }
+        user.setZipcode(value);
         break;
       default:
         return UserMessage.INVALID_PARAMETER;

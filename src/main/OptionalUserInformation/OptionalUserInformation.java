@@ -7,6 +7,7 @@ import lombok.*;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +16,9 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class OptionalUserInformation {
+public class OptionalUserInformation implements Serializable {
+  private static final long serialVersionUID = 1L; // Ensure serial version UID is specified
+
   private ObjectId id;
   private ObjectId userId;
   private String username;
@@ -64,8 +67,7 @@ public class OptionalUserInformation {
     }
   }
 
-  public JSONObject serialize(){
-    JSONObject jsonObject = new JSONObject(this);
-    return jsonObject;
+  public JSONObject serialize() {
+    return new JSONObject(this);
   }
 }
