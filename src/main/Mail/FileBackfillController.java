@@ -3,7 +3,9 @@ package Mail;
 import Config.Message;
 import Database.File.FileDao;
 import Database.User.UserDao;
+import File.FileType;
 import Mail.Services.DownloadAndReUploadPdfService;
+import PDF.PDFType;
 import Security.EncryptionController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
@@ -29,12 +31,18 @@ public class FileBackfillController {
 
   public Handler backfillSingleFile =
       ctx -> {
-        String fileId = "668c7c3ee603c8759aa5da4a";
+        //        String fileId = "668c7c3ee603c8759aa5da4a";
         String username = "SAMPLE-CLIENT";
-        String orgName = userDao.get(username).get().getOrganization();
+        //        String orgName = userDao.get(username).get().getOrganization();
         DownloadAndReUploadPdfService downloadAndReUploadPdfService =
             new DownloadAndReUploadPdfService(
-                encryptionController, db, fileDao, fileId, username, orgName);
+                encryptionController,
+                db,
+                fileDao,
+                userDao,
+                username,
+                PDFType.IDENTIFICATION_DOCUMENT,
+                FileType.IDENTIFICATION_PDF);
         Message response = downloadAndReUploadPdfService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
       };
