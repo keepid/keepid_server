@@ -9,10 +9,9 @@ import Security.SecurityUtils;
 import User.User;
 import User.UserMessage;
 import Validation.ValidationUtils;
-import org.json.JSONObject;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.json.JSONObject;
 
 public class ChangeAccountSettingService implements Service {
   UserDao userDao;
