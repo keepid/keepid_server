@@ -61,6 +61,7 @@ public class File {
       boolean isAnnotated,
       String contentType) {
     this.id = new ObjectId();
+    this.fileId = new ObjectId();
     this.username = username;
     this.uploadedAt = uploadedAt;
     this.fileStream = fileStream;

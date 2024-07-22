@@ -153,7 +153,10 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     String questionName = field.getFullyQualifiedName();
     String questionText = questionName;
     String answerText = "";
-    List<String> options = new LinkedList<>(field.getOnValues());
+    List<String> options = new LinkedList<>();
+    for (String s : field.getOnValues()) {
+      options.add(s.replace(".", ""));
+    }
     String defaultValue = "Off";
     boolean required = field.isRequired();
     int numLines = options.size();
@@ -210,7 +213,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     ObjectId id = new ObjectId();
     FieldType type;
     String questionName = field.getFullyQualifiedName();
-    String questionText = null;
+    String questionText = "";
     if (field.isReadOnly()) {
       type = FieldType.READ_ONLY_FIELD;
       String fieldValue = field.getValue();
@@ -353,7 +356,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             //            this.fileOrganizatiofileOrganizationNamenName,
             true,
             this.fileContentType);
-    ObjectId fileId = file.getId();
+
     this.formQuestions = new LinkedList<FormQuestion>();
     try {
       generateFormQuestionFromFields(acroForm.getFields());
@@ -363,8 +366,8 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     PDDocumentInformation documentInformation = pdfDocument.getDocumentInformation();
     FormSection body =
         new FormSection(
-            documentInformation.getTitle(),
-            documentInformation.getSubject(),
+            Objects.toString(documentInformation.getTitle(), ""),
+            Objects.toString(documentInformation.getSubject(), ""),
             new LinkedList<>(),
             formQuestions);
     Form form =
@@ -387,8 +390,9 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             body,
             new ObjectId(),
             "");
-    form.setFileId(fileId);
     fileDao.save(file);
+    ObjectId fileId = file.getId();
+    form.setFileId(fileId);
     formDao.save(form);
     this.uploadedFileId = file.getId();
     return PdfMessage.SUCCESS;

@@ -2,6 +2,7 @@ package PDF.Services.V2Services;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.or;
 
 import Config.Message;
 import Config.Service;
@@ -69,15 +70,16 @@ public class FilterPDFServiceV2 implements Service {
     return null;
   }
 
+  // TODO: Team Keep filter gets everything ()
   public Message setFilter() {
     if (this.pdfType == PDFTypeV2.BLANK_APPLICATION) {
-      if (this.privilegeLevel == UserType.Developer) {
+      if (this.privilegeLevel == UserType.Developer) { // Deprecated
         this.filter = and(eq("fileType", FileType.FORM.toString()), eq("annotated", annotated));
       } else {
         this.filter =
             and(
                 eq("fileType", FileType.FORM.toString()),
-                eq("organizationName", organizationName),
+                or(eq("organizationName", organizationName), eq("organizationName", "Team Keep")),
                 eq("annotated", annotated));
       }
     } else if (this.pdfType == PDFTypeV2.CLIENT_UPLOADED_DOCUMENT) {
