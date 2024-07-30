@@ -1,24 +1,23 @@
-package Mail;
+package PDF;
 
 import Config.Message;
 import Database.File.FileDao;
 import Database.User.UserDao;
 import File.FileType;
-import Mail.Services.DownloadAndReUploadPdfService;
-import PDF.PDFType;
+import PDF.Services.DownloadAndReUploadPdfService;
 import Security.EncryptionController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FileBackfillController {
+public class V2BackfillController {
   private EncryptionController encryptionController;
   private MongoDatabase db;
   private FileDao fileDao;
   private UserDao userDao;
 
-  public FileBackfillController(MongoDatabase db, FileDao fileDao, UserDao userDao) {
+  public V2BackfillController(MongoDatabase db, FileDao fileDao, UserDao userDao) {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {

@@ -1,4 +1,4 @@
-package Mail.Services;
+package PDF.Services;
 
 import Config.Message;
 import Config.Service;

@@ -22,13 +22,13 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
-import Mail.FileBackfillController;
 import Mail.MailController;
 import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
 import PDF.PdfControllerV2;
+import PDF.V2BackfillController;
 import Production.ProductionController;
 import Security.AccountSecurityController;
 import Security.EncryptionTools;
@@ -90,7 +90,7 @@ public class AppConfig {
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
     MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
-    FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
+    V2BackfillController backfillController = new V2BackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
