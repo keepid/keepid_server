@@ -2,12 +2,13 @@ package Database.User;
 
 import Database.Dao;
 import User.User;
-import org.bson.types.ObjectId;
-
 import java.util.List;
 import java.util.Optional;
+import org.bson.types.ObjectId;
 
 public interface UserDao extends Dao<User> {
+
+  List<User> getAll();
 
   List<User> getAllFromOrg(String orgName);
 
