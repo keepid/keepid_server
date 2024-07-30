@@ -22,7 +22,9 @@ import PDF.Services.V2Services.DeletePDFServiceV2;
 import PDF.Services.V2Services.UploadPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.TestUtils;
+import User.User;
 import User.UserType;
+import Validation.ValidationException;
 import com.mongodb.client.MongoDatabase;
 import java.io.File;
 import java.io.IOException;
@@ -87,10 +89,30 @@ public class DeletePDFServiceUnitTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    try {
+      this.userDao.save(
+          new User(
+              "testcFirstName",
+              "testcLastName",
+              "12-12-2012",
+              "testcemail@keep.id",
+              "2652623333",
+              "org2",
+              "1 Keep Ave",
+              "Keep",
+              "PA",
+              "11111",
+              false,
+              "client1",
+              "clientPass123",
+              UserType.Developer));
+    } catch (ValidationException e) {
+      throw new RuntimeException(e);
+    }
     this.developerUserParams =
         new UserParams()
             .setUsername("dev1")
-            .setOrganizationName("org0")
+            .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
     this.blankFileParams =
         new FileParams()

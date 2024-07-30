@@ -1,15 +1,15 @@
 package File;
 
+import java.io.InputStream;
+import java.util.Date;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
-
-import java.io.InputStream;
-import java.util.Date;
-import java.util.Objects;
+import org.json.JSONObject;
 
 @Slf4j
 public class File {
@@ -27,9 +27,7 @@ public class File {
   @BsonProperty(value = "annotated")
   private boolean isAnnotated;
 
-  @Getter
-  @Setter
-  private IdCategoryType idCategory;
+  @Getter @Setter private IdCategoryType idCategory;
 
   @Getter @Setter private String contentType;
 
@@ -63,6 +61,7 @@ public class File {
       boolean isAnnotated,
       String contentType) {
     this.id = new ObjectId();
+    this.fileId = new ObjectId();
     this.username = username;
     this.uploadedAt = uploadedAt;
     this.fileStream = fileStream;
@@ -110,9 +109,9 @@ public class File {
   public String toString() {
     return "File{"
         + "id="
-        + id
+        + id.toString()
         + ", fileId="
-        + fileId
+        + fileId.toString()
         + ", filename='"
         + filename
         + '\''
@@ -134,6 +133,19 @@ public class File {
         + contentType
         + '\''
         + '}';
+  }
+
+  public JSONObject toJsonView() {
+    JSONObject fileMetadata =
+        new JSONObject()
+            .put("uploader", this.username)
+            .put("organizationName", this.organizationName)
+            .put("id", this.getId().toString())
+            .put("uploadDate", this.uploadedAt)
+            .put("idCategory", this.idCategory)
+            .put("filename", this.filename)
+            .put("annotated", this.isAnnotated);
+    return fileMetadata;
   }
 
   /*

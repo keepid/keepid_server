@@ -21,7 +21,9 @@ import PDF.Services.V2Services.FilterPDFServiceV2;
 import PDF.Services.V2Services.UploadPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.TestUtils;
+import User.User;
 import User.UserType;
+import Validation.ValidationException;
 import com.mongodb.client.MongoDatabase;
 import java.io.File;
 import java.io.IOException;
@@ -91,6 +93,66 @@ public class FilterPDFServiceUnitTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    try {
+      this.userDao.save(
+          new User(
+              "testcFirstName",
+              "testcLastName",
+              "12-12-2012",
+              "testcemail@keep.id",
+              "2652623333",
+              "org2",
+              "1 Keep Ave",
+              "Keep",
+              "PA",
+              "11111",
+              false,
+              "client1",
+              "clientPass123",
+              UserType.Developer));
+    } catch (ValidationException e) {
+      throw new RuntimeException(e);
+    }
+    try {
+      this.userDao.save(
+          new User(
+              "testtFirstName",
+              "testtLastName",
+              "12-12-2012",
+              "testtemail@keep.id",
+              "2652623333",
+              "org2",
+              "1 Keep Ave",
+              "Keep",
+              "PA",
+              "11111",
+              false,
+              "worker1",
+              "workerPass123",
+              UserType.Developer));
+    } catch (ValidationException e) {
+      throw new RuntimeException(e);
+    }
+    try {
+      userDao.save(
+          new User(
+              "testFirstName",
+              "testLastName",
+              "12-12-2012",
+              "testemail@keep.id",
+              "2652623333",
+              "org0",
+              "1 Keep Ave",
+              "Keep",
+              "PA",
+              "11111",
+              false,
+              "dev1",
+              "devPass123",
+              UserType.Developer));
+    } catch (ValidationException e) {
+      throw new RuntimeException(e);
+    }
     this.clientOneUserParams =
         new UserParams()
             .setUsername("client1")
@@ -104,7 +166,7 @@ public class FilterPDFServiceUnitTests {
     this.developerUserParams =
         new UserParams()
             .setUsername("dev1")
-            .setOrganizationName("org0")
+            .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
     this.uploadFileOneFileParams =
         new FileParams()

@@ -13,7 +13,7 @@ public enum FileMessage implements Message {
   SUCCESS("SUCCESS:Success."),
   NO_SUCH_FILE("NO_SUCH_FILE:PDF does not exist"),
   ENCRYPTION_ERROR("ENCRYPTION_ERROR:Error encrypting/decrypting"),
-  FILE_EXISTS("ERROR: File already exists!");
+  FILE_EXISTS("FILE_EXISTS: File already exists!");
 
   private String errorMessage;
   private String fileId; // optional
