@@ -32,99 +32,147 @@ public class SubmitToLobMailService implements Service {
   private Mail mail;
   private String lobApiKey;
   private FileDao fileDao;
+  private String username;
+  private boolean isCheck;
 
   public SubmitToLobMailService(
       FileDao fileDao,
       MailDao mailDao,
       FormMailAddress formMailAddress,
+      String fileId,
       String username,
       String loggedInUser,
-      String lobApiKey) {
+      String lobApiKey,
+      boolean isCheck) {
 
-    Mail mail =
-        new Mail(new ObjectId("668f41c2248acc02d93f157e"), formMailAddress, username, loggedInUser);
+    Mail mail = new Mail(new ObjectId(fileId), formMailAddress, username, loggedInUser);
     this.mail = mail;
     this.lobApiKey = lobApiKey;
     this.mailDao = mailDao;
     this.fileDao = fileDao;
+    this.username = username;
     mailDao.save(mail); // Save created mail
+    this.isCheck = isCheck;
   }
 
   @Override
   public Message executeAndGetResponse() throws Exception {
-    System.out.println("Here1");
     ApiClient lobClient = Configuration.getDefaultApiClient();
     HttpBasicAuth basicAuth = (HttpBasicAuth) lobClient.getAuthentication("basicAuth");
     basicAuth.setUsername(this.lobApiKey);
+    this.printAllFiles(this.username);
 
-    AddressesApi addressesApi = new AddressesApi(lobClient);
-    LettersApi lettersApi = new LettersApi(lobClient);
-    AddressEditable toAddress = new AddressEditable();
-    ChecksApi checksApi = new ChecksApi(lobClient);
+    if (isCheck) {
+      ChecksApi checksApi = new ChecksApi(lobClient);
+      FormMailAddress mailAddress = mail.getMailingAddress();
 
-    FormMailAddress mailAddress = mail.getMailingAddress();
-    toAddress.setName(mailAddress.getNameForCheck());
-    toAddress.setAddressLine1(mailAddress.getStreet1());
-    if (mailAddress.getStreet2() != "") {
-      toAddress.setAddressLine2(mailAddress.getStreet2());
+      AddressEditable toAddress = new AddressEditable(); // build toAddress
+      toAddress.setName(mailAddress.getNameForCheck());
+      toAddress.setAddressLine1(mailAddress.getStreet1());
+      if (mailAddress.getStreet2() != "") {
+        toAddress.setAddressLine2(mailAddress.getStreet2());
+      }
+      toAddress.setAddressState(mailAddress.getState());
+      toAddress.setAddressCity(mailAddress.getCity());
+      toAddress.setAddressZip(mailAddress.getZipcode());
+      toAddress.setDescription(mailAddress.getDescription());
+      toAddress.setCompany(mailAddress.getOffice_name());
+
+      CheckEditable checkEditable = new CheckEditable();
+      checkEditable.setBankAccount("bank_8ed776f222c2985");
+      checkEditable.setFrom("adr_13508cc9d5747779");
+      checkEditable.setAmount(39.5F);
+      checkEditable.setMetadata(
+          Map.of(
+              "Mail Username",
+              mail.getTargetUsername(),
+              "Mail Requestor",
+              mail.getRequesterUsername(),
+              "Mail ID:",
+              mail.getId().toString()));
+      checkEditable.setMemo("Application Fee");
+      checkEditable.setTo(toAddress);
+
+      System.out.println("Mail File id: " + mail.getFileId());
+      File file = fileDao.get(mail.getFileId()).orElseThrow();
+      System.out.println("Filename: " + file.getFilename());
+      System.out.println("File id: " + file.getId());
+      System.out.println("File file id: " + file.getFileId());
+
+      byte[] pdfData = IOUtils.toByteArray(fileDao.getStream(file.getId()).orElseThrow());
+      String uri = uploadFileToGCS(pdfData, mail.getId().toString());
+
+      checkEditable.setAttachment(uri);
+
+      Check checkAndLetter =
+          checksApi.create(checkEditable, mail.getTargetUsername() + mail.getId().toString());
+      this.mail.setLobId(checkAndLetter.getId());
+      this.mail.setMailStatus(MailStatus.MAILED);
+      this.mail.setLobCreatedAt(DateTimeUtils.toDate(checkAndLetter.getDateCreated().toInstant()));
+      mailDao.update(this.mail);
+      return MailMessage.MAIL_SUCCESS;
+    } else {
+      AddressesApi addressesApi = new AddressesApi(lobClient);
+      AddressEditable toAddress = new AddressEditable();
+      LettersApi lettersApi = new LettersApi(lobClient);
+      FormMailAddress mailAddress = mail.getMailingAddress();
+      toAddress.setName(mailAddress.getNameForCheck());
+      toAddress.setAddressLine1(mailAddress.getStreet1());
+      if (mailAddress.getStreet2() != "") {
+        toAddress.setAddressLine2(mailAddress.getStreet2());
+      }
+      toAddress.setAddressState(mailAddress.getState());
+      toAddress.setAddressCity(mailAddress.getCity());
+      toAddress.setAddressZip(mailAddress.getZipcode());
+      toAddress.setDescription(mailAddress.getDescription());
+      toAddress.setCompany(mailAddress.getOffice_name());
+
+      CheckEditable checkEditable = new CheckEditable();
+      checkEditable.setBankAccount("bank_8ed776f222c2985");
+      checkEditable.setFrom("adr_13508cc9d5747779");
+      checkEditable.setAmount(39.5F);
+      checkEditable.setMetadata(
+          Map.of(
+              "Mail Username",
+              mail.getTargetUsername(),
+              "Mail Requestor",
+              mail.getRequesterUsername(),
+              "Mail ID:",
+              mail.getId().toString()));
+      checkEditable.setMemo("Application Fee");
+      checkEditable.setTo(toAddress);
+
+      System.out.println("Mail File id: " + mail.getFileId());
+      File file = fileDao.get(mail.getFileId()).orElseThrow();
+      System.out.println("Filename: " + file.getFilename());
+      System.out.println("File id: " + file.getId());
+      System.out.println("File file id: " + file.getFileId());
+
+      byte[] pdfData = IOUtils.toByteArray(fileDao.getStream(file.getId()).orElseThrow());
+      String uri = uploadFileToGCS(pdfData, mail.getId().toString());
+
+      checkEditable.setAttachment(uri);
+
+      Check checkAndLetter =
+          checksApi.create(checkEditable, mail.getTargetUsername() + mail.getId().toString());
+      this.mail.setLobId(checkAndLetter.getId());
+      this.mail.setMailStatus(MailStatus.MAILED);
+      this.mail.setLobCreatedAt(DateTimeUtils.toDate(checkAndLetter.getDateCreated().toInstant()));
+      mailDao.update(this.mail);
+      return MailMessage.MAIL_SUCCESS;
     }
-    toAddress.setAddressState(mailAddress.getState());
-    toAddress.setAddressCity(mailAddress.getCity());
-    toAddress.setAddressZip(mailAddress.getZipcode());
-    toAddress.setDescription(mailAddress.getDescription());
-    toAddress.setCompany(mailAddress.getOffice_name());
+    LettersApi lettersApi = new LettersApi(lobClient);
 
-    Address from = addressesApi.get("adr_13508cc9d5747779"); // sender address id on lob account
-    AddressEditable fromEditable = new AddressEditable();
-    fromEditable.setName(from.getName());
-    fromEditable.setAddressLine1(from.getAddressLine1());
-    fromEditable.setAddressLine2(from.getAddressLine2());
-    fromEditable.setAddressState(from.getAddressState());
-    fromEditable.setAddressCity(from.getAddressCity());
-    fromEditable.setAddressZip(from.getAddressZip());
-    fromEditable.setDescription(from.getDescription());
-    fromEditable.setCompany(from.getCompany());
+    return MailMessage.FAILED_WHEN_SENDING_MAIL;
+  }
 
-    CheckEditable checkEditable = new CheckEditable();
-    checkEditable.setBankAccount("bank_8ed776f222c2985");
-    checkEditable.setFrom("adr_13508cc9d5747779");
-    checkEditable.setAmount(39.5F);
-    checkEditable.setMetadata(
-        Map.of(
-            "Mail Username",
-            mail.getTargetUsername(),
-            "Mail Requestor",
-            mail.getRequesterUsername(),
-            "Mail ID:",
-            mail.getId().toString()));
-    checkEditable.setMemo("Application Fee");
-    checkEditable.setTo(toAddress);
+  private void printAllFiles(String username) {
     for (String filename :
-        fileDao.getAll("SAMPLE-CLIENT").stream()
+        fileDao.getAll(username).stream()
             .map(x -> x.getFilename() + ", " + x.getFileId().toString())
             .collect(Collectors.toList())) {
-      System.out.println(filename);
+      System.out.println("Filename: " + filename);
     }
-    System.out.println("Here3: " + mail.getFileId());
-    File file = fileDao.get(new ObjectId("668f41c2248acc02d93f157e")).orElseThrow();
-    System.out.println("Filename: " + file.getFilename());
-
-    byte[] pdfData =
-        IOUtils.toByteArray(
-            fileDao.getStream(new ObjectId("668f41c2248acc02d93f157e")).orElseThrow());
-    String uri = uploadFileToGCS(pdfData, mail.getId().toString());
-    System.out.println("Here4: " + uri);
-
-    checkEditable.setAttachment(uri);
-
-    Check checkAndLetter =
-        checksApi.create(checkEditable, mail.getTargetUsername() + mail.getId().toString());
-    this.mail.setLobId(checkAndLetter.getId());
-    this.mail.setMailStatus(MailStatus.MAILED);
-    this.mail.setLobCreatedAt(DateTimeUtils.toDate(checkAndLetter.getDateCreated().toInstant()));
-    mailDao.update(this.mail);
-    return MailMessage.MAIL_SUCCESS;
-    //      return MailMessage.FAILED_WHEN_SENDING_MAIL;
   }
 
   private String uploadFileToGCS(byte[] fileData, String fileId) throws Exception {
