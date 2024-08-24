@@ -1,5 +1,8 @@
 package PDF.Services.CrudServices;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+
 import Config.Message;
 import Config.Service;
 import PDF.PDFType;
@@ -10,14 +13,10 @@ import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.model.Filters;
+import java.util.Objects;
 import org.bson.conversions.Bson;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.Objects;
-
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
 
 public class GetFilesInformationPDFService implements Service {
   MongoDatabase db;
@@ -84,6 +83,30 @@ public class GetFilesInformationPDFService implements Service {
     } catch (Exception e) {
       return PdfMessage.INVALID_PARAMETER;
     }
+  }
+
+  // The only field that matters for this is pdfType
+  public JSONArray mongodbGetAllFiles() {
+    JSONArray files = new JSONArray();
+    GridFSBucket gridBucket = GridFSBuckets.create(db, pdfType.toString());
+    for (GridFSFile grid_out : gridBucket.find()) {
+      assert grid_out.getMetadata() != null;
+      String uploaderUsername = grid_out.getMetadata().getString("uploader");
+      JSONObject fileMetadata =
+          new JSONObject()
+              .put("uploader", uploaderUsername)
+              .put("organizationName", grid_out.getMetadata().getString("organizationName"))
+              .put("id", grid_out.getId().asObjectId().getValue().toString())
+              .put("uploadDate", grid_out.getMetadata().getString("upload_date"))
+              .put("idCategory", grid_out.getMetadata().getString("idCategory"))
+              .put("annotated", annotated);
+      fileMetadata.put("filename", grid_out.getMetadata().getString("title"));
+      if (pdfType.equals(PDFType.BLANK_FORM)) {
+        fileMetadata.put("annotated", grid_out.getMetadata().getBoolean("annotated"));
+      }
+      files.put(fileMetadata);
+    }
+    return files;
   }
 
   public Message mongodbGetAllFiles(Bson filter) {

@@ -90,7 +90,8 @@ public class AppConfig {
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
     MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
-    V2BackfillController backfillController = new V2BackfillController(db, fileDao, userDao);
+    V2BackfillController backfillController =
+        new V2BackfillController(db, fileDao, userDao, orgDao);
     PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
@@ -183,7 +184,7 @@ public class AppConfig {
     app.post("/get-all-activities", activityController.findMyActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
-    app.get("/backfill", backfillController.backfillSingleFile);
+    app.post("/backfill", backfillController.backfillAllFiles);
 
     /* --------------- PRODUCTION API --------------- */
 
