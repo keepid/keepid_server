@@ -5,7 +5,6 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.Mail.MailDao;
 import Mail.Services.SubmitToLobMailService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Handler;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +43,7 @@ public class MailController {
           addressJson.put("city", address.getCity());
           addressJson.put("state", address.getState());
           addressJson.put("zipcode", address.getZipcode());
+          addressJson.put("check_amount", address.getMaybeCheckAmount().toString());
           addressJson.put("acceptable_states", address.getAcceptable_states());
           addressJson.put("acceptable_counties", address.getAcceptable_counties());
           response.put(address.name(), addressJson);
@@ -54,21 +54,17 @@ public class MailController {
   public Handler saveMail =
       ctx -> {
         JSONObject request = new JSONObject(ctx.body());
-        ObjectMapper objectMapper = new ObjectMapper();
         String username = request.getString("username");
         String loggedInUser = ctx.sessionAttribute("username");
 
         System.out.println("ADDRESS: " + request.getJSONObject("mailAddress").toString());
+
         FormMailAddress formMailAddress = FormMailAddress.PA_DRIVERS_LICENSE;
         String fileId = request.getString("fileId");
         SubmitToLobMailService submitToLobMailService =
             new SubmitToLobMailService(
-                fileDao, mailDao, formMailAddress, username, loggedInUser, lobApiKey);
+                fileDao, mailDao, formMailAddress, fileId, username, loggedInUser, lobApiKey);
         Message response = submitToLobMailService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
-        //        } catch (Exception e) {
-        //          Message response = MailMessage.FAILED_WHEN_MAPPING_FORM_MAIL_ADDRESS;
-        //          ctx.result(response.toJSON().toString());
-        //        }
       };
 }
