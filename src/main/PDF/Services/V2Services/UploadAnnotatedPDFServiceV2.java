@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
@@ -51,7 +52,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   private List<FormQuestion> formQuestions;
   private JSONObject userInfo;
   private ObjectId uploadedFileId;
-  private String fileOrganizationName;
+  //  private String fileOrganizationName;
 
   public UploadAnnotatedPDFServiceV2(
       FileDao fileDao,
@@ -69,7 +70,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     this.fileName = fileParams.getFileName();
     this.fileContentType = fileParams.getFileContentType();
     this.fileStream = fileParams.getFileStream();
-    this.fileOrganizationName = fileParams.getFileOrgName();
+    //    this.fileOrganizationName = fileParams.getFileOrgName();
     this.encryptionController = encryptionController;
   }
 
@@ -152,7 +153,10 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     String questionName = field.getFullyQualifiedName();
     String questionText = questionName;
     String answerText = "";
-    List<String> options = new LinkedList<>(field.getOnValues());
+    List<String> options = new LinkedList<>();
+    for (String s : field.getOnValues()) {
+      options.add(s.replace(".", ""));
+    }
     String defaultValue = "Off";
     boolean required = field.isRequired();
     int numLines = options.size();
@@ -209,7 +213,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     ObjectId id = new ObjectId();
     FieldType type;
     String questionName = field.getFullyQualifiedName();
-    String questionText = null;
+    String questionText = "";
     if (field.isReadOnly()) {
       type = FieldType.READ_ONLY_FIELD;
       String fieldValue = field.getValue();
@@ -247,46 +251,46 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
   }
 
   // Conditional fields may be deprecated from previous PdfController
-  public void setMatchedAndConditionalFields(FormQuestion formQuestion) throws Exception {
-    String questionName = formQuestion.getQuestionName();
-    String[] splitQuestionName = questionName.split(":");
-    if (splitQuestionName.length != 1
-        && splitQuestionName.length != 2
-        && splitQuestionName.length != 3) {
-      throw new Exception("Invalid number of colons in questionName");
-    }
-
-    formQuestion.setQuestionText(splitQuestionName[0]);
-    if (splitQuestionName.length == 1) {
-      return;
-    }
-    String fieldTypeIndicatorString = splitQuestionName[1];
-    if (fieldTypeIndicatorString.startsWith("+")) {
-      // Positively linked field
-      formQuestion.setConditionalType("POSITIVE");
-      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
-    } else if (fieldTypeIndicatorString.startsWith("-")) {
-      // Negatively linked field
-      formQuestion.setConditionalType("NEGATIVE");
-      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
-    } else if (fieldTypeIndicatorString.equals("anyDate")) {
-      // Make it a date field that can be selected by the client
-      formQuestion.setType(FieldType.DATE_FIELD);
-    } else if (fieldTypeIndicatorString.equals("currentDate")) {
-      // Make a date field with the current date that cannot be changed (value set on frontend)
-      formQuestion.setType(FieldType.DATE_FIELD);
-      formQuestion.setMatched(true);
-    } else if (fieldTypeIndicatorString.equals("signature")) {
-      // Signatures not handled in first round of form completion
-      formQuestion.setType(FieldType.SIGNATURE);
-    } else if (this.userInfo.has(fieldTypeIndicatorString)) {
-      // Field has a matched database variable, so make that the autofilled value
-      formQuestion.setMatched(true);
-      formQuestion.setDefaultValue((String) this.userInfo.get(fieldTypeIndicatorString));
-    } else {
-      throw new Exception("FieldTypeIndicatorString invalid");
-    }
-  }
+  //  public void setMatchedAndConditionalFields(FormQuestion formQuestion) throws Exception {
+  //    String questionName = formQuestion.getQuestionName();
+  //    String[] splitQuestionName = questionName.split(":");
+  //    if (splitQuestionName.length != 1
+  //        && splitQuestionName.length != 2
+  //        && splitQuestionName.length != 3) {
+  //      throw new Exception("Invalid number of colons in questionName");
+  //    }
+  //
+  //    formQuestion.setQuestionText(splitQuestionName[0]);
+  //    if (splitQuestionName.length == 1) {
+  //      return;
+  //    }
+  //    String fieldTypeIndicatorString = splitQuestionName[1];
+  //    if (fieldTypeIndicatorString.startsWith("+")) {
+  //      // Positively linked field
+  //      formQuestion.setConditionalType("POSITIVE");
+  //      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+  //    } else if (fieldTypeIndicatorString.startsWith("-")) {
+  //      // Negatively linked field
+  //      formQuestion.setConditionalType("NEGATIVE");
+  //      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+  //    } else if (fieldTypeIndicatorString.equals("anyDate")) {
+  //      // Make it a date field that can be selected by the client
+  //      formQuestion.setType(FieldType.DATE_FIELD);
+  //    } else if (fieldTypeIndicatorString.equals("currentDate")) {
+  //      // Make a date field with the current date that cannot be changed (value set on frontend)
+  //      formQuestion.setType(FieldType.DATE_FIELD);
+  //      formQuestion.setMatched(true);
+  //    } else if (fieldTypeIndicatorString.equals("signature")) {
+  //      // Signatures not handled in first round of form completion
+  //      formQuestion.setType(FieldType.SIGNATURE);
+  //    } else if (this.userInfo.has(fieldTypeIndicatorString)) {
+  //      // Field has a matched database variable, so make that the autofilled value
+  //      formQuestion.setMatched(true);
+  //      formQuestion.setDefaultValue((String) this.userInfo.get(fieldTypeIndicatorString));
+  //    } else {
+  //      throw new Exception("FieldTypeIndicatorString invalid");
+  //    }
+  //  }
 
   public FormQuestion generateFormQuestionFromTerminalField(PDField field) throws Exception {
     FormQuestion generatedFormQuestion = null;
@@ -312,11 +316,12 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
       throw new Exception("Failed to generate FormQuestion");
     }
 
-    try {
-      setMatchedAndConditionalFields(generatedFormQuestion);
-    } catch (Exception e) {
-      throw new Exception("Failed to generate matched and conditional fields: " + e.getMessage());
-    }
+    //    try {
+    //      setMatchedAndConditionalFields(generatedFormQuestion);
+    //    } catch (Exception e) {
+    //      throw new Exception("Failed to generate matched and conditional fields: " +
+    // e.getMessage());
+    //    }
     return generatedFormQuestion;
   }
 
@@ -347,17 +352,24 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             FileType.FORM,
             IdCategoryType.NONE,
             this.fileName,
-            this.fileOrganizationName,
+            this.organizationName,
+            //            this.fileOrganizatiofileOrganizationNamenName,
             true,
             this.fileContentType);
-    ObjectId fileId = file.getId();
+
     this.formQuestions = new LinkedList<FormQuestion>();
     try {
       generateFormQuestionFromFields(acroForm.getFields());
     } catch (Exception e) {
       return new PdfAnnotationError(e.getMessage());
     }
-    FormSection body = new FormSection("Form Body", "Form Body", new LinkedList<>(), formQuestions);
+    PDDocumentInformation documentInformation = pdfDocument.getDocumentInformation();
+    FormSection body =
+        new FormSection(
+            Objects.toString(documentInformation.getTitle(), ""),
+            Objects.toString(documentInformation.getSubject(), ""),
+            new LinkedList<>(),
+            formQuestions);
     Form form =
         new Form(
             this.username,
@@ -378,8 +390,9 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
             body,
             new ObjectId(),
             "");
-    form.setFileId(fileId);
     fileDao.save(file);
+    ObjectId fileId = file.getId();
+    form.setFileId(fileId);
     formDao.save(form);
     this.uploadedFileId = file.getId();
     return PdfMessage.SUCCESS;

@@ -37,8 +37,8 @@ public class OptionalUserInformationController {
                 req.getString("middleName"),
                 req.getString("lastName"),
                 req.getString("ssn"),
-                new SimpleDateFormat("yyyy MM dd")
-                    .parse(req.getString("birthDate")), // string to date with format yyyy mm dd
+                new SimpleDateFormat("yyyy-MM-dd")
+                    .parse(req.getString("birthDate")), // string to date with format yyyy-mm-dd
                 // Parameters for BasicInfo
                 req.getString("genderAssignedAtBirth"),
                 req.getString("emailAddress"),

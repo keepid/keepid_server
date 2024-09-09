@@ -28,6 +28,7 @@ import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
+import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
 import Security.EncryptionTools;
@@ -90,7 +91,7 @@ public class AppConfig {
     BillingController billingController = new BillingController();
     MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
-
+    PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -124,6 +125,16 @@ public class AppConfig {
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
+
+    /* -------------- PDF CONTROLLER v2 --------------------- */
+    app.post("/delete-pdf-2", pdfControllerV2.deletePDF);
+    app.post("/download-pdf-2", pdfControllerV2.downloadPDF);
+    app.post("/filter-pdf-2", pdfControllerV2.filterPDF);
+    app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
+    app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
+    app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/get-questions-2", pdfControllerV2.getQuestions);
+    app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

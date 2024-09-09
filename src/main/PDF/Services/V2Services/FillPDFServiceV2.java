@@ -71,8 +71,7 @@ public class FillPDFServiceV2 implements Service {
 
   // FILE STREAM MUST BE CLOSED EXTERNALLY
   public InputStream getFilledFileStream() {
-    return Objects.requireNonNull(
-        new ByteArrayInputStream(this.filledFileOutputStream.toByteArray()));
+    return new ByteArrayInputStream(this.filledFileOutputStream.toByteArray());
   }
 
   public File getFilledFile() {
@@ -108,28 +107,28 @@ public class FillPDFServiceV2 implements Service {
     return null;
   }
 
-  public void fillInSignature(PDSignatureField signatureField) throws IOException {
-    PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(this.signatureStream);
-    visibleSignDesigner.zoom(0);
-    PDVisibleSigProperties visibleSigProperties =
-        new PDVisibleSigProperties()
-            .visualSignEnabled(true)
-            .setPdVisibleSignature(visibleSignDesigner);
-    visibleSigProperties.buildSignature();
-
-    SignatureOptions signatureOptions = new SignatureOptions();
-    signatureOptions.setVisualSignature(visibleSigProperties.getVisibleSignature());
-
-    PDSignature signature = new PDSignature();
-    signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
-    signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
-    signature.setName(username);
-    signature.setSignDate(Calendar.getInstance());
-
-    signatureField.setValue(signature);
-
-    this.pdfDocument.addSignature(signature, signatureOptions);
-  }
+  //  public void fillInSignature(PDSignatureField signatureField) throws IOException {
+  //    PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(this.signatureStream);
+  //    visibleSignDesigner.zoom(0);
+  //    PDVisibleSigProperties visibleSigProperties =
+  //        new PDVisibleSigProperties()
+  //            .visualSignEnabled(true)
+  //            .setPdVisibleSignature(visibleSignDesigner);
+  //    visibleSigProperties.buildSignature();
+  //
+  //    SignatureOptions signatureOptions = new SignatureOptions();
+  //    signatureOptions.setVisualSignature(visibleSigProperties.getVisibleSignature());
+  //
+  //    PDSignature signature = new PDSignature();
+  //    signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
+  //    signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
+  //    signature.setName(username);
+  //    signature.setSignDate(Calendar.getInstance());
+  //
+  //    signatureField.setValue(signature);
+  //
+  //    this.pdfDocument.addSignature(signature, signatureOptions);
+  //  }
 
   public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
       throws IOException {
@@ -185,8 +184,8 @@ public class FillPDFServiceV2 implements Service {
           field.setValue(value);
         }
       } else if (field instanceof PDSignatureField) {
-        fillInSignature((PDSignatureField) field);
-        filledFormNewQuestion.setAnswerText("Signed by " + this.username);
+        // Handled in signPDF
+        continue;
       }
       filledFormBodyQuestions.add(filledFormNewQuestion);
     }
@@ -205,21 +204,69 @@ public class FillPDFServiceV2 implements Service {
     } catch (IOException e) {
       return PdfMessage.INVALID_PDF;
     }
-    pdfDocument.setAllSecurityToBeRemoved(true);
-    PDAcroForm acroForm = pdfDocument.getDocumentCatalog().getAcroForm();
+    this.pdfDocument.setAllSecurityToBeRemoved(true);
+    PDAcroForm acroForm = this.pdfDocument.getDocumentCatalog().getAcroForm();
     if (acroForm == null) {
       return PdfMessage.INVALID_PDF;
     }
     try {
       setPDFFieldsFromFormQuestions(formQuestions, acroForm);
+      signPDF();
+
       this.filledFileOutputStream = new ByteArrayOutputStream();
-      pdfDocument.save(this.filledFileOutputStream);
-      pdfDocument.close();
+      this.pdfDocument.save(this.filledFileOutputStream);
+      this.pdfDocument.close();
       this.filledFileStream = new ByteArrayInputStream(this.filledFileOutputStream.toByteArray());
       return null;
     } catch (Exception e) {
       return PdfMessage.SERVER_ERROR;
     }
+  }
+
+  public void signPDF() throws IOException {
+    PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(this.signatureStream);
+    visibleSignDesigner.zoom(0);
+    PDVisibleSigProperties visibleSigProperties =
+        new PDVisibleSigProperties()
+            .visualSignEnabled(true)
+            .setPdVisibleSignature(visibleSignDesigner);
+    visibleSigProperties.buildSignature();
+
+    SignatureOptions signatureOptions = new SignatureOptions();
+    signatureOptions.setVisualSignature(visibleSigProperties.getVisibleSignature());
+
+    PDSignature signature = new PDSignature();
+    signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
+    signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
+    signature.setName(username);
+    signature.setSignDate(Calendar.getInstance());
+
+    for (PDSignatureField signatureField : findSignatureFields()) {
+      signatureField.setValue(signature);
+    }
+
+    this.pdfDocument.addSignature(signature, signatureOptions);
+  }
+
+  public List<PDSignatureField> findSignatureFields() {
+    List<PDSignatureField> signatureFields = new LinkedList<>();
+    List<PDField> fields = new LinkedList<>();
+    fields.addAll(this.pdfDocument.getDocumentCatalog().getAcroForm().getFields());
+    while (!fields.isEmpty()) {
+      PDField field = fields.get(0);
+      if (field instanceof PDNonTerminalField) {
+        List<PDField> childrenFields = ((PDNonTerminalField) field).getChildren();
+        fields.addAll(childrenFields);
+      } else {
+        if (field instanceof PDSignatureField) {
+          signatureFields.add((PDSignatureField) field);
+        }
+      }
+
+      // Remove field just gotten so we do not get it again
+      fields.remove(0);
+    }
+    return signatureFields;
   }
 
   public Message createNewFileAndForm() {
