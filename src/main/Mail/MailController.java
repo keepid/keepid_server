@@ -5,7 +5,9 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.Mail.MailDao;
 import Mail.Services.SubmitToLobMailService;
+import Security.EncryptionController;
 import io.javalin.http.Handler;
+import java.util.Arrays;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -15,10 +17,16 @@ public class MailController {
   private MailDao mailDao;
   private FileDao fileDao;
   private String lobApiKey;
+  private EncryptionController encryptionController;
 
-  public MailController(MailDao mailDao, FileDao fileDao, DeploymentLevel deploymentLevel) {
+  public MailController(
+      MailDao mailDao,
+      FileDao fileDao,
+      EncryptionController encryptionController,
+      DeploymentLevel deploymentLevel) {
     this.mailDao = mailDao;
     this.fileDao = fileDao;
+    this.encryptionController = encryptionController;
     if (deploymentLevel == DeploymentLevel.PRODUCTION
         || deploymentLevel == DeploymentLevel.STAGING) {
       this.lobApiKey = Objects.requireNonNull(System.getenv("LOB_API_KEY_PROD"));
@@ -56,14 +64,24 @@ public class MailController {
         JSONObject request = new JSONObject(ctx.body());
         String username = request.getString("username");
         String loggedInUser = ctx.sessionAttribute("username");
-
-        System.out.println("ADDRESS: " + request.getJSONObject("mailAddress").toString());
-
-        FormMailAddress formMailAddress = FormMailAddress.PA_DRIVERS_LICENSE;
+        String formMailAddressString = request.getString("mailKey");
+        FormMailAddress formMailAddress =
+            Arrays.stream(FormMailAddress.values())
+                .filter(e -> e.name().equalsIgnoreCase(formMailAddressString))
+                .findFirst()
+                .orElseThrow();
+        System.out.println("ADDRESS: " + formMailAddress);
         String fileId = request.getString("fileId");
         SubmitToLobMailService submitToLobMailService =
             new SubmitToLobMailService(
-                fileDao, mailDao, formMailAddress, fileId, username, loggedInUser, lobApiKey);
+                fileDao,
+                mailDao,
+                formMailAddress,
+                fileId,
+                username,
+                loggedInUser,
+                lobApiKey,
+                encryptionController);
         Message response = submitToLobMailService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
       };

@@ -31,6 +31,7 @@ import PDF.PdfController;
 import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
+import Security.EncryptionController;
 import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
@@ -41,6 +42,7 @@ import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
 import java.util.HashMap;
 import java.util.Optional;
+import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
 
 public class AppConfig {
@@ -48,6 +50,7 @@ public class AppConfig {
   public static int SERVER_PORT = Integer.parseInt(System.getenv("PORT"));
   public static int SERVER_TEST_PORT = Integer.parseInt(System.getenv("TEST_PORT"));
 
+  @SneakyThrows
   public static Javalin appFactory(DeploymentLevel deploymentLevel) {
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
@@ -89,7 +92,8 @@ public class AppConfig {
     OptionalUserInformationController optionalUserInformationController =
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
-    MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
+    MailController mailController =
+        new MailController(mailDao, fileDao, new EncryptionController(db), deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption

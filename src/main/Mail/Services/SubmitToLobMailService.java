@@ -9,6 +9,7 @@ import Mail.FormMailAddress;
 import Mail.Mail;
 import Mail.MailMessage;
 import Mail.MailStatus;
+import Security.EncryptionController;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.*;
 import com.lob.api.ApiClient;
@@ -17,6 +18,7 @@ import com.lob.api.auth.*;
 import com.lob.api.client.ChecksApi;
 import com.lob.api.client.LettersApi;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.Map;
@@ -34,6 +36,9 @@ public class SubmitToLobMailService implements Service {
   private FileDao fileDao;
   private String username;
   private FormMailAddress formMailAddress;
+  private EncryptionController encryptionController;
+
+  public final String TEAM_KEEP_ADDRESS_LOB_ID = "adr_13508cc9d5747779";
 
   public SubmitToLobMailService(
       FileDao fileDao,
@@ -42,7 +47,8 @@ public class SubmitToLobMailService implements Service {
       String fileId,
       String username,
       String loggedInUser,
-      String lobApiKey) {
+      String lobApiKey,
+      EncryptionController encryptionController) {
 
     Mail mail = new Mail(new ObjectId(fileId), formMailAddress, username, loggedInUser);
     this.mail = mail;
@@ -51,6 +57,7 @@ public class SubmitToLobMailService implements Service {
     this.fileDao = fileDao;
     this.username = username;
     this.formMailAddress = formMailAddress;
+    this.encryptionController = encryptionController;
     mailDao.save(mail); // Save created mail
   }
 
@@ -80,7 +87,7 @@ public class SubmitToLobMailService implements Service {
 
       CheckEditable checkEditable = new CheckEditable();
       checkEditable.setBankAccount("bank_8ed776f222c2985");
-      checkEditable.setFrom("adr_13508cc9d5747779");
+      checkEditable.setFrom(TEAM_KEEP_ADDRESS_LOB_ID);
       checkEditable.setAmount(mailAddress.getMaybeCheckAmount().floatValue());
       checkEditable.setMetadata(
           Map.of(
@@ -115,7 +122,7 @@ public class SubmitToLobMailService implements Service {
       AddressEditable toAddress = new AddressEditable();
       LettersApi lettersApi = new LettersApi(lobClient);
       FormMailAddress mailAddress = mail.getMailingAddress();
-      toAddress.setName(mailAddress.getNameForCheck());
+      toAddress.setName(mailAddress.getName());
       toAddress.setAddressLine1(mailAddress.getStreet1());
       if (mailAddress.getStreet2() != "") {
         toAddress.setAddressLine2(mailAddress.getStreet2());
@@ -127,8 +134,8 @@ public class SubmitToLobMailService implements Service {
       toAddress.setCompany(mailAddress.getOffice_name());
 
       LetterEditable letterEditable = new LetterEditable();
-      letterEditable.setFrom("adr_017ece949ab85eb1"); // update this to adr_017ece949ab85eb1=connors
-      // adr_13508cc9d5747779 = steffens office
+      letterEditable.setColor(false);
+      letterEditable.setFrom(TEAM_KEEP_ADDRESS_LOB_ID);
       letterEditable.setMetadata(
           Map.of(
               "Mail Username",
@@ -138,14 +145,12 @@ public class SubmitToLobMailService implements Service {
               "Mail ID:",
               mail.getId().toString()));
       letterEditable.setTo(toAddress);
-
-      System.out.println("Mail File id: " + mail.getFileId());
       File file = fileDao.get(mail.getFileId()).orElseThrow();
-      System.out.println("Filename: " + file.getFilename());
-      System.out.println("File id: " + file.getId());
-      System.out.println("File file id: " + file.getFileId());
 
-      byte[] pdfData = IOUtils.toByteArray(fileDao.getStream(file.getId()).orElseThrow());
+      InputStream decryptedInputStream =
+          this.encryptionController.decryptFile(
+              this.fileDao.getStream(file.getId()).orElseThrow(), this.username);
+      byte[] pdfData = IOUtils.toByteArray(decryptedInputStream);
       String uri = uploadFileToGCS(pdfData, mail.getId().toString());
 
       letterEditable.setFile(uri);

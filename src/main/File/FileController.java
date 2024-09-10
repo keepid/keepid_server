@@ -345,6 +345,7 @@ public class FileController {
         JSONObject req = new JSONObject(reqBody);
         JSONObject responseJSON;
         User check = GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
+        System.out.println("filetype: " + req.getString("fileType"));
         if (check == null && req.has("targetUser")) {
           log.info("Target User not Found");
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
