@@ -344,6 +344,7 @@ public class FileController {
         String reqBody = ctx.body();
         JSONObject req = new JSONObject(reqBody);
         JSONObject responseJSON;
+        System.out.println("REQ: " + req);
         User check = GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
         System.out.println("filetype: " + req.getString("fileType"));
         if (check == null && req.has("targetUser")) {
