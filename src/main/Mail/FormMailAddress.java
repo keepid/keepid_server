@@ -1,6 +1,7 @@
 package Mail;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.util.Set;
 
 public enum FormMailAddress {
@@ -14,6 +15,7 @@ public enum FormMailAddress {
       "New Castle",
       "PA",
       "16103",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_DRIVERS_LICENSE(
@@ -26,6 +28,7 @@ public enum FormMailAddress {
       "Harrisburg",
       "PA",
       "17106",
+      BigDecimal.valueOf(40.0),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_VOTER_REGISTRATION_PHIL(
@@ -38,6 +41,7 @@ public enum FormMailAddress {
       "Philadelphia",
       "PA",
       "19107",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
       ImmutableSet.of("Philadelphia")),
   PA_VOTER_REGISTRATION_MONT(
@@ -50,6 +54,7 @@ public enum FormMailAddress {
       "Norristown",
       "PA",
       "19401",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
       ImmutableSet.of("Montgomery")),
   PA_VOTER_REGISTRATION_BUCK(
@@ -62,6 +67,7 @@ public enum FormMailAddress {
       "Doylestown",
       "PA",
       "18901",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
       ImmutableSet.of("Bucks")),
   PA_VOTER_REGISTRATION_DELA(
@@ -74,6 +80,7 @@ public enum FormMailAddress {
       "Media",
       "PA",
       "19063",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
       ImmutableSet.of("Delaware")),
   PA_VOTER_REGISTRATION_CHEST(
@@ -86,8 +93,22 @@ public enum FormMailAddress {
       "West Chester",
       "PA",
       "19380",
+      BigDecimal.ZERO,
       ImmutableSet.of("PA"),
-      ImmutableSet.of("Chester"));
+      ImmutableSet.of("Chester")),
+  NY_VOTER_REGISTRATION_QUEENS(
+      "NY Voter Registration for Queens",
+      "NY Voter Registration specific to county of Queens",
+      "Queens County Board of Elections",
+      "",
+      "118-35 Queens Boulevard",
+      "11th Floor",
+      "Forest Hills",
+      "NY",
+      "11375",
+      BigDecimal.ZERO,
+      ImmutableSet.of("NY"),
+      ImmutableSet.of("Queens"));
 
   private String name;
   private String description;
@@ -98,6 +119,7 @@ public enum FormMailAddress {
   private String city;
   private String state;
   private String zipcode;
+  private BigDecimal maybeCheckAmount;
   private Set<String> acceptable_states;
   private Set<String> acceptable_counties;
 
@@ -111,6 +133,7 @@ public enum FormMailAddress {
       String city,
       String state,
       String zipcode,
+      BigDecimal maybeCheckAmount,
       Set<String> acceptable_states,
       Set<String> acceptable_counties) {
     this.name = name;
@@ -122,6 +145,7 @@ public enum FormMailAddress {
     this.city = city;
     this.state = state;
     this.zipcode = zipcode;
+    this.maybeCheckAmount = maybeCheckAmount;
     this.acceptable_states = acceptable_states;
     this.acceptable_counties = acceptable_counties;
   }
@@ -133,6 +157,7 @@ public enum FormMailAddress {
     sb.append(", description=").append(this.description);
     sb.append(", office_name=").append(this.office_name);
     sb.append(", nameForCheck=").append(this.nameForCheck);
+    sb.append(", maybeCheckAmount=").append(this.maybeCheckAmount.toString());
     sb.append(", street1=").append(this.street1);
     sb.append(", street2=").append(this.street2);
     sb.append(", city=").append(this.city);
@@ -140,6 +165,10 @@ public enum FormMailAddress {
     sb.append(", zipcode=").append(this.zipcode);
     sb.append("}");
     return sb.toString();
+  }
+
+  public BigDecimal getMaybeCheckAmount() {
+    return maybeCheckAmount;
   }
 
   public String getName() {
