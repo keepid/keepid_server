@@ -32,14 +32,14 @@ public class FileController {
   private FileDao fileDao;
   private EncryptionController encryptionController;
 
-  public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
+  public FileController(
+      MongoDatabase db,
+      UserDao userDao,
+      FileDao fileDao,
+      EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    this.encryptionController = encryptionController;
   }
 
   /*

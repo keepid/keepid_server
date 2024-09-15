@@ -12,7 +12,6 @@ import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -30,18 +29,17 @@ public class PdfControllerV2 {
   private UserDao userDao;
 
   // Needed for EncryptionController
-  private MongoDatabase db;
   private EncryptionController encryptionController;
 
-  public PdfControllerV2(FileDao fileDao, FormDao formDao, UserDao userDao, MongoDatabase db) {
+  public PdfControllerV2(
+      FileDao fileDao,
+      FormDao formDao,
+      UserDao userDao,
+      EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.userDao = userDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-      log.error("Generating encryption controller failed");
-    }
+    this.encryptionController = encryptionController;
   }
 
   public Handler deletePDF =

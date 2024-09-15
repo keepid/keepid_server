@@ -1,5 +1,7 @@
 package Form;
 
+import static com.mongodb.client.model.Filters.eq;
+
 import Config.Message;
 import Database.Form.FormDao;
 import Form.Services.DeleteFormService;
@@ -17,22 +19,17 @@ import org.bson.types.ObjectId;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.mongodb.client.model.Filters.eq;
-
 @Slf4j
 public class FormController {
   private MongoDatabase db;
   private FormDao formDao;
   private EncryptionController encryptionController;
 
-  public FormController(MongoDatabase db, FormDao formDao) {
+  public FormController(
+      MongoDatabase db, FormDao formDao, EncryptionController encryptionController) {
     this.db = db;
     this.formDao = formDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-
-    }
+    this.encryptionController = encryptionController;
   }
 
   public Handler formDelete =

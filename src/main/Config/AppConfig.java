@@ -78,13 +78,14 @@ public class AppConfig {
     //    }
 
     // We need to instantiate the controllers with the database.
+    EncryptionController encryptionController = new EncryptionController(db);
     OrganizationController orgController = new OrganizationController(db, activityDao);
     UserController userController = new UserController(userDao, tokenDao, fileDao, activityDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
-    PdfController pdfController = new PdfController(db, userDao);
-    FormController formController = new FormController(db, formDao);
-    FileController fileController = new FileController(db, userDao, fileDao);
+    PdfController pdfController = new PdfController(db, userDao, encryptionController);
+    FormController formController = new FormController(db, formDao, encryptionController);
+    FileController fileController = new FileController(db, userDao, fileDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
@@ -93,9 +94,10 @@ public class AppConfig {
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
     MailController mailController =
-        new MailController(mailDao, fileDao, new EncryptionController(db), deploymentLevel);
+        new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
-    PdfControllerV2 pdfControllerV2 = new PdfControllerV2(fileDao, formDao, userDao, db);
+    PdfControllerV2 pdfControllerV2 =
+        new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
     //    try { do not recomment this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
