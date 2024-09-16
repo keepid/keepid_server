@@ -6,6 +6,8 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.User.UserDao;
 import File.Services.*;
+import PDF.PdfMessage;
+import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
 import User.Services.GetUserInfoService;
 import User.User;
@@ -21,7 +23,6 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -117,21 +118,28 @@ public class FileController {
               UploadedFile signature = null;
               Date uploadDate =
                   Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-
+              InputStream filestreamToUpload = file.getContent();
+              String filenameToUpload = file.getFilename();
               switch (fileType) {
                 case APPLICATION_PDF:
                 case IDENTIFICATION_PDF:
                 case FORM:
                   log.info("Got PDF file to upload!");
-                  try {
-                    InputStream content = file.getContent();
-                    PDDocument pdfDocument = Loader.loadPDF(content);
-                    title = getPDFTitle(file.getFilename(), pdfDocument);
-                    content.reset();
-                    pdfDocument.close();
-                  } catch (Exception exception) {
-                    ctx.result(FileMessage.INVALID_FILE.toResponseString());
+                  if (file.getContentType().startsWith("image")) {
+                    ImageToPDFService imageToPDFService = new ImageToPDFService(filestreamToUpload);
+                    Message imageToPdfServiceResponse = imageToPDFService.executeAndGetResponse();
+                    if (imageToPdfServiceResponse == PdfMessage.INVALID_PDF) {
+                      ctx.result(imageToPdfServiceResponse.toResponseString());
+                    }
+                    filestreamToUpload = imageToPDFService.getFileStream();
+                    filenameToUpload =
+                        file.getFilename().substring(0, file.getFilename().lastIndexOf("."))
+                            + ".pdf";
                   }
+                  filestreamToUpload.reset();
+                  //                    PDDocument pdfDocument = Loader.loadPDF(filestreamToUpload);
+                  //                    title = getPDFTitle(file.getFilename(), pdfDocument);
+                  //                    pdfDocument.close();
 
                   if (toSign) {
                     signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
@@ -144,10 +152,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());
@@ -160,7 +168,7 @@ public class FileController {
                           toSign,
                           signature == null
                               ? Optional.empty()
-                              : Optional.ofNullable(signature.getContent()),
+                              : Optional.of(signature.getContent()),
                           Optional.ofNullable(encryptionController));
                   response = uploadService.executeAndGetResponse();
                   break;
@@ -170,10 +178,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());
@@ -194,10 +202,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());

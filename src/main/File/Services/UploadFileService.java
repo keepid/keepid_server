@@ -8,6 +8,15 @@ import File.FileMessage;
 import File.FileType;
 import Security.EncryptionController;
 import User.UserType;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -18,16 +27,6 @@ import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleS
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.GeneralSecurityException;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 public class UploadFileService implements Service {
@@ -68,8 +67,7 @@ public class UploadFileService implements Service {
     } else if (fileStream == null) {
       return FileMessage.INVALID_FILE;
     } else if (fileType.isPDF()) {
-      if (!fileContentType.equals("application/pdf")
-              && !fileContentType.startsWith("image")) {
+      if (!fileContentType.equals("application/pdf") && !fileContentType.startsWith("image")) {
         return FileMessage.INVALID_FILE_TYPE;
       }
       if (privilegeLevel.isEmpty()) {
