@@ -1,17 +1,16 @@
 package User.Services;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkState;
 
 @Slf4j
 public class GetUserInfoService implements Service {
@@ -40,22 +39,20 @@ public class GetUserInfoService implements Service {
     }
   }
 
-  public static User getUserFromRequest(UserDao userDao, String req) {
+  public static Optional<User> getUserFromRequest(UserDao userDao, String req) {
     log.info("Starting check for user...");
     String username;
-    User user = null;
     try {
       JSONObject reqJson = new JSONObject(req);
       if (reqJson.has("targetUser")) {
         username = reqJson.getString("targetUser");
         Optional<User> optionalUser = userDao.get(username);
-        if (optionalUser.isPresent()) user = optionalUser.get();
+        return optionalUser;
       }
     } catch (JSONException e) {
       log.error("JSON Error when reading request body ... {}", e.getMessage());
     }
-    log.info("User check completed...");
-    return user;
+    return Optional.empty();
   }
 
   public JSONObject getUserFields() {

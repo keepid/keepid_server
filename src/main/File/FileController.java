@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 @Slf4j
@@ -65,25 +64,28 @@ public class FileController {
         UserType privilegeLevel;
         Message response = null;
         UploadedFile file = ctx.uploadedFile("file");
-        JSONObject req;
-        String body = ctx.body();
+        JSONObject req = new JSONObject();
+        String body = null;
         try {
-          req = new JSONObject(body);
-        } catch (JSONException e) {
+          req.put("targetUser", ctx.formParam("targetUser"));
+          req.put("idCategory", ctx.formParam("idCategory"));
+          req.put("fileType", ctx.formParam("fileType"));
+          body = req.toString();
+        } catch (Exception e) {
+          System.out.println(e);
           req = null;
         }
-
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, body);
-        if (req != null && req.has("targetUser") && check == null) {
+        Optional<User> maybeTargetUser = GetUserInfoService.getUserFromRequest(this.userDao, body);
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target user could not be found in the database");
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
-          if (req != null && req.has("targetUser") && check != null) {
+          if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
-            username = check.getUsername();
-            organizationName = check.getOrganization();
-            privilegeLevel = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            organizationName = maybeTargetUser.get().getOrganization();
+            privilegeLevel = maybeTargetUser.get().getUserType();
             orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
           } else {
             log.info("Checking session for user.");
@@ -92,7 +94,6 @@ public class FileController {
             privilegeLevel = ctx.sessionAttribute("privilegeLevel");
             orgFlag = true;
           }
-
           if (orgFlag) {
             if (file == null) {
               log.info("File is null, invalid file!");
@@ -101,7 +102,6 @@ public class FileController {
               FileType fileType =
                   FileType.createFromString(Objects.requireNonNull(ctx.formParam("fileType")));
               log.info("Received file type of {}", fileType.toString());
-              String title = null;
               boolean annotated = false;
               IdCategoryType idCategory = IdCategoryType.NONE;
               boolean toSign = false;
@@ -243,17 +243,18 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
@@ -301,16 +302,17 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
@@ -353,18 +355,19 @@ public class FileController {
         JSONObject req = new JSONObject(reqBody);
         JSONObject responseJSON;
         System.out.println("REQ: " + req);
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
         System.out.println("filetype: " + req.getString("fileType"));
-        if (check == null && req.has("targetUser")) {
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target User not Found");
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
