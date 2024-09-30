@@ -42,7 +42,7 @@ public class Form implements Comparable<Form> {
   // The string can express more condition that true or false.
   // for example, if the conditionalFieldId is a radio button,
   // we can use the condition string to express the option
-  // that is renderes the field
+  // that is renders the field
   @BsonProperty(value = "condition")
   private String condition;
 

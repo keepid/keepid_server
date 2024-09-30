@@ -1,9 +1,8 @@
 package Form;
 
-import static com.mongodb.client.model.Filters.eq;
-
 import Config.Message;
 import Database.Form.FormDao;
+import Database.User.UserDao;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
@@ -11,9 +10,8 @@ import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONException;
@@ -21,16 +19,26 @@ import org.json.JSONObject;
 
 @Slf4j
 public class FormController {
-  private MongoDatabase db;
   private FormDao formDao;
   private EncryptionController encryptionController;
+  private UserDao userDao;
 
   public FormController(
-      MongoDatabase db, FormDao formDao, EncryptionController encryptionController) {
-    this.db = db;
+      FormDao formDao, UserDao userDao, EncryptionController encryptionController) {
     this.formDao = formDao;
+    this.userDao = userDao;
     this.encryptionController = encryptionController;
   }
+
+  //  public Handler formTest =
+  //      ctx -> {
+  //        ObjectId formId = new ObjectId("6679fc62948ca978b0d31825");
+  //        String username = "SAMPLE-CLIENT";
+  //        GetFormService formService =
+  //            new GetFormService(formDao, formId, username, UserType.Client, false);
+  //        formService.executeAndGetResponse();
+  //        System.out.println(formService.getJsonInformation());
+  //      };
 
   public Handler formDelete =
       ctx -> {
@@ -38,16 +46,16 @@ public class FormController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = userCheck(ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> targetUser = userCheck(ctx.body());
+        if (targetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (targetUser.isPresent() && req.has("targetUser")) {
             log.info("Target form found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = targetUser.get().getUsername();
+            orgName = targetUser.get().getOrganization();
+            userType = targetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
@@ -76,21 +84,20 @@ public class FormController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = userCheck(ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> targetUser = userCheck(ctx.body());
+        if (targetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target form not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (targetUser.isPresent() && req.has("targetUser")) {
             log.info("Target form found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = targetUser.get().getUsername();
+            orgName = targetUser.get().getOrganization();
+            userType = targetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
-            orgName = ctx.sessionAttribute("orgName");
             userType = ctx.sessionAttribute("privilegeLevel");
             orgFlag = true;
           }
@@ -137,17 +144,17 @@ public class FormController {
           form = null;
         }
         if (req != null) {
-          User check = userCheck(body);
-          if (req != null && req.has("targetUser") && check == null) {
+          Optional<User> check = userCheck(body);
+          if (req != null && req.has("targetUser") && check.isEmpty()) {
             log.info("Target User could not be found in the database");
             response = UserMessage.USER_NOT_FOUND;
           } else {
             boolean orgFlag;
-            if (req != null && req.has("targetUser") && check != null) {
+            if (req != null && req.has("targetUser") && check.isPresent()) {
               log.info("Target User found, setting parameters.");
-              username = check.getUsername();
-              organizationName = check.getOrganization();
-              privilegeLevel = check.getUserType();
+              username = check.get().getUsername();
+              organizationName = check.get().getOrganization();
+              privilegeLevel = check.get().getUserType();
               orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
             } else {
               username = ctx.sessionAttribute("username");
@@ -174,21 +181,15 @@ public class FormController {
         ctx.result(response.toResponseString());
       };
 
-  public User userCheck(String req) {
-    log.info("userCheck Helper started");
-    String username;
-    User user = null;
+  public Optional<User> userCheck(String req) {
     try {
       JSONObject reqJson = new JSONObject(req);
       if (reqJson.has("targetUser")) {
-        username = reqJson.getString("targetUser");
-        MongoCollection<User> userCollection = this.db.getCollection("user", User.class);
-        user = userCollection.find(eq("username", username)).first();
+        return this.userDao.get(reqJson.getString("targetUser"));
       }
     } catch (JSONException e) {
-
+      System.out.println(e);
     }
-    log.info("userCheck done");
-    return user;
+    return Optional.empty();
   }
 }
