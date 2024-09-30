@@ -131,7 +131,7 @@ public class AppConfig {
 
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
-    app.post("/delete-form/", formController.formDelete);
+    app.post("/delete-form", formController.formDelete);
 
     /* -------------- PDF CONTROLLER v2 --------------------- */
     app.post("/delete-pdf-2", pdfControllerV2.deletePDF);
