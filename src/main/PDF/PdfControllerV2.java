@@ -161,7 +161,7 @@ public class PdfControllerV2 {
           ctx.result(setUserParamsErrorMessage.toResponseString());
           return;
         }
-        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setFileParamsUploadSignedPDF(ctx);
         if (setFileParamsErrorMessage != null) {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
@@ -197,7 +197,7 @@ public class PdfControllerV2 {
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         userParams.setUserParamsFillAndUploadSignedPDF(ctx);
-        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setFileParamsFillPDF(ctx);
         if (setFileParamsErrorMessage != null) {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
@@ -400,7 +400,17 @@ public class PdfControllerV2 {
       this.fileOrgName = fileOrgName;
     }
 
-    public Message setfileParamsFillAndUploadSignedPDF(Context ctx) {
+    public Message setFileParamsFillPDF(Context ctx) {
+      try {
+        this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
+        this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+      } catch (Exception e) {
+        return PdfMessage.INVALID_PARAMETER;
+      }
+      return null;
+    }
+
+    public Message setFileParamsUploadSignedPDF(Context ctx) {
       try {
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));

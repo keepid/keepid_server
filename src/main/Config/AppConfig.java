@@ -110,29 +110,28 @@ public class AppConfig {
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
     //    app.get("/", formController.formTest);
-
-    //    app.get("/", formController.formGet);
+    // These are all deprecated and should be deleted
     /* -------------- FILE MANAGEMENT --------------------- */
-    app.post("/upload", pdfController.pdfUpload);
-    app.post("/upload-annotated", pdfController.pdfUploadAnnotated);
-    app.post("/upload-signed-pdf", pdfController.pdfSignedUpload);
-    app.post("/download", pdfController.pdfDownload);
-    app.post("/delete-document/", pdfController.pdfDelete);
-    app.post("/get-documents", pdfController.pdfGetFilesInformation);
-    app.post("/get-application-questions", pdfController.getApplicationQuestions);
-    app.post("/fill-application", pdfController.fillPDFForm);
+    //    app.post("/upload", pdfController.pdfUpload);
+    //    app.post("/upload-annotated", pdfController.pdfUploadAnnotated);
+    //    app.post("/upload-signed-pdf", pdfController.pdfSignedUpload);
+    //    app.post("/download", pdfController.pdfDownload);
+    //    app.post("/delete-document/", pdfController.pdfDelete);
+    //    app.post("/get-documents", pdfController.pdfGetFilesInformation);
+    //    app.post("/get-application-questions", pdfController.getApplicationQuestions);
+    //    app.post("/fill-application", pdfController.fillPDFForm);
 
     /* -------------- FILE MANAGEMENT v2 --------------------- */
     app.post("/upload-file", fileController.fileUpload);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
     app.post("/get-files", fileController.getFiles);
-    app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
-    app.post("/fill-form", fileController.fillPDFForm);
+    /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
+    // app.post("/fill-form", fileController.fillPDFForm);
 
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
-    app.post("/delete-form/", formController.formDelete);
+    app.post("/delete-form", formController.formDelete);
 
     /* -------------- PDF CONTROLLER v2 --------------------- */
     app.post("/delete-pdf-2", pdfControllerV2.deletePDF);
