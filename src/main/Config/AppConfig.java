@@ -84,7 +84,7 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
-    FormController formController = new FormController(db, formDao, encryptionController);
+    FormController formController = new FormController(formDao, userDao, encryptionController);
     FileController fileController = new FileController(db, userDao, fileDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
@@ -98,7 +98,7 @@ public class AppConfig {
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
-    //    try { do not recomment this block of code, this will delete and regenerate our encryption
+    //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
     //      tools.generateAndUploadKeySet();
@@ -109,7 +109,9 @@ public class AppConfig {
 
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
+    //    app.get("/", formController.formTest);
 
+    //    app.get("/", formController.formGet);
     /* -------------- FILE MANAGEMENT --------------------- */
     app.post("/upload", pdfController.pdfUpload);
     app.post("/upload-annotated", pdfController.pdfUploadAnnotated);
@@ -189,7 +191,7 @@ public class AppConfig {
     app.post("/get-all-activities", activityController.findMyActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
-    app.get("/backfill", backfillController.backfillSingleFile);
+    //    app.get("/backfill", backfillController.backfillSingleFile);
 
     /* --------------- PRODUCTION API --------------- */
 
