@@ -9,6 +9,7 @@ import Security.EncryptionController;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 
 @Slf4j
 public class V2BackfillController {
@@ -35,8 +36,14 @@ public class V2BackfillController {
         //        String fileId = "668c7c3ee603c8759aa5da4a";
         //        String username = "SAMPLE-CLIENT";
         //        String orgName = userDao.get(username).get().getOrganization();
+        JSONObject req = new JSONObject(ctx.body());
+        Boolean deleteParam = req.getBoolean("delete");
+        Boolean filterParam = req.getBoolean("filter");
+        Boolean downloadParam = req.getBoolean("download");
+        String backfillType = req.getString("backfillType");
+        String downloadStrings = req.getString("downloadStrings");
         DownloadAndReUploadPdfsService downloadAndReUploadPdfService =
-            new DownloadAndReUploadPdfsService(encryptionController, db, fileDao, userDao, orgDao);
+            new DownloadAndReUploadPdfsService(encryptionController, db, fileDao, userDao, orgDao, deleteParam, filterParam, downloadParam, backfillType, downloadStrings);
         Message response = downloadAndReUploadPdfService.executeAndGetResponse();
         ctx.result(response.toResponseString());
       };
