@@ -319,8 +319,6 @@ public class FillPDFServiceV2 implements Service {
     InputStream templateFileStream;
     try {
       templateFileStream = this.fileDao.getStream(fileObjectId).get();
-      File debugFile = this.fileDao.get(fileObjectId).get();
-      System.out.println(debugFile);
     } catch (Exception e) {
       return PdfMessage.NO_SUCH_FILE;
     }
