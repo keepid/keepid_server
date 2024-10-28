@@ -2,10 +2,13 @@ package Form;
 
 import com.google.gson.Gson;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Form implements Comparable<Form> {
@@ -183,11 +186,94 @@ public class Form implements Comparable<Form> {
   // Create a Form from a json object. Notice that
   // this is a static method
   public static Form fromJson(JSONObject source) {
-    // TODO: i think it would be good to add a better, more descriptive validator here
-    Gson gson = new Gson();
-    Form res = (Form) gson.fromJson(source.toString(), Form.class);
-    Map<String, Object> map = source.toMap(); // why is this map unused?
-    return res;
+    String username = source.getString("username");
+    Optional<String> uploaderUsername = Optional.of(source.getString("uploaderUsername"));
+    LocalDateTime uploadedAt =
+        !source.has("uploadedAt")
+            ? LocalDateTime.now()
+            : LocalDateTime.parse(
+                source.getString("uploadedAt"), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    Optional<LocalDateTime> lastModifiedAt =
+        Optional.of(
+            !source.has("lastModifiedAt")
+                ? LocalDateTime.now()
+                : LocalDateTime.parse(
+                    source.getString("lastModifiedAt"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+    FormType formType = FormType.FORM;
+    boolean isTemplate = false;
+
+    JSONObject metadata = source.getJSONObject("metadata");
+    FormMetadata formMetadata =
+        new FormMetadata(
+            metadata.getString("title"),
+            metadata.getString("description"),
+            metadata.getString("state"),
+            metadata.getString("county"),
+            Set.of(),
+            !metadata.has("lastRevisedAt")
+                ? LocalDateTime.now()
+                : LocalDateTime.parse(
+                    metadata.getString("lastRevisedAt"), DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+            List.of(),
+            0);
+
+    JSONObject body = source.getJSONObject("body");
+    String title = body.getString("title");
+    String description = body.getString("description");
+    List<FormQuestion> formQuestions = new ArrayList<>();
+    JSONArray questions = body.getJSONArray("questions");
+    for (int i = 0; i < questions.length(); i++) {
+      JSONObject question = questions.getJSONObject(i);
+      //      FormQuestion formQuestion =
+      //          new FormQuestion(
+      //              new ObjectId(),
+      //              FieldType.createFromString(question.getString("type")),
+      //              question.getString("questionName"),
+      //              question.getString("questionText"),
+      //              question.getString("answerText"),
+      //              question.getJSONArray("options").toList().stream()
+      //                  .map(x -> x.toString())
+      //                  .collect(Collectors.toList()),
+      //              question.getString("defaultValue"),
+      //              question.getBoolean("required"),
+      //              question.getInt("numLines"),
+      //              question.getBoolean("matched"),
+      //              new ObjectId(),
+      //              question.getString("conditionalType"));
+      FormQuestion formQuestion =
+          new FormQuestion(
+              new ObjectId(),
+              FieldType.createFromString(question.getString("type")),
+              question.getString("questionName"),
+              question.getString("questionText"),
+              "",
+              question.getJSONArray("options").toList().stream()
+                  .map(x -> x.toString())
+                  .collect(Collectors.toList()),
+              "",
+              true,
+              3,
+              false,
+              new ObjectId(),
+              "NONE");
+      formQuestions.add(formQuestion);
+    }
+    FormSection formBodyFlat = new FormSection(title, description, List.of(), formQuestions);
+
+    Form generatedForm =
+        new Form(
+            username,
+            uploaderUsername,
+            uploadedAt,
+            lastModifiedAt,
+            formType,
+            isTemplate,
+            formMetadata,
+            formBodyFlat,
+            new ObjectId(),
+            "");
+    generatedForm.setFileId(new ObjectId(source.getString("fileId")));
+    return generatedForm;
   }
 
   private Comparator<Form> getComparator() {

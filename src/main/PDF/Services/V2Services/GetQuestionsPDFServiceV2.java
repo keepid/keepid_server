@@ -75,7 +75,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (formOptional.isEmpty()) {
       return PdfMessage.MISSING_FORM;
     }
-    form = formOptional.get();
+    Form tempForm = formOptional.get();
+    form = formDao.get(tempForm.getId()).get();
     return null;
   }
 
@@ -129,22 +130,21 @@ public class GetQuestionsPDFServiceV2 implements Service {
     List<FormQuestion> formQuestions = formBody.getQuestions();
     List<JSONObject> formFields = new LinkedList<>();
     for (FormQuestion formQuestion : formQuestions) {
-      this.currentFormQuestion = formQuestion;
-      Message matchedFieldsMessage = setMatchedFields(formQuestion);
-      if (matchedFieldsMessage != null) {
-        return matchedFieldsMessage;
-      }
+      //      Message matchedFieldsMessage = setMatchedFields(formQuestion);
+      //      if (matchedFieldsMessage != null) {
+      //        return matchedFieldsMessage;
+      //      }
       JSONObject formField = new JSONObject();
-      formField.put("fieldName", this.currentFormQuestion.getQuestionName());
-      formField.put("fieldType", this.currentFormQuestion.getType().toString());
-      formField.put("fieldValueOptions", new JSONArray(this.currentFormQuestion.getOptions()));
-      formField.put("fieldDefaultValue", this.currentFormQuestion.getDefaultValue());
-      formField.put("fieldIsRequired", this.currentFormQuestion.isRequired());
-      formField.put("fieldNumLines", this.currentFormQuestion.getNumLines());
-      formField.put("fieldIsMatched", this.currentFormQuestion.isMatched());
-      formField.put("fieldQuestion", this.currentFormQuestion.getQuestionText());
-      formField.put("fieldLinkageType", this.currentFormQuestion.getConditionalType());
-      formField.put("fieldLinkedTo", this.currentFormQuestion.getConditionalOnField());
+      formField.put("fieldName", formQuestion.getQuestionName());
+      formField.put("fieldType", formQuestion.getType().toString());
+      formField.put("fieldValueOptions", new JSONArray(formQuestion.getOptions()));
+      formField.put("fieldDefaultValue", formQuestion.getDefaultValue());
+      formField.put("fieldIsRequired", formQuestion.isRequired());
+      formField.put("fieldNumLines", formQuestion.getNumLines());
+      formField.put("fieldIsMatched", formQuestion.isMatched());
+      formField.put("fieldQuestion", formQuestion.getQuestionText());
+      formField.put("fieldLinkageType", formQuestion.getConditionalType());
+      formField.put("fieldLinkedTo", formQuestion.getConditionalOnField());
       formField.put("fieldStatus", "SUCCESS");
       formFields.add(formField);
     }

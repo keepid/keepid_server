@@ -5,6 +5,7 @@ import Database.Form.FormDao;
 import Database.User.UserDao;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
+import Form.Services.ManuallyUploadFormService;
 import Form.Services.UploadFormService;
 import Security.EncryptionController;
 import User.User;
@@ -39,7 +40,13 @@ public class FormController {
   //        formService.executeAndGetResponse();
   //        System.out.println(formService.getJsonInformation());
   //      };
-
+  public Handler customFormGet =
+      ctx -> {
+        ManuallyUploadFormService manuallyUploadFormService =
+            new ManuallyUploadFormService(formDao);
+        Message response = manuallyUploadFormService.executeAndGetResponse();
+        ctx.result(response.toResponseString());
+      };
   public Handler formDelete =
       ctx -> {
         String username;
