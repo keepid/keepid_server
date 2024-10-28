@@ -11,7 +11,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
   ObjectId id;
   FieldType type;
   String questionName;
-  String questionText;
+  String text;
   String answerText;
   List<String> options;
   String defaultValue;
@@ -38,7 +38,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
     this.id = id;
     this.type = type;
     this.questionName = questionName;
-    this.questionText = questionText;
+    this.text = questionText;
     this.answerText = answerText;
     this.options = options;
     this.defaultValue = defaultValue;
@@ -66,11 +66,11 @@ public class FormQuestion implements Comparable<FormQuestion> {
   }
 
   public String getQuestionText() {
-    return questionText;
+    return text;
   }
 
   public void setQuestionText(String questionText) {
-    this.questionText = questionText;
+    this.text = questionText;
   }
 
   public String getAnswerText() {
@@ -130,7 +130,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
         new ObjectId(this.id.toString()),
         FieldType.createFromString(this.type.toString()),
         this.questionName,
-        this.questionText,
+        this.text,
         this.answerText,
         new ArrayList<>(this.options),
         this.defaultValue,
@@ -155,7 +155,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
         .put("_id", id)
         .put("fieldType", type.toString())
         .put("name", questionName)
-        .put("question", questionText)
+        .put("question", text)
         .put("answerText", answerText)
         .put("options", options)
         .put("defaultValue", defaultValue)

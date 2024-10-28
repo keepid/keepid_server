@@ -124,7 +124,7 @@ public class FormSection implements Comparable<FormSection> {
                   writer.writeName("questionName");
                   writer.writeString(question.questionName);
                   writer.writeName("text");
-                  writer.writeString(question.questionText);
+                  writer.writeString(question.getQuestionText());
                   writer.writeName("answerText");
                   writer.writeString(question.answerText);
                   writer.writeName("default");
@@ -177,7 +177,7 @@ public class FormSection implements Comparable<FormSection> {
         reader.readName();
         String questionName = reader.readString();
         reader.readName();
-        String questionText = reader.readString();
+        String text = reader.readString();
         reader.readName();
         String answerText = reader.readString();
         reader.readName();
@@ -241,7 +241,7 @@ public class FormSection implements Comparable<FormSection> {
                 id,
                 type,
                 questionName,
-                questionText,
+                text,
                 answerText,
                 options,
                 defaultValue,
