@@ -16,7 +16,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
   List<String> options;
   String defaultValue;
   boolean required;
-  int numLines;
+  int numLines; // how much space does this take up
   boolean matched;
   ObjectId conditionalOnField;
   // true for positive, false for negative/none

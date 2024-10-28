@@ -95,9 +95,9 @@ public class FillPDFServiceV2 implements Service {
     if (!ValidationUtils.isValidObjectId(fileId) || formAnswers == null) {
       return PdfMessage.INVALID_PARAMETER;
     }
-//    if (signatureStream == null) {
-//      return PdfMessage.SERVER_ERROR;
-//    }
+    //    if (signatureStream == null) {
+    //      return PdfMessage.SERVER_ERROR;
+    //    }
     if (privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
@@ -319,6 +319,8 @@ public class FillPDFServiceV2 implements Service {
     InputStream templateFileStream;
     try {
       templateFileStream = this.fileDao.getStream(fileObjectId).get();
+      File debugFile = this.fileDao.get(fileObjectId).get();
+      System.out.println(debugFile);
     } catch (Exception e) {
       return PdfMessage.NO_SUCH_FILE;
     }
