@@ -224,22 +224,38 @@ public class Form implements Comparable<Form> {
     JSONArray questions = body.getJSONArray("questions");
     for (int i = 0; i < questions.length(); i++) {
       JSONObject question = questions.getJSONObject(i);
+      //      FormQuestion formQuestion =
+      //          new FormQuestion(
+      //              new ObjectId(),
+      //              FieldType.createFromString(question.getString("type")),
+      //              question.getString("questionName"),
+      //              question.getString("questionText"),
+      //              question.getString("answerText"),
+      //              question.getJSONArray("options").toList().stream()
+      //                  .map(x -> x.toString())
+      //                  .collect(Collectors.toList()),
+      //              question.getString("defaultValue"),
+      //              question.getBoolean("required"),
+      //              question.getInt("numLines"),
+      //              question.getBoolean("matched"),
+      //              new ObjectId(),
+      //              question.getString("conditionalType"));
       FormQuestion formQuestion =
           new FormQuestion(
               new ObjectId(),
               FieldType.createFromString(question.getString("type")),
               question.getString("questionName"),
               question.getString("questionText"),
-              question.getString("answerText"),
+              "",
               question.getJSONArray("options").toList().stream()
                   .map(x -> x.toString())
                   .collect(Collectors.toList()),
-              question.getString("defaultValue"),
-              question.getBoolean("required"),
-              question.getInt("numLines"),
-              question.getBoolean("matched"),
+              "",
+              true,
+              3,
+              false,
               new ObjectId(),
-              question.getString("conditionalType"));
+              "NONE");
       formQuestions.add(formQuestion);
     }
     FormSection formBodyFlat = new FormSection(title, description, List.of(), formQuestions);

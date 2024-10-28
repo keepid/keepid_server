@@ -5,182 +5,22 @@
     "state": "Pennsylvania",
     "title": "Photo ID Replacement Form"
   },
-  "uploaderUsername": "SAMPLE-CLIENT",
-  "formType": "APPLICATION",
+  "uploaderUsername": "test1234",
+  "formType": "FORM",
   "condition": "",
   "body": {
     "questions": [
       {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
         "options": [],
-        "matched": false,
         "questionName": "idNumber",
-        "conditionalType": "NONE",
         "type": "textField",
-        "questionText": "What is your Photo ID Number?",
-        "required": true
+        "questionText": "What is your Photo ID Number?"
       },
       {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
         "options": [],
-        "matched": false,
         "questionName": "firstName",
-        "conditionalType": "NONE",
         "type": "textField",
-        "questionText": "What is your First Name?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "middleName",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Middle Name?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "lastName",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Last Name?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "suffixName",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Suffix (if applicable)?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "dayOfBirth",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Day of Birth?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "monthOfBirth",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Month of Birth?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "yearOfBirth",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Year of Birth?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "email",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Email?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "phoneNumber",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Phone Number?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [
-          "lost",
-          "stolen",
-          "mutilated"
-        ],
-        "matched": false,
-        "questionName": "reasonForReplacement",
-        "conditionalType": "NONE",
-        "type": "radioButton",
-        "questionText": "Why are you Replacing your ID?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "streetAddress",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Street Address?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "city",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your City?",
-        "required": true
-      },
-      {
-        "numLines": 3,
-        "answerText": "",
-        "defaultValue": "",
-        "options": [],
-        "matched": false,
-        "questionName": "zipcode",
-        "conditionalType": "NONE",
-        "type": "textField",
-        "questionText": "What is your Zipcode?",
-        "required": true
+        "questionText": "What is your First Name?"
       }
     ],
     "title": "Pennsylvania Photo ID (Duplicate)",
@@ -188,5 +28,5 @@
     "revision": "07-23"
   },
   "fileId": "671f055645d8b1652ecb14b4",
-  "username": "SAMPLE-CLIENT"
+  "username": "test1234"
 }
