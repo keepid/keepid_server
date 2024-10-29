@@ -15,7 +15,7 @@ public enum FormMailAddress {
       "New Castle",
       "PA",
       "16103",
-      BigDecimal.ZERO,
+      BigDecimal.valueOf(20.0),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_DRIVERS_LICENSE(
@@ -28,7 +28,7 @@ public enum FormMailAddress {
       "Harrisburg",
       "PA",
       "17106",
-      BigDecimal.valueOf(40.0),
+      BigDecimal.valueOf(42.5),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_VOTER_REGISTRATION_PHIL(
@@ -108,7 +108,64 @@ public enum FormMailAddress {
       "11375",
       BigDecimal.ZERO,
       ImmutableSet.of("NY"),
-      ImmutableSet.of("Queens"));
+      ImmutableSet.of("Queens")),
+
+  FL_BIRTH_CERTIFICATE(
+        "FL Birth Certificate.pdf",
+        "Birth Certificate Address for Florida",
+        "FLORIDA DEPARTMENT OF HEALTH BUREAU OF VITAL STATISTICS",
+        "VITAL STATISTICS",
+        "P.O. BOX 210",
+        "",
+        "JACKSONVILLE",
+        "FL",
+        "32231-0042",
+        BigDecimal.valueOf(10.0),
+        ImmutableSet.of("FL"),
+        ImmutableSet.of("ANY")),
+
+  OH_BIRTH_CERTIFICATE(
+        "OH Birth Certificate.pdf",
+                "Birth Certificate Address for Ohio",
+                "Ohio Department of Health Vital Statistics",
+                "Bureau of Vital Statistics",
+                "P.O. Box 15098 ",
+                "",
+                "Columbus",
+                "OH",
+              "43215-0098",
+        BigDecimal.valueOf(21.50),
+        ImmutableSet.of("OH"),
+        ImmutableSet.of("ANY")),
+
+  TX_BIRTH_CERTIFICATE(
+        "TX Birth Certificate.pdf",
+                "Birth Certificate Address for Texas",
+                "DSHS - VSS",
+                "DSHS – Vital Statistics",
+                "P.O. Box 12040",
+                "",
+                "Austin",
+                "TX",
+                "78711-2040",
+        BigDecimal.valueOf(22.0),
+        ImmutableSet.of("TX"),
+        ImmutableSet.of("ANY")),
+
+  MD_BIRTH_CERTIFICATE(
+          "MD Birth Certificate.pdf",
+          "Birth Certificate Address for Maryland",
+          "Maryland Department of Health",
+          " DIVISION OF VITAL RECORDS",
+          "P.O. Box 68760",
+          "",
+          "Baltimore",
+          "MD",
+          "21215-0036",
+          BigDecimal.valueOf(10.0),
+          ImmutableSet.of("MD"),
+          ImmutableSet.of("ANY"))
+  ;
 
   private String name;
   private String description;
