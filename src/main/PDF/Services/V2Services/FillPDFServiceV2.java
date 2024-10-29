@@ -20,7 +20,9 @@ import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
 import java.security.GeneralSecurityException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -95,9 +97,9 @@ public class FillPDFServiceV2 implements Service {
     if (!ValidationUtils.isValidObjectId(fileId) || formAnswers == null) {
       return PdfMessage.INVALID_PARAMETER;
     }
-    if (signatureStream == null) {
-      return PdfMessage.SERVER_ERROR;
-    }
+    //    if (signatureStream == null) {
+    //      return PdfMessage.SERVER_ERROR;
+    //    }
     if (privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
@@ -106,29 +108,6 @@ public class FillPDFServiceV2 implements Service {
     }
     return null;
   }
-
-  //  public void fillInSignature(PDSignatureField signatureField) throws IOException {
-  //    PDVisibleSignDesigner visibleSignDesigner = new PDVisibleSignDesigner(this.signatureStream);
-  //    visibleSignDesigner.zoom(0);
-  //    PDVisibleSigProperties visibleSigProperties =
-  //        new PDVisibleSigProperties()
-  //            .visualSignEnabled(true)
-  //            .setPdVisibleSignature(visibleSignDesigner);
-  //    visibleSigProperties.buildSignature();
-  //
-  //    SignatureOptions signatureOptions = new SignatureOptions();
-  //    signatureOptions.setVisualSignature(visibleSigProperties.getVisibleSignature());
-  //
-  //    PDSignature signature = new PDSignature();
-  //    signature.setFilter(PDSignature.FILTER_ADOBE_PPKLITE);
-  //    signature.setSubFilter(PDSignature.SUBFILTER_ADBE_PKCS7_DETACHED);
-  //    signature.setName(username);
-  //    signature.setSignDate(Calendar.getInstance());
-  //
-  //    signatureField.setValue(signature);
-  //
-  //    this.pdfDocument.addSignature(signature, signatureOptions);
-  //  }
 
   public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
       throws IOException {
@@ -189,6 +168,16 @@ public class FillPDFServiceV2 implements Service {
       }
       filledFormBodyQuestions.add(filledFormNewQuestion);
     }
+
+    // Set Current Date
+    PDField currentDateField = acroForm.getField("currentDate");
+    if (currentDateField != null) {
+      LocalDate currentDate = LocalDate.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+      String formattedCurrentDate = currentDate.format(formatter);
+      currentDateField.setValue(formattedCurrentDate);
+    }
+
     this.filledFormBody =
         new FormSection(
             this.templateForm.getBody().getTitle(),
@@ -211,7 +200,9 @@ public class FillPDFServiceV2 implements Service {
     }
     try {
       setPDFFieldsFromFormQuestions(formQuestions, acroForm);
-      signPDF();
+      if (this.signatureStream != null) {
+        signPDF();
+      }
 
       this.filledFileOutputStream = new ByteArrayOutputStream();
       this.pdfDocument.save(this.filledFileOutputStream);

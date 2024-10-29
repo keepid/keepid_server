@@ -15,7 +15,7 @@ public enum FormMailAddress {
       "New Castle",
       "PA",
       "16103",
-      BigDecimal.ZERO,
+      BigDecimal.valueOf(20.0),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_DRIVERS_LICENSE(
@@ -28,7 +28,7 @@ public enum FormMailAddress {
       "Harrisburg",
       "PA",
       "17106",
-      BigDecimal.valueOf(40.0),
+      BigDecimal.valueOf(42.5),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_VOTER_REGISTRATION_PHIL(
