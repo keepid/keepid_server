@@ -110,6 +110,7 @@ public class AppConfig {
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
     app.get("/custom-upload-form", formController.customFormGet);
+    app.get("/form-create-json", formController.createFormJson);
     // These are all deprecated and should be deleted
     /* -------------- FILE MANAGEMENT --------------------- */
     //    app.post("/upload", pdfController.pdfUpload);

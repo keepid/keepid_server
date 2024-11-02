@@ -1,0 +1,41 @@
+questionName,questionText,type,options
+Applicants_First_Name,What is the First Name of the Applicant?,textField,
+Applicants_Middle_Name,What is the Middle Name of the Applicant?,textField,
+Applicants_Last_Name,What is the Last Name of the Applicant?,textField,
+Applicants_Suffix_Name,What is the Suffix Name of the Applicant (if applicable)?,textField,
+Email_Address,What is the Email of the Applicant?,textField,
+Daytime_Phone,What is the Phone Number of the Applicant?,textField,
+Street,What is the Street Address of the Applicant?,textField,
+City,What is the City of the Applicant?,textField,
+State,What is the State of the Applicant?,textField,
+Zip_Code,What is the Zipcode of the Applicant?,textField,
+Relationship_Dropdown,What is your Relationship to the Person Named on the Birth Record?,comboBox,"[""Self"",""Mother"",""Father"",""Brother"",""Daughter"",""Grandchild"",""Grandparent"",""Sister"",""Spouse"",""Son"",""Attorney"",""Case Worker""]"
+Intended_use,What will be the Intended Use of your Birth Certificate?,radioButton,"[""Choice1-travel/passport"",""Choice2-school"",""Choice3-drivers_license"",""Choice4-social security/benefits"",""Choice5-dual citizenship"",""Choice6-employment""]"
+First,What was the First Name at Birth of the Person Named on the Birth Certificate?,textField,
+Middle,What was the Middle Name at Birth of the Person Named on the Birth Certificate?,textField,
+Last,What was the Last Name at Birth of the Person Named on the Birth Certificate?,textField,
+Suffix,What was the Suffix Name (if applicable) at Birth of the Person Named on the Birth Certificate?,textField,
+Age_Now,What is the Current Age of this Person?,textField,
+Date_of_Birth,What is the Date of Birth of this Person?,textField,
+First_2,"If their First Name has changed since birth due to adoption, court order, or any reason other than marriage, please list that name here:",textField,
+Middle_2,"If their Middle Name has changed since birth due to adoption, court order, or any reason other than marriage, please list that name here:",textField,
+Last_2,"If their Last Name has changed since birth due to adoption, court order, or any reason other than marriage, please list that name here:",textField,
+Suffix_2,"If their Suffix Name (if applicable) has changed since birth due to adoption, court order, or any reason other than marriage, please list that name here:",textField,
+Sex_MorF,What is the Sex of this Person?,radioButton,"[""Choice1_Male"",""Choice2_Female""]"
+Type of birth record,What is the Type of Birth Record for this Person?,comboBox,"[""Born in Pennsylvania"",""Born abroad to a Pa citizen"",""Foreign-Born adoption by a Pa citizen""]"
+Place_of_birth-county,What was the County of Birth for this Person?,textField,
+Place_of_birth-city/borough/township,What was the City/Borough/Township of Birth for this Person?,textField,
+Hospital_name,What was the Hospital Name of Birth for this Person?,textField,
+Parent's_information,What is the Parent Type of the First Parent of this Person?,radioButton,"[""Choice1_mother"",""Choice2_father"",""Choice3_parent""]"
+First_3,What is the First Name of this First Parent?,textField,
+Middle_3,What is the Middle Name of this First Parent?,textField,
+Last_prior_to_marriage,What is the Maiden Name of this First Parent?,textField,
+Current_last,What is the Current Last Name of this First Parent?,textField,
+Suffix_3,What is the Suffix Name of this First Parent (if applicable)?,textField,
+Parent's_information2,What is the Parent Type of the Second Parent of this Person?,radioButton,"[""Choice1_mother"",""Choice2_father"",""Choice3_parent""]"
+First_4,What is the First Name of this Second Parent?,textField,
+Middle_4,What is the Middle Name of this Second Parent?,textField,
+Last_prior_to_marriage_2,What is the Maiden Name of this Second Parent?,textField,
+Current last_2,What is the Current Last Name of this Second Parent?,textField,
+Suffix_4,What is the Suffix Name of this Second Parent (if applicable)?,textField,
+Date,What is Today's Date?,textField,

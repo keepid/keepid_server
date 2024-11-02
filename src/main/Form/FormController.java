@@ -47,6 +47,13 @@ public class FormController {
         Message response = manuallyUploadFormService.executeAndGetResponse();
         ctx.result(response.toResponseString());
       };
+
+  public Handler createFormJson =
+      ctx -> {
+        String json = ManuallyUploadFormService.createJSON();
+        ManuallyUploadFormService.writeJSON(json);
+        ctx.result("SUCCESS");
+      };
   public Handler formDelete =
       ctx -> {
         String username;
