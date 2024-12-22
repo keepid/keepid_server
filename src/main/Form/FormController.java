@@ -3,6 +3,7 @@ package Form;
 import Config.Message;
 import Database.Form.FormDao;
 import Form.Services.DeleteFormService;
+import Form.Services.GetApplicationRegistryService;
 import Form.Services.GetFormService;
 import Form.Services.UploadFormService;
 import Security.EncryptionController;
@@ -175,6 +176,25 @@ public class FormController {
         }
 
         ctx.result(response.toResponseString());
+      };
+
+  public Handler getAppRegistry =
+      ctx -> {
+        log.info("Entered getAppRegistry function");
+        String body = ctx.body();
+        JSONObject req = new JSONObject(body);
+        String type = req.getString("type");
+        String state = req.getString("state");
+        String situation = req.getString("situation");
+        String person = req.getString("person");
+        GetApplicationRegistryService getAppRegService = new GetApplicationRegistryService(type, state,
+                situation, person);
+        Message res = getAppRegService.executeAndGetResponse();
+        if (res == FormMessage.SUCCESS) {
+            ctx.result(getAppRegService.getJsonInformation());
+        } else {
+            ctx.result(res.toResponseString());
+        }
       };
 
   public User userCheck(String req) {

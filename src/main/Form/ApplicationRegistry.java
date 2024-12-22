@@ -15,7 +15,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.INITIAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
 
   BC$PA$INITIAL(
       IdCategoryType.BIRTH_CERTIFICATE,
@@ -24,7 +24,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.INITIAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   BC$PA$DUPLICATE(
       IdCategoryType.BIRTH_CERTIFICATE,
       USStateOrCity.PA,
@@ -32,7 +32,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.DUPLICATE,
       new BigDecimal("20.0"),
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   BC$PA$HOMELESS(
       IdCategoryType.BIRTH_CERTIFICATE,
       USStateOrCity.PA,
@@ -40,7 +40,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.HOMELESS,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   BC$PA$JUVENILE_JUSTICE_INVOLVED(
       IdCategoryType.BIRTH_CERTIFICATE,
       USStateOrCity.PA,
@@ -48,7 +48,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.JUVENILE_JUSTICE_INVOLVED,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   BC$PA$VETERANS(
       IdCategoryType.BIRTH_CERTIFICATE,
       USStateOrCity.PA,
@@ -56,7 +56,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.VETERANS,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$PI$INITIAL(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -64,7 +64,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.INITIAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$PI$DUPLICATE(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -72,7 +72,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.DUPLICATE,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$PI$RENEWAL(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -80,7 +80,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.RENEWAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$PI$CHANGE_OF_ADDRESS(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -88,7 +88,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.CHANGE_OF_ADDRESS,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$DL$INITIAL(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -96,7 +96,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.INITIAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$DL$DUPLICATE(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -104,7 +104,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.DUPLICATE,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$DL$RENEWAL(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -112,7 +112,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.RENEWAL,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234")),
+      new ObjectId("123400000000000000000000")),
   PIDL$PA$DL$CHANGE_OF_ADDRESS(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
       USStateOrCity.PA,
@@ -120,7 +120,7 @@ public enum ApplicationRegistry {
       ApplicationSubtype.CHANGE_OF_ADDRESS,
       BigDecimal.ZERO,
       1,
-      new ObjectId("1234"));
+      new ObjectId("123400000000000000000000"));
 
   private final IdCategoryType idCategoryType;
   private final USStateOrCity usState;
