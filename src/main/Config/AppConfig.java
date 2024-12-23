@@ -125,7 +125,7 @@ public class AppConfig {
     app.post("/get-form", formController.formGet);
     app.post("/delete-form/", formController.formDelete);
 
-    app.get("/get-application-registry", formController.getAppRegistry);
+    app.post("/get-application-registry", formController.getAppRegistry);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
