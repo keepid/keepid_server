@@ -319,7 +319,7 @@ public class AppConfig {
                   "text/plain"; // content type to use if no content type is set (default is
               // "text/plain")
 
-              config.enableCorsForAllOrigins(); // enable cors for all origins
+              config.enableCorsForOrigin("https://keep.id", "https://server.keep.id", "http://localhost");
 
               config.enableDevLogging(); // enable extensive development logging for
               // http and
