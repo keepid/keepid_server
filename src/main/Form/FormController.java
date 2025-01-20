@@ -187,8 +187,9 @@ public class FormController {
         String state = req.getString("state");
         String situation = req.getString("situation");
         String person = req.getString("person");
+        String org = req.getString("org");
         GetApplicationRegistryService getAppRegService = new GetApplicationRegistryService(type, state,
-                situation, person);
+                situation, person, org);
         Message res = getAppRegService.executeAndGetResponse();
         if (res == FormMessage.SUCCESS) {
             ctx.result(getAppRegService.getJsonInformation());

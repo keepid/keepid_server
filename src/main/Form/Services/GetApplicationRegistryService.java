@@ -13,13 +13,15 @@ public class GetApplicationRegistryService implements Service {
     String state;
     String situation;
     String person;
+    String org;
     String applicationRegistry;
 
-    public GetApplicationRegistryService(String type, String state, String situation, String person) {
+    public GetApplicationRegistryService(String type, String state, String situation, String person, String org) {
         this.type = type;
         this.state = state;
         this.situation = situation;
         this.person = person;
+        this.org = org;
     }
 
     public String getJsonInformation() {
@@ -35,7 +37,7 @@ public class GetApplicationRegistryService implements Service {
         } catch (IllegalArgumentException e) {
             return FormMessage.INVALID_PARAMETER;
         }
-        this.applicationRegistry = appReg.toString();
+        this.applicationRegistry = appReg.toString(this.org);
         return FormMessage.SUCCESS;
     }
 }
