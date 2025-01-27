@@ -63,7 +63,7 @@ public class MailController {
         String fileId = request.getString("fileId");
         SubmitToLobMailService submitToLobMailService =
             new SubmitToLobMailService(
-                fileDao, mailDao, formMailAddress, username, loggedInUser, lobApiKey);
+                fileDao, mailDao, formMailAddress, fileId, username, loggedInUser, lobApiKey, true);
         Message response = submitToLobMailService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
         //        } catch (Exception e) {

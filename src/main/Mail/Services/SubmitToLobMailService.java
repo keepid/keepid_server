@@ -61,9 +61,9 @@ public class SubmitToLobMailService implements Service {
     HttpBasicAuth basicAuth = (HttpBasicAuth) lobClient.getAuthentication("basicAuth");
     basicAuth.setUsername(this.lobApiKey);
     this.printAllFiles(this.username);
+    ChecksApi checksApi = new ChecksApi(lobClient);
 
     if (isCheck) {
-      ChecksApi checksApi = new ChecksApi(lobClient);
       FormMailAddress mailAddress = mail.getMailingAddress();
 
       AddressEditable toAddress = new AddressEditable(); // build toAddress
@@ -161,9 +161,9 @@ public class SubmitToLobMailService implements Service {
       mailDao.update(this.mail);
       return MailMessage.MAIL_SUCCESS;
     }
-    LettersApi lettersApi = new LettersApi(lobClient);
+    // LettersApi lettersApi = new LettersApi(lobClient);
 
-    return MailMessage.FAILED_WHEN_SENDING_MAIL;
+    // return MailMessage.FAILED_WHEN_SENDING_MAIL;
   }
 
   private void printAllFiles(String username) {
