@@ -4,6 +4,7 @@ import static User.UserController.mergeJSON;
 
 import Config.Message;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import Database.User.UserDao;
 import File.Services.*;
 import Security.EncryptionController;
@@ -30,11 +31,13 @@ import org.json.JSONObject;
 public class FileController {
   private UserDao userDao;
   private FileDao fileDao;
+  private FormDao formDao;
   private EncryptionController encryptionController;
 
-  public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao) {
+  public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao, FormDao formDao) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.formDao = formDao;
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
@@ -246,7 +249,8 @@ public class FileController {
             username = check.getUsername();
             orgName = check.getOrganization();
             userType = check.getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            //            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            orgFlag = true;
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -266,7 +270,8 @@ public class FileController {
                     Optional.ofNullable(userType),
                     fileType,
                     Optional.ofNullable(fileIDStr),
-                    Optional.ofNullable(encryptionController));
+                    Optional.ofNullable(encryptionController),
+                    formDao);
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
               ctx.header("Content-Type", downloadFileService.getContentType());
@@ -403,7 +408,8 @@ public class FileController {
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -448,7 +454,8 @@ public class FileController {
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();

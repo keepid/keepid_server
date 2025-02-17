@@ -75,12 +75,13 @@ public class AppConfig {
 
     // We need to instantiate the controllers with the database.
     OrganizationController orgController = new OrganizationController(db, activityDao);
-    UserController userController = new UserController(userDao, tokenDao, fileDao, activityDao, db);
+    UserController userController =
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao);
     FormController formController = new FormController(db, formDao);
-    FileController fileController = new FileController(db, userDao, fileDao);
+    FileController fileController = new FileController(db, userDao, fileDao, formDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
