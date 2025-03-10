@@ -110,6 +110,7 @@ public class AppConfig {
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
     app.get("/custom-upload-form", formController.customFormGet);
+    app.get("/ingest-from-csv", userController.ingestCsv);
     // These are all deprecated and should be deleted
     /* -------------- FILE MANAGEMENT --------------------- */
     //    app.post("/upload", pdfController.pdfUpload);
@@ -319,7 +320,12 @@ public class AppConfig {
                   "text/plain"; // content type to use if no content type is set (default is
               // "text/plain")
 
-              config.enableCorsForOrigin("https://keep.id", "https://server.keep.id", "http://localhost");
+              config.enableCorsForOrigin(
+                  "https://keep.id",
+                  "https://server.keep.id",
+                  "http://localhost",
+                  "http://localhost:3000",
+                  "127.0.0.1:3000");
 
               config.enableDevLogging(); // enable extensive development logging for
               // http and
