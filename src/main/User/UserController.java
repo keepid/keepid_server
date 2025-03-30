@@ -22,12 +22,16 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 
 @Slf4j
 public class UserController {
@@ -158,6 +162,41 @@ public class UserController {
           responseJSON.put("twoFactorOn", "");
         }
         ctx.result(responseJSON.toString());
+      };
+
+  public Handler loginGoogleUser =
+      ctx -> {
+          ctx.req.getSession().invalidate();
+          JSONObject req = new JSONObject(ctx.body());
+          String jwtToken = req.getString("token");
+          String ip = ctx.ip();
+          String userAgent = ctx.userAgent();
+          LoginGoogleUserService loginGoogleUserService = new LoginGoogleUserService(userDao, tokenDao,
+                  activityDao, jwtToken, ip, userAgent);
+          Message response = loginGoogleUserService.executeAndGetResponse();
+          log.info(response.toString() + response.getErrorDescription());
+          JSONObject responseJSON = response.toJSON();
+          if (response == UserMessage.AUTH_SUCCESS) {
+              responseJSON.put("userRole", loginGoogleUserService.getLoginService().getUserRole());
+              responseJSON.put("organization", loginGoogleUserService.getLoginService().getOrganization());
+              responseJSON.put("username", loginGoogleUserService.getLoginService().getUsername());
+              responseJSON.put("firstName", loginGoogleUserService.getLoginService().getFirstName());
+              responseJSON.put("lastName", loginGoogleUserService.getLoginService().getLastName());
+              responseJSON.put("twoFactorOn", loginGoogleUserService.getLoginService().isTwoFactorOn());
+
+              ctx.sessionAttribute("privilegeLevel", loginGoogleUserService.getLoginService().getUserRole());
+              ctx.sessionAttribute("orgName", loginGoogleUserService.getLoginService().getOrganization());
+              ctx.sessionAttribute("username", loginGoogleUserService.getLoginService().getUsername());
+              ctx.sessionAttribute("fullName", loginGoogleUserService.getLoginService().getFullName());
+          } else {
+              responseJSON.put("userRole", "");
+              responseJSON.put("organization", "");
+              responseJSON.put("username", "");
+              responseJSON.put("firstName", "");
+              responseJSON.put("lastName", "");
+              responseJSON.put("twoFactorOn", "");
+          }
+          ctx.result(responseJSON.toString());
       };
 
   public Handler authenticateUser =
