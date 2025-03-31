@@ -32,7 +32,7 @@ public enum ApplicationRegistry {
         this.put("TSA C.A.T.S Program", new ObjectId("672871ed2de24d7c8ba75c30"));
       }}),
 
-  BC$PA$INITIAL(
+  BC$PA$STANDARD(
       IdCategoryType.BIRTH_CERTIFICATE,
       USStateOrCity.PA,
       Optional.empty(),
@@ -145,7 +145,7 @@ public enum ApplicationRegistry {
       1,
       new HashMap<String,ObjectId>()),
 
-  BC$MD$INITIAL(
+  BC$MD$STANDARD(
         IdCategoryType.BIRTH_CERTIFICATE,
         USStateOrCity.MD,
         Optional.empty(),
@@ -156,7 +156,7 @@ public enum ApplicationRegistry {
           this.put("TSA C.A.T.S Program", new ObjectId("6720679117d3b63a60456c33"));
         }}),
 
-  BC$NJ$INITIAL(
+  BC$NJ$STANDARD(
           IdCategoryType.BIRTH_CERTIFICATE,
           USStateOrCity.NJ,
           Optional.empty(),
