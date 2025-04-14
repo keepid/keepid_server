@@ -20,7 +20,9 @@ import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
 import java.security.GeneralSecurityException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -166,6 +168,16 @@ public class FillPDFServiceV2 implements Service {
       }
       filledFormBodyQuestions.add(filledFormNewQuestion);
     }
+
+    // Set Current Date
+    PDField currentDateField = acroForm.getField("currentDate");
+    if (currentDateField != null) {
+      LocalDate currentDate = LocalDate.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+      String formattedCurrentDate = currentDate.format(formatter);
+      currentDateField.setValue(formattedCurrentDate);
+    }
+
     this.filledFormBody =
         new FormSection(
             this.templateForm.getBody().getTitle(),
