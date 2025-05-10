@@ -392,7 +392,7 @@ public class FileController {
             }
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    fileDao, username, orgName, userType, fileType, annotated);
+                    fileDao, activityDao, username, orgName, userType, fileType, annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 

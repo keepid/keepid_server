@@ -3,8 +3,10 @@ package File.Services;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
+import Activity.ViewFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -12,11 +14,13 @@ import File.FileType;
 import User.UserType;
 import java.util.Objects;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class GetFilesInformationService implements Service {
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private String username;
   private String orgName;
   private UserType userType;
@@ -26,12 +30,14 @@ public class GetFilesInformationService implements Service {
 
   public GetFilesInformationService(
       FileDao fileDao,
+      ActivityDao activityDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       boolean annotated) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -98,10 +104,23 @@ public class GetFilesInformationService implements Service {
     return files;
   }
 
+  private void recordViewFileActivity(ObjectId id) {
+    ViewFileActivity log =
+        new ViewFileActivity(
+            username, username, // Again, target vs invoker
+            fileType, id); // Again, which id?
+    activityDao.save(log);
+  }
+
   public Message getAllFiles(Bson filter, FileType fileType, FileDao fileDao) {
     JSONArray files = new JSONArray();
+    ObjectId id = null;
     for (File file_out : fileDao.getAll(filter)) {
       assert file_out != null;
+      // Chooses first object for id
+      if (id == null) {
+        id = file_out.getId();
+      }
       String uploaderUsername = file_out.getUsername();
       JSONObject fileMetadata =
           new JSONObject()
@@ -131,6 +150,7 @@ public class GetFilesInformationService implements Service {
       files.put(fileMetadata);
     }
     this.files = files;
+    recordViewFileActivity(id);
     return FileMessage.SUCCESS;
   }
 }
