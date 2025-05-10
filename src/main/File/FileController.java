@@ -3,6 +3,7 @@ package File;
 import static User.UserController.mergeJSON;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.User.UserDao;
 import File.Services.*;
@@ -30,15 +31,18 @@ import org.json.JSONObject;
 public class FileController {
   private UserDao userDao;
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private EncryptionController encryptionController;
 
   public FileController(
       MongoDatabase db,
       UserDao userDao,
       FileDao fileDao,
+      ActivityDao activityDao,
       EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.encryptionController = encryptionController;
   }
 
@@ -162,6 +166,7 @@ public class FileController {
                   UploadFileService uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -188,6 +193,7 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -212,6 +218,7 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),

@@ -85,7 +85,8 @@ public class AppConfig {
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     FormController formController = new FormController(formDao, userDao, encryptionController);
-    FileController fileController = new FileController(db, userDao, fileDao, encryptionController);
+    FileController fileController =
+        new FileController(db, userDao, fileDao, activityDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);

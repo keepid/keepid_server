@@ -1,16 +1,16 @@
 package Activity;
 
-import org.bson.codecs.pojo.annotations.BsonProperty;
-import org.bson.types.ObjectId;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.bson.types.ObjectId;
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
+// Refactor this, can consider removing getters and setters. Also, get other activities to work
 public class Activity implements Comparable<Activity> {
   private ObjectId id;
 

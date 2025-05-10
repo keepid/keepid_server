@@ -436,6 +436,7 @@ public class UserController {
         UploadFileService service =
             new UploadFileService(
                 fileDao,
+                activityDao,
                 fileToUpload,
                 Optional.empty(),
                 Optional.empty(),

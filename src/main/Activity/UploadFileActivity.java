@@ -1,10 +1,9 @@
 package Activity;
 
 import File.FileType;
-import org.bson.types.ObjectId;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.types.ObjectId;
 
 public class UploadFileActivity extends FileActivity {
   @Override
@@ -22,7 +21,7 @@ public class UploadFileActivity extends FileActivity {
   }
 
   public UploadFileActivity(
-      String usernameOfInvoker, String targeUsername, FileType fileType, ObjectId id) {
-    super(usernameOfInvoker, targeUsername, fileType, id);
+      String usernameOfInvoker, String targetUsername, FileType fileType, ObjectId id) {
+    super(usernameOfInvoker, targetUsername, fileType, id);
   }
 }
