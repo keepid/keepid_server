@@ -1,7 +1,9 @@
 package File.Services;
 
+import Activity.DownloadFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -19,6 +21,7 @@ import org.bson.types.ObjectId;
 @Slf4j
 public class DownloadFileService implements Service {
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private String username;
   private Optional<String> organizationName;
   private Optional<UserType> privilegeLevel;
@@ -30,6 +33,7 @@ public class DownloadFileService implements Service {
 
   public DownloadFileService(
       FileDao fileDao,
+      ActivityDao activityDao,
       String username,
       Optional<String> orgName,
       Optional<UserType> privilegeLevel,
@@ -37,6 +41,7 @@ public class DownloadFileService implements Service {
       Optional<String> fileId,
       Optional<EncryptionController> encryptionController) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.username = username;
     this.organizationName = orgName;
     this.privilegeLevel = privilegeLevel;
@@ -88,6 +93,14 @@ public class DownloadFileService implements Service {
     return contentType;
   }
 
+  private void recordDownloadFileActivity(ObjectId id) {
+    DownloadFileActivity log =
+        new DownloadFileActivity(
+            username, username, // Again, not sure about how to get target vs invoker username
+            fileType, id); // Not sure if we use fileId or id
+    activityDao.save(log);
+  }
+
   public Message download() throws GeneralSecurityException, IOException {
     if (fileType.isPDF()) {
       if (fileId.isEmpty() || organizationName.isEmpty()) {
@@ -115,6 +128,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordDownloadFileActivity(id);
             return FileMessage.SUCCESS;
           } else {
             return FileMessage.NO_SUCH_FILE;
@@ -128,6 +142,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordDownloadFileActivity(id);
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
@@ -139,6 +154,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordDownloadFileActivity(id);
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
@@ -155,6 +171,7 @@ public class DownloadFileService implements Service {
       Optional<InputStream> optionalStream = fileDao.getStream(file.getId());
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
+        recordDownloadFileActivity(file.getId());
         return FileMessage.SUCCESS;
       }
       return FileMessage.NO_SUCH_FILE;
@@ -173,6 +190,7 @@ public class DownloadFileService implements Service {
       Optional<InputStream> optionalStream = fileDao.getStream(id);
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
+        recordDownloadFileActivity(id);
         return FileMessage.SUCCESS;
       }
       return FileMessage.NO_SUCH_FILE;

@@ -1,10 +1,9 @@
 package Activity;
 
 import File.FileType;
-import org.bson.types.ObjectId;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.types.ObjectId;
 
 public class DownloadFileActivity extends FileActivity {
   @Override
@@ -22,7 +21,7 @@ public class DownloadFileActivity extends FileActivity {
   }
 
   public DownloadFileActivity(
-      String usernameOfInvoker, String targetUsername, FileType pdfType, ObjectId id) {
-    super(usernameOfInvoker, targetUsername, pdfType, id);
+      String usernameOfInvoker, String targetUsername, FileType fileType, ObjectId id) {
+    super(usernameOfInvoker, targetUsername, fileType, id);
   }
 }
