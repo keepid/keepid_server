@@ -1,7 +1,9 @@
 package File.Services;
 
+import Activity.DeleteFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -13,6 +15,7 @@ import org.bson.types.ObjectId;
 
 public class DeleteFileService implements Service {
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private String username;
   private String orgName;
   private UserType userType;
@@ -21,12 +24,14 @@ public class DeleteFileService implements Service {
 
   public DeleteFileService(
       FileDao fileDao,
+      ActivityDao activityDao,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       String fileId) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -41,6 +46,14 @@ public class DeleteFileService implements Service {
     }
     ObjectId fileID = new ObjectId(fileId);
     return delete(username, orgName, fileType, userType, fileID, fileDao);
+  }
+
+  private void recordDeleteFileActivity(ObjectId id) {
+    DeleteFileActivity log =
+        new DeleteFileActivity(
+            username, username, // invoker vs target?
+            fileType, id); // What type of id?
+    activityDao.save(log);
   }
 
   public Message delete(
@@ -61,22 +74,26 @@ public class DeleteFileService implements Service {
             || privilegeLevel == UserType.Worker)) {
       if (file.getOrganizationName().equals(organizationName)) {
         fileDao.delete(id);
+        recordDeleteFileActivity(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.IDENTIFICATION_PDF
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
       if (file.getUsername().equals(user)) {
         fileDao.delete(id);
+        recordDeleteFileActivity(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM) {
       if (file.getOrganizationName().equals(organizationName)) {
         fileDao.delete(id);
+        recordDeleteFileActivity(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.MISC) { // need to establish security levels for MISC files
       if (file.getUsername().equals(user)) {
         fileDao.delete(id);
+        recordDeleteFileActivity(id);
         return FileMessage.SUCCESS;
       }
     } // no deleting of profile pic files (only replacing)

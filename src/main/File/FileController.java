@@ -336,7 +336,8 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
 
             DeleteFileService deleteFileService =
-                new DeleteFileService(fileDao, username, orgName, userType, fileType, fileIDStr);
+                new DeleteFileService(
+                    fileDao, activityDao, username, orgName, userType, fileType, fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
