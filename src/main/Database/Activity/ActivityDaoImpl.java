@@ -57,6 +57,15 @@ public class ActivityDaoImpl implements ActivityDao {
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
+  //
+  @Override
+  public List<Activity> getUnnotifiedActivities() {
+    return activityCollection.find(eq("notified", false))
+        .into(new ArrayList<>()).stream()
+        .sorted(Comparator.reverseOrder()) // optional
+        .collect(Collectors.toList());
+  }
+
 
   @Override
   public int size() {
