@@ -14,6 +14,10 @@ import java.util.stream.Stream;
 public class Activity implements Comparable<Activity> {
   private ObjectId id;
 
+ // add notification
+  @BsonProperty(value = "notified")
+  private boolean notified = false;
+
   @BsonProperty(value = "occurredAt")
   private LocalDateTime occurredAt;
 
@@ -72,6 +76,14 @@ public class Activity implements Comparable<Activity> {
 
   public void setId(ObjectId id) {
     this.id = id;
+  }
+
+  public boolean isNotified() {
+    return notified;
+  }
+
+  public void setNotified(boolean notified) {
+    this.notified = notified;
   }
 
   // default sort is by occurred at, and then by username
