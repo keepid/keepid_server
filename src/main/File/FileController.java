@@ -277,7 +277,6 @@ public class FileController {
             DownloadFileService downloadFileService =
                 new DownloadFileService(
                     fileDao,
-                    activityDao,
                     username,
                     Optional.ofNullable(orgName),
                     Optional.ofNullable(userType),
@@ -420,7 +419,6 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
-                activityDao,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
@@ -466,7 +464,6 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
-                activityDao,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
