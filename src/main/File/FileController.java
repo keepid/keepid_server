@@ -63,6 +63,7 @@ public class FileController {
   public Handler fileUpload =
       ctx -> {
         log.info("Uploading file...");
+        String usernameOfInvoker;
         String username;
         String organizationName;
         UserType privilegeLevel;
@@ -85,6 +86,7 @@ public class FileController {
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
             username = maybeTargetUser.get().getUsername();
@@ -167,6 +169,7 @@ public class FileController {
                       new UploadFileService(
                           fileDao,
                           activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -194,6 +197,7 @@ public class FileController {
                       new UploadFileService(
                           fileDao,
                           activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -219,6 +223,7 @@ public class FileController {
                       new UploadFileService(
                           fileDao,
                           activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -306,6 +311,7 @@ public class FileController {
   public Handler fileDelete =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -315,6 +321,7 @@ public class FileController {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
@@ -336,7 +343,14 @@ public class FileController {
 
             DeleteFileService deleteFileService =
                 new DeleteFileService(
-                    fileDao, activityDao, username, orgName, userType, fileType, fileIDStr);
+                    fileDao,
+                    activityDao,
+                    usernameOfInvoker,
+                    username,
+                    orgName,
+                    userType,
+                    fileType,
+                    fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -357,6 +371,7 @@ public class FileController {
       ctx -> {
         log.info("Starting pdfGetDocuments");
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         String reqBody = ctx.body();
@@ -371,6 +386,7 @@ public class FileController {
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
@@ -391,7 +407,14 @@ public class FileController {
             }
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    fileDao, activityDao, username, orgName, userType, fileType, annotated);
+                    fileDao,
+                    activityDao,
+                    usernameOfInvoker,
+                    username,
+                    orgName,
+                    userType,
+                    fileType,
+                    annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 

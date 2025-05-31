@@ -41,11 +41,13 @@ public class UploadFileService implements Service {
   Optional<InputStream> signatureFileStream;
   FileDao fileDao;
   ActivityDao activityDao;
+  String usernameOfInvoker;
   Optional<EncryptionController> encryptionController;
 
   public UploadFileService(
       FileDao fileDao,
       ActivityDao activityDao,
+      String usernameOfInvoker,
       File fileToUpload,
       Optional<UserType> privilegeLevel,
       Optional<String> fileIdStr,
@@ -54,6 +56,7 @@ public class UploadFileService implements Service {
       Optional<EncryptionController> encryptionController) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.fileToUpload = fileToUpload;
     this.privilegeLevel = privilegeLevel;
     this.fileIdStr = fileIdStr;
@@ -115,10 +118,10 @@ public class UploadFileService implements Service {
   private void recordUploadFileActivity() {
     UploadFileActivity log =
         new UploadFileActivity(
+            usernameOfInvoker,
             fileToUpload.getUsername(),
-            fileToUpload.getUsername(), // Not sure how to get targetUser
             fileToUpload.getFileType(),
-            fileToUpload.getId()); // Not sure if it's getId or getFileId
+            fileToUpload.getFileId());
     activityDao.save(log);
   }
 

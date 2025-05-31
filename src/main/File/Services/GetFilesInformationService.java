@@ -21,6 +21,7 @@ import org.json.JSONObject;
 public class GetFilesInformationService implements Service {
   private FileDao fileDao;
   private ActivityDao activityDao;
+  private String usernameOfInvoker;
   private String username;
   private String orgName;
   private UserType userType;
@@ -31,6 +32,7 @@ public class GetFilesInformationService implements Service {
   public GetFilesInformationService(
       FileDao fileDao,
       ActivityDao activityDao,
+      String usernameOfInvoker,
       String username,
       String orgName,
       UserType userType,
@@ -38,6 +40,7 @@ public class GetFilesInformationService implements Service {
       boolean annotated) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -107,8 +110,8 @@ public class GetFilesInformationService implements Service {
   private void recordViewFileActivity(ObjectId id) {
     ViewFileActivity log =
         new ViewFileActivity(
-            username, username, // Again, target vs invoker
-            fileType, id); // Again, which id?
+            usernameOfInvoker, username,
+            fileType, id);
     activityDao.save(log);
   }
 
@@ -119,7 +122,7 @@ public class GetFilesInformationService implements Service {
       assert file_out != null;
       // Chooses first object for id
       if (id == null) {
-        id = file_out.getId();
+        id = file_out.getFileId();
       }
       String uploaderUsername = file_out.getUsername();
       JSONObject fileMetadata =

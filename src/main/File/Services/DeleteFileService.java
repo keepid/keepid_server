@@ -16,6 +16,7 @@ import org.bson.types.ObjectId;
 public class DeleteFileService implements Service {
   private FileDao fileDao;
   private ActivityDao activityDao;
+  private String usernameOfInvoker;
   private String username;
   private String orgName;
   private UserType userType;
@@ -25,6 +26,7 @@ public class DeleteFileService implements Service {
   public DeleteFileService(
       FileDao fileDao,
       ActivityDao activityDao,
+      String usernameOfInvoker,
       String username,
       String orgName,
       UserType userType,
@@ -32,6 +34,7 @@ public class DeleteFileService implements Service {
       String fileId) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -51,8 +54,8 @@ public class DeleteFileService implements Service {
   private void recordDeleteFileActivity(ObjectId id) {
     DeleteFileActivity log =
         new DeleteFileActivity(
-            username, username, // invoker vs target?
-            fileType, id); // What type of id?
+            usernameOfInvoker, username,
+            fileType, id);
     activityDao.save(log);
   }
 
