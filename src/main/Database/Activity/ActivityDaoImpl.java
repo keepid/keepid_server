@@ -89,6 +89,9 @@ public class ActivityDaoImpl implements ActivityDao {
 
   @Override
   public void save(Activity activity) {
-    activityCollection.insertOne(activity);
+
+    activityCollection.insertOne(activity)
+    // Trigger email notifications
+    EmailNotifier.handle(activity);;
   }
 }
