@@ -2,14 +2,15 @@ package Database.Activity;
 
 import Activity.Activity;
 import Config.DeploymentLevel;
-import org.bson.types.ObjectId;
-
+import User.User;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.bson.types.ObjectId;
 
 public class ActivityDaoTestImpl implements ActivityDao {
   Map<ObjectId, Activity> activityMap;
+  Map<String, User> userMap;
 
   public ActivityDaoTestImpl(DeploymentLevel deploymentLevel) {
     if (deploymentLevel != DeploymentLevel.IN_MEMORY) {
@@ -17,12 +18,44 @@ public class ActivityDaoTestImpl implements ActivityDao {
           "Should not run in memory test database in production or staging");
     }
     activityMap = new LinkedHashMap<>();
+    userMap = new LinkedHashMap<>();
   }
 
   @Override
   public List<Activity> getAllFromUser(String username) {
     return activityMap.values().stream()
         .filter(activity -> activity.getUsername().equals(username))
+        .sorted(Comparator.reverseOrder())
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Activity> getAllFileActivitiesFromUser(String username) {
+    return activityMap.values().stream()
+            .filter(activity -> activity.getUsername().equals(username)
+                    && activity.getType().contains("FileActivity"))
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+  }
+
+  // This is so wrong
+  private List<User> getUsersFromOrg(String orgName) {
+    List<User> result = new ArrayList<>();
+    for (User user : userMap.values()) {
+      if (user.getOrganization().equals(orgName)) {
+        result.add(user);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public List<Activity> getAllFromOrganization(String organization) {
+    List<User> users = getUsersFromOrg(organization);
+    Set<String> usernames =
+        users.stream().map(user -> user.getUsername()).collect(Collectors.toSet());
+    return activityMap.values().stream()
+        .filter(activity -> usernames.contains(activity.getUsername()))
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
