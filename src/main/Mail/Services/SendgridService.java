@@ -56,6 +56,6 @@ public class SendgridService {
     public static void sendTestEmail() {
         String subject = "Test from Keep.id";
         String body = "<p>Hello! This is a test email sent via SendGrid!</p>";
-        sendEmail("vanessachung@keepid", subject, body);
+        sendEmail("vanessachung@keep.id", subject, body);
     }
 }

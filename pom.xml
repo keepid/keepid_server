@@ -322,5 +322,11 @@
             <artifactId>sendgrid-java</artifactId>
             <version>4.9.3</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.3.33</version>  <!-- Use a stable version -->
+        </dependency>
     </dependencies>
 </project>

@@ -44,6 +44,8 @@ import java.util.HashMap;
 import java.util.Optional;
 import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -52,6 +54,8 @@ public class AppConfig {
 
   @SneakyThrows
   public static Javalin appFactory(DeploymentLevel deploymentLevel) {
+    // Enable Spring's scheduler (cron job support)
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(SchedulerConfig.class);
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
