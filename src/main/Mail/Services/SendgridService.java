@@ -1,13 +1,18 @@
 package Mail.Services;
 
 import com.sendgrid.*;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.Mail;
+
+
 import java.io.IOException;
 
 public class SendgridService {
     private static final String SENDGRID_API_KEY = System.getenv("SENDGRID_API_KEY");
 
     private static void sendEmail(String toEmail, String subject, String bodyHtml) {
-        Email from = new Email("noreply@keep.id");
+        Email from = new Email("vanessachung@keep.id");
         Email to = new Email(toEmail);
         Content content = new Content("text/html", bodyHtml);
         Mail mail = new Mail(from, subject, to, content);
@@ -47,5 +52,10 @@ public class SendgridService {
 
     public static void sendPickupInfo(String username, String nonprofit) {
         sendEmail(username + "@example.com", "Pick up your ID", "<p>Your documents are ready! Go to " + nonprofit + " to pick them up.</p>");
+    }
+    public static void sendTestEmail() {
+        String subject = "Test from Keep.id";
+        String body = "<p>Hello! This is a test email sent via SendGrid!</p>";
+        sendEmail("vanessachung@keepid", subject, body);
     }
 }

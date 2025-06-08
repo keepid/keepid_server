@@ -3,6 +3,7 @@ package Database.Activity;
 import Activity.Activity;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Mail.EmailNotifier;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.types.ObjectId;
@@ -58,7 +59,7 @@ public class ActivityDaoImpl implements ActivityDao {
         .collect(Collectors.toList());
   }
   //
-  @Override
+  // @Override
   public List<Activity> getUnnotifiedActivities() {
     return activityCollection.find(eq("notified", false))
         .into(new ArrayList<>()).stream()
@@ -90,7 +91,7 @@ public class ActivityDaoImpl implements ActivityDao {
   @Override
   public void save(Activity activity) {
 
-    activityCollection.insertOne(activity)
+    activityCollection.insertOne(activity);
     // Trigger email notifications
     EmailNotifier.handle(activity);;
   }
