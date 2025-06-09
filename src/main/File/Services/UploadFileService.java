@@ -1,6 +1,6 @@
 package File.Services;
 
-import Activity.UploadFileActivity;
+import Activity.UserActivity.FileActivity.UploadFileActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;

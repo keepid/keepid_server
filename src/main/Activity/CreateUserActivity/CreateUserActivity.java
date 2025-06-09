@@ -1,9 +1,9 @@
-package Activity;
+package Activity.CreateUserActivity;
 
-import org.bson.codecs.pojo.annotations.BsonProperty;
-
+import Activity.Activity;
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 
 public class CreateUserActivity extends Activity {
 
@@ -13,7 +13,7 @@ public class CreateUserActivity extends Activity {
   public CreateUserActivity() {}
 
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(CreateUserActivity.class.getSimpleName());

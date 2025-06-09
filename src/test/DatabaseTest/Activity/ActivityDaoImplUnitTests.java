@@ -3,6 +3,10 @@ package DatabaseTest.Activity;
 import static org.junit.Assert.*;
 
 import Activity.*;
+import Activity.CreateUserActivity.CreateUserActivity.CreateAdminActivity;
+import Activity.UserActivity.AuthenticationActivity.AuthenticationActivity;
+import Activity.UserActivity.ChangeUserAttributesActivity;
+import Activity.UserActivity.FileActivity.DeleteFileActivity;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
@@ -49,11 +53,13 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
-    Activity readAuthenticateActivity = activityDao.get(authenticateActivity.getId()).orElseThrow();
-    assertTrue(areActivitiesEqual(authenticateActivity, readAuthenticateActivity));
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
+    Activity readAuthenticateActivity =
+        activityDao.get(authenticationActivity.getId()).orElseThrow();
+    assertTrue(areActivitiesEqual(authenticationActivity, readAuthenticateActivity));
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -88,9 +94,10 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -121,9 +128,10 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -203,10 +211,10 @@ public class ActivityDaoImplUnitTests {
             .withType(List.of("Activity", "CreateUserActivity"))
             .buildAndPersist(activityDao);
 
-    AuthenticateActivity authenticateActivityUsername1 = new AuthenticateActivity(username1);
-    authenticateActivityUsername1.setOccurredAt(
+    AuthenticationActivity authenticationActivityUsername1 = new AuthenticationActivity(username1);
+    authenticationActivityUsername1.setOccurredAt(
         now.minusDays(2)); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivityUsername1);
+    activityDao.save(authenticationActivityUsername1);
 
     ChangeUserAttributesActivity changeUserAttributesActivityUsername1 =
         new ChangeUserAttributesActivity(username1, "target", "attr 1", "newAttr 1");
@@ -226,7 +234,7 @@ public class ActivityDaoImplUnitTests {
         areActivitiesEqual(
             List.of(
                 activityUsername1,
-                authenticateActivityUsername1,
+                authenticationActivityUsername1,
                 changeUserAttributesActivityUsername1),
             activityDao.getAllFromUser(username1)));
   }

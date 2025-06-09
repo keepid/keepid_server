@@ -3,7 +3,7 @@ package File.Services;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
-import Activity.ViewFileActivity;
+import Activity.UserActivity.FileActivity.ViewFileActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;

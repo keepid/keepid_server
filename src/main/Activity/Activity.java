@@ -17,8 +17,14 @@ public class Activity implements Comparable<Activity> {
   @BsonProperty(value = "occurredAt")
   private LocalDateTime occurredAt;
 
-  @BsonProperty(value = "username")
-  private String username;
+  @BsonProperty(value = "invokerUsername")
+  private String invokerUsername;
+
+  @BsonProperty(value = "targetUsername")
+  private String targetUsername;
+
+  @BsonProperty(value = "objectName")
+  private String objectName;
 
   @BsonProperty(value = "type")
   private List<String> type;
@@ -27,13 +33,13 @@ public class Activity implements Comparable<Activity> {
     this.type = construct();
   }
 
-  Activity(String creatorUsername) {
-    this.username = creatorUsername;
+  public Activity(String creatorUsername) {
+    this.invokerUsername = creatorUsername;
     this.occurredAt = LocalDateTime.now();
     this.type = construct();
   }
 
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     return a;
@@ -57,16 +63,30 @@ public class Activity implements Comparable<Activity> {
     return this;
   }
 
+  // Deprecate
   public String getUsername() {
-    return username;
+    return invokerUsername;
+  }
+
+  public String getInvokerUsername() {
+    return invokerUsername;
+  }
+
+  public String getTargetUsername() {
+    return targetUsername;
+  }
+
+  public String getObjectName() {
+    return objectName;
   }
 
   public ObjectId getId() {
     return id;
   }
 
+  // Deprecate
   public Activity setUsername(String username) {
-    this.username = username;
+    this.invokerUsername = username;
     return this;
   }
 
@@ -74,10 +94,13 @@ public class Activity implements Comparable<Activity> {
     this.id = id;
   }
 
-  // default sort is by occurred at, and then by username
+  // default sort is by occurred at, then invoker username, then target username, then name, finally
+  // type
   private Comparator<Activity> getComparator() {
     return Comparator.comparing(Activity::getOccurredAt)
-        .thenComparing(Activity::getUsername)
+        .thenComparing(Activity::getInvokerUsername)
+        .thenComparing(Activity::getTargetUsername)
+        .thenComparing(Activity::getObjectName)
         .thenComparingInt(
             activity ->
                 activity.getType().stream()
@@ -89,8 +112,10 @@ public class Activity implements Comparable<Activity> {
   public JSONObject serialize() {
     JSONObject activityJson = new JSONObject();
     activityJson.put("_id", id);
-    activityJson.put("username", username);
     activityJson.put("occurredAt", occurredAt);
+    activityJson.put("invokerUsername", invokerUsername);
+    activityJson.put("targetUsername", targetUsername);
+    activityJson.put("objectName", objectName);
     activityJson.put("type", this.getType().get(this.getType().size() - 1));
     return activityJson;
   }

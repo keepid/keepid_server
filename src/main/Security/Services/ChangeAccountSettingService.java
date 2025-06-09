@@ -1,6 +1,6 @@
 package Security.Services;
 
-import Activity.ChangeUserAttributesActivity;
+import Activity.UserActivity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;

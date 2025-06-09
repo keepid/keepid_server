@@ -1,6 +1,6 @@
 package File.Services;
 
-import Activity.DeleteFileActivity;
+import Activity.UserActivity.FileActivity.DeleteFileActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;

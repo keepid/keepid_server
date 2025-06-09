@@ -1,9 +1,9 @@
 package User.Services;
 
-import Activity.CreateAdminActivity;
-import Activity.CreateClientActivity;
-import Activity.CreateDirectorActivity;
-import Activity.CreateWorkerActivity;
+import Activity.CreateUserActivity.CreateAdminActivity;
+import Activity.CreateUserActivity.CreateClientActivity;
+import Activity.CreateUserActivity.CreateDirectorActivity;
+import Activity.CreateUserActivity.CreateWorkerActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -14,11 +14,10 @@ import User.User;
 import User.UserMessage;
 import User.UserType;
 import Validation.ValidationException;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CreateUserService implements Service {

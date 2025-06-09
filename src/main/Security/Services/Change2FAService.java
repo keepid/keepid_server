@@ -1,12 +1,11 @@
 package Security.Services;
 
-import Activity.ChangeUserAttributesActivity;
+import Activity.UserActivity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
-
 import java.util.Objects;
 import java.util.Optional;
 

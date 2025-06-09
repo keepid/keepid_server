@@ -1,8 +1,8 @@
 package Database.Activity;
 
-import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Filters.or;
 
 import Activity.Activity;
 import Config.DeploymentLevel;
@@ -30,17 +30,18 @@ public class ActivityDaoImpl implements ActivityDao {
 
   @Override // sorted by most recent created
   public List<Activity> getAllFromUser(String username) {
-    return activityCollection.find(eq("username", username)).into(new ArrayList<>()).stream()
+    return activityCollection
+        .find(or(eq("invokerUsername", username), eq("targetUsername", username)))
+        .into(new ArrayList<>())
+        .stream()
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
 
   @Override
   public List<Activity> getAllFileActivitiesFromUser(String username) {
-    return activityCollection
-        .find(and(eq("username", username), eq("type", "FileActivity")))
-        .into(new ArrayList<>())
-        .stream()
+    return getAllFromUser(username).stream()
+        .filter(activity -> activity.getType().contains("FileActivity"))
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
@@ -51,7 +52,10 @@ public class ActivityDaoImpl implements ActivityDao {
         userCollection.find(eq("organization", organization)).into(new ArrayList<>());
     Set<String> usernames =
         users.stream().map(user -> user.getUsername()).collect(Collectors.toSet());
-    return activityCollection.find(in("username", usernames)).into(new ArrayList<>()).stream()
+    return activityCollection
+        .find(or(in("invokerUsername", usernames), in("targetUsername", usernames)))
+        .into(new ArrayList<>())
+        .stream()
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }

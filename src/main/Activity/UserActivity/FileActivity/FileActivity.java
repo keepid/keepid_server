@@ -1,11 +1,12 @@
-package Activity;
+package Activity.UserActivity.FileActivity;
 
+import Activity.Activity;
+import Activity.UserActivity.UserActivity;
 import File.FileType;
-import org.bson.codecs.pojo.annotations.BsonProperty;
-import org.bson.types.ObjectId;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.bson.types.ObjectId;
 
 public class FileActivity extends UserActivity {
   @BsonProperty(value = "documentOwnerUsername")
@@ -18,7 +19,7 @@ public class FileActivity extends UserActivity {
   private ObjectId documentID;
 
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());

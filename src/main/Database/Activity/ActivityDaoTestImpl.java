@@ -24,18 +24,20 @@ public class ActivityDaoTestImpl implements ActivityDao {
   @Override
   public List<Activity> getAllFromUser(String username) {
     return activityMap.values().stream()
-        .filter(activity -> activity.getUsername().equals(username))
+        .filter(
+            activity ->
+                activity.getInvokerUsername().equals(username)
+                    || activity.getTargetUsername().equals(username))
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
 
   @Override
   public List<Activity> getAllFileActivitiesFromUser(String username) {
-    return activityMap.values().stream()
-            .filter(activity -> activity.getUsername().equals(username)
-                    && activity.getType().contains("FileActivity"))
-            .sorted(Comparator.reverseOrder())
-            .collect(Collectors.toList());
+    return getAllFromUser(username).stream()
+        .filter(activity -> activity.getType().contains("FileActivity"))
+        .sorted(Comparator.reverseOrder())
+        .collect(Collectors.toList());
   }
 
   // This is so wrong
@@ -55,7 +57,10 @@ public class ActivityDaoTestImpl implements ActivityDao {
     Set<String> usernames =
         users.stream().map(user -> user.getUsername()).collect(Collectors.toSet());
     return activityMap.values().stream()
-        .filter(activity -> usernames.contains(activity.getUsername()))
+        .filter(
+            activity ->
+                usernames.contains(activity.getInvokerUsername())
+                    || usernames.contains(activity.getTargetUsername()))
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }

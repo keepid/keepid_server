@@ -2,7 +2,7 @@ package UserTest;
 
 import static org.junit.Assert.assertTrue;
 
-import Activity.ChangeUserAttributesActivity;
+import Activity.UserActivity.ChangeUserAttributesActivity;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;

@@ -1,13 +1,13 @@
-package Activity;
+package Activity.UserActivity;
 
-import org.bson.codecs.pojo.annotations.BsonProperty;
-
+import Activity.Activity;
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 
 public class ChangeUserAttributesActivity extends UserActivity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());
