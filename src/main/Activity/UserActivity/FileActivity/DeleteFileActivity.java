@@ -23,7 +23,11 @@ public class DeleteFileActivity extends FileActivity {
   }
 
   public DeleteFileActivity(
-      String usernameOfInvoker, String documentOwner, FileType fileType, ObjectId id) {
-    super(usernameOfInvoker, documentOwner, fileType, id);
+      String usernameOfInvoker,
+      String documentOwner,
+      FileType fileType,
+      ObjectId id,
+      String filename) {
+    super(usernameOfInvoker, documentOwner, fileType, id, filename);
   }
 }

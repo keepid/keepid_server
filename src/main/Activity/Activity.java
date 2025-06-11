@@ -10,7 +10,6 @@ import org.bson.types.ObjectId;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
-// Refactor this, can consider removing getters and setters. Also, get other activities to work
 public class Activity implements Comparable<Activity> {
   private ObjectId id;
 
@@ -33,8 +32,28 @@ public class Activity implements Comparable<Activity> {
     this.type = construct();
   }
 
-  public Activity(String creatorUsername) {
-    this.invokerUsername = creatorUsername;
+  // For activities who do not need more info, like logging in
+  public Activity(String invokerUsername) {
+    this.invokerUsername = invokerUsername;
+    this.targetUsername = invokerUsername;
+    this.occurredAt = LocalDateTime.now();
+    this.type = construct();
+  }
+
+  // For activities that are done by the user, for the user
+  public Activity(String invokerUsername, String objectName) {
+    this.invokerUsername = invokerUsername;
+    this.targetUsername = invokerUsername;
+    this.objectName = objectName;
+    this.occurredAt = LocalDateTime.now();
+    this.type = construct();
+  }
+
+  // For activities done by a user for another user
+  public Activity(String invokerUsername, String targetUsername, String objectName) {
+    this.invokerUsername = invokerUsername;
+    this.targetUsername = targetUsername;
+    this.objectName = objectName;
     this.occurredAt = LocalDateTime.now();
     this.type = construct();
   }
@@ -63,11 +82,6 @@ public class Activity implements Comparable<Activity> {
     return this;
   }
 
-  // Deprecate
-  public String getUsername() {
-    return invokerUsername;
-  }
-
   public String getInvokerUsername() {
     return invokerUsername;
   }
@@ -84,14 +98,24 @@ public class Activity implements Comparable<Activity> {
     return id;
   }
 
-  // Deprecate
-  public Activity setUsername(String username) {
-    this.invokerUsername = username;
+  public Activity setId(ObjectId id) {
+    this.id = id;
     return this;
   }
 
-  public void setId(ObjectId id) {
-    this.id = id;
+  public Activity setInvokerUsername(String invokerUsername) {
+    this.invokerUsername = invokerUsername;
+    return this;
+  }
+
+  public Activity setObjectName(String objectName) {
+    this.objectName = objectName;
+    return this;
+  }
+
+  public Activity setTargetUsername(String targetUsername) {
+    this.targetUsername = targetUsername;
+    return this;
   }
 
   // default sort is by occurred at, then invoker username, then target username, then name, finally

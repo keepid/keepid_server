@@ -30,12 +30,16 @@ public class ActivityDaoImpl implements ActivityDao {
 
   @Override // sorted by most recent created
   public List<Activity> getAllFromUser(String username) {
-    return activityCollection
-        .find(or(eq("invokerUsername", username), eq("targetUsername", username)))
-        .into(new ArrayList<>())
-        .stream()
-        .sorted(Comparator.reverseOrder())
-        .collect(Collectors.toList());
+
+    List<Activity> temp =
+        activityCollection
+            .find(or(eq("invokerUsername", username), eq("targetUsername", username)))
+            .into(new ArrayList<>())
+            .stream()
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+    String s = "hi";
+    return temp;
   }
 
   @Override

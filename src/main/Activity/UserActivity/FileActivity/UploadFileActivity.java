@@ -23,7 +23,11 @@ public class UploadFileActivity extends FileActivity {
   }
 
   public UploadFileActivity(
-      String usernameOfInvoker, String targetUsername, FileType fileType, ObjectId id) {
-    super(usernameOfInvoker, targetUsername, fileType, id);
+      String usernameOfInvoker,
+      String targetUsername,
+      FileType fileType,
+      ObjectId id,
+      String filename) {
+    super(usernameOfInvoker, targetUsername, fileType, id, filename);
   }
 }

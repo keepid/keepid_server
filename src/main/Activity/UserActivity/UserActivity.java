@@ -19,4 +19,12 @@ public class UserActivity extends Activity {
   public UserActivity(String username) {
     super(username);
   }
+
+  public UserActivity(String username, String objectName) {
+    super(username, objectName);
+  }
+
+  public UserActivity(String invokerUsername, String targetUsername, String objectName) {
+    super(invokerUsername, targetUsername, objectName);
+  }
 }

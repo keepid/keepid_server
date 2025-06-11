@@ -52,10 +52,13 @@ public class DeleteFileService implements Service {
   }
 
   private void recordDeleteFileActivity(ObjectId id) {
+    Optional<File> optionalFile = fileDao.get(id);
+    String filename = "File does not exist";
+    if (optionalFile.isPresent()) {
+      filename = optionalFile.get().getFilename();
+    }
     DeleteFileActivity log =
-        new DeleteFileActivity(
-            usernameOfInvoker, username,
-            fileType, id);
+        new DeleteFileActivity(usernameOfInvoker, username, fileType, id, filename);
     activityDao.save(log);
   }
 
@@ -76,27 +79,27 @@ public class DeleteFileService implements Service {
             || privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Worker)) {
       if (file.getOrganizationName().equals(organizationName)) {
-        fileDao.delete(id);
         recordDeleteFileActivity(id);
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.IDENTIFICATION_PDF
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
       if (file.getUsername().equals(user)) {
-        fileDao.delete(id);
         recordDeleteFileActivity(id);
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM) {
       if (file.getOrganizationName().equals(organizationName)) {
-        fileDao.delete(id);
         recordDeleteFileActivity(id);
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.MISC) { // need to establish security levels for MISC files
       if (file.getUsername().equals(user)) {
-        fileDao.delete(id);
         recordDeleteFileActivity(id);
+        fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } // no deleting of profile pic files (only replacing)

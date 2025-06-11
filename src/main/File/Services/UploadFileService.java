@@ -121,7 +121,8 @@ public class UploadFileService implements Service {
             usernameOfInvoker,
             fileToUpload.getUsername(),
             fileToUpload.getFileType(),
-            fileToUpload.getFileId());
+            fileToUpload.getFileId(),
+            fileToUpload.getFilename());
     activityDao.save(log);
   }
 

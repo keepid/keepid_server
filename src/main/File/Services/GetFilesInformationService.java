@@ -13,6 +13,7 @@ import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import java.util.Objects;
+import java.util.Optional;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -107,11 +108,18 @@ public class GetFilesInformationService implements Service {
     return files;
   }
 
-  private void recordViewFileActivity(ObjectId id) {
+  private void recordViewFileActivity(ObjectId id, boolean single) {
+    String filename = "Multiple files";
+    if (single) {
+      Optional<File> optionalFile = fileDao.get(id);
+      if (optionalFile.isPresent()) {
+        filename = optionalFile.get().getFilename();
+      } else {
+        filename = "File does not exist";
+      }
+    }
     ViewFileActivity log =
-        new ViewFileActivity(
-            usernameOfInvoker, username,
-            fileType, id);
+        new ViewFileActivity(usernameOfInvoker, username, fileType, id, filename);
     activityDao.save(log);
   }
 
@@ -122,7 +130,7 @@ public class GetFilesInformationService implements Service {
       assert file_out != null;
       // Chooses first object for id
       if (id == null) {
-        id = file_out.getFileId();
+        id = file_out.getId();
       }
       String uploaderUsername = file_out.getUsername();
       JSONObject fileMetadata =
@@ -140,7 +148,6 @@ public class GetFilesInformationService implements Service {
             fileMetadata.put("filename", file_out.getFilename());
           }
           fileMetadata.put("annotated", file_out.isAnnotated());
-
         } else if (fileType == FileType.APPLICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());
         } else if (fileType == FileType.IDENTIFICATION_PDF) {
@@ -153,7 +160,11 @@ public class GetFilesInformationService implements Service {
       files.put(fileMetadata);
     }
     this.files = files;
-    recordViewFileActivity(id);
+    if (files.length() == 1) {
+      recordViewFileActivity(id, true);
+    } else if (files.length() > 1) {
+      recordViewFileActivity(id, true);
+    }
     return FileMessage.SUCCESS;
   }
 }

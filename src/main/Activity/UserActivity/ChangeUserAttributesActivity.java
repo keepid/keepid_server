@@ -31,7 +31,7 @@ public class ChangeUserAttributesActivity extends UserActivity {
       String attributeName,
       String oldAttributeValue,
       String newAttributeValue) {
-    super(usernameOfInvoker);
+    super(usernameOfInvoker, attributeName);
     this.attributeName = attributeName;
     this.oldAttributeValue = oldAttributeValue;
     this.newAttributeValue = newAttributeValue;

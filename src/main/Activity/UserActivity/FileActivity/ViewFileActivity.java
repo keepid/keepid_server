@@ -23,7 +23,11 @@ public class ViewFileActivity extends FileActivity {
   }
 
   public ViewFileActivity(
-      String usernameOfInvoker, String targetUsername, FileType fileType, ObjectId id) {
-    super(usernameOfInvoker, targetUsername, fileType, id);
+      String usernameOfInvoker,
+      String targetUsername,
+      FileType fileType,
+      ObjectId id,
+      String filename) {
+    super(usernameOfInvoker, targetUsername, fileType, id, filename);
   }
 }

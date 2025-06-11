@@ -4,7 +4,7 @@ import static DatabaseTest.Activity.ActivityDaoImplUnitTests.areActivitiesEqual;
 import static org.junit.Assert.*;
 
 import Activity.*;
-import Activity.CreateUserActivity.CreateUserActivity.CreateAdminActivity;
+import Activity.CreateUserActivity.CreateAdminActivity;
 import Activity.UserActivity.AuthenticationActivity.AuthenticationActivity;
 import Activity.UserActivity.ChangeUserAttributesActivity;
 import Activity.UserActivity.FileActivity.DeleteFileActivity;
@@ -68,7 +68,8 @@ public class ActivityDaoTestImplUnitTests {
     assertTrue(areActivitiesEqual(createAdminActivity, readCreateAdminActivity));
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
+        new DeleteFileActivity(
+            "usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId(), "fileName");
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
     Activity readDeleteFileActivity = activityDao.get(deleteFileActivity.getId()).orElseThrow();
