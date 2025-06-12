@@ -51,12 +51,7 @@ public class DeleteFileService implements Service {
     return delete(username, orgName, fileType, userType, fileID, fileDao);
   }
 
-  private void recordDeleteFileActivity(ObjectId id) {
-    Optional<File> optionalFile = fileDao.get(id);
-    String filename = "File does not exist";
-    if (optionalFile.isPresent()) {
-      filename = optionalFile.get().getFilename();
-    }
+  private void recordDeleteFileActivity(ObjectId id, String filename) {
     DeleteFileActivity log =
         new DeleteFileActivity(usernameOfInvoker, username, fileType, id, filename);
     activityDao.save(log);
@@ -74,31 +69,32 @@ public class DeleteFileService implements Service {
       return FileMessage.NO_SUCH_FILE;
     }
     File file = fileFromDB.get();
+    String filename = file.getFilename();
     if (fileType == FileType.APPLICATION_PDF
         && (privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Worker)) {
       if (file.getOrganizationName().equals(organizationName)) {
-        recordDeleteFileActivity(id);
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.IDENTIFICATION_PDF
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
       if (file.getUsername().equals(user)) {
-        recordDeleteFileActivity(id);
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM) {
       if (file.getOrganizationName().equals(organizationName)) {
-        recordDeleteFileActivity(id);
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.MISC) { // need to establish security levels for MISC files
       if (file.getUsername().equals(user)) {
-        recordDeleteFileActivity(id);
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }

@@ -456,6 +456,8 @@ public class UserController {
         DownloadFileService serv =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.empty(),
                 Optional.empty(),

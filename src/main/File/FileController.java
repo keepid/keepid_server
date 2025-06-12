@@ -252,6 +252,7 @@ public class FileController {
   public Handler fileDownload =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -261,6 +262,7 @@ public class FileController {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
+          usernameOfInvoker = ctx.sessionAttribute("username");
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
@@ -282,6 +284,8 @@ public class FileController {
             DownloadFileService downloadFileService =
                 new DownloadFileService(
                     fileDao,
+                    activityDao,
+                    usernameOfInvoker,
                     username,
                     Optional.ofNullable(orgName),
                     Optional.ofNullable(userType),
@@ -371,7 +375,6 @@ public class FileController {
       ctx -> {
         log.info("Starting pdfGetDocuments");
         String username;
-        String usernameOfInvoker;
         String orgName;
         UserType userType;
         String reqBody = ctx.body();
@@ -386,7 +389,6 @@ public class FileController {
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
         } else {
           boolean orgFlag;
-          usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
@@ -407,14 +409,7 @@ public class FileController {
             }
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    fileDao,
-                    activityDao,
-                    usernameOfInvoker,
-                    username,
-                    orgName,
-                    userType,
-                    fileType,
-                    annotated);
+                    fileDao, username, orgName, userType, fileType, annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
@@ -442,6 +437,8 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
@@ -487,6 +484,8 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),

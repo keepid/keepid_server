@@ -115,14 +115,18 @@ public class UploadFileService implements Service {
     }
   }
 
-  private void recordUploadFileActivity() {
+  private void recordUploadFileActivity(boolean isProfilePic) {
+    String filename = fileToUpload.getFilename();
+    if (isProfilePic) {
+      filename = "Profile Picture";
+    }
     UploadFileActivity log =
         new UploadFileActivity(
             usernameOfInvoker,
             fileToUpload.getUsername(),
             fileToUpload.getFileType(),
             fileToUpload.getFileId(),
-            fileToUpload.getFilename());
+            filename);
     activityDao.save(log);
   }
 
@@ -134,7 +138,7 @@ public class UploadFileService implements Service {
     this.fileToUpload.setFileStream(
         controller.encryptFile(this.fileToUpload.getFileStream(), this.fileToUpload.getUsername()));
     this.fileDao.save(fileToUpload);
-    recordUploadFileActivity();
+    recordUploadFileActivity(false);
     return FileMessage.SUCCESS;
   }
 
@@ -151,7 +155,7 @@ public class UploadFileService implements Service {
     }
     this.fileToUpload.setContentType(contentType);
     this.fileDao.save(fileToUpload);
-    recordUploadFileActivity();
+    recordUploadFileActivity(true);
     return FileMessage.SUCCESS;
   }
 

@@ -58,13 +58,6 @@ public class ChangeAccountSettingService implements Service {
     if (verifyStatus == SecurityUtils.PassHashEnum.FAILURE) {
       return UserMessage.AUTH_FAILURE;
     }
-    JSONObject userAsJson = user.serialize();
-    String old = userAsJson.get(key).toString();
-    ChangeUserAttributesActivity act =
-        new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
-    activityDao.save(act);
-    System.out.println(
-        "made change user attribute activity here" + act.getType() + ", " + act.getAttributeName());
     switch (key) {
       case "firstName":
         if (!ValidationUtils.isValidFirstName(value)) {
@@ -125,6 +118,15 @@ public class ChangeAccountSettingService implements Service {
     }
     //    userCollection.replaceOne(eq("username", user.getUsername()), user);
     userDao.update(user);
+    recordChangeUserAttributesActivity(user);
     return UserMessage.SUCCESS;
+  }
+
+  private void recordChangeUserAttributesActivity(User user) {
+    JSONObject userAsJson = user.serialize();
+    String old = userAsJson.get(key).toString();
+    ChangeUserAttributesActivity act =
+            new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
+    activityDao.save(act);
   }
 }

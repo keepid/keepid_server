@@ -1,7 +1,9 @@
 package File.Services;
 
+import Activity.UserActivity.FileActivity.ViewFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -19,6 +21,8 @@ import org.bson.types.ObjectId;
 @Slf4j
 public class DownloadFileService implements Service {
   private FileDao fileDao;
+  private ActivityDao activityDao;
+  private String usernameOfInvoker;
   private String username;
   private Optional<String> organizationName;
   private Optional<UserType> privilegeLevel;
@@ -30,6 +34,8 @@ public class DownloadFileService implements Service {
 
   public DownloadFileService(
       FileDao fileDao,
+      ActivityDao activityDao,
+      String usernameOfInvoker,
       String username,
       Optional<String> orgName,
       Optional<UserType> privilegeLevel,
@@ -37,6 +43,8 @@ public class DownloadFileService implements Service {
       Optional<String> fileId,
       Optional<EncryptionController> encryptionController) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.username = username;
     this.organizationName = orgName;
     this.privilegeLevel = privilegeLevel;
@@ -103,6 +111,7 @@ public class DownloadFileService implements Service {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
+      String filename = file.getFilename();
       UserType privilegeLevelType = privilegeLevel.get();
       if (fileType == FileType.APPLICATION_PDF
           && (privilegeLevelType == UserType.Director
@@ -115,6 +124,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordViewFileActivity(id, filename);
             return FileMessage.SUCCESS;
           } else {
             return FileMessage.NO_SUCH_FILE;
@@ -128,6 +138,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordViewFileActivity(id, filename);
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
@@ -139,6 +150,7 @@ public class DownloadFileService implements Service {
             this.inputStream =
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
+            recordViewFileActivity(id, filename);
             return FileMessage.SUCCESS;
           }
           return FileMessage.NO_SUCH_FILE;
@@ -151,10 +163,12 @@ public class DownloadFileService implements Service {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
+      String filename = file.getFilename();
       this.contentType = "image/" + file.getContentType();
       Optional<InputStream> optionalStream = fileDao.getStream(file.getId());
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
+        recordViewFileActivity(file.getFileId(), "Profile Picture");
         return FileMessage.SUCCESS;
       }
       return FileMessage.NO_SUCH_FILE;
@@ -169,14 +183,22 @@ public class DownloadFileService implements Service {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
+      String filename = file.getFilename();
       this.contentType = file.getContentType();
       Optional<InputStream> optionalStream = fileDao.getStream(id);
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
+        recordViewFileActivity(id, filename);
         return FileMessage.SUCCESS;
       }
       return FileMessage.NO_SUCH_FILE;
     }
     return FileMessage.NO_SUCH_FILE;
+  }
+
+  private void recordViewFileActivity(ObjectId id, String filename) {
+    ViewFileActivity log =
+        new ViewFileActivity(usernameOfInvoker, username, fileType, id, filename);
+    activityDao.save(log);
   }
 }

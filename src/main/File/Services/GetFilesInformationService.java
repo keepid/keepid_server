@@ -3,26 +3,20 @@ package File.Services;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 
-import Activity.UserActivity.FileActivity.ViewFileActivity;
 import Config.Message;
 import Config.Service;
-import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
 import User.UserType;
 import java.util.Objects;
-import java.util.Optional;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class GetFilesInformationService implements Service {
   private FileDao fileDao;
-  private ActivityDao activityDao;
-  private String usernameOfInvoker;
   private String username;
   private String orgName;
   private UserType userType;
@@ -32,16 +26,12 @@ public class GetFilesInformationService implements Service {
 
   public GetFilesInformationService(
       FileDao fileDao,
-      ActivityDao activityDao,
-      String usernameOfInvoker,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       boolean annotated) {
     this.fileDao = fileDao;
-    this.activityDao = activityDao;
-    this.usernameOfInvoker = usernameOfInvoker;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -108,30 +98,10 @@ public class GetFilesInformationService implements Service {
     return files;
   }
 
-  private void recordViewFileActivity(ObjectId id, boolean single) {
-    String filename = "Multiple files";
-    if (single) {
-      Optional<File> optionalFile = fileDao.get(id);
-      if (optionalFile.isPresent()) {
-        filename = optionalFile.get().getFilename();
-      } else {
-        filename = "File does not exist";
-      }
-    }
-    ViewFileActivity log =
-        new ViewFileActivity(usernameOfInvoker, username, fileType, id, filename);
-    activityDao.save(log);
-  }
-
   public Message getAllFiles(Bson filter, FileType fileType, FileDao fileDao) {
     JSONArray files = new JSONArray();
-    ObjectId id = null;
     for (File file_out : fileDao.getAll(filter)) {
       assert file_out != null;
-      // Chooses first object for id
-      if (id == null) {
-        id = file_out.getId();
-      }
       String uploaderUsername = file_out.getUsername();
       JSONObject fileMetadata =
           new JSONObject()
@@ -160,11 +130,6 @@ public class GetFilesInformationService implements Service {
       files.put(fileMetadata);
     }
     this.files = files;
-    if (files.length() == 1) {
-      recordViewFileActivity(id, true);
-    } else if (files.length() > 1) {
-      recordViewFileActivity(id, true);
-    }
     return FileMessage.SUCCESS;
   }
 }
