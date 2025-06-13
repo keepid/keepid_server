@@ -39,7 +39,7 @@ public class AccountSecurityController {
         String oldPassword = req.getString("oldPassword");
         String newPassword = req.getString("newPassword");
         ChangePasswordService changePasswordService =
-            new ChangePasswordService(userDao, username, oldPassword, newPassword);
+            new ChangePasswordService(userDao, username, activityDao, oldPassword, newPassword);
         ctx.result(changePasswordService.executeAndGetResponse().toResponseString());
       };
 

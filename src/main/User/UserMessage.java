@@ -23,8 +23,8 @@ public enum UserMessage implements Message {
   EMPTY_FIELD("EMPTY_FIELD:Cannot be empty."),
   EMAIL_DOES_NOT_EXIST("EMAIL_DOES_NOT_EXIST:No email found for this user"),
   CROSS_ORG_ACTION_DENIED(
-      "CROSS_ORG_ACTION_DENIED:You are trying to access another organization's client information");
-
+      "CROSS_ORG_ACTION_DENIED:You are trying to access another organization's client information"),
+  PASSWORD_UNCHANGED("PASSWORD_UNCHANGED:New password must be different from old password");
   private String errorMessage;
 
   UserMessage(String errorMessage) {
