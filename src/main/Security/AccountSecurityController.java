@@ -60,7 +60,8 @@ public class AccountSecurityController {
         JSONObject req = new JSONObject(ctx.body());
         Boolean isTwoFactorOn = req.getBoolean("twoFactorOn");
         String username = ctx.sessionAttribute("username");
-        Change2FAService change2FAService = new Change2FAService(userDao, username, isTwoFactorOn);
+        Change2FAService change2FAService =
+            new Change2FAService(userDao, activityDao, username, isTwoFactorOn);
         ctx.result(change2FAService.executeAndGetResponse().toResponseString());
       };
 

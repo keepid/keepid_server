@@ -12,6 +12,10 @@ public class AuthenticationActivity extends UserActivity {
     super(username);
   }
 
+  public AuthenticationActivity(String username, String objectName) {
+    super(username, objectName);
+  }
+
   @Override
   public List<String> construct() {
     List<String> a = new ArrayList<>();

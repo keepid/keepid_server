@@ -1,8 +1,9 @@
 package Security.Services;
 
-import Activity.UserActivity.ChangeUserAttributesActivity;
+import Activity.UserActivity.AuthenticationActivity.Change2FAActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import User.User;
 import User.UserMessage;
@@ -10,12 +11,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class Change2FAService implements Service {
-  UserDao userDao;
+  private UserDao userDao;
+  private ActivityDao activityDao;
   private String username;
   private Boolean isTwoFactorOn;
 
-  public Change2FAService(UserDao userDao, String username, Boolean isTwoFactorOn) {
+  public Change2FAService(
+      UserDao userDao, ActivityDao activityDao, String username, Boolean isTwoFactorOn) {
     this.userDao = userDao;
+    this.activityDao = activityDao;
     this.username = username;
     this.isTwoFactorOn = isTwoFactorOn;
   }
@@ -35,9 +39,19 @@ public class Change2FAService implements Service {
     user.setTwoFactorOn(isTwoFactorOn);
     String oldBoolean = booleanToString(!isTwoFactorOn);
     String newBoolean = booleanToString(isTwoFactorOn);
-    new ChangeUserAttributesActivity(user.getUsername(), "twoFactorOn", oldBoolean, newBoolean);
     userDao.update(user);
+    recordChange2FAActivity();
     return UserMessage.SUCCESS;
+  }
+
+  private void recordChange2FAActivity() {
+    Change2FAActivity a;
+    if (isTwoFactorOn) {
+      a = new Change2FAActivity(username, "On");
+    } else {
+      a = new Change2FAActivity(username, "Off");
+    }
+    activityDao.save(a);
   }
 
   private String booleanToString(Boolean bool) {
