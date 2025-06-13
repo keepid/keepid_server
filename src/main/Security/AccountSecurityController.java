@@ -72,7 +72,7 @@ public class AccountSecurityController {
         String jwt = req.getString("jwt");
         String newPassword = req.getString("newPassword");
         ResetPasswordService resetPasswordService =
-            new ResetPasswordService(userDao, tokenDao, jwt, newPassword);
+            new ResetPasswordService(userDao, tokenDao, activityDao, jwt, newPassword);
         ctx.result(resetPasswordService.executeAndGetResponse().toResponseString());
       };
 

@@ -22,6 +22,10 @@ public class RecoverPasswordActivity extends AuthenticationActivity {
 
   public RecoverPasswordActivity() {}
 
+  public RecoverPasswordActivity(String username) {
+    super(username);
+  }
+
   public RecoverPasswordActivity(
       String username, String oldPasswordHash, String newPasswordHash, String recoveryEmail) {
     super(username);

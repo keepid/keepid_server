@@ -90,7 +90,7 @@ public class ChangePasswordIntegrationTests {
         SecurityUtils.createJWT(
             id, "KeepID", username, "Password Reset Confirmation", EXPIRATION_TIME_2_HOURS);
     ResetPasswordService forgotPasswordService =
-        new ResetPasswordService(userDao, tokenDao, jwt, username);
+        new ResetPasswordService(userDao, tokenDao, activityDao, jwt, username);
     Message returnMessage = forgotPasswordService.executeAndGetResponse();
     assertEquals(UserMessage.AUTH_FAILURE, returnMessage);
     Optional<Tokens> tokens = tokenDao.get(username);
