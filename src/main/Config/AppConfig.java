@@ -92,7 +92,7 @@ public class AppConfig {
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     OptionalUserInformationController optionalUserInformationController =
-        new OptionalUserInformationController(optionalUserInformationDao);
+        new OptionalUserInformationController(optionalUserInformationDao, activityDao);
     BillingController billingController = new BillingController();
     MailController mailController =
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);

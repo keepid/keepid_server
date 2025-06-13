@@ -1,7 +1,9 @@
 package OptionalUserInformation.Services;
 
+import Activity.UserActivity.ChangeOptionalUserInformationActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
 import OptionalUserInformation.*;
 import java.util.Date;
@@ -9,6 +11,7 @@ import java.util.List;
 
 public class CreateOptionalInfoService implements Service {
   private final OptionalUserInformationDao optionalUserInformationDao;
+  private final ActivityDao activityDao;
 
   // Attributes for OptionalUserInformation
   private String username;
@@ -47,6 +50,7 @@ public class CreateOptionalInfoService implements Service {
 
   public CreateOptionalInfoService(
       OptionalUserInformationDao dao,
+      ActivityDao activityDao,
       String username,
       // Parameters for Person
       String firstName,
@@ -92,6 +96,7 @@ public class CreateOptionalInfoService implements Service {
       String discharge) {
     // Initialize all the fields with the provided parameters
     this.optionalUserInformationDao = dao;
+    this.activityDao = activityDao;
     this.username = username;
 
     // Initialize fields for Person
@@ -223,6 +228,12 @@ public class CreateOptionalInfoService implements Service {
     }
     OptionalUserInformation optionalUserInformation = this.build();
     optionalUserInformationDao.save(optionalUserInformation);
+    recordChangeOptionalUserInformationActivity();
     return UserMessage.SUCCESS;
+  }
+
+  private void recordChangeOptionalUserInformationActivity() {
+    ChangeOptionalUserInformationActivity a = new ChangeOptionalUserInformationActivity(username);
+    activityDao.save(a);
   }
 }

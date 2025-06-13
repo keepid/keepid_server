@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Config.DeploymentLevel;
 import Config.Message;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
 import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import OptionalUserInformation.*;
@@ -25,6 +27,7 @@ import org.junit.Test;
 public class UpdateOptionalUserInformationUnitTest {
   OptionalUserInformationDao optionalUserInformationDao =
       OptionalUserInformationDaoFactory.create(DeploymentLevel.IN_MEMORY);
+  ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.IN_MEMORY);
   Format formatter = new SimpleDateFormat("yyyy-MM-dd");
 
   @After
@@ -48,6 +51,7 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
+            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -136,7 +140,7 @@ public class UpdateOptionalUserInformationUnitTest {
             new SimpleDateFormat("yyyy-MM-dd").parse("2022-01-01")));
 
     UpdateOptionalInfoService updateOptionalInfoService =
-        new UpdateOptionalInfoService(optionalUserInformationDao, copiedOpt);
+        new UpdateOptionalInfoService(optionalUserInformationDao, activityDao, copiedOpt);
     Message response1 = updateOptionalInfoService.executeAndGetResponse();
     assertEquals(UserMessage.SUCCESS, response1);
     OptionalUserInformation updatedInfo = optionalUserInformationDao.get("testUser").orElse(null);
@@ -188,6 +192,7 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
+            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -256,7 +261,7 @@ public class UpdateOptionalUserInformationUnitTest {
 
     UpdateOptionalInfoService updateOptionalInfoService =
         new UpdateOptionalInfoService(
-            optionalUserInformationDao, optionalUserInformationDifferentUsername);
+            optionalUserInformationDao, activityDao, optionalUserInformationDifferentUsername);
     Message response1 = updateOptionalInfoService.executeAndGetResponse();
     assertEquals(UserMessage.USER_NOT_FOUND, response1);
   }
@@ -266,6 +271,7 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
+            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -338,6 +344,7 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService1 =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
+            activityDao,
             "testUser1",
             // Parameters for Person
             "John",
@@ -409,7 +416,7 @@ public class UpdateOptionalUserInformationUnitTest {
             new SimpleDateFormat("yyyy-MM-dd").parse("2022-01-01")));
 
     UpdateOptionalInfoService updateOptionalInfoService =
-        new UpdateOptionalInfoService(optionalUserInformationDao, savedInfo);
+        new UpdateOptionalInfoService(optionalUserInformationDao, activityDao, savedInfo);
     Message response2 = updateOptionalInfoService.executeAndGetResponse();
     assertEquals(UserMessage.SUCCESS, response2);
     OptionalUserInformation updatedInfo = optionalUserInformationDao.get("testUser").orElse(null);

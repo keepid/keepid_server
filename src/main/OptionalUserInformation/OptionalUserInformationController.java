@@ -3,6 +3,7 @@ package OptionalUserInformation;
 import static User.UserController.mergeJSON;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.OptionalUserInformation.OptionalUserInformationDao;
 import OptionalUserInformation.Services.CreateOptionalInfoService;
 import OptionalUserInformation.Services.DeleteOptionalInfoService;
@@ -19,9 +20,12 @@ import org.json.JSONObject;
 @Slf4j
 public class OptionalUserInformationController {
   private OptionalUserInformationDao optInfoDao;
+  private ActivityDao activityDao;
 
-  public OptionalUserInformationController(OptionalUserInformationDao optInfoDao) {
+  public OptionalUserInformationController(
+      OptionalUserInformationDao optInfoDao, ActivityDao activityDao) {
     this.optInfoDao = optInfoDao;
+    this.activityDao = activityDao;
   }
 
   public Handler updateInformation =
@@ -31,6 +35,7 @@ public class OptionalUserInformationController {
         CreateOptionalInfoService createOptionalInfoService =
             new CreateOptionalInfoService(
                 optInfoDao,
+                activityDao,
                 req.getString("username"),
                 // Parameters for Person
                 req.getString("firstName"),
@@ -91,7 +96,7 @@ public class OptionalUserInformationController {
                 req.getString("discharge"));
         OptionalUserInformation optionalUserInformation = createOptionalInfoService.build();
         UpdateOptionalInfoService updateOptionalInfoService =
-            new UpdateOptionalInfoService(optInfoDao, optionalUserInformation);
+            new UpdateOptionalInfoService(optInfoDao, activityDao, optionalUserInformation);
         Message response = updateOptionalInfoService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
       };
@@ -118,6 +123,7 @@ public class OptionalUserInformationController {
         CreateOptionalInfoService createOptionalInfoService =
             new CreateOptionalInfoService(
                 optInfoDao,
+                activityDao,
                 req.getString("username"),
                 // Parameters for Person
                 req.getString("firstName"),

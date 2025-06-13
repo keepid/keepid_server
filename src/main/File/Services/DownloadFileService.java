@@ -168,7 +168,6 @@ public class DownloadFileService implements Service {
       Optional<InputStream> optionalStream = fileDao.getStream(file.getId());
       if (optionalStream.isPresent()) {
         this.inputStream = optionalStream.get();
-        recordViewFileActivity(file.getFileId(), "Profile Picture");
         return FileMessage.SUCCESS;
       }
       return FileMessage.NO_SUCH_FILE;
