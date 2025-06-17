@@ -51,7 +51,6 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
-            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -192,7 +191,6 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
-            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -271,7 +269,6 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
-            activityDao,
             "testUser",
             // Parameters for Person
             "John",
@@ -344,7 +341,6 @@ public class UpdateOptionalUserInformationUnitTest {
     CreateOptionalInfoService createOptionalInfoService1 =
         new CreateOptionalInfoService(
             optionalUserInformationDao,
-            activityDao,
             "testUser1",
             // Parameters for Person
             "John",

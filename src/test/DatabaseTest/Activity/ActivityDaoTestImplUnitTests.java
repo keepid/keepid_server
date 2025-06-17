@@ -6,7 +6,7 @@ import static org.junit.Assert.*;
 import Activity.*;
 import Activity.CreateUserActivity.CreateAdminActivity;
 import Activity.UserActivity.AuthenticationActivity.AuthenticationActivity;
-import Activity.UserActivity.ChangeUserAttributesActivity;
+import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Activity.UserActivity.FileActivity.DeleteFileActivity;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;

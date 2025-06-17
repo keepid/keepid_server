@@ -1,6 +1,6 @@
 package Security.Services;
 
-import Activity.UserActivity.ChangeUserAttributesActivity;
+import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -116,17 +116,18 @@ public class ChangeAccountSettingService implements Service {
       default:
         return UserMessage.INVALID_PARAMETER;
     }
-    //    userCollection.replaceOne(eq("username", user.getUsername()), user);
-    userDao.update(user);
-    recordChangeUserAttributesActivity(user);
+    JSONObject userAsJson = user.serialize();
+    String old = userAsJson.get(key).toString();
+    if (!old.equals(value)) {
+      userDao.update(user);
+      recordChangeUserAttributesActivity(user, old);
+    }
     return UserMessage.SUCCESS;
   }
 
-  private void recordChangeUserAttributesActivity(User user) {
-    JSONObject userAsJson = user.serialize();
-    String old = userAsJson.get(key).toString();
+  private void recordChangeUserAttributesActivity(User user, String old) {
     ChangeUserAttributesActivity act =
-            new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
+        new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
     activityDao.save(act);
   }
 }

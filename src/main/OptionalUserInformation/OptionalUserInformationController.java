@@ -35,7 +35,6 @@ public class OptionalUserInformationController {
         CreateOptionalInfoService createOptionalInfoService =
             new CreateOptionalInfoService(
                 optInfoDao,
-                activityDao,
                 req.getString("username"),
                 // Parameters for Person
                 req.getString("firstName"),
@@ -123,7 +122,6 @@ public class OptionalUserInformationController {
         CreateOptionalInfoService createOptionalInfoService =
             new CreateOptionalInfoService(
                 optInfoDao,
-                activityDao,
                 req.getString("username"),
                 // Parameters for Person
                 req.getString("firstName"),
