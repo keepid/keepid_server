@@ -7,12 +7,17 @@ import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
 import File.FileType;
+import Mail.EmailNotifier;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import org.bson.types.ObjectId;
 import org.junit.*;
+import static org.mockito.Mockito.*;
+import org.mockito.MockedStatic;
+
 
 public class ActivityDaoImplUnitTests {
   private ActivityDao activityDao;
@@ -247,4 +252,21 @@ public class ActivityDaoImplUnitTests {
     }
     return isEqual;
   }
+
+//  @Test
+//  public void testSaveCallsEmailNotifierHandle() {
+//    Activity activity = new Activity();
+//    activity.setUsername("testuser");
+//    activity.setType(Arrays.asList("Activity", "UploadFileActivity"));
+//
+//    try (MockedStatic<EmailNotifier> mockedNotifier = mockStatic(EmailNotifier.class)) {
+//
+//      activityDao.save(activity);
+//
+//
+//      mockedNotifier.verify(() -> EmailNotifier.handle(activity), times(1));
+//    }
+//    Activity found = activityDao.get(activity.getId()).get();
+//    assertEquals("testuser", found.getUsername());
+//  }
 }
