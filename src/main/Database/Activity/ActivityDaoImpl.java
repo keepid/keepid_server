@@ -6,7 +6,9 @@ import Config.MongoConfig;
 import Mail.EmailNotifier;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import org.bson.types.ObjectId;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.eq;
 
+@Repository
 public class ActivityDaoImpl implements ActivityDao {
   private final MongoCollection<Activity> activityCollection;
 
@@ -95,4 +98,13 @@ public class ActivityDaoImpl implements ActivityDao {
     // Trigger email notifications
     EmailNotifier.handle(activity);;
   }
+  @Override
+  public List<Activity> findUnnotified(int limit) {
+    return activityCollection.find(eq("notified", false))
+        .limit(limit)
+        .into(new ArrayList<>()).stream()
+        .sorted(Comparator.reverseOrder())
+        .collect(Collectors.toList());
+  }
+
 }

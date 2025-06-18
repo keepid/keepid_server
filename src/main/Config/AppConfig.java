@@ -5,6 +5,7 @@ import Admin.AdminController;
 import Billing.BillingController;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.Activity.ActivityDaoImpl;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -24,6 +25,7 @@ import Form.FormController;
 import Issue.IssueController;
 import Mail.FileBackfillController;
 import Mail.MailController;
+import Mail.ScheduledEmailDispatcher;
 import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
@@ -40,11 +42,20 @@ import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class AppConfig {
@@ -54,11 +65,20 @@ public class AppConfig {
 
   @SneakyThrows
   public static Javalin appFactory(DeploymentLevel deploymentLevel) {
-    // Enable Spring's scheduler (cron job support)
-    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(SchedulerConfig.class);
-    System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
+      System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
+      MongoConfig.getMongoClient();
+      ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
+      ScheduledEmailDispatcher dispatcher = new ScheduledEmailDispatcher(activityDao);
+      ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+      executor.scheduleAtFixedRate(
+          dispatcher::dispatchDailyReminders,
+          computeInitialDelayTo8AM(),
+          TimeUnit.DAYS.toSeconds(1),
+          TimeUnit.SECONDS
+      );
+      // create app
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
-    MongoConfig.getMongoClient();
+    // Continue loading other DAOs
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
     OptionalUserInformationDao optionalUserInformationDao =
         OptionalUserInformationDaoFactory.create(deploymentLevel);
@@ -66,7 +86,7 @@ public class AppConfig {
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
-    ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
+    //ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
@@ -287,6 +307,18 @@ public class AppConfig {
     app.post("/submit-mail", mailController.saveMail);
     return app;
   }
+    private static long computeInitialDelayTo8AM() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextRun = now.withHour(8).withMinute(0).withSecond(0).withNano(0);
+
+        if (now.isAfter(nextRun)) {
+            // if now the time is over 8:00 am, schedule to tomorrow
+            nextRun = nextRun.plusDays(1);
+        }
+
+        Duration delay = Duration.between(now, nextRun);
+        return delay.getSeconds(); // return as second
+    }
 
   public static void setApplicationHeaders(Javalin app) {
     app.before(

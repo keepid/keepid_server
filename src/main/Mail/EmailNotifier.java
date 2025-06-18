@@ -12,7 +12,7 @@ public class EmailNotifier {
         if (types == null || types.isEmpty()) return;
 
         String type = types.get(types.size() - 1); // get the most specific activity type
-
+        System.out.println("Handling activity type: " + type + " for user: " + activity.getUsername());
         switch (type) {
             case "CreateClientActivity":
                 SendgridService.sendWelcomeWithQuickStart(activity.getUsername(), "PA"); // placeholder

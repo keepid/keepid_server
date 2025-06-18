@@ -75,4 +75,14 @@ public class ActivityDaoTestImpl implements ActivityDao {
   public void save(Activity activity) {
     activityMap.put(activity.getId(), activity);
   }
+
+  @Override
+  public List<Activity> findUnnotified(int limit) {
+    return new ArrayList<>();
+  }
+  @Override
+  public List<Activity> getUnnotifiedActivities() {
+    return Collections.emptyList();
+  }
+
 }

@@ -13,8 +13,10 @@ import java.util.stream.Stream;
 
 public class Activity implements Comparable<Activity> {
   private ObjectId id;
+  private LocalDateTime notifiedAt;
 
- // add notification
+
+    // add notification
   @BsonProperty(value = "notified")
   private boolean notified = false;
 
@@ -68,6 +70,13 @@ public class Activity implements Comparable<Activity> {
   public ObjectId getId() {
     return id;
   }
+  public LocalDateTime getNotifiedAt() {
+        return notifiedAt;
+    }
+
+    public void setNotifiedAt(LocalDateTime notifiedAt) {
+        this.notifiedAt = notifiedAt;
+    }
 
   public Activity setUsername(String username) {
     this.username = username;

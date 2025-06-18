@@ -12,4 +12,11 @@ public interface ActivityDao extends Dao<Activity> {
 
   List<Activity> getAllFromUserBetweenInclusive(
       String username, LocalDateTime startTime, LocalDateTime endTime);
+  // New: Find up to N unnotified activities (for email reminders)
+  List<Activity> findUnnotified(int limit);
+
+  // New: Update an activity (to mark as notified)
+  void update(Activity activity);
+  List<Activity> getUnnotifiedActivities();
 }
+

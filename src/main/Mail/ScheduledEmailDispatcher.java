@@ -1,21 +1,30 @@
 package Mail;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import Activity.Activity;
+import Database.Activity.ActivityDao;
 
-@Component
+import java.time.LocalDateTime;
+import java.util.List;
+
 public class ScheduledEmailDispatcher {
+    private final ActivityDao activityDao;
 
-    @Scheduled(cron = "0 0 8 * * *") // Every day at 8 AM
-    public void dispatchDailyReminders() {
-        // You can query unfinished activities here and send emails
-        System.out.println("Running scheduled email job...");
-
-        // e.g. ActivityDao.getUnfinishedApplications().forEach(EmailNotifier::handle);
+    public ScheduledEmailDispatcher(ActivityDao activityDao) {
+        this.activityDao = activityDao;
     }
-    @Scheduled(fixedRate = 10000) // every 10 seconds
-    public void testEmailPing() {
-        System.out.println("Running scheduled task: " + System.currentTimeMillis());
+
+    public void dispatchDailyReminders() {
+        System.out.println("Running scheduled reminder task: " + LocalDateTime.now());
+
+        List<Activity> unnotified = activityDao.getUnnotifiedActivities();
+        for (Activity activity : unnotified) {
+            //
+            EmailNotifier.handle(activity);
+
+            activity.setNotified(true);
+            activity.setNotifiedAt(LocalDateTime.now());
+            activityDao.update(activity);
+        }
     }
 }
 
