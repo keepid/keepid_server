@@ -26,6 +26,18 @@ public class EmailNotifier {
             case "MailApplicationActivity":
                 SendgridService.sendPickupInfo(activity.getUsername(), "NonprofitName"); // placeholder
                 break;
+//            case "SubmitApplicationActivity":
+//                SendgridService.sendSubmissionConfirmation(user, "ApplicationName");
+//                break;
+//            case "RecoverPasswordActivity":
+//                SendgridService.sendPasswordRecoveryAlert(user);
+//                break;
+//            case "ChangePasswordActivity":
+//                SendgridService.sendPasswordChangeConfirmation(user);
+//                break;
+//            case "Change2FAActivity":
+//                SendgridService.send2FAUpdateNotice(user, activity.getObjectName()); // "on"/"off"
+//                break;
             default:
                 // Optional: log unknown type
         }
