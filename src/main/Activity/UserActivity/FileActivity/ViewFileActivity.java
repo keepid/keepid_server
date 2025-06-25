@@ -18,9 +18,7 @@ public class ViewFileActivity extends FileActivity {
     return a;
   }
 
-  public ViewFileActivity() {
-    super();
-  }
+  public ViewFileActivity() {}
 
   public ViewFileActivity(
       String usernameOfInvoker,

@@ -18,9 +18,7 @@ public class UploadFileActivity extends FileActivity {
     return a;
   }
 
-  public UploadFileActivity() {
-    super();
-  }
+  public UploadFileActivity() {}
 
   public UploadFileActivity(
       String usernameOfInvoker,

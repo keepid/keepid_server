@@ -98,7 +98,7 @@ public class AppConfig {
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
-        new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
+        new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");

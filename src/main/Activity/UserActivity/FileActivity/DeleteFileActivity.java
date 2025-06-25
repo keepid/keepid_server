@@ -18,9 +18,7 @@ public class DeleteFileActivity extends FileActivity {
     return a;
   }
 
-  public DeleteFileActivity() {
-    super();
-  }
+  public DeleteFileActivity() {}
 
   public DeleteFileActivity(
       String usernameOfInvoker,

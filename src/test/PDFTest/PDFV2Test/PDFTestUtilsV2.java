@@ -1,5 +1,6 @@
 package PDFTest.PDFV2Test;
 
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
@@ -124,6 +125,7 @@ public class PDFTestUtilsV2 {
   public static ObjectId uploadAnnotatedSSFormAndGetFileId(
       FileDao fileDao,
       FormDao formDao,
+      ActivityDao activityDao,
       UserParams clientUserParams,
       EncryptionController encryptionController,
       InputStream signatureStream,
@@ -136,7 +138,7 @@ public class PDFTestUtilsV2 {
             .setSignatureStream(signatureStream);
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
-            fileDao, formDao, clientUserParams, fillFileParams, encryptionController);
+            fileDao, formDao, activityDao, clientUserParams, fillFileParams, encryptionController);
     uploadService.executeAndGetResponse();
     return uploadService.getFilledFileObjectId();
   }
@@ -144,6 +146,7 @@ public class PDFTestUtilsV2 {
   public static void uploadSixTestStreams(
       FileDao fileDao,
       FormDao formDao,
+      ActivityDao activityDao,
       UserDao userDao,
       InputStream signatureStream,
       UserParams clientOneUserParams,
@@ -191,6 +194,7 @@ public class PDFTestUtilsV2 {
     uploadAnnotatedSSFormAndGetFileId(
         fileDao,
         formDao,
+        activityDao,
         clientOneUserParams,
         encryptionController,
         signatureStream,
