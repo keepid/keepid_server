@@ -8,7 +8,7 @@ import com.sendgrid.helpers.mail.objects.Email;
 import io.github.cdimascio.dotenv.Dotenv;
 
 import java.io.IOException;
-
+// ensure sendgrid API is connected
 public class SendgridManualTest {
     public static void main(String[] args) {
         // manually load .env

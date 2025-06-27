@@ -5,7 +5,10 @@ import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.Mail;
 import io.github.cdimascio.dotenv.Dotenv;
+
+import java.util.Map;
 import java.util.Optional;
+import Mail.Utils.TemplateEngine;
 
 
 import java.io.IOException;
@@ -42,30 +45,68 @@ public class SendgridService {
             System.err.println("SendGrid Exception: " + ex.getMessage());
         }
     }
-
-    public static void sendWelcomeWithQuickStart(String username, String state) {
-        String subject = "Welcome to Keep.id!";
-        String body = "<p>Hi " + username + ", welcome! Here's how to get your ID in " + state + "...</p>";
-        sendEmail(username, subject, body); // Replace with real email
+    // Triggered by CreateClientActivity
+    public static void handleCreateClientActivity(String username, String state) {
+        try {
+            String body = TemplateEngine.renderTemplate("welcome.html", Map.of(
+                "username", username,
+                "state", state
+            ));
+            sendEmail(username, "Welcome to Keep.id!", body);
+        } catch (IOException e) {
+            System.err.println("Failed to load welcome template: " + e.getMessage());
+        }
     }
-
-    public static void sendUploadReminder(String username, String docType) {
+    // Triggered by UploadFileActivity
+    public static void handleUploadFileActivity(String username, String docType) {
         String subject = "You uploaded a " + docType;
         String body = "<p>We’ve saved your " + docType + ". Here's what to upload next…</p>";
         sendEmail(username, subject, body);
     }
 
-    public static void sendApplicationReminder(String username) {
-        sendEmail(username , "Finish your application", "<p>You started an application. Come back and finish it!</p>");
+    // Triggered by MailApplicationActivity
+    public static void handleMailApplicationActivity(String username) {
+        String subject = "Finish your application";
+        String body = "<p>You started an application. Come back and finish it!</p>";
+        sendEmail(username, subject, body);
     }
 
-    public static void sendPickupInfo(String username, String nonprofit) {
-        sendEmail(username , "Pick up your ID", "<p>Your documents are ready! Go to " + nonprofit + " to pick them up.</p>");
+    // Triggered by SubmitApplicationActivity
+    public static void handleSubmitApplicationActivity(String username, String nonprofit) {
+        String subject = "Pick up your ID";
+        String body = "<p>Your documents are ready! Go to " + nonprofit + " to pick them up.</p>";
+        sendEmail(username, subject, body);
     }
+
+    // For debugging
     public static void sendTestEmail() {
         String subject = "Test from Keep.id";
         String body = "<p>Hello! This is a test email sent via SendGrid!</p>";
         sendEmail("vanessachung@keep.id", subject, body);
     }
+//    public static void sendWelcomeWithQuickStart(String username, String state) {
+//        String subject = "Welcome to Keep.id!";
+//        String body = "<p>Hi " + username + ", welcome! Here's how to get your ID in " + state + "...</p>";
+//        sendEmail(username, subject, body); // Replace with real email
+//    }
+//
+//    public static void sendUploadReminder(String username, String docType) {
+//        String subject = "You uploaded a " + docType;
+//        String body = "<p>We’ve saved your " + docType + ". Here's what to upload next…</p>";
+//        sendEmail(username, subject, body);
+//    }
+//
+//    public static void sendApplicationReminder(String username) {
+//        sendEmail(username , "Finish your application", "<p>You started an application. Come back and finish it!</p>");
+//    }
+//
+//    public static void sendPickupInfo(String username, String nonprofit) {
+//        sendEmail(username , "Pick up your ID", "<p>Your documents are ready! Go to " + nonprofit + " to pick them up.</p>");
+//    }
+//    public static void sendTestEmail() {
+//        String subject = "Test from Keep.id";
+//        String body = "<p>Hello! This is a test email sent via SendGrid!</p>";
+//        sendEmail("vanessachung@keep.id", subject, body);
+//    }
 
 }

@@ -15,16 +15,16 @@ public class EmailNotifier {
         System.out.println("Handling activity type: " + type + " for user: " + activity.getUsername());
         switch (type) {
             case "CreateClientActivity":
-                SendgridService.sendWelcomeWithQuickStart(activity.getUsername(), "PA"); // placeholder
+                SendgridService.handleCreateClientActivity(activity.getUsername(), "PA"); // placeholder
                 break;
             case "UploadFileActivity":
-                SendgridService.sendUploadReminder(activity.getUsername(), "DocumentType"); // placeholder
+                SendgridService.handleUploadFileActivity(activity.getUsername(), "DocumentType"); // placeholder
                 break;
             case "StartApplicationActivity":
-                SendgridService.sendApplicationReminder(activity.getUsername());
+                SendgridService.handleMailApplicationActivity(activity.getUsername());
                 break;
             case "MailApplicationActivity":
-                SendgridService.sendPickupInfo(activity.getUsername(), "NonprofitName"); // placeholder
+                SendgridService.handleSubmitApplicationActivity(activity.getUsername(), "NonprofitName"); // placeholder
                 break;
 //            case "SubmitApplicationActivity":
 //                SendgridService.sendSubmissionConfirmation(user, "ApplicationName");

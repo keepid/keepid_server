@@ -26,7 +26,7 @@ public class EmailNotifierTest {
         activity.setType(Arrays.asList("Activity", "CreateClientActivity"));
         try (MockedStatic<SendgridService> mocked = mockStatic(SendgridService.class)) {
             EmailNotifier.handle(activity);
-            mocked.verify(() -> SendgridService.sendWelcomeWithQuickStart("testuser", "PA"));
+            mocked.verify(() -> SendgridService.handleCreateClientActivity("testuser", "PA"));
         }
     }
 
@@ -35,16 +35,7 @@ public class EmailNotifierTest {
         activity.setType(Arrays.asList("Activity", "UploadFileActivity"));
         try (MockedStatic<SendgridService> mocked = mockStatic(SendgridService.class)) {
             EmailNotifier.handle(activity);
-            mocked.verify(() -> SendgridService.sendUploadReminder("testuser", "DocumentType"));
-        }
-    }
-
-    @Test
-    public void testStartApplicationActivity() {
-        activity.setType(Arrays.asList("Activity", "StartApplicationActivity"));
-        try (MockedStatic<SendgridService> mocked = mockStatic(SendgridService.class)) {
-            EmailNotifier.handle(activity);
-            mocked.verify(() -> SendgridService.sendApplicationReminder("testuser"));
+            mocked.verify(() -> SendgridService.handleUploadFileActivity("testuser", "DocumentType"));
         }
     }
 
@@ -53,7 +44,16 @@ public class EmailNotifierTest {
         activity.setType(Arrays.asList("Activity", "MailApplicationActivity"));
         try (MockedStatic<SendgridService> mocked = mockStatic(SendgridService.class)) {
             EmailNotifier.handle(activity);
-            mocked.verify(() -> SendgridService.sendPickupInfo("testuser", "NonprofitName"));
+            mocked.verify(() -> SendgridService.handleMailApplicationActivity("testuser"));
+        }
+    }
+
+    @Test
+    public void testSubmitApplicationActivity() {
+        activity.setType(Arrays.asList("Activity", "SubmitApplicationActivity"));
+        try (MockedStatic<SendgridService> mocked = mockStatic(SendgridService.class)) {
+            EmailNotifier.handle(activity);
+            mocked.verify(() -> SendgridService.handleSubmitApplicationActivity("testuser", "NonprofitName"));
         }
     }
 
