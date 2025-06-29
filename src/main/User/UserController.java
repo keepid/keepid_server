@@ -20,18 +20,14 @@ import io.javalin.http.UploadedFile;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+
+import Security.URIUtil;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 
 @Slf4j
 public class UserController {
@@ -164,39 +160,137 @@ public class UserController {
         ctx.result(responseJSON.toString());
       };
 
-  public Handler loginGoogleUser =
+  /**
+   * Initializes the Google OAuth2 Login Workflow.
+   *
+   * <p>Implements CSRF and PKCE protections.</p>
+   *
+   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   */
+  public Handler googleLoginRequestHandler =
       ctx -> {
-          ctx.req.getSession().invalidate();
-          JSONObject req = new JSONObject(ctx.body());
-          String jwtToken = req.getString("token");
+        ctx.req.getSession().invalidate();
+        JSONObject req = new JSONObject(ctx.body());
+        String redirectUri = req.optString("redirectUri", null);
+        String originUri = req.optString("originUri", null);
+        log.info("Processing Google login request with redirect URI: {}," +
+            "origin URI: {}",
+            redirectUri, originUri);
+
+        ProcessGoogleLoginRequestService processGoogleLoginRequestService =
+            new ProcessGoogleLoginRequestService(redirectUri, originUri);
+        Message response = processGoogleLoginRequestService.executeAndGetResponse();
+        JSONObject responseJSON = response.toJSON();
+        log.info("Google login request processed with status: {}",  response.getErrorName());
+
+        if (response == GoogleLoginRequestMessage.REQUEST_SUCCESS) {
+          log.info("Setting session attributes");
+          ctx.sessionAttribute("origin_uri", originUri);
+          ctx.sessionAttribute("redirect_uri", redirectUri);
+          ctx.sessionAttribute("PKCECodeVerifier",
+              processGoogleLoginRequestService.getCodeVerifier());
+          ctx.sessionAttribute("state", processGoogleLoginRequestService.getCsrfToken());
+
+          responseJSON.put("codeChallenge", processGoogleLoginRequestService.getCodeChallenge());
+          responseJSON.put("state", processGoogleLoginRequestService.getCsrfToken());
+          ctx.result(responseJSON.toString());
+        }
+        ctx.result(responseJSON.toString());
+      };
+
+  /**
+   * Redirect URI endpoint for Google OAuth2 workflow.
+   *
+   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   */
+  public Handler googleLoginResponseHandler =
+      ctx -> {
+          String authCode = ctx.queryParam("code");
+          String state = ctx.queryParam("state");
           String ip = ctx.ip();
           String userAgent = ctx.userAgent();
-          LoginGoogleUserService loginGoogleUserService = new LoginGoogleUserService(userDao, tokenDao,
-                  activityDao, jwtToken, ip, userAgent);
-          Message response = loginGoogleUserService.executeAndGetResponse();
-          log.info(response.toString() + response.getErrorDescription());
-          JSONObject responseJSON = response.toJSON();
-          if (response == UserMessage.AUTH_SUCCESS) {
-              responseJSON.put("userRole", loginGoogleUserService.getLoginService().getUserRole());
-              responseJSON.put("organization", loginGoogleUserService.getLoginService().getOrganization());
-              responseJSON.put("username", loginGoogleUserService.getLoginService().getUsername());
-              responseJSON.put("firstName", loginGoogleUserService.getLoginService().getFirstName());
-              responseJSON.put("lastName", loginGoogleUserService.getLoginService().getLastName());
-              responseJSON.put("twoFactorOn", loginGoogleUserService.getLoginService().isTwoFactorOn());
+          String codeVerifier = ctx.sessionAttribute("PKCECodeVerifier");
+          String originUri = ctx.sessionAttribute("origin_uri");
+          String redirectUri = ctx.sessionAttribute("redirect_uri");
+          String storedCsrfToken = ctx.sessionAttribute("state");
 
-              ctx.sessionAttribute("privilegeLevel", loginGoogleUserService.getLoginService().getUserRole());
-              ctx.sessionAttribute("orgName", loginGoogleUserService.getLoginService().getOrganization());
-              ctx.sessionAttribute("username", loginGoogleUserService.getLoginService().getUsername());
-              ctx.sessionAttribute("fullName", loginGoogleUserService.getLoginService().getFullName());
-          } else {
-              responseJSON.put("userRole", "");
-              responseJSON.put("organization", "");
-              responseJSON.put("username", "");
-              responseJSON.put("firstName", "");
-              responseJSON.put("lastName", "");
-              responseJSON.put("twoFactorOn", "");
+          log.info("Processing Google login response with: authorization code: {}," +
+              "state: {}," +
+              "retrieved code verifier: {}," +
+              "retrieved origin URI: {}," +
+              "retrieved redirect URI: {}," +
+              "retrieved CSRF token: {}",
+              authCode, state, codeVerifier, originUri, redirectUri, storedCsrfToken
+          );
+          ProcessGoogleLoginResponseService processGoogleLoginResponseService =
+          new ProcessGoogleLoginResponseService(
+              userDao,
+              activityDao,
+              state,
+              storedCsrfToken,
+              authCode,
+              codeVerifier,
+              originUri,
+              redirectUri,
+              ip,
+              userAgent
+          );
+        Message response = processGoogleLoginResponseService.executeAndGetResponse();
+        log.info("Google login response processed with status: {}", response.getErrorName());
+
+          if (response == GoogleLoginResponseMessage.AUTH_SUCCESS) {
+            log.debug("Setting session attributes of privilegeLevel: {}, " +
+                    "orgName: {}, " +
+                    "username: {}, " +
+                    "fullName: {}",
+                processGoogleLoginResponseService.getUserRole(),
+                processGoogleLoginResponseService.getOrganization(),
+                processGoogleLoginResponseService.getUsername(),
+                processGoogleLoginResponseService.getFullName());
+            ctx.sessionAttribute("privilegeLevel",
+                processGoogleLoginResponseService.getUserRole());
+            ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
+            ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
+            ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
           }
-          ctx.result(responseJSON.toString());
+          ctx.sessionAttribute("PKCECodeVerifier", null);
+          ctx.sessionAttribute("origin_uri", null);
+          ctx.sessionAttribute("redirect_uri", null);
+          ctx.sessionAttribute("state", null);
+
+          // NOTE: query parameters are NOT passed to the frontend
+          // for increased privacy and security. Instead, the getSessionUser
+          // endpoint will be called to verify that the login was successful
+          ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
+      };
+
+  /**
+   * Endpoint for validating Google logins.
+   */
+  public Handler getSessionUser =
+      ctx -> {
+        JSONObject responseJSON = new JSONObject();
+
+        // NOTE: no service needed here because existing session
+        // attributes are being retrieved and returned
+        String org = ctx.sessionAttribute("orgName");
+        String username = ctx.sessionAttribute("username");
+        String fullName = ctx.sessionAttribute("fullName");
+        UserType role = ctx.sessionAttribute("privilegeLevel");
+        log.info("Retrieved session attributes of org: {}, " +
+            "username: {}, " +
+            "fullName: {}, " +
+            "and role: {}",
+            org, username, fullName, role
+        );
+
+        responseJSON.put("organization", org == null ? "" : org);
+        responseJSON.put("username", username == null ? "" : username);
+        responseJSON.put("fullName", fullName == null ? "" : fullName);
+        responseJSON.put("userRole", role == null ? "" : role);
+
+        log.info("Returning response with session info: {}", responseJSON);
+        ctx.result(responseJSON.toString());
       };
 
   public Handler authenticateUser =

@@ -146,7 +146,9 @@ public class AppConfig {
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
-    app.post("/login-google", userController.loginGoogleUser);
+    app.post("/googleLoginRequest", userController.googleLoginRequestHandler);
+    app.get("/googleLoginResponse", userController.googleLoginResponseHandler);
+    app.get("/get-session-user", userController.getSessionUser);
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
