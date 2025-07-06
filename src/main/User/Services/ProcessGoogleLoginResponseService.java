@@ -1,22 +1,15 @@
 package User.Services;
 
-import Activity.LoginActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.User.UserDao;
-import Issue.IssueController;
 import Security.URIUtil;
-import User.IpObject;
 import User.User;
 import User.GoogleLoginResponseMessage;
 import User.UserType;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.json.gson.GsonFactory;
-import io.ipinfo.api.IPInfo;
-import io.ipinfo.api.errors.RateLimitedException;
-import io.ipinfo.api.model.IPResponse;
-import kong.unirest.Unirest;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import java.io.IOException;
@@ -25,13 +18,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Slf4j
 public class ProcessGoogleLoginResponseService implements Service {
     public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
+    private final String googleClientId = Objects.requireNonNull(
+        System.getenv("REACT_APP_GOOGLE_CLIENT_ID"));
+    private final String googleClientSecret = Objects.requireNonNull(
+        System.getenv("REACT_APP_GOOGLE_CLIENT_SECRET"));
     private final UserDao userDao;
     private final ActivityDao activityDao;
     private String origin;
@@ -97,8 +92,8 @@ public class ProcessGoogleLoginResponseService implements Service {
                 return GoogleLoginResponseMessage.USER_NOT_FOUND;
             }
             user = userOptional.get();
-            recordActivityLogin(); // record login activity
-            getLocationOfLogin(user, ip, userAgent); // get ip location
+            LoginService.recordActivityLogin(user, activityDao); // record login activity
+            LoginService.recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao); // get ip location
             log.info("Login Successful!");
             return GoogleLoginResponseMessage.AUTH_SUCCESS;
         } catch (InterruptedException e) {
@@ -110,8 +105,6 @@ public class ProcessGoogleLoginResponseService implements Service {
     }
 
     private GoogleIdToken exchangeAuthCodeForIDToken() throws InterruptedException, IOException {
-        String googleClientId = System.getenv("REACT_APP_GOOGLE_CLIENT_ID");
-        String googleClientSecret = System.getenv("REACT_APP_GOOGLE_CLIENT_SECRET");
         String tokenExchangeUrl = "https://oauth2.googleapis.com/token";
         JSONObject bodyParams = new JSONObject();
         bodyParams.put("client_id", googleClientId);
@@ -155,58 +148,6 @@ public class ProcessGoogleLoginResponseService implements Service {
 
         log.info("Querying user database for email: {}", email);
         return userDao.getByEmail(email);
-    }
-
-    public void recordActivityLogin() {
-        LoginActivity log = new LoginActivity(user.getUsername(), user.getTwoFactorOn());
-        activityDao.save(log);
-    }
-
-    public void getLocationOfLogin(User user, String ip, String userAgent) {
-        List<IpObject> loginList = user.getLogInHistory();
-        if (loginList == null) {
-            loginList = new ArrayList<IpObject>(1000);
-        }
-        if (loginList.size() >= 1000) {
-            loginList.remove(0);
-        }
-        log.info("Trying to add login to login history");
-
-        IpObject thisLogin = new IpObject();
-        ZonedDateTime currentTime = ZonedDateTime.now();
-        String formattedDate =
-                currentTime.format(DateTimeFormatter.ofPattern("MM/dd/YYYY, HH:mm")) +
-                    " Local Time";
-        boolean isMobile = userAgent.contains("Mobi");
-        String device = isMobile ? "Mobile" : "Computer";
-
-        thisLogin.setDate(formattedDate);
-        thisLogin.setIp(ip);
-        thisLogin.setDevice(device);
-
-        IPInfo ipInfo = IPInfo.builder().setToken(IP_INFO_TOKEN).build();
-        try {
-            IPResponse response = ipInfo.lookupIP(ip);
-            thisLogin.setLocation(
-                    response.getPostal() + ", " + response.getCity() + "," + response.getRegion());
-        } catch (RateLimitedException ex) {
-            log.error("Failed to retrieve login location due to limited rates for IPInfo.com");
-            thisLogin.setLocation("Unknown");
-            JSONObject body = new JSONObject();
-            body.put(
-                    "text",
-                    "You are receiving this because we have arrived at maximum amount of IP "
-                            + "lookups we are allowed for our free plan.");
-            Unirest.post(IssueController.issueReportActualURL).body(body.toString()).asEmpty();
-        }
-        loginList.add(thisLogin);
-        addLoginHistoryToDB(loginList);
-    }
-
-    public void addLoginHistoryToDB(List<IpObject> loginList) {
-        user.setLogInHistory(loginList);
-        userDao.update(user);
-        log.info("Added login to login history");
     }
 
     public String getOrigin() {
