@@ -9,6 +9,8 @@ public class EmailIntTest {
 
     @Test
     public void testSendEmailsForAllActivities() {
+
+        // change the email to test
         String testEmail = "vanessachung@keep.id";
 
         Activity createClient = new Activity();
