@@ -22,10 +22,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
@@ -49,6 +47,11 @@ public class UserController {
     this.activityDao = activityDao;
     this.db = db;
   }
+
+    public static final String newUserActualURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
+    public static final String newUserTestURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_TESTURL"));
 
   public Handler ingestCsv =
       ctx -> {
