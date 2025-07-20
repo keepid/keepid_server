@@ -1,11 +1,12 @@
-package Activity;
+package Activity.CreateUserActivity;
 
+import Activity.Activity;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CreateOrgActivity extends Activity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(CreateOrgActivity.class.getSimpleName());

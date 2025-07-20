@@ -1,6 +1,6 @@
 package Security.Services;
 
-import Activity.ChangeUserAttributesActivity;
+import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -58,13 +58,6 @@ public class ChangeAccountSettingService implements Service {
     if (verifyStatus == SecurityUtils.PassHashEnum.FAILURE) {
       return UserMessage.AUTH_FAILURE;
     }
-    JSONObject userAsJson = user.serialize();
-    String old = userAsJson.get(key).toString();
-    ChangeUserAttributesActivity act =
-        new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
-    activityDao.save(act);
-    System.out.println(
-        "made change user attribute activity here" + act.getType() + ", " + act.getAttributeName());
     switch (key) {
       case "firstName":
         if (!ValidationUtils.isValidFirstName(value)) {
@@ -123,8 +116,18 @@ public class ChangeAccountSettingService implements Service {
       default:
         return UserMessage.INVALID_PARAMETER;
     }
-    //    userCollection.replaceOne(eq("username", user.getUsername()), user);
-    userDao.update(user);
+    JSONObject userAsJson = user.serialize();
+    String old = userAsJson.get(key).toString();
+    if (!old.equals(value)) {
+      userDao.update(user);
+      recordChangeUserAttributesActivity(user, old);
+    }
     return UserMessage.SUCCESS;
+  }
+
+  private void recordChangeUserAttributesActivity(User user, String old) {
+    ChangeUserAttributesActivity act =
+        new ChangeUserAttributesActivity(user.getUsername(), key, old, value);
+    activityDao.save(act);
   }
 }

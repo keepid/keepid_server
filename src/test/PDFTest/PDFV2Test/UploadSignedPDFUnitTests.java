@@ -6,6 +6,8 @@ import static org.junit.Assert.assertEquals;
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.AfterAll;
 public class UploadSignedPDFUnitTests {
   private FileDao fileDao;
   private FormDao formDao;
+  private ActivityDao activityDao;
   private UserDao userDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
@@ -51,6 +54,7 @@ public class UploadSignedPDFUnitTests {
   public void initialize() {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
+    this.activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
@@ -138,7 +142,7 @@ public class UploadSignedPDFUnitTests {
             .setSignatureStream(signatureStream);
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
-            fileDao, formDao, clientUserParams, fillFileParams, encryptionController);
+            fileDao, formDao, activityDao, clientUserParams, fillFileParams, encryptionController);
     Message response = uploadService.executeAndGetResponse();
     assertEquals(PdfMessage.INVALID_PARAMETER, response);
   }
@@ -158,7 +162,7 @@ public class UploadSignedPDFUnitTests {
             .setSignatureStream(null);
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
-            fileDao, formDao, clientUserParams, fillFileParams, encryptionController);
+            fileDao, formDao, activityDao, clientUserParams, fillFileParams, encryptionController);
     Message response = uploadService.executeAndGetResponse();
     assertEquals(PdfMessage.SERVER_ERROR, response);
   }
@@ -178,7 +182,12 @@ public class UploadSignedPDFUnitTests {
             .setSignatureStream(signatureStream);
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
-            fileDao, formDao, developerUserParams, fillFileParams, encryptionController);
+            fileDao,
+            formDao,
+            activityDao,
+            developerUserParams,
+            fillFileParams,
+            encryptionController);
     Message response = uploadService.executeAndGetResponse();
     assertEquals(PdfMessage.INSUFFICIENT_PRIVILEGE, response);
   }
@@ -200,7 +209,7 @@ public class UploadSignedPDFUnitTests {
             .setSignatureStream(signatureStream);
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
-            fileDao, formDao, clientUserParams, fillFileParams, encryptionController);
+            fileDao, formDao, activityDao, clientUserParams, fillFileParams, encryptionController);
     Message response = uploadService.executeAndGetResponse();
     assertEquals(PdfMessage.SUCCESS, response);
     assertEquals(2, fileDao.size());

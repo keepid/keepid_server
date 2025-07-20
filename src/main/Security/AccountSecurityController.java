@@ -39,7 +39,7 @@ public class AccountSecurityController {
         String oldPassword = req.getString("oldPassword");
         String newPassword = req.getString("newPassword");
         ChangePasswordService changePasswordService =
-            new ChangePasswordService(userDao, username, oldPassword, newPassword);
+            new ChangePasswordService(userDao, username, activityDao, oldPassword, newPassword);
         ctx.result(changePasswordService.executeAndGetResponse().toResponseString());
       };
 
@@ -60,7 +60,8 @@ public class AccountSecurityController {
         JSONObject req = new JSONObject(ctx.body());
         Boolean isTwoFactorOn = req.getBoolean("twoFactorOn");
         String username = ctx.sessionAttribute("username");
-        Change2FAService change2FAService = new Change2FAService(userDao, username, isTwoFactorOn);
+        Change2FAService change2FAService =
+            new Change2FAService(userDao, activityDao, username, isTwoFactorOn);
         ctx.result(change2FAService.executeAndGetResponse().toResponseString());
       };
 
@@ -71,7 +72,7 @@ public class AccountSecurityController {
         String jwt = req.getString("jwt");
         String newPassword = req.getString("newPassword");
         ResetPasswordService resetPasswordService =
-            new ResetPasswordService(userDao, tokenDao, jwt, newPassword);
+            new ResetPasswordService(userDao, tokenDao, activityDao, jwt, newPassword);
         ctx.result(resetPasswordService.executeAndGetResponse().toResponseString());
       };
 

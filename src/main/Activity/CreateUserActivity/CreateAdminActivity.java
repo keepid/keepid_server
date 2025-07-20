@@ -1,11 +1,12 @@
-package Activity;
+package Activity.CreateUserActivity;
 
+import Activity.Activity;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CreateAdminActivity extends CreateUserActivity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(CreateUserActivity.class.getSimpleName());

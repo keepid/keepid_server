@@ -1,11 +1,12 @@
-package Activity;
+package Activity.UserActivity.FileActivity;
 
+import Activity.Activity;
+import Activity.UserActivity.UserActivity;
 import File.FileType;
-import org.bson.codecs.pojo.annotations.BsonProperty;
-import org.bson.types.ObjectId;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.bson.types.ObjectId;
 
 public class FileActivity extends UserActivity {
   @BsonProperty(value = "documentOwnerUsername")
@@ -17,8 +18,11 @@ public class FileActivity extends UserActivity {
   @BsonProperty(value = "documentID")
   private ObjectId documentID;
 
+  @BsonProperty(value = "filename")
+  private String filename;
+
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());
@@ -32,11 +36,13 @@ public class FileActivity extends UserActivity {
       String usernameOfInvoker,
       String documentOwnerUsername,
       FileType documentType,
-      ObjectId documentID) {
-    super(usernameOfInvoker);
+      ObjectId documentID,
+      String filename) {
+    super(usernameOfInvoker, documentOwnerUsername, filename);
     this.documentOwnerUsername = documentOwnerUsername;
     this.documentType = documentType.toString();
     this.documentID = documentID;
+    this.filename = filename;
   }
 
   public String getDocumentType() {
@@ -45,21 +51,5 @@ public class FileActivity extends UserActivity {
 
   public void setDocumentType(String documentType) {
     this.documentType = documentType;
-  }
-
-  public String getDocumentOwnerUsername() {
-    return documentOwnerUsername;
-  }
-
-  public void setDocumentOwnerUsername(String documentOwnerUsername) {
-    this.documentOwnerUsername = documentOwnerUsername;
-  }
-
-  public ObjectId getDocumentID() {
-    return documentID;
-  }
-
-  public void setDocumentID(ObjectId documentID) {
-    this.documentID = documentID;
   }
 }

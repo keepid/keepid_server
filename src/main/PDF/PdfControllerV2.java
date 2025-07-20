@@ -3,6 +3,7 @@ package PDF;
 import static User.UserController.mergeJSON;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
@@ -26,6 +27,7 @@ import org.json.JSONObject;
 public class PdfControllerV2 {
   private FormDao formDao;
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private UserDao userDao;
 
   // Needed for EncryptionController
@@ -34,10 +36,12 @@ public class PdfControllerV2 {
   public PdfControllerV2(
       FileDao fileDao,
       FormDao formDao,
+      ActivityDao activityDao,
       UserDao userDao,
       EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
+    this.activityDao = activityDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
   }
@@ -168,7 +172,7 @@ public class PdfControllerV2 {
         }
         UploadSignedPDFServiceV2 uploadSignedPDFServiceV2 =
             new UploadSignedPDFServiceV2(
-                fileDao, formDao, userParams, fileParams, encryptionController);
+                fileDao, formDao, activityDao, userParams, fileParams, encryptionController);
         ctx.result(uploadSignedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 

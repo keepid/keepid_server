@@ -1,27 +1,27 @@
-package Activity;
+package Activity.CreateUserActivity;
 
+import Activity.Activity;
 import User.User;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class CreateClientActivity extends CreateUserActivity {
+public class CreateWorkerActivity extends CreateUserActivity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(CreateUserActivity.class.getSimpleName());
-    a.add(CreateClientActivity.class.getSimpleName());
+    a.add(CreateWorkerActivity.class.getSimpleName());
     return a;
   }
 
   private User creator;
 
-  public CreateClientActivity() {
+  public CreateWorkerActivity() {
     super();
   }
 
-  public CreateClientActivity(String username, String createdUsername) {
+  public CreateWorkerActivity(String username, String createdUsername) {
     super(username, createdUsername);
   }
 

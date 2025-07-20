@@ -1,7 +1,9 @@
 package File.Services;
 
+import Activity.UserActivity.FileActivity.DeleteFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -13,6 +15,8 @@ import org.bson.types.ObjectId;
 
 public class DeleteFileService implements Service {
   private FileDao fileDao;
+  private ActivityDao activityDao;
+  private String usernameOfInvoker;
   private String username;
   private String orgName;
   private UserType userType;
@@ -21,12 +25,16 @@ public class DeleteFileService implements Service {
 
   public DeleteFileService(
       FileDao fileDao,
+      ActivityDao activityDao,
+      String usernameOfInvoker,
       String username,
       String orgName,
       UserType userType,
       FileType fileType,
       String fileId) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.username = username;
     this.orgName = orgName;
     this.userType = userType;
@@ -43,6 +51,12 @@ public class DeleteFileService implements Service {
     return delete(username, orgName, fileType, userType, fileID, fileDao);
   }
 
+  private void recordDeleteFileActivity(ObjectId id, String filename) {
+    DeleteFileActivity log =
+        new DeleteFileActivity(usernameOfInvoker, username, fileType, id, filename);
+    activityDao.save(log);
+  }
+
   public Message delete(
       String user,
       String organizationName,
@@ -55,27 +69,32 @@ public class DeleteFileService implements Service {
       return FileMessage.NO_SUCH_FILE;
     }
     File file = fileFromDB.get();
+    String filename = file.getFilename();
     if (fileType == FileType.APPLICATION_PDF
         && (privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Worker)) {
       if (file.getOrganizationName().equals(organizationName)) {
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.IDENTIFICATION_PDF
         && (privilegeLevel == UserType.Client || privilegeLevel == UserType.Worker)) {
       if (file.getUsername().equals(user)) {
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM) {
       if (file.getOrganizationName().equals(organizationName)) {
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.MISC) { // need to establish security levels for MISC files
       if (file.getUsername().equals(user)) {
+        recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }

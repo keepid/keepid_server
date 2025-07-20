@@ -3,6 +3,7 @@ package File;
 import static User.UserController.mergeJSON;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.User.UserDao;
 import File.Services.*;
@@ -30,15 +31,18 @@ import org.json.JSONObject;
 public class FileController {
   private UserDao userDao;
   private FileDao fileDao;
+  private ActivityDao activityDao;
   private EncryptionController encryptionController;
 
   public FileController(
       MongoDatabase db,
       UserDao userDao,
       FileDao fileDao,
+      ActivityDao activityDao,
       EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
     this.encryptionController = encryptionController;
   }
 
@@ -59,6 +63,7 @@ public class FileController {
   public Handler fileUpload =
       ctx -> {
         log.info("Uploading file...");
+        String usernameOfInvoker;
         String username;
         String organizationName;
         UserType privilegeLevel;
@@ -81,6 +86,7 @@ public class FileController {
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
             username = maybeTargetUser.get().getUsername();
@@ -162,6 +168,8 @@ public class FileController {
                   UploadFileService uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -188,6 +196,8 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -212,6 +222,8 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -240,6 +252,7 @@ public class FileController {
   public Handler fileDownload =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -249,6 +262,7 @@ public class FileController {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
+          usernameOfInvoker = ctx.sessionAttribute("username");
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
@@ -270,6 +284,8 @@ public class FileController {
             DownloadFileService downloadFileService =
                 new DownloadFileService(
                     fileDao,
+                    activityDao,
+                    usernameOfInvoker,
                     username,
                     Optional.ofNullable(orgName),
                     Optional.ofNullable(userType),
@@ -299,6 +315,7 @@ public class FileController {
   public Handler fileDelete =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -308,6 +325,7 @@ public class FileController {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
@@ -328,7 +346,15 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
 
             DeleteFileService deleteFileService =
-                new DeleteFileService(fileDao, username, orgName, userType, fileType, fileIDStr);
+                new DeleteFileService(
+                    fileDao,
+                    activityDao,
+                    usernameOfInvoker,
+                    username,
+                    orgName,
+                    userType,
+                    fileType,
+                    fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -411,6 +437,8 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
@@ -456,6 +484,8 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),

@@ -1,7 +1,9 @@
 package PDF.Services.V2Services;
 
+import Activity.UserActivity.ApplicationActivity.SubmitApplicationActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import File.File;
@@ -19,6 +21,7 @@ import org.json.JSONObject;
 public class UploadSignedPDFServiceV2 implements Service {
   private FileDao fileDao;
   private FormDao formDao;
+  ActivityDao activityDao;
   private String username;
   private String organizationName;
   private UserType privilegeLevel;
@@ -34,11 +37,13 @@ public class UploadSignedPDFServiceV2 implements Service {
   public UploadSignedPDFServiceV2(
       FileDao fileDao,
       FormDao formDao,
+      ActivityDao activityDao,
       UserParams userParams,
       FileParams fileParams,
       EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
+    this.activityDao = activityDao;
     this.userParams = userParams;
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
@@ -93,6 +98,13 @@ public class UploadSignedPDFServiceV2 implements Service {
   public Message upload() {
     this.fileDao.save(this.filledFile);
     this.formDao.save(this.filledForm);
+    recordSubmitApplicationActivity();
     return PdfMessage.SUCCESS;
+  }
+
+  private void recordSubmitApplicationActivity() {
+    SubmitApplicationActivity activity =
+        new SubmitApplicationActivity(username, username, fileId, filledFile.getFilename());
+    activityDao.save(activity);
   }
 }
