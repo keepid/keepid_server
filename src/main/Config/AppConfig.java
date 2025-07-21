@@ -28,8 +28,10 @@ import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
+import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
+import Security.EncryptionController;
 import Security.EncryptionTools;
 import Security.EncryptionUtils;
 import User.User;
@@ -40,6 +42,7 @@ import io.javalin.Javalin;
 import io.javalin.http.HttpResponseException;
 import java.util.HashMap;
 import java.util.Optional;
+import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
 
 public class AppConfig {
@@ -47,6 +50,7 @@ public class AppConfig {
   public static int SERVER_PORT = Integer.parseInt(System.getenv("PORT"));
   public static int SERVER_TEST_PORT = Integer.parseInt(System.getenv("TEST_PORT"));
 
+  @SneakyThrows
   public static Javalin appFactory(DeploymentLevel deploymentLevel) {
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
@@ -74,14 +78,15 @@ public class AppConfig {
     //    }
 
     // We need to instantiate the controllers with the database.
+    EncryptionController encryptionController = new EncryptionController(db);
     OrganizationController orgController = new OrganizationController(db, activityDao);
     UserController userController =
         new UserController(userDao, tokenDao, fileDao, activityDao, formDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
-    PdfController pdfController = new PdfController(db, userDao);
-    FormController formController = new FormController(db, formDao);
-    FileController fileController = new FileController(db, userDao, fileDao, formDao);
+    PdfController pdfController = new PdfController(db, userDao, encryptionController);
+    FormController formController = new FormController(formDao, userDao, encryptionController);
+    FileController fileController = new FileController(db, userDao, fileDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
@@ -89,10 +94,12 @@ public class AppConfig {
     OptionalUserInformationController optionalUserInformationController =
         new OptionalUserInformationController(optionalUserInformationDao);
     BillingController billingController = new BillingController();
-    MailController mailController = new MailController(mailDao, fileDao, deploymentLevel);
+    MailController mailController =
+        new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
-
-    //    try { do not recomment this block of code, this will delete and regenerate our encryption
+    PdfControllerV2 pdfControllerV2 =
+        new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
+    //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
     //      tools.generateAndUploadKeySet();
@@ -103,28 +110,40 @@ public class AppConfig {
 
     /* -------------- DUMMY PATHS ------------------------- */
     app.get("/", ctx -> ctx.result("Welcome to the Keep.id Server"));
-
+    app.get("/custom-upload-form", formController.customFormGet);
+    app.get("/ingest-from-csv", userController.ingestCsv);
+    // These are all deprecated and should be deleted
     /* -------------- FILE MANAGEMENT --------------------- */
-    app.post("/upload", pdfController.pdfUpload);
-    app.post("/upload-annotated", pdfController.pdfUploadAnnotated);
-    app.post("/upload-signed-pdf", pdfController.pdfSignedUpload);
-    app.post("/download", pdfController.pdfDownload);
-    app.post("/delete-document/", pdfController.pdfDelete);
-    app.post("/get-documents", pdfController.pdfGetFilesInformation);
-    app.post("/get-application-questions", pdfController.getApplicationQuestions);
-    app.post("/fill-application", pdfController.fillPDFForm);
+    //    app.post("/upload", pdfController.pdfUpload);
+    //    app.post("/upload-annotated", pdfController.pdfUploadAnnotated);
+    //    app.post("/upload-signed-pdf", pdfController.pdfSignedUpload);
+    //    app.post("/download", pdfController.pdfDownload);
+    //    app.post("/delete-document/", pdfController.pdfDelete);
+    //    app.post("/get-documents", pdfController.pdfGetFilesInformation);
+    //    app.post("/get-application-questions", pdfController.getApplicationQuestions);
+    //    app.post("/fill-application", pdfController.fillPDFForm);
 
     /* -------------- FILE MANAGEMENT v2 --------------------- */
     app.post("/upload-file", fileController.fileUpload);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
     app.post("/get-files", fileController.getFiles);
-    app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
-    app.post("/fill-form", fileController.fillPDFForm);
+    /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
+    // app.post("/fill-form", fileController.fillPDFForm);
 
     app.post("/upload-form", formController.formUpload);
     app.post("/get-form", formController.formGet);
-    app.post("/delete-form/", formController.formDelete);
+    app.post("/delete-form", formController.formDelete);
+
+    /* -------------- PDF CONTROLLER v2 --------------------- */
+    app.post("/delete-pdf-2", pdfControllerV2.deletePDF);
+    app.post("/download-pdf-2", pdfControllerV2.downloadPDF);
+    app.post("/filter-pdf-2", pdfControllerV2.filterPDF);
+    app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
+    app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
+    app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/get-questions-2", pdfControllerV2.getQuestions);
+    app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     app.post("/get-application-registry", formController.getAppRegistry);
 
@@ -175,7 +194,7 @@ public class AppConfig {
     app.post("/get-all-activities", activityController.findMyActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
-    app.get("/backfill", backfillController.backfillSingleFile);
+    //    app.get("/backfill", backfillController.backfillSingleFile);
 
     /* --------------- PRODUCTION API --------------- */
 
@@ -304,7 +323,12 @@ public class AppConfig {
                   "text/plain"; // content type to use if no content type is set (default is
               // "text/plain")
 
-              config.enableCorsForAllOrigins(); // enable cors for all origins
+              config.enableCorsForOrigin(
+                  "https://keep.id",
+                  "https://server.keep.id",
+                  "http://localhost",
+                  "http://localhost:3000",
+                  "127.0.0.1:3000");
 
               config.enableDevLogging(); // enable extensive development logging for
               // http and

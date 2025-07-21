@@ -56,6 +56,15 @@ public class GetFilesInformationService implements Service {
                     eq("organizationName", orgName),
                     eq("fileType", FileType.APPLICATION_PDF.toString()));
             return getAllFiles(filter, fileType, fileDao);
+          } else if (fileType == FileType.IDENTIFICATION_PDF
+              && (userType == UserType.Director
+                  || userType == UserType.Admin
+                  || userType == UserType.Worker)) {
+            filter =
+                and(
+                    eq("username", username),
+                    eq("fileType", FileType.IDENTIFICATION_PDF.toString()));
+            return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.IDENTIFICATION_PDF && (userType == UserType.Client)) {
             filter =
                 and(

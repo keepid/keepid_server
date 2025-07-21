@@ -1,7 +1,6 @@
 package Mail;
 
 import com.google.common.collect.ImmutableSet;
-
 import java.math.BigDecimal;
 import java.util.Set;
 
@@ -120,7 +119,7 @@ public enum FormMailAddress {
   private String city;
   private String state;
   private String zipcode;
-  private BigDecimal checkAmount;
+  private BigDecimal maybeCheckAmount;
   private Set<String> acceptable_states;
   private Set<String> acceptable_counties;
 
@@ -134,7 +133,7 @@ public enum FormMailAddress {
       String city,
       String state,
       String zipcode,
-      BigDecimal checkAmount,
+      BigDecimal maybeCheckAmount,
       Set<String> acceptable_states,
       Set<String> acceptable_counties) {
     this.name = name;
@@ -158,7 +157,7 @@ public enum FormMailAddress {
     sb.append(", description=").append(this.description);
     sb.append(", office_name=").append(this.office_name);
     sb.append(", nameForCheck=").append(this.nameForCheck);
-    sb.append(", checkAmount=").append(this.checkAmount.doubleValue());
+    sb.append(", maybeCheckAmount=").append(this.maybeCheckAmount.toString());
     sb.append(", street1=").append(this.street1);
     sb.append(", street2=").append(this.street2);
     sb.append(", city=").append(this.city);
@@ -166,6 +165,10 @@ public enum FormMailAddress {
     sb.append(", zipcode=").append(this.zipcode);
     sb.append("}");
     return sb.toString();
+  }
+
+  public BigDecimal getMaybeCheckAmount() {
+    return maybeCheckAmount;
   }
 
   public String getName() {

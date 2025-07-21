@@ -122,7 +122,8 @@ public class DownloadFileService implements Service {
       if (fileType == FileType.APPLICATION_PDF
           && (privilegeLevelType == UserType.Director
               || privilegeLevelType == UserType.Admin
-              || privilegeLevelType == UserType.Worker)) {
+              || privilegeLevelType == UserType.Worker
+              || privilegeLevelType == UserType.Client)) {
         if (file.getOrganizationName().equals(organizationName.get())) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
@@ -130,8 +131,9 @@ public class DownloadFileService implements Service {
                 encryptionController.get().decryptFile(optionalStream.get(), this.username);
             this.contentType = "application/pdf";
             return FileMessage.SUCCESS;
+          } else {
+            return FileMessage.NO_SUCH_FILE;
           }
-          return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.IDENTIFICATION_PDF
           && (privilegeLevelType == UserType.Client || privilegeLevelType == UserType.Worker)) {

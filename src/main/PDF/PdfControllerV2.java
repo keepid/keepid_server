@@ -12,7 +12,6 @@ import Security.EncryptionController;
 import User.User;
 import User.UserMessage;
 import User.UserType;
-import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
@@ -30,18 +29,17 @@ public class PdfControllerV2 {
   private UserDao userDao;
 
   // Needed for EncryptionController
-  private MongoDatabase db;
   private EncryptionController encryptionController;
 
-  public PdfControllerV2(FileDao fileDao, FormDao formDao, UserDao userDao, MongoDatabase db) {
+  public PdfControllerV2(
+      FileDao fileDao,
+      FormDao formDao,
+      UserDao userDao,
+      EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.userDao = userDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-      log.error("Generating encryption controller failed");
-    }
+    this.encryptionController = encryptionController;
   }
 
   public Handler deletePDF =
@@ -163,7 +161,7 @@ public class PdfControllerV2 {
           ctx.result(setUserParamsErrorMessage.toResponseString());
           return;
         }
-        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setFileParamsUploadSignedPDF(ctx);
         if (setFileParamsErrorMessage != null) {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
@@ -196,11 +194,10 @@ public class PdfControllerV2 {
   public Handler fillPDF =
       ctx -> {
         log.info("Starting fillPdfForm handler");
-        JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
         userParams.setUserParamsFillAndUploadSignedPDF(ctx);
-        Message setFileParamsErrorMessage = fileParams.setfileParamsFillAndUploadSignedPDF(ctx);
+        Message setFileParamsErrorMessage = fileParams.setFileParamsFillPDF(ctx);
         if (setFileParamsErrorMessage != null) {
           ctx.result(setFileParamsErrorMessage.toResponseString());
           return;
@@ -403,7 +400,17 @@ public class PdfControllerV2 {
       this.fileOrgName = fileOrgName;
     }
 
-    public Message setfileParamsFillAndUploadSignedPDF(Context ctx) {
+    public Message setFileParamsFillPDF(Context ctx) {
+      try {
+        this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
+        this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+      } catch (Exception e) {
+        return PdfMessage.INVALID_PARAMETER;
+      }
+      return null;
+    }
+
+    public Message setFileParamsUploadSignedPDF(Context ctx) {
       try {
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
@@ -465,7 +472,7 @@ public class PdfControllerV2 {
         log.info("File is null");
         return PdfMessage.INVALID_PDF;
       }
-      this.fileOrgName = ctx.formParam("fileOrgName");
+      //      this.fileOrgName = ctx.formParam("fileOrgName");
       this.fileName = file.getFilename();
       this.fileContentType = file.getContentType();
       this.fileStream = file.getContent();

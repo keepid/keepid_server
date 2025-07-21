@@ -7,6 +7,8 @@ import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
 import File.Services.*;
+import PDF.PdfMessage;
+import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
 import User.Services.GetUserInfoService;
 import User.User;
@@ -22,9 +24,7 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 @Slf4j
@@ -34,15 +34,16 @@ public class FileController {
   private FormDao formDao;
   private EncryptionController encryptionController;
 
-  public FileController(MongoDatabase db, UserDao userDao, FileDao fileDao, FormDao formDao) {
+  public FileController(
+      MongoDatabase db,
+      UserDao userDao,
+      FileDao fileDao,
+      FormDao formDao,
+      EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
     this.formDao = formDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    this.encryptionController = encryptionController;
   }
 
   /*
@@ -67,25 +68,28 @@ public class FileController {
         UserType privilegeLevel;
         Message response = null;
         UploadedFile file = ctx.uploadedFile("file");
-        JSONObject req;
-        String body = ctx.body();
+        JSONObject req = new JSONObject();
+        String body = null;
         try {
-          req = new JSONObject(body);
-        } catch (JSONException e) {
+          req.put("targetUser", ctx.formParam("targetUser"));
+          req.put("idCategory", ctx.formParam("idCategory"));
+          req.put("fileType", ctx.formParam("fileType"));
+          body = req.toString();
+        } catch (Exception e) {
+          System.out.println(e);
           req = null;
         }
-
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, body);
-        if (req != null && req.has("targetUser") && check == null) {
+        Optional<User> maybeTargetUser = GetUserInfoService.getUserFromRequest(this.userDao, body);
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target user could not be found in the database");
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
-          if (req != null && req.has("targetUser") && check != null) {
+          if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
-            username = check.getUsername();
-            organizationName = check.getOrganization();
-            privilegeLevel = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            organizationName = maybeTargetUser.get().getOrganization();
+            privilegeLevel = maybeTargetUser.get().getUserType();
             orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
           } else {
             log.info("Checking session for user.");
@@ -94,7 +98,6 @@ public class FileController {
             privilegeLevel = ctx.sessionAttribute("privilegeLevel");
             orgFlag = true;
           }
-
           if (orgFlag) {
             if (file == null) {
               log.info("File is null, invalid file!");
@@ -103,7 +106,6 @@ public class FileController {
               FileType fileType =
                   FileType.createFromString(Objects.requireNonNull(ctx.formParam("fileType")));
               log.info("Received file type of {}", fileType.toString());
-              String title = null;
               boolean annotated = false;
               IdCategoryType idCategory = IdCategoryType.NONE;
               boolean toSign = false;
@@ -120,21 +122,28 @@ public class FileController {
               UploadedFile signature = null;
               Date uploadDate =
                   Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-
+              InputStream filestreamToUpload = file.getContent();
+              String filenameToUpload = file.getFilename();
               switch (fileType) {
                 case APPLICATION_PDF:
                 case IDENTIFICATION_PDF:
                 case FORM:
                   log.info("Got PDF file to upload!");
-                  try {
-                    InputStream content = file.getContent();
-                    PDDocument pdfDocument = Loader.loadPDF(content);
-                    title = getPDFTitle(file.getFilename(), pdfDocument);
-                    content.reset();
-                    pdfDocument.close();
-                  } catch (Exception exception) {
-                    ctx.result(FileMessage.INVALID_FILE.toResponseString());
+                  if (file.getContentType().startsWith("image")) {
+                    ImageToPDFService imageToPDFService = new ImageToPDFService(filestreamToUpload);
+                    Message imageToPdfServiceResponse = imageToPDFService.executeAndGetResponse();
+                    if (imageToPdfServiceResponse == PdfMessage.INVALID_PDF) {
+                      ctx.result(imageToPdfServiceResponse.toResponseString());
+                    }
+                    filestreamToUpload = imageToPDFService.getFileStream();
+                    filenameToUpload =
+                        file.getFilename().substring(0, file.getFilename().lastIndexOf("."))
+                            + ".pdf";
                   }
+                  filestreamToUpload.reset();
+                  //                    PDDocument pdfDocument = Loader.loadPDF(filestreamToUpload);
+                  //                    title = getPDFTitle(file.getFilename(), pdfDocument);
+                  //                    pdfDocument.close();
 
                   if (toSign) {
                     signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
@@ -147,10 +156,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());
@@ -163,7 +172,7 @@ public class FileController {
                           toSign,
                           signature == null
                               ? Optional.empty()
-                              : Optional.ofNullable(signature.getContent()),
+                              : Optional.of(signature.getContent()),
                           Optional.ofNullable(encryptionController));
                   response = uploadService.executeAndGetResponse();
                   break;
@@ -173,10 +182,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());
@@ -197,10 +206,10 @@ public class FileController {
                       new File(
                           username,
                           uploadDate,
-                          file.getContent(),
+                          filestreamToUpload,
                           fileType,
                           idCategory,
-                          file.getFilename(),
+                          filenameToUpload,
                           organizationName,
                           annotated,
                           file.getContentType());
@@ -238,13 +247,14 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = check.getUsername();
             orgName = check.getOrganization();
@@ -298,16 +308,17 @@ public class FileController {
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
-        if (check == null && req.has("targetUser")) {
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
@@ -349,17 +360,20 @@ public class FileController {
         String reqBody = ctx.body();
         JSONObject req = new JSONObject(reqBody);
         JSONObject responseJSON;
-        User check = GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
-        if (check == null && req.has("targetUser")) {
+        System.out.println("REQ: " + req);
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, reqBody);
+        System.out.println("filetype: " + req.getString("fileType"));
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
           log.info("Target User not Found");
           responseJSON = UserMessage.USER_NOT_FOUND.toJSON();
         } else {
           boolean orgFlag;
-          if (check != null && req.has("targetUser")) {
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");

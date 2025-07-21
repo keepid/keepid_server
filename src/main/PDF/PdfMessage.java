@@ -16,10 +16,11 @@ public enum PdfMessage implements Message {
   NO_SUCH_FILE("NO_SUCH_FILE;PDF does not exist"),
   ENCRYPTION_ERROR("ENCRYPTION_ERROR;Error encrypting/decrypting"),
   CROSS_ORG_ACTION_DENIED(
-      "CROSS_ORG_ACTION_DENIED:You are trying to modify another organization's pdf."),
+      "CROSS_ORG_ACTION_DENIED;You are trying to modify another organization's pdf."),
   INSUFFICIENT_USER_PRIVILEGE(
-      "INSUFFICIENT_USER_PRIVILEGE: The user is not allowed to access this pdf."),
-  MISSING_FORM("MISSING_FORM: Annotated file is missing corresponding form.");
+      "INSUFFICIENT_USER_PRIVILEGE;The user is not allowed to access this pdf."),
+  MISSING_FORM("MISSING_FORM;Annotated file is missing corresponding form."),
+  INVALID_MATCHED_FIELD("INVALID_MATCHED_FIELD;One of the matched fields is invalid.");
 
   private String errorMessage;
 

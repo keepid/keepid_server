@@ -9,15 +9,17 @@ import Mail.FormMailAddress;
 import Mail.Mail;
 import Mail.MailMessage;
 import Mail.MailStatus;
+import Security.EncryptionController;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.*;
 import com.lob.api.ApiClient;
 import com.lob.api.Configuration;
 import com.lob.api.auth.*;
-import com.lob.api.client.AddressesApi;
 import com.lob.api.client.ChecksApi;
 import com.lob.api.client.LettersApi;
 import java.io.FileInputStream;
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +35,10 @@ public class SubmitToLobMailService implements Service {
   private String lobApiKey;
   private FileDao fileDao;
   private String username;
-  private boolean isCheck;
+  private FormMailAddress formMailAddress;
+  private EncryptionController encryptionController;
+
+  public final String TEAM_KEEP_ADDRESS_LOB_ID = "adr_13508cc9d5747779";
 
   public SubmitToLobMailService(
       FileDao fileDao,
@@ -43,7 +48,7 @@ public class SubmitToLobMailService implements Service {
       String username,
       String loggedInUser,
       String lobApiKey,
-      boolean isCheck) {
+      EncryptionController encryptionController) {
 
     Mail mail = new Mail(new ObjectId(fileId), formMailAddress, username, loggedInUser);
     this.mail = mail;
@@ -51,8 +56,9 @@ public class SubmitToLobMailService implements Service {
     this.mailDao = mailDao;
     this.fileDao = fileDao;
     this.username = username;
+    this.formMailAddress = formMailAddress;
+    this.encryptionController = encryptionController;
     mailDao.save(mail); // Save created mail
-    this.isCheck = isCheck;
   }
 
   @Override
@@ -63,7 +69,9 @@ public class SubmitToLobMailService implements Service {
     this.printAllFiles(this.username);
     ChecksApi checksApi = new ChecksApi(lobClient);
 
-    if (isCheck) {
+    if (this.formMailAddress.getMaybeCheckAmount().compareTo(BigDecimal.ZERO)
+        == 1) { // if check amount > 0
+      ChecksApi checksApi = new ChecksApi(lobClient);
       FormMailAddress mailAddress = mail.getMailingAddress();
 
       AddressEditable toAddress = new AddressEditable(); // build toAddress
@@ -80,8 +88,8 @@ public class SubmitToLobMailService implements Service {
 
       CheckEditable checkEditable = new CheckEditable();
       checkEditable.setBankAccount("bank_8ed776f222c2985");
-      checkEditable.setFrom("adr_13508cc9d5747779");
-      checkEditable.setAmount(39.5F);
+      checkEditable.setFrom(TEAM_KEEP_ADDRESS_LOB_ID);
+      checkEditable.setAmount(mailAddress.getMaybeCheckAmount().floatValue());
       checkEditable.setMetadata(
           Map.of(
               "Mail Username",
@@ -112,11 +120,10 @@ public class SubmitToLobMailService implements Service {
       mailDao.update(this.mail);
       return MailMessage.MAIL_SUCCESS;
     } else {
-      AddressesApi addressesApi = new AddressesApi(lobClient);
       AddressEditable toAddress = new AddressEditable();
       LettersApi lettersApi = new LettersApi(lobClient);
       FormMailAddress mailAddress = mail.getMailingAddress();
-      toAddress.setName(mailAddress.getNameForCheck());
+      toAddress.setName(mailAddress.getName());
       toAddress.setAddressLine1(mailAddress.getStreet1());
       if (mailAddress.getStreet2() != "") {
         toAddress.setAddressLine2(mailAddress.getStreet2());
@@ -127,11 +134,10 @@ public class SubmitToLobMailService implements Service {
       toAddress.setDescription(mailAddress.getDescription());
       toAddress.setCompany(mailAddress.getOffice_name());
 
-      CheckEditable checkEditable = new CheckEditable();
-      checkEditable.setBankAccount("bank_8ed776f222c2985");
-      checkEditable.setFrom("adr_13508cc9d5747779");
-      checkEditable.setAmount(39.5F);
-      checkEditable.setMetadata(
+      LetterEditable letterEditable = new LetterEditable();
+      letterEditable.setColor(false);
+      letterEditable.setFrom(TEAM_KEEP_ADDRESS_LOB_ID);
+      letterEditable.setMetadata(
           Map.of(
               "Mail Username",
               mail.getTargetUsername(),
@@ -139,31 +145,25 @@ public class SubmitToLobMailService implements Service {
               mail.getRequesterUsername(),
               "Mail ID:",
               mail.getId().toString()));
-      checkEditable.setMemo("Application Fee");
-      checkEditable.setTo(toAddress);
-
-      System.out.println("Mail File id: " + mail.getFileId());
+      letterEditable.setTo(toAddress);
       File file = fileDao.get(mail.getFileId()).orElseThrow();
-      System.out.println("Filename: " + file.getFilename());
-      System.out.println("File id: " + file.getId());
-      System.out.println("File file id: " + file.getFileId());
 
-      byte[] pdfData = IOUtils.toByteArray(fileDao.getStream(file.getId()).orElseThrow());
+      InputStream decryptedInputStream =
+          this.encryptionController.decryptFile(
+              this.fileDao.getStream(file.getId()).orElseThrow(), this.username);
+      byte[] pdfData = IOUtils.toByteArray(decryptedInputStream);
       String uri = uploadFileToGCS(pdfData, mail.getId().toString());
 
-      checkEditable.setAttachment(uri);
+      letterEditable.setFile(uri);
 
-      Check checkAndLetter =
-          checksApi.create(checkEditable, mail.getTargetUsername() + mail.getId().toString());
-      this.mail.setLobId(checkAndLetter.getId());
+      Letter letterSent =
+          lettersApi.create(letterEditable, mail.getTargetUsername() + mail.getId().toString());
+      this.mail.setLobId(letterSent.getId());
       this.mail.setMailStatus(MailStatus.MAILED);
-      this.mail.setLobCreatedAt(DateTimeUtils.toDate(checkAndLetter.getDateCreated().toInstant()));
+      this.mail.setLobCreatedAt(DateTimeUtils.toDate(letterSent.getDateCreated().toInstant()));
       mailDao.update(this.mail);
       return MailMessage.MAIL_SUCCESS;
     }
-    // LettersApi lettersApi = new LettersApi(lobClient);
-
-    // return MailMessage.FAILED_WHEN_SENDING_MAIL;
   }
 
   private void printAllFiles(String username) {
@@ -191,7 +191,7 @@ public class SubmitToLobMailService implements Service {
     storage.create(blobInfo, fileData);
     URL signedUrl =
         storage.signUrl(
-            blobInfo, 1, TimeUnit.HOURS, Storage.SignUrlOption.httpMethod(HttpMethod.GET));
+            blobInfo, 2, TimeUnit.HOURS, Storage.SignUrlOption.httpMethod(HttpMethod.GET));
     return signedUrl.toString();
   }
 }

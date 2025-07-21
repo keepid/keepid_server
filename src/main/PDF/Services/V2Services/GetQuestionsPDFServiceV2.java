@@ -4,12 +4,15 @@ import Config.Message;
 import Config.Service;
 import Database.Form.FormDao;
 import Database.User.UserDao;
+import Form.FieldType;
 import Form.Form;
 import Form.FormQuestion;
 import Form.FormSection;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
+import User.Services.GetUserInfoService;
+import User.UserMessage;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.util.LinkedList;
@@ -28,6 +31,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
   private String fileId;
   private JSONObject applicationInformation;
   private Form form;
+  private JSONObject userInfo;
+  private FormQuestion currentFormQuestion;
 
   public GetQuestionsPDFServiceV2(
       FormDao formDao, UserDao userDao, UserParams userParams, FileParams fileParams) {
@@ -49,6 +54,12 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (getQuestionsConditionsErrorMessage != null) {
       return getQuestionsConditionsErrorMessage;
     }
+    GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, username);
+    Message getUserInfoServiceResponse = getUserInfoService.executeAndGetResponse();
+    if (getUserInfoServiceResponse != UserMessage.SUCCESS) {
+      return getUserInfoServiceResponse;
+    }
+    this.userInfo = getUserInfoService.getUserFields();
     return getQuestions();
   }
 
@@ -64,7 +75,51 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (formOptional.isEmpty()) {
       return PdfMessage.MISSING_FORM;
     }
-    form = formOptional.get();
+    Form tempForm = formOptional.get();
+    form = formDao.get(tempForm.getId()).get();
+    return null;
+  }
+
+  public Message setMatchedFields(FormQuestion fq) {
+    String questionName = fq.getQuestionName();
+    String[] splitQuestionName = questionName.split(":");
+    if (splitQuestionName.length != 1
+        && splitQuestionName.length != 2
+        && splitQuestionName.length != 3) {
+      return PdfMessage.INVALID_MATCHED_FIELD;
+    }
+
+    fq.setQuestionText(splitQuestionName[0]);
+    if (splitQuestionName.length == 1) {
+      return null;
+    }
+    String fieldTypeIndicatorString = splitQuestionName[1];
+    if (fieldTypeIndicatorString.startsWith("+")) {
+      // Positively linked field
+      fq.setConditionalType("POSITIVE");
+      fq.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+    } else if (fieldTypeIndicatorString.startsWith("-")) {
+      // Negatively linked field
+      fq.setConditionalType("NEGATIVE");
+      fq.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
+    } else if (fieldTypeIndicatorString.equals("anyDate")) {
+      // Make it a date field that can be selected by the client
+      fq.setType(FieldType.DATE_FIELD);
+    } else if (fieldTypeIndicatorString.equals("currentDate")) {
+      // Make a date field with the current date that cannot be changed (value set on frontend)
+      fq.setType(FieldType.DATE_FIELD);
+      fq.setMatched(true);
+    } else if (fieldTypeIndicatorString.equals("signature")) {
+      // Signatures not handled in first round of form completion
+      fq.setType(FieldType.SIGNATURE);
+    } else if (this.userInfo.has(fieldTypeIndicatorString)) {
+      // Field has a matched database variable, so make that the autofilled value
+      fq.setMatched(true);
+      fq.setDefaultValue((String) this.userInfo.get(fieldTypeIndicatorString));
+    } else {
+      return PdfMessage.INVALID_MATCHED_FIELD;
+    }
+    this.currentFormQuestion = fq;
     return null;
   }
 
@@ -75,6 +130,10 @@ public class GetQuestionsPDFServiceV2 implements Service {
     List<FormQuestion> formQuestions = formBody.getQuestions();
     List<JSONObject> formFields = new LinkedList<>();
     for (FormQuestion formQuestion : formQuestions) {
+      //      Message matchedFieldsMessage = setMatchedFields(formQuestion);
+      //      if (matchedFieldsMessage != null) {
+      //        return matchedFieldsMessage;
+      //      }
       JSONObject formField = new JSONObject();
       formField.put("fieldName", formQuestion.getQuestionName());
       formField.put("fieldType", formQuestion.getType().toString());

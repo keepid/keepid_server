@@ -18,6 +18,9 @@ import com.google.gson.reflect.TypeToken;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -50,6 +53,80 @@ public class UserController {
     this.formDao = formDao;
     this.db = db;
   }
+
+  public Handler ingestCsv =
+      ctx -> {
+        String csvName = "Face to Face Birth Certificate Clinic Signups.csv";
+        String orgName = "Face to Face";
+        String creatorUsername = "FACE-TO-FACE-ADMIN";
+        String defaultBirthdate = "01-01-2025";
+        String faceToFaceAddress = "123 E Price St";
+        String faceToFaceCity = "Philadelphia";
+        String faceToFaceState = "PA";
+        String faceToFaceZip = "19144";
+        List<String[]> records = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(csvName))) {
+          String line;
+          String header = br.readLine();
+          while ((line = br.readLine()) != null) {
+            String[] values = line.split(",");
+            if (values.length >= 4) {
+              String[] entry = new String[4];
+              entry[0] = values[0].trim(); // First Name
+              entry[1] = values[1].trim(); // Last Name
+              entry[2] = values[2].trim(); // Email
+              entry[3] = values[3].trim(); // Phone Number
+              records.add(entry);
+            }
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+
+        for (String[] record : records) {
+          String clientFirstName = record[0];
+          String clientLastName = record[1];
+          String clientEmail = record[2];
+          String clientPhoneNumber = record[3];
+          String clientUsername =
+              clientFirstName.toLowerCase() + "-" + clientLastName.toLowerCase();
+          String clientPassword =
+              clientFirstName.toLowerCase()
+                  + clientLastName.toLowerCase()
+                  + clientPhoneNumber.substring(
+                      clientPhoneNumber.length() - 4); // firstnamelastnamelast4phone
+          System.out.println("First Name: " + clientFirstName);
+          System.out.println("Last Name: " + clientLastName);
+          System.out.println("Email: " + clientEmail);
+          System.out.println("Phone Number: " + clientPhoneNumber);
+          System.out.println("---------------------------");
+
+          CreateUserService createUserService =
+              new CreateUserService(
+                  userDao,
+                  activityDao,
+                  UserType.Admin,
+                  orgName,
+                  creatorUsername,
+                  clientFirstName,
+                  clientLastName,
+                  defaultBirthdate,
+                  clientEmail,
+                  clientPhoneNumber,
+                  faceToFaceAddress,
+                  faceToFaceCity,
+                  faceToFaceState,
+                  faceToFaceZip,
+                  false,
+                  clientUsername,
+                  clientPassword,
+                  UserType.Client);
+          Message response = createUserService.executeAndGetResponse();
+          System.out.println(response.toResponseString());
+        }
+        ctx.result("SUCCESS");
+      };
 
   public Handler loginUser =
       ctx -> {

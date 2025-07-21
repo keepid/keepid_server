@@ -33,14 +33,11 @@ public class PdfController {
   private UserDao userDao;
   private EncryptionController encryptionController;
 
-  public PdfController(MongoDatabase db, UserDao userDao) {
+  public PdfController(
+      MongoDatabase db, UserDao userDao, EncryptionController encryptionController) {
     this.db = db;
     this.userDao = userDao;
-    try {
-      this.encryptionController = new EncryptionController(db);
-    } catch (Exception e) {
-      log.error("generating encryption controller failed");
-    }
+    this.encryptionController = encryptionController;
   }
 
   /*
