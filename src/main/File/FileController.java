@@ -256,9 +256,9 @@ public class FileController {
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = check.getUsername();
-            orgName = check.getOrganization();
-            userType = check.getUserType();
+            username = maybeTargetUser.get().getUsername();
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
             //            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
             orgFlag = true;
           } else {

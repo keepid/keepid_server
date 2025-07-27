@@ -67,7 +67,6 @@ public class SubmitToLobMailService implements Service {
     HttpBasicAuth basicAuth = (HttpBasicAuth) lobClient.getAuthentication("basicAuth");
     basicAuth.setUsername(this.lobApiKey);
     this.printAllFiles(this.username);
-    ChecksApi checksApi = new ChecksApi(lobClient);
 
     if (this.formMailAddress.getMaybeCheckAmount().compareTo(BigDecimal.ZERO)
         == 1) { // if check amount > 0

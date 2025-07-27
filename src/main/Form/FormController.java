@@ -9,6 +9,7 @@ import Form.Services.GetFormService;
 import Form.Services.ManuallyUploadFormService;
 import Form.Services.UploadFormService;
 import Security.EncryptionController;
+import User.Services.GetUserInfoService;
 import User.User;
 import User.UserMessage;
 import User.UserType;
@@ -55,6 +56,8 @@ public class FormController {
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
         Optional<User> targetUser = userCheck(ctx.body());
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
         if (targetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
@@ -209,7 +212,7 @@ public class FormController {
         }
       };
 
-  public User userCheck(String req) {
+  public Optional<User> userCheck(String req) {
     log.info("userCheck Helper started");
     String username;
     User user = null;

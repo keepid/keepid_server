@@ -145,7 +145,7 @@ public enum FormMailAddress {
     this.city = city;
     this.state = state;
     this.zipcode = zipcode;
-    this.checkAmount = checkAmount;
+    this.maybeCheckAmount = maybeCheckAmount;
     this.acceptable_states = acceptable_states;
     this.acceptable_counties = acceptable_counties;
   }
