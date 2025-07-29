@@ -3,6 +3,7 @@ package User;
 import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import File.File;
@@ -36,17 +37,20 @@ public class UserController {
   TokenDao tokenDao;
   ActivityDao activityDao;
   FileDao fileDao;
+  FormDao formDao;
 
   public UserController(
       UserDao userDao,
       TokenDao tokenDao,
       FileDao fileDao,
       ActivityDao activityDao,
+      FormDao formDao,
       MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.formDao = formDao;
     this.db = db;
   }
 
@@ -459,7 +463,8 @@ public class UserController {
                 Optional.empty(),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
-                Optional.empty());
+                Optional.empty(),
+                formDao);
         Message mes = serv.executeAndGetResponse();
         responseJSON = mes.toJSON();
         if (mes == FileMessage.SUCCESS) {
