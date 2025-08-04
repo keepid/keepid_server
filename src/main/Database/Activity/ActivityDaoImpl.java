@@ -3,9 +3,12 @@ package Database.Activity;
 import Activity.Activity;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Mail.EmailNotifier;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import org.bson.types.ObjectId;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.eq;
 
+@Repository
 public class ActivityDaoImpl implements ActivityDao {
   private final MongoCollection<Activity> activityCollection;
 
@@ -57,6 +61,15 @@ public class ActivityDaoImpl implements ActivityDao {
         .sorted(Comparator.reverseOrder())
         .collect(Collectors.toList());
   }
+  //
+  // @Override
+  public List<Activity> getUnnotifiedActivities() {
+    return activityCollection.find(eq("notified", false))
+        .into(new ArrayList<>()).stream()
+        .sorted(Comparator.reverseOrder()) // optional
+        .collect(Collectors.toList());
+  }
+
 
   @Override
   public int size() {
@@ -80,6 +93,18 @@ public class ActivityDaoImpl implements ActivityDao {
 
   @Override
   public void save(Activity activity) {
+
     activityCollection.insertOne(activity);
+    // Trigger email notifications
+    EmailNotifier.handle(activity);;
   }
+  @Override
+  public List<Activity> findUnnotified(int limit) {
+    return activityCollection.find(eq("notified", false))
+        .limit(limit)
+        .into(new ArrayList<>()).stream()
+        .sorted(Comparator.reverseOrder())
+        .collect(Collectors.toList());
+  }
+
 }
