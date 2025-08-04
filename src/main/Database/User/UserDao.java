@@ -15,6 +15,8 @@ public interface UserDao extends Dao<User> {
 
   Optional<User> get(String username);
 
+  Optional<User> getByEmail(String email);
+
   void delete(String username);
 
   void update(User user);

@@ -31,6 +31,11 @@ public class UserDaoImpl implements UserDao {
   }
 
   @Override
+  public Optional<User> getByEmail(String email) {
+    return Optional.ofNullable(userCollection.find(eq("email", email)).first());
+  }
+
+  @Override
   public Optional<User> get(ObjectId id) {
     return Optional.ofNullable(userCollection.find(eq("_id", id)).first());
   }
