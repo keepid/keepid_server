@@ -24,9 +24,9 @@ import java.util.*;
 public class ProcessGoogleLoginResponseService implements Service {
     public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
     private final String googleClientId = Objects.requireNonNull(
-        System.getenv("REACT_APP_GOOGLE_CLIENT_ID"));
+        System.getenv("GOOGLE_CLIENT_ID"));
     private final String googleClientSecret = Objects.requireNonNull(
-        System.getenv("REACT_APP_GOOGLE_CLIENT_SECRET"));
+        System.getenv("GOOGLE_CLIENT_SECRET"));
     private final UserDao userDao;
     private final ActivityDao activityDao;
     private String origin;
