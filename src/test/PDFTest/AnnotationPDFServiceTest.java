@@ -46,7 +46,9 @@ public class AnnotationPDFServiceTest {
 
   @After
   public void reset() {
-    this.userDao.clear();
+    if(this.userDao != null) {
+      this.userDao.clear();
+    }
     TestUtils.tearDownTestDB();
     TestUtils.logout();
   }

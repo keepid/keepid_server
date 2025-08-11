@@ -37,7 +37,9 @@ public class ImageToPdfServiceIntegrationTests {
 
     @After
     public void reset() {
-        this.userDao.clear();
+        if(this.userDao != null) {
+            this.userDao.clear();
+        }
         TestUtils.logout();
     }
 

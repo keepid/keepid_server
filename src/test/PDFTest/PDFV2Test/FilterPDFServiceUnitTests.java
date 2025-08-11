@@ -207,7 +207,9 @@ public class FilterPDFServiceUnitTests {
   public void reset() {
     this.fileDao.clear();
     this.formDao.clear();
-    this.userDao.clear();
+    if(this.userDao != null) {
+      this.userDao.clear();
+    }
     try {
       sampleImageStream.close();
       sampleFileStream1.close();
