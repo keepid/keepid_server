@@ -17,5 +17,8 @@ jobs:
 workflows:
   maven_test:
     jobs:
-      - maven/test: # checkout, build, test, and upload test results
-          context: Keep.id Slack
+      - maven/test:
+          executor:
+            name: maven/default
+            tag: "21.0"        # uses cimg/openjdk:21.0
+          context: "Keep.id Slack"
