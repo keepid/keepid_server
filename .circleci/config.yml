@@ -18,7 +18,6 @@ workflows:
   maven_test:
     jobs:
       - maven/test:
-          parallelism: 1
           executor:
             name: maven/default
             tag: "21.0"
