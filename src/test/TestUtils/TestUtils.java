@@ -76,6 +76,13 @@ public class TestUtils {
     return app;
   }
 
+  public static void stopServer() {
+    if (app != null) {
+      app.stop();
+      app = null;
+    }
+  }
+
   public static String getServerUrl() {
     return SERVER_TEST_URL;
   }
@@ -725,6 +732,7 @@ public class TestUtils {
   // Tears down the test database by clearing all collections.
   public static void tearDownTestDB() {
     MongoConfig.dropDatabase(DeploymentLevel.TEST);
+    stopServer();
   }
 
   // A private method for hashing passwords.

@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Maven Test",
+			"type": "shell",
+			"command": "mvn",
+			"args": [
+				"clean",
+				"test",
+				"-Dmaven.test.failure.ignore=true"
+			],
+			"group": "test",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
