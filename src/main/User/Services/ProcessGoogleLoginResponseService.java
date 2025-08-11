@@ -85,6 +85,10 @@ public class ProcessGoogleLoginResponseService implements Service {
                 log.error("Unable to exchange Authorization code for ID Token");
                 return GoogleLoginResponseMessage.AUTH_FAILURE;
             }
+            if (!verifyIdToken(idToken)) {
+                log.error("ID Token verification failed");
+                return GoogleLoginResponseMessage.AUTH_FAILURE;
+            }
             log.info("Attempting to find Keep.id account associated with ID Token");
             Optional<User> userOptional = convertJwtTokenToUser(idToken);
             if (userOptional.isEmpty()) {
@@ -114,8 +118,8 @@ public class ProcessGoogleLoginResponseService implements Service {
         bodyParams.put("grant_type", "authorization_code");
         bodyParams.put("redirect_uri", redirectUri);
 
-        log.info("Sending POST request to {} with body: {}", tokenExchangeUrl,
-            bodyParams);
+        // log.info("Sending POST request to {} with body: {}", tokenExchangeUrl,
+        //     bodyParams);
         HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -131,7 +135,7 @@ public class ProcessGoogleLoginResponseService implements Service {
             HttpResponse.BodyHandlers.ofString());
 
         JSONObject responseJSON = new JSONObject(response.body());
-        log.info("Received response from {} with body: {}", tokenExchangeUrl, responseJSON);
+        // log.info("Received response from {} with body: {}", tokenExchangeUrl, responseJSON);
 
         if (!responseJSON.has("id_token")) {
             log.error("No ID token found in response, returning null");
@@ -148,6 +152,31 @@ public class ProcessGoogleLoginResponseService implements Service {
 
         log.info("Querying user database for email: {}", email);
         return userDao.getByEmail(email);
+    }
+
+    private boolean verifyIdToken(GoogleIdToken idToken) {
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        
+        // Verify audience (client_id)
+        if (!googleClientId.equals(payload.getAudience())) {
+            log.error("Invalid audience in ID token");
+            return false;
+        }
+        
+        // Verify issuer
+        if (!"https://accounts.google.com".equals(payload.getIssuer()) && 
+            !"accounts.google.com".equals(payload.getIssuer())) {
+            log.error("Invalid issuer in ID token");
+            return false;
+        }
+        
+        // Verify expiration
+        if (payload.getExpirationTimeSeconds() * 1000 < System.currentTimeMillis()) {
+            log.error("ID token has expired");
+            return false;
+        }
+        
+        return true;
     }
 
     public String getOrigin() {

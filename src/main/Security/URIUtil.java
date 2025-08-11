@@ -5,6 +5,7 @@ public class URIUtil {
   public static boolean isValidRedirectURI(String redirectUri) {
     return redirectUri.equals("http://localhost:7001/googleLoginResponse")
         || redirectUri.equals("https://staged.keep.id/googleLoginResponse")
+        || redirectUri.equals("https://staging.keep.id/googleLoginResponse")
         || redirectUri.equals("https://server.keep.id/googleLoginResponse");
   }
 
