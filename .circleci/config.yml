@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  maven: circleci/maven@1.1.0
+  maven: circleci/maven@2.1.1
   slack: circleci/slack@4.3.0
 jobs:
   notify:
@@ -19,3 +19,6 @@ workflows:
     jobs:
       - maven/test: # checkout, build, test, and upload test results
           context: Keep.id Slack
+          executor:
+            name: maven/openjdk
+            tag: '21'
