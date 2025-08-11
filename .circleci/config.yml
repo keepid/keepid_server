@@ -19,6 +19,3 @@ workflows:
     jobs:
       - maven/test: # checkout, build, test, and upload test results
           context: Keep.id Slack
-          executor:
-            name: maven/openjdk
-            tag: '21'
