@@ -10,11 +10,10 @@ import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.bson.Document;
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.Objects;
 
@@ -39,7 +38,32 @@ public class EncryptionController {
     MongoCollection<Document> keyHandles = db.getCollection("keys", Document.class);
     Document keyDocument = keyHandles.find().first();
     if (keyDocument == null) {
-      throw new GeneralSecurityException();
+      System.out.println(db.getName());
+      if (db.getName().equals("test-db")){
+        EncryptionTools tools = new EncryptionTools(db);
+        tools.generateGoogleCredentials();
+        try (BufferedReader reader = new BufferedReader(new FileReader("key.json"))) {
+          String jsonString = reader.readLine(); // Read the single line
+          if (jsonString != null) {
+            try {
+              JSONObject keyJson = new JSONObject(jsonString);
+              keyJson.remove("_id");
+              keyJson.remove("keyType");
+              KeysetHandle keysetHandle =
+                      KeysetHandle.read(
+                              JsonKeysetReader.withJsonObject(keyJson),
+                              new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
+              return keysetHandle.getPrimitive(Aead.class);
+            } catch (JSONException e) {
+              System.err.println("Error parsing JSON string: " + e.getMessage());
+            }
+          } else {
+            System.out.println("File is empty or contains no lines.");
+          }
+        } catch (IOException e) {
+          System.err.println("Error reading file: " + e.getMessage());
+        }
+      }
     }
     keyDocument.remove("_id");
     keyDocument.remove("keyType");

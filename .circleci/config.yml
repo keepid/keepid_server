@@ -20,5 +20,5 @@ workflows:
       - maven/test:
           executor:
             name: maven/default
-            tag: "21.0"        # uses cimg/openjdk:21.0
+            tag: "21.0"
           context: "Keep.id Slack"

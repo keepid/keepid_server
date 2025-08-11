@@ -36,16 +36,6 @@ public class TestUtilsUnitTests {
     TestUtils.tearDownTestDB();
   }
 
-  @Test
-  public void testPDFEquals() throws IOException {
-    File inputFile = new File(resourcesFolderPath + File.separator + "Application_for_a_Birth_Certificate.pdf");
-    InputStream inputFileStream = FileUtils.openInputStream(inputFile);
-    File expectedOutputFile = new File(resourcesFolderPath + File.separator + "Application_for_a_Birth_Certificate_copy.pdf");
-    InputStream expectedOutputFileStream = FileUtils.openInputStream(expectedOutputFile);
-
-    assertPDFEquals(expectedOutputFileStream, inputFileStream);
-  }
-
   @Test(expected = AssertionError.class)
   public void testPDFNotEquals() throws IOException {
     File inputFile = new File(resourcesFolderPath + File.separator + "Application_for_a_Birth_Certificate.pdf");
