@@ -12,6 +12,7 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
+import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -36,6 +37,7 @@ public class UserController {
   UserDao userDao;
   TokenDao tokenDao;
   ActivityDao activityDao;
+  FormDao formDao;
   FileDao fileDao;
   FormDao formDao;
 
@@ -690,6 +692,37 @@ public class UserController {
             new AssignWorkerToUserService(
                 userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
         Message message = getMembersService.executeAndGetResponse();
+        ctx.result(message.toResponseString());
+      };
+
+  public Handler getOnboardingChecklist =
+      ctx -> {
+        log.info("Started getOnboardingChecklist handler");
+
+        String username = ctx.sessionAttribute("username");
+        GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
+            userDao, formDao, fileDao, username);
+        Message message = getOnboardingChecklistService.executeAndGetResponse();
+        if (message == UserMessage.AUTH_SUCCESS) {
+          log.info("Successfully generated onboarding checklist");
+          ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
+          return;
+        }
+        log.error("Error occurred while generating onboarding checklist for user");
+        ctx.status(401).json(Map.of("error", "Unauthorized"));
+      };
+
+  public Handler postOnboardingStatus =
+      ctx -> {
+        log.info("Started postOnboardingStatus handler");
+        OnboardingStatus newOnboardingStatus =
+            ctx.bodyAsClass(OnboardingStatus.class);
+
+        String username = ctx.sessionAttribute("username");
+
+        PostOnboardingStatusService postOnboardingStatusService = new
+              PostOnboardingStatusService(userDao, username, newOnboardingStatus);
+        Message message = postOnboardingStatusService.executeAndGetResponse();
         ctx.result(message.toResponseString());
       };
 }
