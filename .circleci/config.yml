@@ -2,22 +2,23 @@ version: 2.1
 
 orbs:
   maven: circleci/maven@2.1.1
-
+  slack: circleci/slack@4.3.0
 jobs:
-  serialized-tests:
+  notify:
     docker:
-      - image: cimg/openjdk:21.0
-    concurrency:
-      group: integration-tests
-      cancel-in-progress: false
+      - image: 'cimg/base:stable'
     steps:
-      - checkout
-      - maven/with_cache:
-          steps:
-            - run: mvn -B -DskipTests=false verify
-
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - slack/notify:
+          event: pass
+          template: basic_success_1
 workflows:
   maven_test:
     jobs:
-      - serialized-tests:
+      - maven/test:
+          executor:
+            name: maven/default
+            tag: "21.0"
           context: "Keep.id Slack"
