@@ -2,27 +2,22 @@ version: 2.1
 
 orbs:
   maven: circleci/maven@2.1.1
-  slack: circleci/slack@4.3.0
+
 jobs:
-  notify:
+  serialized-tests:
     docker:
-      - image: 'cimg/base:stable'
+      - image: cimg/openjdk:21.0
+    concurrency:
+      group: integration-tests
+      cancel-in-progress: false
     steps:
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: basic_success_1
+      - checkout
+      - maven/with_cache:
+          steps:
+            - run: mvn -B -DskipTests=false verify
+
 workflows:
   maven_test:
     jobs:
-      - maven/test:
-          name: integration_tests
-          concurrency:
-            group: integration-tests         # any string; jobs in same group run one-at-a-time
-            cancel-in-progress: false        # or true to cancel the older run when a new one starts
-          executor:
-            name: maven/default
-            tag: "21.0"
+      - serialized-tests:
           context: "Keep.id Slack"
