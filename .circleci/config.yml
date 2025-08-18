@@ -18,6 +18,10 @@ workflows:
   maven_test:
     jobs:
       - maven/test:
+          name: integration_tests
+          concurrency:
+            group: integration-tests         # any string; jobs in same group run one-at-a-time
+            cancel-in-progress: false        # or true to cancel the older run when a new one starts
           executor:
             name: maven/default
             tag: "21.0"
