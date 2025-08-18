@@ -161,6 +161,7 @@ public class ActivityDaoImplUnitTests {
 
   @Test
   public void delete() {
+    assertEquals(0, activityDao.size());
     Activity activity =
         EntityFactory.createActivity()
             .withUsername("my username")
@@ -169,10 +170,10 @@ public class ActivityDaoImplUnitTests {
             .buildAndPersist(activityDao);
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
-
+    assertEquals(1, activityDao.size());
     activityDao.delete(activity);
     assertFalse(activityDao.get(activity.getId()).isPresent());
-    assertEquals(1, activityDao.size());
+    assertEquals(0, activityDao.size());
   }
 
   @Test
