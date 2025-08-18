@@ -175,7 +175,7 @@ public class UserController {
    */
   public Handler googleLoginRequestHandler =
       ctx -> {
-        ctx.req().getSession().invalidate();
+        Optional.ofNullable(ctx.req().getSession(false)).ifPresent(HttpSession::invalidate);
         JSONObject req = new JSONObject(ctx.body());
         String redirectUri = req.optString("redirectUri", null);
         String originUri = req.optString("originUri", null);
@@ -442,7 +442,7 @@ public class UserController {
 
   public Handler logout =
       ctx -> {
-        ctx.req().getSession().invalidate();
+        Optional.ofNullable(ctx.req().getSession(false)).ifPresent(HttpSession::invalidate);
         log.info("Signed out");
         ctx.result(UserMessage.SUCCESS.toJSON().toString());
       };
@@ -563,6 +563,7 @@ public class UserController {
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
         if (file == null) {
           ctx.result(UserMessage.INVALID_PARAMETER.toJSON().toString());
+          return;
         }
         File fileToUpload =
             new File(
