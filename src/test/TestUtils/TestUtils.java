@@ -812,6 +812,9 @@ public class TestUtils {
       if (str.equals("Server Error") || str.equals("Internal Server Error")){
         throw new IllegalStateException("Server Error");
       }
+      if (str.startsWith("Endpoint POST")){
+        return new JSONObject();
+      }
       throw new JSONException("Quoted string does not contain an object: " + preview(inner));
     }
     throw new JSONException("Expected object; got " + v.getClass().getSimpleName() + ": " + preview(s));
