@@ -41,9 +41,7 @@ public class UploadAnnotatedPDFServiceUnitTests {
 
   @BeforeClass
   public static void start() throws InterruptedException {
-    Thread.sleep(3000);
     TestUtils.startServer();
-    Thread.sleep(3000);
   }
 
   @Before

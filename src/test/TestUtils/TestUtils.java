@@ -3,6 +3,7 @@ package TestUtils;
 import Config.AppConfig;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Config.SessionConfig;
 import Organization.Organization;
 import Security.EncryptionTools;
 import Security.EncryptionUtils;
@@ -81,6 +82,8 @@ public class TestUtils {
       app.stop();
       app = null;
     }
+    // Reset session handler to prevent state leakage between tests
+    SessionConfig.resetSessionHandler();
   }
 
   public static String getServerUrl() {
@@ -806,6 +809,9 @@ public class TestUtils {
     if (v instanceof String str) {
       String inner = stripBomAndWhitespace(str);
       if (inner.startsWith("{")) return new JSONObject(inner);
+      if (str.equals("Server Error") || str.equals("Internal Server Error")){
+        throw new IllegalStateException("Server Error");
+      }
       throw new JSONException("Quoted string does not contain an object: " + preview(inner));
     }
     throw new JSONException("Expected object; got " + v.getClass().getSimpleName() + ": " + preview(s));
