@@ -295,9 +295,9 @@ public class PdfController {
                         organizationName,
                         privilegeLevel,
                         pdfType,
-                        file.getFilename(),
-                        file.getContentType(),
-                        file.getContent(),
+                        file.filename(),
+                        file.contentType(),
+                        file.content(),
                         encryptionController,
                         idCategory);
                 response = uploadService.executeAndGetResponse();
@@ -329,9 +329,9 @@ public class PdfController {
                 organizationName,
                 UserType.Developer,
                 fileIDStr,
-                file.getFilename(),
-                file.getContentType(),
-                file.getContent(),
+                Objects.requireNonNull(file).filename(),
+                file.contentType(),
+                file.content(),
                 encryptionController);
         ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };
@@ -364,10 +364,10 @@ public class PdfController {
                 organizationName,
                 privilegeLevel,
                 pdfType,
-                file.getFilename(),
-                file.getContentType(),
-                file.getContent(),
-                signature.getContent(),
+                file.filename(),
+                file.contentType(),
+                file.content(),
+                signature.content(),
                 encryptionController);
         ctx.result(uploadService.executeAndGetResponse().toResponseString());
       };

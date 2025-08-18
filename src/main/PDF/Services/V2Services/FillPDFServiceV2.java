@@ -95,9 +95,9 @@ public class FillPDFServiceV2 implements Service {
     if (!ValidationUtils.isValidObjectId(fileId) || formAnswers == null) {
       return PdfMessage.INVALID_PARAMETER;
     }
-    //    if (signatureStream == null) {
-    //      return PdfMessage.SERVER_ERROR;
-    //    }
+//    if (signatureStream == null) {
+//      return PdfMessage.SERVER_ERROR;
+//    }
     if (privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }

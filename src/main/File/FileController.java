@@ -122,28 +122,29 @@ public class FileController {
               UploadedFile signature = null;
               Date uploadDate =
                   Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-              InputStream filestreamToUpload = file.getContent();
-              String filenameToUpload = file.getFilename();
+              InputStream filestreamToUpload = file.content();
+              String filenameToUpload = file.filename();
               switch (fileType) {
                 case APPLICATION_PDF:
                 case IDENTIFICATION_PDF:
                 case FORM:
                   log.info("Got PDF file to upload!");
-                  if (file.getContentType().startsWith("image")) {
+                  if (Objects.requireNonNull(file.contentType()).startsWith("image")) {
                     ImageToPDFService imageToPDFService = new ImageToPDFService(filestreamToUpload);
                     Message imageToPdfServiceResponse = imageToPDFService.executeAndGetResponse();
                     if (imageToPdfServiceResponse == PdfMessage.INVALID_PDF) {
                       ctx.result(imageToPdfServiceResponse.toResponseString());
+                      return;
                     }
                     filestreamToUpload = imageToPDFService.getFileStream();
                     filenameToUpload =
-                        file.getFilename().substring(0, file.getFilename().lastIndexOf("."))
+                        file.filename().substring(0, file.filename().lastIndexOf("."))
                             + ".pdf";
                   }
-                  filestreamToUpload.reset();
-                  //                    PDDocument pdfDocument = Loader.loadPDF(filestreamToUpload);
-                  //                    title = getPDFTitle(file.getFilename(), pdfDocument);
-                  //                    pdfDocument.close();
+
+                  if (!Objects.requireNonNull(file.contentType()).startsWith("image")) {
+                    filestreamToUpload = file.content();
+                  }
 
                   if (toSign) {
                     signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
@@ -162,7 +163,7 @@ public class FileController {
                           filenameToUpload,
                           organizationName,
                           annotated,
-                          file.getContentType());
+                          file.contentType());
                   UploadFileService uploadService =
                       new UploadFileService(
                           fileDao,
@@ -172,7 +173,7 @@ public class FileController {
                           toSign,
                           signature == null
                               ? Optional.empty()
-                              : Optional.of(signature.getContent()),
+                              : Optional.of(signature.content()),
                           Optional.ofNullable(encryptionController));
                   response = uploadService.executeAndGetResponse();
                   break;
@@ -188,7 +189,7 @@ public class FileController {
                           filenameToUpload,
                           organizationName,
                           annotated,
-                          file.getContentType());
+                          file.contentType());
                   uploadService =
                       new UploadFileService(
                           fileDao,
@@ -212,7 +213,7 @@ public class FileController {
                           filenameToUpload,
                           organizationName,
                           annotated,
-                          file.getContentType());
+                          file.contentType());
                   uploadService =
                       new UploadFileService(
                           fileDao,

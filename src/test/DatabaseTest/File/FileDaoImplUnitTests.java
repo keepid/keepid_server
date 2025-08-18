@@ -28,7 +28,9 @@ public class FileDaoImplUnitTests {
 
   @After
   public void reset() {
-    fileDao.clear();
+    if (fileDao != null) {
+      fileDao.clear();
+    }
   }
 
   @Test

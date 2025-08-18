@@ -44,6 +44,10 @@ public class SessionConfig {
     return sessionHandler;
   }
 
+  public static void resetSessionHandler() {
+    sessionHandler = null;
+  }
+
   private static MongoSessionDataStoreFactory mongoDataStoreFactory(
       String dbName, String collectionName) {
     MongoSessionDataStoreFactory mongoSessionDataStoreFactory = new MongoSessionDataStoreFactory();

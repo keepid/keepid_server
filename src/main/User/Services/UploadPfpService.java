@@ -33,7 +33,7 @@ public class UploadPfpService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
-    InputStream content = pfp.getContent();
+    InputStream content = pfp.content();
     Bson filter = Filters.eq("metadata.owner", username);
     GridFSBucket gridBucket = GridFSBuckets.create(db, "pfp");
     GridFSFile grid_out = gridBucket.find(filter).first();

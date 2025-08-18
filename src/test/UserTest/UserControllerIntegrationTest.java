@@ -6,9 +6,10 @@ import TestUtils.TestUtils;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.AfterAll;
 
 public class UserControllerIntegrationTest {
 
@@ -18,7 +19,15 @@ public class UserControllerIntegrationTest {
     TestUtils.setUpTestDB();
   }
 
-  @AfterAll
+  @After
+  public void tearDownEachTest() {
+    try {
+      TestUtils.logout();
+    } catch (Exception ignored) {
+    }
+  }
+
+  @AfterClass
   public static void tearDown() {
     TestUtils.tearDownTestDB();
   }
