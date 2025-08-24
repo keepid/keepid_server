@@ -1,7 +1,6 @@
 package Database.File;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.*;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
@@ -17,6 +16,8 @@ import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import com.mongodb.client.model.Filters;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -95,6 +96,16 @@ public class FileDaoImpl implements FileDao {
   @Override
   public List<File> getAll(Bson filter) {
     return fileCollection.find(filter).into(new ArrayList<File>());
+  }
+
+  @Override
+  public List<File> getWeeklyUploadedIds() {
+    LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
+    Date oneWeekAgoDate = Date.from(oneWeekAgo.atZone(ZoneId.systemDefault()).toInstant());
+
+    return fileCollection
+        .find(and(eq("fileType", "IDENTIFICATION_PDF"), gte("uploadedAt", oneWeekAgoDate)))
+        .into(new ArrayList<>());
   }
 
   @Override

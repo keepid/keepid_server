@@ -1,10 +1,13 @@
 package Database.Form;
 
+import static Form.FormType.APPLICATION;
+
 import Config.DeploymentLevel;
 import Form.Form;
-import org.bson.types.ObjectId;
-
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import org.bson.types.ObjectId;
 
 public class FormDaoTestImpl implements FormDao {
   Map<String, List<Form>> formMap;
@@ -47,6 +50,16 @@ public class FormDaoTestImpl implements FormDao {
   @Override
   public Optional<Form> get(ObjectId id) {
     return Optional.ofNullable(objectIdFormMap.get(id));
+  }
+
+  @Override
+  public List<Form> getWeeklyApplications() {
+    return objectIdFormMap.values().stream()
+        .filter(
+            form ->
+                form.getFormType().equals(APPLICATION)
+                    && form.getUploadedAt().isAfter(LocalDateTime.now().minusDays(7)))
+        .collect(Collectors.toList());
   }
 
   @Override

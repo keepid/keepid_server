@@ -1,20 +1,19 @@
 package Database.Activity;
 
+import static com.mongodb.client.model.Filters.eq;
+
 import Activity.Activity;
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.bson.types.ObjectId;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static com.mongodb.client.model.Filters.eq;
+import org.bson.types.ObjectId;
 
 public class ActivityDaoImpl implements ActivityDao {
   private final MongoCollection<Activity> activityCollection;
