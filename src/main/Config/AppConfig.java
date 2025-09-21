@@ -190,6 +190,7 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+    app.post("/get-org-activities", activityController.findOrganizationActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);

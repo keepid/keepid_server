@@ -6,8 +6,8 @@ import static org.junit.Assert.*;
 import Activity.*;
 import Activity.CreateUserActivity.CreateAdminActivity;
 import Activity.UserActivity.AuthenticationActivity.AuthenticationActivity;
-import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Activity.UserActivity.FileActivity.DeleteFileActivity;
+import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
@@ -127,10 +127,10 @@ public class ActivityDaoTestImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    activity.setUsername("new username");
+    activity.setInvokerUsername("new username");
     activityDao.update(activity);
     Activity readActivity2 = activityDao.get(activity.getId()).orElseThrow();
-    assertEquals("new username", readActivity2.getUsername());
+    assertEquals("new username", readActivity2.getInvokerUsername());
   }
 
   @Test
