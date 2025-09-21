@@ -38,7 +38,6 @@ public class ActivityDaoImpl implements ActivityDao {
             .stream()
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
-    String s = "hi";
     return temp;
   }
 

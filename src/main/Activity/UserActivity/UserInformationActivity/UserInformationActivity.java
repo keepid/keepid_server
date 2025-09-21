@@ -4,17 +4,16 @@ import Activity.Activity;
 import Activity.UserActivity.UserActivity;
 import java.util.ArrayList;
 import java.util.List;
-import org.bson.codecs.pojo.annotations.BsonProperty;
 
 public class UserInformationActivity extends UserActivity {
-  @BsonProperty(value = "attributeName")
-  private String attributeName;
-
-  @BsonProperty(value = "oldAttributeValue")
-  private String oldAttributeValue;
-
-  @BsonProperty(value = "newAttributeValue")
-  private String newAttributeValue;
+  //  @BsonProperty(value = "attributeName")
+  //  private String attributeName;
+  //
+  //  @BsonProperty(value = "oldAttributeValue")
+  //  private String oldAttributeValue;
+  //
+  //  @BsonProperty(value = "newAttributeValue")
+  //  private String newAttributeValue;
 
   // Eventually deprecate
   public UserInformationActivity(String username) {
@@ -35,8 +34,8 @@ public class UserInformationActivity extends UserActivity {
   public UserInformationActivity(
       String username, String attributeName, String oldAttributeValue, String newAttributeValue) {
     super(username, attributeName);
-    this.attributeName = attributeName;
-    this.oldAttributeValue = oldAttributeValue;
-    this.newAttributeValue = newAttributeValue;
+    //    this.attributeName = attributeName;
+    //    this.oldAttributeValue = oldAttributeValue;
+    //    this.newAttributeValue = newAttributeValue;
   }
 }

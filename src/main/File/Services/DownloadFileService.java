@@ -163,7 +163,6 @@ public class DownloadFileService implements Service {
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();
-      String filename = file.getFilename();
       this.contentType = "image/" + file.getContentType();
       Optional<InputStream> optionalStream = fileDao.getStream(file.getId());
       if (optionalStream.isPresent()) {

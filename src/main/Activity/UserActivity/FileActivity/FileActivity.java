@@ -9,17 +9,17 @@ import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
 public class FileActivity extends UserActivity {
-  @BsonProperty(value = "documentOwnerUsername")
-  private String documentOwnerUsername;
+  //  @BsonProperty(value = "documentOwnerUsername")
+  //  private String documentOwnerUsername;
 
   @BsonProperty(value = "documentType")
   private String documentType;
 
-  @BsonProperty(value = "documentID")
-  private ObjectId documentID;
-
-  @BsonProperty(value = "filename")
-  private String filename;
+  //  @BsonProperty(value = "documentID")
+  //  private ObjectId documentID;
+  //
+  //  @BsonProperty(value = "filename")
+  //  private String filename;
 
   @Override
   public List<String> construct() {
@@ -39,10 +39,10 @@ public class FileActivity extends UserActivity {
       ObjectId documentID,
       String filename) {
     super(usernameOfInvoker, documentOwnerUsername, filename);
-    this.documentOwnerUsername = documentOwnerUsername;
+    //    this.documentOwnerUsername = documentOwnerUsername;
     this.documentType = documentType.toString();
-    this.documentID = documentID;
-    this.filename = filename;
+    //    this.documentID = documentID;
+    //    this.filename = filename;
   }
 
   public String getDocumentType() {
