@@ -7,6 +7,7 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.IntegerCodec;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -14,6 +15,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 
 import java.util.Objects;
 
+@Slf4j
 public class MongoConfig {
     public static final String MONGO_DB_TEST = "test-db";
     public static final String MONGO_DB_STAGING = "staging-db";
@@ -48,6 +50,7 @@ public class MongoConfig {
     if (client == null) {
       throw new IllegalStateException("Please start a client before getting a database");
     }
+    log.info("Getting database for '{}' environment", deploymentLevel);
     switch (deploymentLevel) {
       case TEST:
         return client.getDatabase(MONGO_DB_TEST);
