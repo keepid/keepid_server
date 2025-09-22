@@ -11,7 +11,23 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>13</java.version>
         <maven.compiler.version>3.6.1</maven.compiler.version>
+        <start-class>App</start-class>
     </properties>
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+
+        <profile>
+            <id>production</id>
+            <properties>
+                <start-class>ProductionApp</start-class>
+            </properties>
+        </profile>
+    </profiles>
     <build>
         <sourceDirectory>${project.basedir}/src/main/</sourceDirectory>
         <testSourceDirectory>${project.basedir}/src/test/</testSourceDirectory>
@@ -58,7 +74,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>App</mainClass>
+                            <mainClass>${start-class}</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

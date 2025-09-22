@@ -15,13 +15,13 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import java.util.Objects;
 
 public class MongoConfig {
-  public static final String MONGO_DB_TEST = "test-db";
-  public static final String MONGO_DB_STAGING = "staging-db";
-  public static final String MONGO_DB_PRODUCTION = "production-db";
-  public static final String MONGO_URI = Objects.requireNonNull(System.getenv("MONGO_URI"));
-  private static MongoClient client;
+    public static final String MONGO_DB_TEST = "test-db";
+    public static final String MONGO_DB_STAGING = "staging-db";
+    public static final String MONGO_DB_PRODUCTION = "prod-db";
+    public static final String MONGO_URI = Objects.requireNonNull(System.getenv("MONGO_URI"));
+    private static MongoClient client;
 
-  private static void startConnection() {
+    private static void startConnection() {
     ConnectionString connectionString = new ConnectionString(MONGO_URI);
 //    CodecRegistry sectionCodecRegistry = CodecRegistries.fromCodecs(new IntegerCodec(), new SectionCodec());
     CodecRegistry pojoCodecRegistry =
