@@ -54,8 +54,12 @@ public class FileDaoImpl implements FileDao {
 
   @Override
   public void clear() {
-    fileCollection.drop();
-    fileBucket.drop();
+    if(fileCollection != null) {
+      fileCollection.drop();
+    }
+    if (fileBucket != null) {
+      fileBucket.drop();
+    }
   }
 
   @Override

@@ -24,7 +24,9 @@ public class UserUnitTests {
 
   @After
   public void reset() {
-    userDao.clear();
+    if (userDao != null) {
+      userDao.clear();
+    }
   }
 
   @Test

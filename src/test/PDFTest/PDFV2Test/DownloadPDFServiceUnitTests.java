@@ -89,7 +89,7 @@ public class DownloadPDFServiceUnitTests {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-      log.error("Generating test encryption controller failed");
+      log.error("Generating test encryption controller failed: {}", e.getMessage());
     }
     try {
       this.userDao.save(

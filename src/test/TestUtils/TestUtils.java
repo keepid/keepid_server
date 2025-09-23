@@ -25,7 +25,9 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
 import org.bson.Document;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,6 +74,13 @@ public class TestUtils {
       return app;
     }
     return app;
+  }
+
+  public static void stopServer() {
+    if (app != null) {
+      app.stop();
+      app = null;
+    }
   }
 
   public static String getServerUrl() {
@@ -723,6 +732,7 @@ public class TestUtils {
   // Tears down the test database by clearing all collections.
   public static void tearDownTestDB() {
     MongoConfig.dropDatabase(DeploymentLevel.TEST);
+    stopServer();
   }
 
   // A private method for hashing passwords.
@@ -782,14 +792,34 @@ public class TestUtils {
   }
 
   public static JSONObject responseStringToJSON(String response) {
-    if (response.equals("Internal server error")) {
-      throw new IllegalStateException("Server Failure, check the logs to figure out the error");
+    if (response == null) throw new JSONException("null response");
+
+    String s = stripBomAndWhitespace(response);
+
+    // Parse the top-level value without assumptions
+    Object v = new JSONTokener(s).nextValue();
+
+    // Case 1: it's already a JSON object
+    if (v instanceof JSONObject jo) return jo;
+
+    // Case 2: it's a JSON *string literal* that itself contains JSON text
+    if (v instanceof String str) {
+      String inner = stripBomAndWhitespace(str);
+      if (inner.startsWith("{")) return new JSONObject(inner);
+      throw new JSONException("Quoted string does not contain an object: " + preview(inner));
     }
-    if (response.charAt(0) == '"') {
-      String strippedResponse = response.substring(1, response.length() - 1).replace("\\", "");
-      return new JSONObject(strippedResponse);
-    }
-    return new JSONObject(response);
+    throw new JSONException("Expected object; got " + v.getClass().getSimpleName() + ": " + preview(s));
+  }
+
+  private static String stripBomAndWhitespace(String s) {
+    s = s.strip();                 // trim whitespace
+    if (s.startsWith("\uFEFF"))    // remove UTF-8 BOM if present
+      s = s.substring(1);
+    return s;
+  }
+
+  private static String preview(String s) {
+    return s.length() <= 60 ? s : s.substring(0, 57) + "...";
   }
 
   public static JSONObject getFieldValues(InputStream inputStream) throws IOException {

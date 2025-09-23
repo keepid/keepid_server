@@ -5,10 +5,12 @@ import Database.Form.FormDao;
 import Database.User.UserDao;
 import Form.Jobs.GetWeeklyApplicationsJob;
 import Form.Services.DeleteFormService;
+import Form.Services.GetApplicationRegistryService;
 import Form.Services.GetFormService;
 import Form.Services.ManuallyUploadFormService;
 import Form.Services.UploadFormService;
 import Security.EncryptionController;
+import User.Services.GetUserInfoService;
 import User.User;
 import User.UserMessage;
 import User.UserType;
@@ -55,6 +57,8 @@ public class FormController {
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
         Optional<User> targetUser = userCheck(ctx.body());
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
         if (targetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
@@ -193,8 +197,31 @@ public class FormController {
       ctx -> {
         GetWeeklyApplicationsJob.run(formDao);
       };
+  
+  public Handler getAppRegistry =
+      ctx -> {
+        log.info("Entered getAppRegistry function");
+        String body = ctx.body();
+        JSONObject req = new JSONObject(body);
+        String type = req.getString("type");
+        String state = req.getString("state");
+        String situation = req.getString("situation");
+        String person = req.getString("person");
+        String org = req.getString("org");
+        GetApplicationRegistryService getAppRegService = new GetApplicationRegistryService(type, state,
+                situation, person, org);
+        Message res = getAppRegService.executeAndGetResponse();
+        if (res == FormMessage.SUCCESS) {
+            ctx.result(getAppRegService.getJsonInformation());
+        } else {
+            ctx.result(res.toResponseString());
+        }
+      };
 
   public Optional<User> userCheck(String req) {
+    log.info("userCheck Helper started");
+    String username;
+    User user = null;
     try {
       JSONObject reqJson = new JSONObject(req);
       if (reqJson.has("targetUser")) {
