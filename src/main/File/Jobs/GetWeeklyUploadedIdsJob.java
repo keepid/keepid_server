@@ -13,7 +13,7 @@ import kong.unirest.Unirest;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class GetWeeklyUploadedIds {
+public class GetWeeklyUploadedIdsJob {
   public static final String weeklyReportTestURL =
       Objects.requireNonNull(System.getenv("WEEKLY_REPORT_TESTURL"));
   public static final String weeklyReportActualURL =
@@ -24,21 +24,21 @@ public class GetWeeklyUploadedIds {
     MongoClient client = MongoConfig.getMongoClient();
     FileDao fileDao = FileDaoFactory.create(DeploymentLevel.STAGING);
     List<File> files = fileDao.getWeeklyUploadedIds();
-    generateWeeklyApplicationsSlackMessage(files);
+    generateWeeklyUploadedIdsSlackMessage(files);
   }
 
-  private static void generateWeeklyApplicationsSlackMessage(List<File> files) {
+  private static void generateWeeklyUploadedIdsSlackMessage(List<File> files) {
     JSONArray blocks = new JSONArray();
     JSONObject titleJson = new JSONObject();
     JSONObject titleText = new JSONObject();
-    titleText.put("text", "*Weekly Applications Report* ");
+    titleText.put("text", "*Weekly Uploaded IDs Report* ");
     titleText.put("type", "mrkdwn");
     titleJson.put("type", "section");
     titleJson.put("text", titleText);
     blocks.put(titleJson);
     JSONObject desJson = new JSONObject();
     JSONObject desText = new JSONObject();
-    String description = "The number of uploaded ids this week is " + files.size();
+    String description = "The number of uploaded IDs this week is " + files.size();
     desText.put("text", description);
     desText.put("type", "mrkdwn");
     desJson.put("text", desText);
@@ -47,7 +47,7 @@ public class GetWeeklyUploadedIds {
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
     HttpResponse posted =
-        Unirest.post(weeklyReportTestURL)
+        Unirest.post(weeklyReportActualURL)
             .header("accept", "application/json")
             .body(input.toString())
             .asEmpty();

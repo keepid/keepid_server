@@ -3,6 +3,7 @@ package Form;
 import Config.Message;
 import Database.Form.FormDao;
 import Database.User.UserDao;
+import Form.Jobs.GetWeeklyApplicationsJob;
 import Form.Services.DeleteFormService;
 import Form.Services.GetFormService;
 import Form.Services.ManuallyUploadFormService;
@@ -186,6 +187,11 @@ public class FormController {
         }
 
         ctx.result(response.toResponseString());
+      };
+
+  public Handler getWeeklyApplications =
+      ctx -> {
+        GetWeeklyApplicationsJob.main(null);
       };
 
   public Optional<User> userCheck(String req) {

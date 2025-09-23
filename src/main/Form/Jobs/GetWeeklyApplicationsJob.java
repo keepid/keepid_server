@@ -48,7 +48,7 @@ public class GetWeeklyApplicationsJob {
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
     HttpResponse posted =
-        Unirest.post(weeklyReportTestURL)
+        Unirest.post(weeklyReportActualURL)
             .header("accept", "application/json")
             .body(input.toString())
             .asEmpty();
