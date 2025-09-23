@@ -482,7 +482,7 @@ public class FileController {
 
   public Handler getWeeklyUploadedIds =
       ctx -> {
-        GetWeeklyUploadedIdsJob.main(null);
+        GetWeeklyUploadedIdsJob.run(fileDao);
       };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {

@@ -1,14 +1,9 @@
 package File.Jobs;
 
-import Config.DeploymentLevel;
-import Config.MongoConfig;
 import Database.File.FileDao;
-import Database.File.FileDaoFactory;
 import File.File;
-import com.mongodb.client.MongoClient;
 import java.util.List;
 import java.util.Objects;
-import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,10 +14,7 @@ public class GetWeeklyUploadedIdsJob {
   public static final String weeklyReportActualURL =
       Objects.requireNonNull(System.getenv("WEEKLY_REPORT_ACTUALURL"));
 
-  public static void main(String[] args) {
-    // Connect with the database first. Using PRODUCTION for now
-    MongoClient client = MongoConfig.getMongoClient();
-    FileDao fileDao = FileDaoFactory.create(DeploymentLevel.STAGING);
+  public static void run(FileDao fileDao) {
     List<File> files = fileDao.getWeeklyUploadedIds();
     generateWeeklyUploadedIdsSlackMessage(files);
   }
@@ -46,10 +38,9 @@ public class GetWeeklyUploadedIdsJob {
     blocks.put(desJson);
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
-    HttpResponse posted =
-        Unirest.post(weeklyReportActualURL)
-            .header("accept", "application/json")
-            .body(input.toString())
-            .asEmpty();
+    Unirest.post(weeklyReportActualURL)
+        .header("accept", "application/json")
+        .body(input.toString())
+        .asEmpty();
   }
 }

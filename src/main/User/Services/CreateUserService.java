@@ -19,7 +19,6 @@ import Validation.ValidationException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
@@ -179,7 +178,7 @@ public class CreateUserService implements Service {
         activityDao.save(cli);
         break;
     }
-    log.info("Successfully created user, " + user.getUsername());
+    log.info("Successfully created user, {}", user.getUsername());
     generateCreateUserSlackMessage();
     return UserMessage.ENROLL_SUCCESS;
   }
@@ -212,10 +211,9 @@ public class CreateUserService implements Service {
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
     log.info("Trying to post the message on Slack");
-    HttpResponse posted =
-        Unirest.post(newUserActualURL)
-            .header("accept", "application/json")
-            .body(input.toString())
-            .asEmpty();
+    Unirest.post(newUserActualURL)
+        .header("accept", "application/json")
+        .body(input.toString())
+        .asEmpty();
   }
 }

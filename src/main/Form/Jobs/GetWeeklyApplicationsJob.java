@@ -1,14 +1,9 @@
 package Form.Jobs;
 
-import Config.DeploymentLevel;
-import Config.MongoConfig;
 import Database.Form.FormDao;
-import Database.Form.FormDaoFactory;
 import Form.Form;
-import com.mongodb.client.MongoClient;
 import java.util.List;
 import java.util.Objects;
-import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -19,11 +14,7 @@ public class GetWeeklyApplicationsJob {
   public static final String weeklyReportActualURL =
       Objects.requireNonNull(System.getenv("WEEKLY_REPORT_ACTUALURL"));
 
-  public static void main(String[] args) {
-    // Connect with the database first. Using PRODUCTION for now
-    MongoConfig mongoConfig = new MongoConfig();
-    MongoClient client = mongoConfig.getMongoClient();
-    FormDao formDao = FormDaoFactory.create(DeploymentLevel.STAGING);
+  public static void run(FormDao formDao) {
     List<Form> forms = formDao.getWeeklyApplications();
     generateWeeklyApplicationsSlackMessage(forms);
   }
@@ -47,10 +38,9 @@ public class GetWeeklyApplicationsJob {
     blocks.put(desJson);
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
-    HttpResponse posted =
-        Unirest.post(weeklyReportActualURL)
-            .header("accept", "application/json")
-            .body(input.toString())
-            .asEmpty();
+    Unirest.post(weeklyReportActualURL)
+        .header("accept", "application/json")
+        .body(input.toString())
+        .asEmpty();
   }
 }

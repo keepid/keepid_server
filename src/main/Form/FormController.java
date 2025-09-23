@@ -191,7 +191,7 @@ public class FormController {
 
   public Handler getWeeklyApplications =
       ctx -> {
-        GetWeeklyApplicationsJob.main(null);
+        GetWeeklyApplicationsJob.run(formDao);
       };
 
   public Optional<User> userCheck(String req) {
