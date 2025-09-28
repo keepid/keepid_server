@@ -24,7 +24,9 @@ public class FileControllerIntegrationTests {
 
   @After
   public void clear() {
-    userDao.clear();
+    if (userDao != null) {
+      userDao.clear();
+    }
   }
 
   @AfterClass

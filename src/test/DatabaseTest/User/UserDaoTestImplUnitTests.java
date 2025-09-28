@@ -22,7 +22,9 @@ public class UserDaoTestImplUnitTests {
 
   @After
   public void reset() {
-    this.userDao.clear();
+    if(this.userDao != null) {
+      this.userDao.clear();
+    }
   }
 
   @Test

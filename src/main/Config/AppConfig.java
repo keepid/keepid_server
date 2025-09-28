@@ -80,12 +80,13 @@ public class AppConfig {
     // We need to instantiate the controllers with the database.
     EncryptionController encryptionController = new EncryptionController(db);
     OrganizationController orgController = new OrganizationController(db, activityDao);
-    UserController userController = new UserController(userDao, tokenDao, fileDao, activityDao, db);
+    UserController userController =
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     FormController formController = new FormController(formDao, userDao, encryptionController);
-    FileController fileController = new FileController(db, userDao, fileDao, encryptionController);
+    FileController fileController = new FileController(db, userDao, fileDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
@@ -144,8 +145,13 @@ public class AppConfig {
     app.post("/get-questions-2", pdfControllerV2.getQuestions);
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
+    app.post("/get-application-registry", formController.getAppRegistry);
+
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
+    app.post("/googleLoginRequest", userController.googleLoginRequestHandler);
+    app.get("/googleLoginResponse", userController.googleLoginResponseHandler);
+    app.get("/get-session-user", userController.getSessionUser);
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);

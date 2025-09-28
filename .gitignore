@@ -25,6 +25,7 @@ coverage
 target
 lib
 keepid.iml
+keepid_server.iml
 log.txt
 .github
 .classpath
