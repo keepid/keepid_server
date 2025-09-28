@@ -10,6 +10,7 @@ import User.Onboarding.OnboardingChecklistResponse;
 import User.Onboarding.OnboardingStatus;
 import User.Onboarding.OnboardingTask;
 import User.User;
+import Security.URIUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,8 +32,11 @@ public class GetOnboardingChecklistService implements Service {
     this.formDao = formDao;
     this.fileDao = fileDao;
     this.username = username;
-    // TODO: validate origin
-    this.originUri = originUri;
+    if (URIUtil.isValidOriginURI(originUri)) {
+      this.originUri = originUri;
+    } else {
+      this.originUri = "http://localhost:3000";
+    }
   }
 
   @Override
