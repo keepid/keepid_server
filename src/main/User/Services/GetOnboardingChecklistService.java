@@ -19,17 +19,20 @@ import java.util.Optional;
 @Getter
 public class GetOnboardingChecklistService implements Service {
   private String username;
+  private String originUri;
   private UserDao userDao;
   private FormDao formDao;
   private FileDao fileDao;
   private OnboardingChecklistResponse onboardingChecklistResponse;
 
   public GetOnboardingChecklistService(UserDao userDao, FormDao
-      formDao, FileDao fileDao, String username) {
+      formDao, FileDao fileDao, String username, String originUri) {
     this.userDao = userDao;
     this.formDao = formDao;
     this.fileDao = fileDao;
     this.username = username;
+    // TODO: validate origin
+    this.originUri = originUri;
   }
 
   @Override
@@ -92,7 +95,7 @@ public class GetOnboardingChecklistService implements Service {
     OnboardingTask applyForId = new OnboardingTask();
     applyForId.setId(1);
     applyForId.setTitle("Apply for your government-issued ID");
-    applyForId.setLink("http://localhost:3000/applications");
+    applyForId.setLink(originUri + "/applications");
     applyForId.setLinkText("Applications Portal");
     // ID applications are in form DAO?
     try {
@@ -111,7 +114,7 @@ public class GetOnboardingChecklistService implements Service {
     OnboardingTask uploadId = new OnboardingTask();
     uploadId.setId(1);
     uploadId.setTitle("Upload your government-issued ID");
-    uploadId.setLink("http://localhost:3000/my-documents");
+    uploadId.setLink(originUri + "/my-documents");
     uploadId.setLinkText("My Documents");
     // ID uploads are in file DAO?
     try {

@@ -561,8 +561,9 @@ public class UserController {
         log.info("Started getOnboardingChecklist handler");
 
         String username = ctx.sessionAttribute("username");
+        String originUri = ctx.header("Origin");
         GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
-            userDao, formDao, fileDao, username);
+            userDao, formDao, fileDao, username, originUri);
         Message message = getOnboardingChecklistService.executeAndGetResponse();
         if (message == UserMessage.AUTH_SUCCESS) {
           log.info("Successfully generated onboarding checklist");
