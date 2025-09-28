@@ -39,7 +39,6 @@ public class UserController {
   ActivityDao activityDao;
   FormDao formDao;
   FileDao fileDao;
-  FormDao formDao;
 
   public UserController(
       UserDao userDao,
