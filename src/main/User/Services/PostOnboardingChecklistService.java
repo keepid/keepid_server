@@ -15,7 +15,7 @@ import java.util.Optional;
 @Getter
 @Slf4j
 @AllArgsConstructor
-public class PostOnboardingStatusService implements Service {
+public class PostOnboardingChecklistService implements Service {
   private UserDao userDao;
   private String username;
   private OnboardingStatus onboardingStatus;

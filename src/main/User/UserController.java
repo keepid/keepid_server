@@ -23,7 +23,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-import Security.URIUtil;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -720,9 +719,9 @@ public class UserController {
 
         String username = ctx.sessionAttribute("username");
 
-        PostOnboardingStatusService postOnboardingStatusService = new
-              PostOnboardingStatusService(userDao, username, newOnboardingStatus);
-        Message message = postOnboardingStatusService.executeAndGetResponse();
+        PostOnboardingChecklistService postOnboardingChecklistService = new
+            PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
+        Message message = postOnboardingChecklistService.executeAndGetResponse();
         ctx.result(message.toResponseString());
       };
 }
