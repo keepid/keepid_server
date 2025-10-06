@@ -284,6 +284,10 @@ public class AppConfig {
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
     app.post("/donation-checkout", billingController.donationCheckout);
 
+    /* --------------- WEEKLY METRICS ------------- */
+    app.get("/get-weekly-applications", formController.getWeeklyApplications);
+    app.get("/get-weekly-uploaded-ids", fileController.getWeeklyUploadedIds);
+
     /* --------------- MAIL FORM FEATURES ------------- */
     app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
     app.post("/submit-mail", mailController.saveMail);

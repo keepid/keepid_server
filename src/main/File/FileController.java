@@ -6,6 +6,7 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
+import File.Jobs.GetWeeklyUploadedIdsJob;
 import File.Services.*;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
@@ -485,6 +486,11 @@ public class FileController {
         } else {
           ctx.result(responseDownload.toResponseString());
         }
+      };
+
+  public Handler getWeeklyUploadedIds =
+      ctx -> {
+        GetWeeklyUploadedIdsJob.run(fileDao);
       };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {

@@ -54,6 +54,11 @@ public class UserController {
     this.db = db;
   }
 
+    public static final String newUserActualURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
+    public static final String newUserTestURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_TESTURL"));
+
   public Handler ingestCsv =
       ctx -> {
         String csvName = "Face to Face Birth Certificate Clinic Signups.csv";

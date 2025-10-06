@@ -3,6 +3,7 @@ package Form;
 import Config.Message;
 import Database.Form.FormDao;
 import Database.User.UserDao;
+import Form.Jobs.GetWeeklyApplicationsJob;
 import Form.Services.DeleteFormService;
 import Form.Services.GetApplicationRegistryService;
 import Form.Services.GetFormService;
@@ -192,6 +193,11 @@ public class FormController {
         ctx.result(response.toResponseString());
       };
 
+  public Handler getWeeklyApplications =
+      ctx -> {
+        GetWeeklyApplicationsJob.run(formDao);
+      };
+  
   public Handler getAppRegistry =
       ctx -> {
         log.info("Entered getAppRegistry function");
