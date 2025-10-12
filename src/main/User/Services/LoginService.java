@@ -1,6 +1,6 @@
 package User.Services;
 
-import Activity.LoginActivity;
+import Activity.UserActivity.AuthenticationActivity.LogInActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -19,13 +19,12 @@ import Validation.ValidationUtils;
 import io.ipinfo.api.IPInfo;
 import io.ipinfo.api.errors.RateLimitedException;
 import io.ipinfo.api.model.IPResponse;
-import kong.unirest.Unirest;
-import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
-
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import kong.unirest.Unirest;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 
 @Slf4j
 public class LoginService implements Service {
@@ -90,7 +89,7 @@ public class LoginService implements Service {
   }
 
   public static void recordActivityLogin(User user, ActivityDao activityDao) {
-    LoginActivity log = new LoginActivity(user.getUsername(), user.getTwoFactorOn());
+    LogInActivity log = new LogInActivity(user.getUsername(), user.getTwoFactorOn());
     activityDao.save(log);
   }
 
@@ -136,7 +135,6 @@ public class LoginService implements Service {
     userDao.update(user);
     log.info("Added login to login history");
   }
-
 
   public Message perform2FA(String email) {
     String randCode = String.format("%06d", new Random().nextInt(999999));

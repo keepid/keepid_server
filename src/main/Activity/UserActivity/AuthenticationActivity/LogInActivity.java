@@ -1,27 +1,28 @@
-package Activity;
+package Activity.UserActivity.AuthenticationActivity;
 
-import org.bson.codecs.pojo.annotations.BsonProperty;
-
+import Activity.Activity;
+import Activity.UserActivity.UserActivity;
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 
-public class LoginActivity extends AuthenticateActivity {
+public class LogInActivity extends AuthenticationActivity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());
-    a.add(AuthenticateActivity.class.getSimpleName());
-    a.add(LoginActivity.class.getSimpleName());
+    a.add(AuthenticationActivity.class.getSimpleName());
+    a.add(LogInActivity.class.getSimpleName());
     return a;
   }
 
   @BsonProperty(value = "isTwoFactor")
   private boolean isTwoFactor;
 
-  public LoginActivity() {}
+  public LogInActivity() {}
 
-  public LoginActivity(String username, Boolean isTwoFactor) {
+  public LogInActivity(String username, Boolean isTwoFactor) {
     super(username);
     this.isTwoFactor = isTwoFactor;
   }

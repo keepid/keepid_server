@@ -86,19 +86,19 @@ public class AppConfig {
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     FormController formController = new FormController(formDao, userDao, encryptionController);
-    FileController fileController = new FileController(db, userDao, fileDao, formDao, encryptionController);
+    FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     OptionalUserInformationController optionalUserInformationController =
-        new OptionalUserInformationController(optionalUserInformationDao);
+        new OptionalUserInformationController(optionalUserInformationDao, activityDao);
     BillingController billingController = new BillingController();
     MailController mailController =
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
-        new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
+        new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -195,6 +195,7 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+    app.post("/get-org-activities", activityController.findOrganizationActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);

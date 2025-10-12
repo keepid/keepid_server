@@ -1,11 +1,11 @@
 package User.Services;
 
-import static User.UserController.newUserActualURL;
+import Activity.CreateUserActivity.CreateAdminActivity;
+import Activity.CreateUserActivity.CreateClientActivity;
+import Activity.CreateUserActivity.CreateDirectorActivity;
+import Activity.CreateUserActivity.CreateWorkerActivity;
 
-import Activity.CreateAdminActivity;
-import Activity.CreateClientActivity;
-import Activity.CreateDirectorActivity;
-import Activity.CreateWorkerActivity;
+import static User.UserController.newUserActualURL;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;

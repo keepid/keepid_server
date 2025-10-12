@@ -1,14 +1,15 @@
-package Activity;
+package Activity.UserActivity.FileActivity;
 
+import Activity.Activity;
+import Activity.UserActivity.UserActivity;
 import File.FileType;
-import org.bson.types.ObjectId;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.types.ObjectId;
 
 public class DeleteFileActivity extends FileActivity {
   @Override
-  List<String> construct() {
+  public List<String> construct() {
     List<String> a = new ArrayList<>();
     a.add(Activity.class.getSimpleName());
     a.add(UserActivity.class.getSimpleName());
@@ -17,12 +18,14 @@ public class DeleteFileActivity extends FileActivity {
     return a;
   }
 
-  public DeleteFileActivity() {
-    super();
-  }
+  public DeleteFileActivity() {}
 
   public DeleteFileActivity(
-      String usernameOfInvoker, String documentOwner, FileType fileType, ObjectId id) {
-    super(usernameOfInvoker, documentOwner, fileType, id);
+      String usernameOfInvoker,
+      String documentOwner,
+      FileType fileType,
+      ObjectId id,
+      String filename) {
+    super(usernameOfInvoker, documentOwner, fileType, id, filename);
   }
 }
