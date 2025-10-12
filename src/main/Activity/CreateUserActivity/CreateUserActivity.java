@@ -21,7 +21,7 @@ public class CreateUserActivity extends Activity {
   }
 
   public CreateUserActivity(String usernameOfInvoker, String createdUsername) {
-    super(usernameOfInvoker);
+    super(usernameOfInvoker, createdUsername, false);
     this.createdUsername = createdUsername;
   }
 

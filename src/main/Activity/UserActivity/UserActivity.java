@@ -25,6 +25,10 @@ public class UserActivity extends Activity {
     super(username, objectName);
   }
 
+  public UserActivity(String username, String objectName, boolean temporary) {
+    super(username, objectName, temporary);
+  }
+
   public UserActivity(String invokerUsername, String targetUsername, String objectName) {
     super(invokerUsername, targetUsername, objectName);
   }

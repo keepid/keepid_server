@@ -49,6 +49,8 @@ public class ChangeAccountSettingService implements Service {
       return UserMessage.USER_NOT_FOUND;
     }
     User user = userResult.get();
+    JSONObject userAsJson = user.serialize();
+    String old = userAsJson.get(key).toString();
 
     String hash = user.getPassword();
     SecurityUtils.PassHashEnum verifyStatus = SecurityUtils.verifyPassword(password, hash);
@@ -116,8 +118,6 @@ public class ChangeAccountSettingService implements Service {
       default:
         return UserMessage.INVALID_PARAMETER;
     }
-    JSONObject userAsJson = user.serialize();
-    String old = userAsJson.get(key).toString();
     if (!old.equals(value)) {
       userDao.update(user);
       recordChangeUserAttributesActivity(user, old);

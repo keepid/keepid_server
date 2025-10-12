@@ -5,7 +5,9 @@ import static User.UserController.mergeJSON;
 import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import Database.User.UserDao;
+import File.Jobs.GetWeeklyUploadedIdsJob;
 import File.Services.*;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
@@ -32,6 +34,7 @@ public class FileController {
   private UserDao userDao;
   private FileDao fileDao;
   private ActivityDao activityDao;
+  private FormDao formDao;
   private EncryptionController encryptionController;
 
   public FileController(
@@ -39,10 +42,12 @@ public class FileController {
       UserDao userDao,
       FileDao fileDao,
       ActivityDao activityDao,
+      FormDao formDao,
       EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.formDao = formDao;
     this.encryptionController = encryptionController;
   }
 
@@ -269,7 +274,8 @@ public class FileController {
             username = maybeTargetUser.get().getUsername();
             orgName = maybeTargetUser.get().getOrganization();
             userType = maybeTargetUser.get().getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            //            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            orgFlag = true;
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -291,7 +297,8 @@ public class FileController {
                     Optional.ofNullable(userType),
                     fileType,
                     Optional.ofNullable(fileIDStr),
-                    Optional.ofNullable(encryptionController));
+                    Optional.ofNullable(encryptionController),
+                    formDao);
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
               ctx.header("Content-Type", downloadFileService.getContentType());
@@ -444,7 +451,8 @@ public class FileController {
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -491,7 +499,8 @@ public class FileController {
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -507,6 +516,11 @@ public class FileController {
         } else {
           ctx.result(responseDownload.toResponseString());
         }
+      };
+
+  public Handler getWeeklyUploadedIds =
+      ctx -> {
+        GetWeeklyUploadedIdsJob.run(fileDao);
       };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {

@@ -5,11 +5,13 @@ import File.File;
 import File.FileMessage;
 import File.FileType;
 import File.IdCategoryType;
+import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
-
-import java.io.InputStream;
-import java.util.*;
 
 public class FileDaoTestImpl implements FileDao {
   Map<String, List<File>> fileMap;
@@ -60,6 +62,20 @@ public class FileDaoTestImpl implements FileDao {
   @Override
   public List<File> getAll(Bson filter) {
     return null;
+  }
+
+  @Override
+  public List<File> getWeeklyUploadedIds() {
+    return objectIdFileMap.values().stream()
+        .filter(
+            file ->
+                file.getFileType().equals(FileType.IDENTIFICATION_PDF)
+                    && file.getUploadedAt()
+                        .toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime()
+                        .isAfter(LocalDateTime.now().minusDays(7)))
+        .collect(Collectors.toList());
   }
 
   @Override

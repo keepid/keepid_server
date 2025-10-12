@@ -5,13 +5,12 @@ import File.File;
 import File.FileMessage;
 import File.FileType;
 import File.IdCategoryType;
-import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
-
 import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 public interface FileDao extends Dao<File> {
   Optional<File> get(ObjectId id);
@@ -19,6 +18,8 @@ public interface FileDao extends Dao<File> {
   List<File> getAll(String username);
 
   List<File> getAll(Bson filter);
+
+  List<File> getWeeklyUploadedIds();
 
   Optional<InputStream> getStream(ObjectId id);
 

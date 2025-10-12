@@ -48,6 +48,15 @@ public class Activity implements Comparable<Activity> {
     this.type = construct();
   }
 
+  // For activities that are done by the user for another user with no objects. This will be
+  // refactored
+  public Activity(String invokerUsername, String targetUsername, boolean temp) {
+    this.invokerUsername = invokerUsername;
+    this.targetUsername = targetUsername;
+    this.occurredAt = LocalDateTime.now();
+    this.type = construct();
+  }
+
   // For activities done by a user for another user
   public Activity(String invokerUsername, String targetUsername, String objectName) {
     this.invokerUsername = invokerUsername;

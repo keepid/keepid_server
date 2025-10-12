@@ -22,6 +22,11 @@ public class UserDaoTestImpl implements UserDao {
   }
 
   @Override
+  public Optional<User> getByEmail(String email) {
+    return Optional.empty();
+  }
+
+  @Override
   public void delete(String username) {
     userMap.remove(username);
   }

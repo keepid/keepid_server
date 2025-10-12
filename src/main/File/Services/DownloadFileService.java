@@ -5,9 +5,11 @@ import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import Form.Form;
 import Security.EncryptionController;
 import User.UserType;
 import java.io.IOException;
@@ -31,6 +33,7 @@ public class DownloadFileService implements Service {
   private String contentType;
   private InputStream inputStream;
   private Optional<EncryptionController> encryptionController;
+  private FormDao formDao;
 
   public DownloadFileService(
       FileDao fileDao,
@@ -41,7 +44,8 @@ public class DownloadFileService implements Service {
       Optional<UserType> privilegeLevel,
       FileType fileType,
       Optional<String> fileId,
-      Optional<EncryptionController> encryptionController) {
+      Optional<EncryptionController> encryptionController,
+      FormDao formDao) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.usernameOfInvoker = usernameOfInvoker;
@@ -50,6 +54,7 @@ public class DownloadFileService implements Service {
     this.privilegeLevel = privilegeLevel;
     this.fileType = fileType;
     this.fileId = fileId;
+    this.formDao = formDao;
     this.encryptionController = encryptionController;
   }
 
@@ -108,6 +113,16 @@ public class DownloadFileService implements Service {
       log.info("Attempting to download file with id {}", id);
       Optional<File> fileFromDB = fileDao.get(id);
       if (fileFromDB.isEmpty()) {
+        if (fileType == FileType.FORM) {
+          Optional<Form> form = formDao.get(id);
+          ObjectId fileFromForm = form.get().getFileId();
+          Optional<InputStream> maybeStream = fileDao.getStream(fileFromForm);
+          if (maybeStream.isPresent()) {
+            this.inputStream = maybeStream.get();
+            this.contentType = "application/pdf";
+            return FileMessage.SUCCESS;
+          }
+        }
         return FileMessage.NO_SUCH_FILE;
       }
       File file = fileFromDB.get();

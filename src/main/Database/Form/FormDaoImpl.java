@@ -1,17 +1,19 @@
 package Database.Form;
 
+import static com.mongodb.client.model.Filters.*;
+
 import Config.DeploymentLevel;
 import Config.MongoConfig;
 import Form.Form;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.bson.types.ObjectId;
-
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-
-import static com.mongodb.client.model.Filters.eq;
+import org.bson.types.ObjectId;
 
 public class FormDaoImpl implements FormDao {
   private MongoCollection<Form> formCollection;
@@ -67,6 +69,16 @@ public class FormDaoImpl implements FormDao {
   @Override
   public List<Form> get(String username) {
     return formCollection.find(eq("username", username)).into(new ArrayList<>());
+  }
+
+  @Override
+  public List<Form> getWeeklyApplications() {
+    LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
+    Date oneWeekAgoDate = Date.from(oneWeekAgo.atZone(ZoneId.systemDefault()).toInstant());
+
+    return formCollection
+        .find(and(eq("formType", "APPLICATION"), gte("uploadedAt", oneWeekAgoDate)))
+        .into(new ArrayList<>());
   }
 
   @Override

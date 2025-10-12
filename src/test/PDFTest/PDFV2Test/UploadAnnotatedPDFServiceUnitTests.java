@@ -33,7 +33,6 @@ public class UploadAnnotatedPDFServiceUnitTests {
   private FileDao fileDao;
   private FormDao formDao;
   private UserDao userDao;
-  private MongoDatabase db;
   private EncryptionController encryptionController;
   private UserParams developerUserParams;
   private FileParams blankFileParams;
@@ -41,8 +40,10 @@ public class UploadAnnotatedPDFServiceUnitTests {
   private InputStream sampleBlankFileStream1;
 
   @BeforeClass
-  public static void start() {
+  public static void start() throws InterruptedException {
+    Thread.sleep(3000);
     TestUtils.startServer();
+    Thread.sleep(3000);
   }
 
   @Before
@@ -50,7 +51,7 @@ public class UploadAnnotatedPDFServiceUnitTests {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
-    this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
+    MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     File sampleAnnotatedFile =
         new File(resourcesFolderPath + File.separator + "ss-5_filled_out.pdf");
