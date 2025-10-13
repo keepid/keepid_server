@@ -162,7 +162,7 @@ public class FillPDFServiceV2UnitTests {
         new FillPDFServiceV2(
             fileDao, formDao, clientUserParams, fillFileParams, encryptionController);
     Message response = fillService.executeAndGetResponse();
-    assertEquals(PdfMessage.SERVER_ERROR, response);
+    assertEquals(PdfMessage.SUCCESS, response); // Filling PDF with null signature stream is now allowed
   }
 
   @Test

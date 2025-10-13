@@ -55,7 +55,6 @@ public class GetQuestionsPDFServiceV2UnitTests {
 
   @Before
   public void initialize() throws InterruptedException {
-    Thread.sleep(1000);
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);

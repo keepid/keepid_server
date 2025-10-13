@@ -419,7 +419,7 @@ public class PdfControllerV2 {
         UploadedFile signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
         this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
-        this.signatureStream = signature.getContent();
+        this.signatureStream = signature.content();
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
@@ -464,9 +464,9 @@ public class PdfControllerV2 {
         log.info("Client uploaded document missing category");
         return PdfMessage.INVALID_ID_CATEGORY;
       }
-      this.fileName = file.getFilename();
-      this.fileContentType = file.getContentType();
-      this.fileStream = file.getContent();
+      this.fileName = file.filename();
+      this.fileContentType = file.contentType();
+      this.fileStream = file.content();
       return null;
     }
 
@@ -477,9 +477,9 @@ public class PdfControllerV2 {
         return PdfMessage.INVALID_PDF;
       }
       //      this.fileOrgName = ctx.formParam("fileOrgName");
-      this.fileName = file.getFilename();
-      this.fileContentType = file.getContentType();
-      this.fileStream = file.getContent();
+      this.fileName = file.filename();
+      this.fileContentType = file.contentType();
+      this.fileStream = file.content();
       return null;
     }
 

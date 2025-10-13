@@ -27,6 +27,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
@@ -135,7 +137,7 @@ public class UserController {
 
   public Handler loginUser =
       ctx -> {
-        ctx.req.getSession().invalidate();
+        Optional.ofNullable(ctx.req().getSession(false)).ifPresent(HttpSession::invalidate);
         JSONObject req = new JSONObject(ctx.body());
         String username = req.getString("username");
         String password = req.getString("password");
@@ -178,7 +180,7 @@ public class UserController {
    */
   public Handler googleLoginRequestHandler =
       ctx -> {
-        ctx.req.getSession().invalidate();
+        Optional.ofNullable(ctx.req().getSession(false)).ifPresent(HttpSession::invalidate);
         JSONObject req = new JSONObject(ctx.body());
         String redirectUri = req.optString("redirectUri", null);
         String originUri = req.optString("originUri", null);
@@ -445,7 +447,7 @@ public class UserController {
 
   public Handler logout =
       ctx -> {
-        ctx.req.getSession().invalidate();
+        Optional.ofNullable(ctx.req().getSession(false)).ifPresent(HttpSession::invalidate);
         log.info("Signed out");
         ctx.result(UserMessage.SUCCESS.toJSON().toString());
       };
@@ -564,17 +566,21 @@ public class UserController {
         User user = optionalUser.get();
         Date uploadDate =
             Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        if (file == null) {
+          ctx.result(UserMessage.INVALID_PARAMETER.toJSON().toString());
+          return;
+        }
         File fileToUpload =
             new File(
                 username,
                 uploadDate,
-                file.getContent(),
+                Objects.requireNonNull(file).content(),
                 FileType.PROFILE_PICTURE,
                 IdCategoryType.NONE,
-                file.getFilename(),
+                file.filename(),
                 user.getOrganization(),
                 false,
-                file.getContentType());
+                file.contentType());
         UploadFileService service =
             new UploadFileService(
                 fileDao,

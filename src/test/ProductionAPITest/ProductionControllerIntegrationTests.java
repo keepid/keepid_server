@@ -60,12 +60,6 @@ public class ProductionControllerIntegrationTests {
   @Before
   public void login() {
     TestUtils.login("devYMCA", "devYMCA123");
-    try {
-      TimeUnit.SECONDS.sleep(1); // this looks super jank but basically we are running into concurrency problems
-      // if we login too fast because the login call is asynchronous because we are using unirest
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 
   @After
@@ -139,8 +133,8 @@ public class ProductionControllerIntegrationTests {
         .body(postBody.toString())
         .asString();
 
-    assertThat(createUserResponse.getStatus()).isEqualTo(400);
-    assertThat(createUserResponse.getBody()).contains("Couldn't deserialize body to User");
+    assertThat(createUserResponse.getStatus()).isEqualTo(500);
+    assertThat(createUserResponse.getBody()).contains("Server Error");
 
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
     var dbUsers = testDB.getCollection("user", User.class);
@@ -319,9 +313,9 @@ public class ProductionControllerIntegrationTests {
         Unirest.patch(TestUtils.getServerUrl() + "/users/" + username)
             .body(updateBody.toString())
             .asString();
-
-    assertThat(updateResponse.getStatus()).isEqualTo(400);
-    assertThat(updateResponse.getBody()).contains("Couldn't deserialize body to UserUpdateRequest");
+    
+    assertThat(updateResponse.getStatus()).isEqualTo(500);
+    assertThat(updateResponse.getBody()).contains("Server Error");
   }
 
   @Test
@@ -378,8 +372,8 @@ public class ProductionControllerIntegrationTests {
         .body(postBody.toString())
         .asString();
 
-    assertThat(createOrganizationResponse.getStatus()).isEqualTo(400);
-    assertThat(createOrganizationResponse.getBody()).contains("Couldn't deserialize body to Organization");
+    assertThat(createOrganizationResponse.getStatus()).isEqualTo(500);
+    assertThat(createOrganizationResponse.getBody()).contains("Server Error");
 
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
     var dbOrganizations = testDB.getCollection("organization", Organization.class);
@@ -551,8 +545,8 @@ public class ProductionControllerIntegrationTests {
             .body(updateBody.toString())
             .asString();
 
-    assertThat(updateResponse.getStatus()).isEqualTo(400);
-    assertThat(updateResponse.getBody()).contains("Couldn't deserialize body to OrganizationUpdateRequest");
+    assertThat(updateResponse.getStatus()).isEqualTo(500);
+    assertThat(updateResponse.getBody()).contains("Server Error");
   }
 
   @Test

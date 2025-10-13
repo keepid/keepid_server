@@ -44,6 +44,10 @@ import java.util.HashMap;
 import java.util.Optional;
 import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.session.DefaultSessionIdManager;
+import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
@@ -223,7 +227,7 @@ public class AppConfig {
     app.post("/organizations", productionController.createOrg);
 
     app.before(
-        "/organizations/:orgId",
+        "/organizations/{orgId}",
         ctx -> {
           ObjectId objectId = new ObjectId(ctx.pathParam("orgId"));
           Optional<Organization> organizationOptional = orgDao.get(objectId);
@@ -235,10 +239,10 @@ public class AppConfig {
                 new HashMap<>());
           }
         });
-    app.get("/organizations/:orgId", productionController.readOrg);
-    app.patch("/organizations/:orgId", productionController.updateOrg);
-    app.delete("/organizations/:orgId", productionController.deleteOrg);
-    app.get("/organizations/:orgId/users", productionController.getUsersFromOrg);
+    app.get("/organizations/{orgId}", productionController.readOrg);
+    app.patch("/organizations/{orgId}", productionController.updateOrg);
+    app.delete("/organizations/{orgId}", productionController.deleteOrg);
+    app.get("/organizations/{orgId}/users", productionController.getUsersFromOrg);
 
     app.before(
         "/users*",
@@ -261,7 +265,7 @@ public class AppConfig {
     app.post("/users", productionController.createUser);
 
     app.before(
-        "/users/:username",
+        "/users/{username}",
         ctx -> {
           String username = ctx.pathParam("username");
           Optional<User> userOptional = userDao.get(username);
@@ -272,15 +276,15 @@ public class AppConfig {
           }
         });
 
-    app.get("/users/:username", productionController.readUser);
-    app.patch("/users/:username", productionController.updateUser);
-    app.delete("/users/:username", productionController.deleteUser);
+    app.get("/users/{username}", productionController.readUser);
+    app.patch("/users/{username}", productionController.updateUser);
+    app.delete("/users/{username}", productionController.deleteUser);
 
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.patch("/change-optional-info/", optionalUserInformationController.updateInformation);
-    app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
+    app.get("/get-optional-info/{username}", optionalUserInformationController.getInformation);
     app.delete(
-        "/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
+        "/delete-optional-info/{username}", optionalUserInformationController.deleteInformation);
     app.post("/save-optional-info/", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
@@ -325,42 +329,34 @@ public class AppConfig {
     }
     return Javalin.create(
             config -> {
-              config.asyncRequestTimeout =
+              config.http.asyncTimeout=
                   ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
-              config.autogenerateEtags = false; // auto generate etags (default is false)
-              config.contextPath = "/"; // context path for the http servlet (default is "/")
-              config.defaultContentType =
-                  "text/plain"; // content type to use if no content type is set (default is
-              // "text/plain")
-
-              config.enableCorsForOrigin(
-                  "https://keep.id",
-                  "https://server.keep.id",
-                  "http://localhost",
-                  "http://localhost:3000",
-                  "127.0.0.1:3000");
-
-              config.enableDevLogging(); // enable extensive development logging for
-              // http and
-              // websocket
-              config.enforceSsl = false;
-              // log a warning if user doesn't start javalin instance (default is true)
-              config.logIfServerNotStarted = true;
+              config.http.generateEtags = false; // auto generate etags (default is false)
+              config.http.defaultContentType = "text/plain";
+              config.router.contextPath = "/";
               config.showJavalinBanner = false;
-              config.prefer405over404 =
-                  false; // send a 405 if handlers exist for different verb on the same path
-              // (default is false)
-              config.sessionHandler(
-                  () -> {
-                    try {
-                      return SessionConfig.getSessionHandlerInstance(deploymentLevel);
-                    } catch (Exception e) {
-                      System.err.println("Unable to instantiate session handler.");
-                      e.printStackTrace();
-                      System.exit(1);
-                      return null;
-                    }
-                  });
+              config.bundledPlugins.enableCors(cors -> {
+                cors.addRule(rule -> rule.allowHost(
+                    "https://keep.id",
+                    "https://server.keep.id",
+                    "http://localhost",
+                    "http://localhost:3000",
+                    "http://127.0.0.1:3000",
+                    "http://localhost:3001",
+                    "https://staged.keep.id",
+                    "https://staging.keep.id"
+                ));
+              });
+
+//              config.bundledPlugins.enableDevLogging();
+              config.showJavalinBanner = false;
+              config.jetty.modifyServletContextHandler(ctx -> {
+                try {
+                  ctx.setSessionHandler(SessionConfig.getSessionHandlerInstance(deploymentLevel));
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
+              });
             })
         .start(port);
   }
