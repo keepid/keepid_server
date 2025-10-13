@@ -165,6 +165,8 @@ public class AppConfig {
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
     app.post("/assign-worker-to-user", userController.assignWorkerToUser);
+    app.get("/onboarding-checklist", userController.getOnboardingChecklist);
+    app.post("/onboarding-checklist", userController.postOnboardingStatus);
 
     // TODO: no longer necessary with upload file route
     app.post("/upload-pfp", userController.uploadPfp);

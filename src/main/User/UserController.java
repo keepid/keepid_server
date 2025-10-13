@@ -12,6 +12,7 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
+import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -22,7 +23,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-import Security.URIUtil;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -36,8 +36,8 @@ public class UserController {
   UserDao userDao;
   TokenDao tokenDao;
   ActivityDao activityDao;
-  FileDao fileDao;
   FormDao formDao;
+  FileDao fileDao;
 
   public UserController(
       UserDao userDao,
@@ -699,6 +699,38 @@ public class UserController {
             new AssignWorkerToUserService(
                 userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
         Message message = getMembersService.executeAndGetResponse();
+        ctx.result(message.toResponseString());
+      };
+
+  public Handler getOnboardingChecklist =
+      ctx -> {
+        log.info("Started getOnboardingChecklist handler");
+
+        String username = ctx.sessionAttribute("username");
+        String originUri = ctx.header("Origin");
+        GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
+            userDao, formDao, fileDao, username, originUri);
+        Message message = getOnboardingChecklistService.executeAndGetResponse();
+        if (message == UserMessage.AUTH_SUCCESS) {
+          log.info("Successfully generated onboarding checklist");
+          ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
+          return;
+        }
+        log.error("Error occurred while generating onboarding checklist for user");
+        ctx.status(401).json(Map.of("error", "Unauthorized"));
+      };
+
+  public Handler postOnboardingStatus =
+      ctx -> {
+        log.info("Started postOnboardingStatus handler");
+        OnboardingStatus newOnboardingStatus =
+            ctx.bodyAsClass(OnboardingStatus.class);
+
+        String username = ctx.sessionAttribute("username");
+
+        PostOnboardingChecklistService postOnboardingChecklistService = new
+            PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
+        Message message = postOnboardingChecklistService.executeAndGetResponse();
         ctx.result(message.toResponseString());
       };
 }
