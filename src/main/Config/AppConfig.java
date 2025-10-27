@@ -341,18 +341,17 @@ public class AppConfig {
                   "https://server.keep.id",
                   "http://localhost",
                   "http://localhost:3000",
+                  "https://staging.keep.id",
+                  "https://staged.keep.id",
                   "127.0.0.1:3000");
 
-              config.enableDevLogging(); // enable extensive development logging for
-              // http and
-              // websocket
+              config.enableDevLogging();
               config.enforceSsl = false;
               // log a warning if user doesn't start javalin instance (default is true)
               config.logIfServerNotStarted = true;
               config.showJavalinBanner = false;
               config.prefer405over404 =
                   false; // send a 405 if handlers exist for different verb on the same path
-              // (default is false)
               config.sessionHandler(
                   () -> {
                     try {
