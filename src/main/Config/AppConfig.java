@@ -338,7 +338,7 @@ public class AppConfig {
                     "http://localhost:3001",
                     "https://staged.keep.id",
                     "https://staging.keep.id",
-                    "http://staging.keep.id",
+                    "http://staging.keep.id"
                   );
                   rule.allowCredentials = true;
                   rule.allowHeaders("Content-Type", "Authorization", "X-Requested-With");
