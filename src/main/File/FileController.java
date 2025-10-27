@@ -3,8 +3,11 @@ package File;
 import static User.UserController.mergeJSON;
 
 import Config.Message;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import Database.User.UserDao;
+import File.Jobs.GetWeeklyUploadedIdsJob;
 import File.Services.*;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
@@ -30,15 +33,21 @@ import org.json.JSONObject;
 public class FileController {
   private UserDao userDao;
   private FileDao fileDao;
+  private ActivityDao activityDao;
+  private FormDao formDao;
   private EncryptionController encryptionController;
 
   public FileController(
       MongoDatabase db,
       UserDao userDao,
       FileDao fileDao,
+      ActivityDao activityDao,
+      FormDao formDao,
       EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
+    this.formDao = formDao;
     this.encryptionController = encryptionController;
   }
 
@@ -59,6 +68,7 @@ public class FileController {
   public Handler fileUpload =
       ctx -> {
         log.info("Uploading file...");
+        String usernameOfInvoker;
         String username;
         String organizationName;
         UserType privilegeLevel;
@@ -81,6 +91,7 @@ public class FileController {
           response = UserMessage.USER_NOT_FOUND;
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
             username = maybeTargetUser.get().getUsername();
@@ -162,6 +173,8 @@ public class FileController {
                   UploadFileService uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -188,6 +201,8 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -212,6 +227,8 @@ public class FileController {
                   uploadService =
                       new UploadFileService(
                           fileDao,
+                          activityDao,
+                          usernameOfInvoker,
                           fileToUpload,
                           Optional.ofNullable(privilegeLevel),
                           Optional.ofNullable(fileId),
@@ -240,6 +257,7 @@ public class FileController {
   public Handler fileDownload =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -249,13 +267,15 @@ public class FileController {
           log.info("Target User not Found");
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
+          usernameOfInvoker = ctx.sessionAttribute("username");
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
             orgName = maybeTargetUser.get().getOrganization();
             userType = maybeTargetUser.get().getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            //            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            orgFlag = true;
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -270,12 +290,15 @@ public class FileController {
             DownloadFileService downloadFileService =
                 new DownloadFileService(
                     fileDao,
+                    activityDao,
+                    usernameOfInvoker,
                     username,
                     Optional.ofNullable(orgName),
                     Optional.ofNullable(userType),
                     fileType,
                     Optional.ofNullable(fileIDStr),
-                    Optional.ofNullable(encryptionController));
+                    Optional.ofNullable(encryptionController),
+                    formDao);
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
               ctx.header("Content-Type", downloadFileService.getContentType());
@@ -299,6 +322,7 @@ public class FileController {
   public Handler fileDelete =
       ctx -> {
         String username;
+        String usernameOfInvoker;
         String orgName;
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
@@ -308,6 +332,7 @@ public class FileController {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
           boolean orgFlag;
+          usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
@@ -328,7 +353,15 @@ public class FileController {
             FileType fileType = FileType.createFromString(fileTypeStr);
 
             DeleteFileService deleteFileService =
-                new DeleteFileService(fileDao, username, orgName, userType, fileType, fileIDStr);
+                new DeleteFileService(
+                    fileDao,
+                    activityDao,
+                    usernameOfInvoker,
+                    username,
+                    orgName,
+                    userType,
+                    fileType,
+                    fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -411,12 +444,15 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -456,12 +492,15 @@ public class FileController {
         DownloadFileService downloadFileService =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.ofNullable(organizationName),
                 Optional.ofNullable(privilegeLevel),
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
-                Optional.ofNullable(encryptionController));
+                Optional.ofNullable(encryptionController),
+                formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
           InputStream inputStream = downloadFileService.getInputStream();
@@ -477,6 +516,11 @@ public class FileController {
         } else {
           ctx.result(responseDownload.toResponseString());
         }
+      };
+
+  public Handler getWeeklyUploadedIds =
+      ctx -> {
+        GetWeeklyUploadedIdsJob.run(fileDao);
       };
 
   public static String getPDFTitle(String fileName, PDDocument pdfDocument) {

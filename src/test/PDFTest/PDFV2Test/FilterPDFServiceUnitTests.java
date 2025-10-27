@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -37,6 +38,7 @@ public class FilterPDFServiceUnitTests {
 
   private FileDao fileDao;
   private FormDao formDao;
+  private ActivityDao activityDao;
   private UserDao userDao;
   private MongoDatabase db;
   private InputStream sampleFileStream1;
@@ -207,7 +209,9 @@ public class FilterPDFServiceUnitTests {
   public void reset() {
     this.fileDao.clear();
     this.formDao.clear();
-    this.userDao.clear();
+    if(this.userDao != null) {
+      this.userDao.clear();
+    }
     try {
       sampleImageStream.close();
       sampleFileStream1.close();
@@ -245,6 +249,7 @@ public class FilterPDFServiceUnitTests {
     uploadSixTestStreams(
         fileDao,
         formDao,
+        activityDao,
         userDao,
         signatureStream,
         clientOneUserParams,
@@ -272,6 +277,7 @@ public class FilterPDFServiceUnitTests {
     uploadSixTestStreams(
         fileDao,
         formDao,
+        activityDao,
         userDao,
         signatureStream,
         clientOneUserParams,
@@ -300,6 +306,7 @@ public class FilterPDFServiceUnitTests {
     uploadSixTestStreams(
         fileDao,
         formDao,
+        activityDao,
         userDao,
         signatureStream,
         clientOneUserParams,
@@ -327,6 +334,7 @@ public class FilterPDFServiceUnitTests {
     uploadSixTestStreams(
         fileDao,
         formDao,
+        activityDao,
         userDao,
         signatureStream,
         clientOneUserParams,

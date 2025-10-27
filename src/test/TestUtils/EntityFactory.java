@@ -242,21 +242,21 @@ public class EntityFactory {
     public User build() {
       try {
         User newUser =
-                new User(
-                        firstName,
-                        lastName,
-                        birthDate,
-                        email,
-                        phone,
-                        organization,
-                        address,
-                        city,
-                        state,
-                        zipcode,
-                        twoFactorOn,
-                        username,
-                        password,
-                        userType);
+            new User(
+                firstName,
+                lastName,
+                birthDate,
+                email,
+                phone,
+                organization,
+                address,
+                city,
+                state,
+                zipcode,
+                twoFactorOn,
+                username,
+                password,
+                userType);
         newUser.setLogInHistory(logInHistory);
         newUser.setCreationDate(creationDate);
         newUser.setAssignedWorkerUsernames(assignedWorkerUsernames);
@@ -528,7 +528,7 @@ public class EntityFactory {
 
     @Override
     public Activity build() {
-      Activity newActivity = new Activity().setOccurredAt(occurredAt).setUsername(username);
+      Activity newActivity = new Activity().setOccurredAt(occurredAt).setInvokerUsername(username);
       if (!type.isEmpty()) {
         newActivity.setType(type);
       }

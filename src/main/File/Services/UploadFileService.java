@@ -1,7 +1,9 @@
 package File.Services;
 
+import Activity.UserActivity.FileActivity.UploadFileActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
@@ -38,10 +40,14 @@ public class UploadFileService implements Service {
   boolean toSign;
   Optional<InputStream> signatureFileStream;
   FileDao fileDao;
+  ActivityDao activityDao;
+  String usernameOfInvoker;
   Optional<EncryptionController> encryptionController;
 
   public UploadFileService(
       FileDao fileDao,
+      ActivityDao activityDao,
+      String usernameOfInvoker,
       File fileToUpload,
       Optional<UserType> privilegeLevel,
       Optional<String> fileIdStr,
@@ -49,6 +55,8 @@ public class UploadFileService implements Service {
       Optional<InputStream> signatureFileStream,
       Optional<EncryptionController> encryptionController) {
     this.fileDao = fileDao;
+    this.activityDao = activityDao;
+    this.usernameOfInvoker = usernameOfInvoker;
     this.fileToUpload = fileToUpload;
     this.privilegeLevel = privilegeLevel;
     this.fileIdStr = fileIdStr;
@@ -107,6 +115,21 @@ public class UploadFileService implements Service {
     }
   }
 
+  private void recordUploadFileActivity(boolean isProfilePic) {
+    String filename = fileToUpload.getFilename();
+    if (isProfilePic) {
+      filename = "Profile Picture";
+    }
+    UploadFileActivity log =
+        new UploadFileActivity(
+            usernameOfInvoker,
+            fileToUpload.getUsername(),
+            fileToUpload.getFileType(),
+            fileToUpload.getFileId(),
+            filename);
+    activityDao.save(log);
+  }
+
   public Message uploadFile() throws GeneralSecurityException, IOException {
     if (encryptionController.isEmpty()) {
       return FileMessage.SERVER_ERROR;
@@ -115,6 +138,7 @@ public class UploadFileService implements Service {
     this.fileToUpload.setFileStream(
         controller.encryptFile(this.fileToUpload.getFileStream(), this.fileToUpload.getUsername()));
     this.fileDao.save(fileToUpload);
+    recordUploadFileActivity(false);
     return FileMessage.SUCCESS;
   }
 
@@ -131,6 +155,7 @@ public class UploadFileService implements Service {
     }
     this.fileToUpload.setContentType(contentType);
     this.fileDao.save(fileToUpload);
+    recordUploadFileActivity(true);
     return FileMessage.SUCCESS;
   }
 

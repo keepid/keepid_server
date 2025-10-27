@@ -1,6 +1,6 @@
 package User.Services;
 
-import Activity.LoginActivity;
+import Activity.UserActivity.AuthenticationActivity.LogInActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -19,13 +19,12 @@ import Validation.ValidationUtils;
 import io.ipinfo.api.IPInfo;
 import io.ipinfo.api.errors.RateLimitedException;
 import io.ipinfo.api.model.IPResponse;
-import kong.unirest.Unirest;
-import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
-
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import kong.unirest.Unirest;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 
 @Slf4j
 public class LoginService implements Service {
@@ -76,8 +75,8 @@ public class LoginService implements Service {
     if (!verifyPassword(this.password, user.getPassword())) {
       return UserMessage.AUTH_FAILURE;
     }
-    recordActivityLogin(); // record login activity
-    getLocationOfLogin(user, ip, userAgent); // get ip location
+    recordActivityLogin(user, activityDao); // record login activity
+    recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao); // get ip location
     log.info("Login Successful!");
     // if two factor is on, run 2fa
     if (user.getTwoFactorOn()
@@ -89,12 +88,13 @@ public class LoginService implements Service {
     return UserMessage.AUTH_SUCCESS;
   }
 
-  public void recordActivityLogin() {
-    LoginActivity log = new LoginActivity(user.getUsername(), user.getTwoFactorOn());
+  public static void recordActivityLogin(User user, ActivityDao activityDao) {
+    LogInActivity log = new LogInActivity(user.getUsername(), user.getTwoFactorOn());
     activityDao.save(log);
   }
 
-  public void getLocationOfLogin(User user, String ip, String userAgent) {
+  public static void recordToLoginHistory(User user, String ip, String userAgent,
+                                          String IP_INFO_TOKEN, UserDao userDao) {
     List<IpObject> loginList = user.getLogInHistory();
     if (loginList == null) {
       loginList = new ArrayList<IpObject>(1000);
@@ -131,10 +131,6 @@ public class LoginService implements Service {
       Unirest.post(IssueController.issueReportActualURL).body(body.toString()).asEmpty();
     }
     loginList.add(thisLogin);
-    addLoginHistoryToDB(loginList);
-  }
-
-  public void addLoginHistoryToDB(List<IpObject> loginList) {
     user.setLogInHistory(loginList);
     userDao.update(user);
     log.info("Added login to login history");

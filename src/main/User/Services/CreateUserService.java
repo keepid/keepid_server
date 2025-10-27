@@ -1,9 +1,11 @@
 package User.Services;
 
-import Activity.CreateAdminActivity;
-import Activity.CreateClientActivity;
-import Activity.CreateDirectorActivity;
-import Activity.CreateWorkerActivity;
+import Activity.CreateUserActivity.CreateAdminActivity;
+import Activity.CreateUserActivity.CreateClientActivity;
+import Activity.CreateUserActivity.CreateDirectorActivity;
+import Activity.CreateUserActivity.CreateWorkerActivity;
+
+import static User.UserController.newUserActualURL;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
@@ -14,11 +16,13 @@ import User.User;
 import User.UserMessage;
 import User.UserType;
 import Validation.ValidationException;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import kong.unirest.Unirest;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 @Slf4j
 public class CreateUserService implements Service {
@@ -174,7 +178,42 @@ public class CreateUserService implements Service {
         activityDao.save(cli);
         break;
     }
-    log.info("Successfully created user, " + user.getUsername());
+    log.info("Successfully created user, {}", user.getUsername());
+    generateCreateUserSlackMessage();
     return UserMessage.ENROLL_SUCCESS;
+  }
+
+  private void generateCreateUserSlackMessage() {
+    JSONArray blocks = new JSONArray();
+    JSONObject titleJson = new JSONObject();
+    JSONObject titleText = new JSONObject();
+    titleText.put("text", "*User type: * " + userType);
+    titleText.put("type", "mrkdwn");
+    titleJson.put("type", "section");
+    titleJson.put("text", titleText);
+    blocks.put(titleJson);
+    JSONObject desJson = new JSONObject();
+    JSONObject desText = new JSONObject();
+    String description =
+        "User "
+            + username
+            + " has been created for "
+            + firstName
+            + " "
+            + lastName
+            + " in "
+            + organizationName;
+    desText.put("text", description);
+    desText.put("type", "mrkdwn");
+    desJson.put("text", desText);
+    desJson.put("type", "section");
+    blocks.put(desJson);
+    JSONObject input = new JSONObject();
+    input.put("blocks", blocks);
+    log.info("Trying to post the message on Slack");
+    Unirest.post(newUserActualURL)
+        .header("accept", "application/json")
+        .body(input.toString())
+        .asEmpty();
   }
 }

@@ -1,0 +1,35 @@
+package Activity.CreateUserActivity;
+
+import Activity.Activity;
+import java.util.ArrayList;
+import java.util.List;
+import org.bson.codecs.pojo.annotations.BsonProperty;
+
+public class CreateUserActivity extends Activity {
+
+  @BsonProperty(value = "created")
+  private String createdUsername;
+
+  public CreateUserActivity() {}
+
+  @Override
+  public List<String> construct() {
+    List<String> a = new ArrayList<>();
+    a.add(Activity.class.getSimpleName());
+    a.add(CreateUserActivity.class.getSimpleName());
+    return a;
+  }
+
+  public CreateUserActivity(String usernameOfInvoker, String createdUsername) {
+    super(usernameOfInvoker, createdUsername, false);
+    this.createdUsername = createdUsername;
+  }
+
+  public String getCreatedUsername() {
+    return createdUsername;
+  }
+
+  public void setCreatedUsername(String createdUsername) {
+    this.createdUsername = createdUsername;
+  }
+}

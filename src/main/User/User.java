@@ -1,5 +1,6 @@
 package User;
 
+import User.Onboarding.OnboardingStatus;
 import User.Requests.UserUpdateRequest;
 import User.Services.DocumentType;
 import Validation.ValidationException;
@@ -74,6 +75,9 @@ public class User {
 
   @BsonProperty(value = "assignedWorkerUsernames")
   private List<String> assignedWorkerUsernames;
+
+  @BsonProperty(value = "onboardingStatus")
+  private OnboardingStatus onboardingStatus;
 
   public User() {}
 
@@ -214,6 +218,8 @@ public class User {
     return this.assignedWorkerUsernames;
   }
 
+  public OnboardingStatus getOnboardingStatus() { return this.onboardingStatus; }
+
   /** *************** SETTERS ********************* */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
@@ -307,6 +313,11 @@ public class User {
 
   public User addAssignedWorker(String assignedWorkerUsername) {
     this.assignedWorkerUsernames.add(assignedWorkerUsername);
+    return this;
+  }
+
+  public User setOnboardingStatus(OnboardingStatus onboardingStatus) {
+    this.onboardingStatus = onboardingStatus;
     return this;
   }
 

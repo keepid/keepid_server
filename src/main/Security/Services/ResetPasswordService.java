@@ -1,7 +1,11 @@
 package Security.Services;
 
+import static Security.SecurityUtils.hashPassword;
+
+import Activity.UserActivity.AuthenticationActivity.RecoverPasswordActivity;
 import Config.Message;
 import Config.Service;
+import Database.Activity.ActivityDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
@@ -10,21 +14,21 @@ import User.User;
 import User.UserMessage;
 import Validation.ValidationUtils;
 import io.jsonwebtoken.Claims;
-
 import java.util.Date;
 import java.util.Optional;
 
-import static Security.SecurityUtils.hashPassword;
-
 public class ResetPasswordService implements Service {
-  UserDao userDao;
-  TokenDao tokenDao;
+  private UserDao userDao;
+  private TokenDao tokenDao;
+  private ActivityDao activityDao;
   private String jwt;
   private String newPassword;
 
-  public ResetPasswordService(UserDao userDao, TokenDao tokenDao, String jwt, String newPassword) {
+  public ResetPasswordService(
+      UserDao userDao, TokenDao tokenDao, ActivityDao activityDao, String jwt, String newPassword) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
+    this.activityDao = activityDao;
     this.jwt = jwt;
     this.newPassword = newPassword;
   }
@@ -68,6 +72,12 @@ public class ResetPasswordService implements Service {
     }
     tokenDao.removeTokenIfLast(username, tokens, Tokens.TokenType.PASSWORD_RESET);
     userDao.resetPassword(user, hashPassword(newPassword));
+    recordRecoverPasswordActivity(username);
     return UserMessage.SUCCESS;
+  }
+
+  private void recordRecoverPasswordActivity(String username) {
+    RecoverPasswordActivity recoverPasswordActivity = new RecoverPasswordActivity(username);
+    activityDao.save(recoverPasswordActivity);
   }
 }

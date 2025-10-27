@@ -1,8 +1,15 @@
 package UserTest;
 
+import static com.mongodb.client.model.Filters.eq;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -20,16 +27,10 @@ import com.mongodb.client.MongoDatabase;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import io.javalin.http.Context;
+import java.util.Optional;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.Optional;
-
-import static com.mongodb.client.model.Filters.eq;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class ChangePasswordIntegrationTests {
   private static final int EXPIRATION_TIME_2_HOURS = 7200000;
@@ -49,6 +50,7 @@ public class ChangePasswordIntegrationTests {
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+  ActivityDao activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
 
   // Make sure to enable .env file configurations for these tests
 
@@ -88,12 +90,13 @@ public class ChangePasswordIntegrationTests {
         SecurityUtils.createJWT(
             id, "KeepID", username, "Password Reset Confirmation", EXPIRATION_TIME_2_HOURS);
     ResetPasswordService forgotPasswordService =
-        new ResetPasswordService(userDao, tokenDao, jwt, username);
+        new ResetPasswordService(userDao, tokenDao, activityDao, jwt, username);
     Message returnMessage = forgotPasswordService.executeAndGetResponse();
     assertEquals(UserMessage.AUTH_FAILURE, returnMessage);
     Optional<Tokens> tokens = tokenDao.get(username);
     assertTrue(tokens.isEmpty());
   }
+
   //
   //  @Test
   //  public void changePasswordWhileLoggedInTest() throws Exception {
@@ -140,7 +143,8 @@ public class ChangePasswordIntegrationTests {
     }
 
     Message result =
-        ChangePasswordService.changePassword(userDao, username, oldPassword, newPassword);
+        ChangePasswordService.changePassword(
+            userDao, username, activityDao, oldPassword, newPassword);
     assert (result == UserMessage.AUTH_SUCCESS);
   }
 }

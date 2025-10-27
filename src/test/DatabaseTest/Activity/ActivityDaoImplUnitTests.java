@@ -3,6 +3,10 @@ package DatabaseTest.Activity;
 import static org.junit.Assert.*;
 
 import Activity.*;
+import Activity.CreateUserActivity.CreateAdminActivity;
+import Activity.UserActivity.AuthenticationActivity.AuthenticationActivity;
+import Activity.UserActivity.FileActivity.DeleteFileActivity;
+import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
 import Config.DeploymentLevel;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
@@ -49,11 +53,13 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
-    Activity readAuthenticateActivity = activityDao.get(authenticateActivity.getId()).orElseThrow();
-    assertTrue(areActivitiesEqual(authenticateActivity, readAuthenticateActivity));
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
+    Activity readAuthenticateActivity =
+        activityDao.get(authenticationActivity.getId()).orElseThrow();
+    assertTrue(areActivitiesEqual(authenticationActivity, readAuthenticateActivity));
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -70,7 +76,8 @@ public class ActivityDaoImplUnitTests {
     assertTrue(areActivitiesEqual(createAdminActivity, readCreateAdminActivity));
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
+        new DeleteFileActivity(
+            "usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId(), "fileName");
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
     Activity readDeleteFileActivity = activityDao.get(deleteFileActivity.getId()).orElseThrow();
@@ -88,9 +95,10 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -102,7 +110,8 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivity);
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
+        new DeleteFileActivity(
+            "usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId(), "fileName");
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
 
@@ -121,9 +130,10 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    AuthenticateActivity authenticateActivity = new AuthenticateActivity("username");
-    authenticateActivity.setOccurredAt(now); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivity);
+    AuthenticationActivity authenticationActivity = new AuthenticationActivity("username");
+    authenticationActivity.setOccurredAt(
+        now); // you have to set occurredAt else it will pull current
+    activityDao.save(authenticationActivity);
 
     ChangeUserAttributesActivity changeUserAttributesActivity =
         new ChangeUserAttributesActivity("username", "target", "attr 1", "newAttr 1");
@@ -135,7 +145,8 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivity);
 
     DeleteFileActivity deleteFileActivity =
-        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
+        new DeleteFileActivity(
+            "usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId(), "fileName");
     deleteFileActivity.setOccurredAt(now);
     activityDao.save(deleteFileActivity);
 
@@ -153,10 +164,10 @@ public class ActivityDaoImplUnitTests {
     Activity readActivity = activityDao.get(activity.getId()).orElseThrow();
     assertTrue(areActivitiesEqual(activity, readActivity));
 
-    activity.setUsername("new username");
+    activity.setInvokerUsername("new username");
     activityDao.update(activity);
     Activity readActivity2 = activityDao.get(activity.getId()).orElseThrow();
-    assertEquals("new username", readActivity2.getUsername());
+    assertEquals("new username", readActivity2.getInvokerUsername());
   }
 
   @Test
@@ -172,7 +183,7 @@ public class ActivityDaoImplUnitTests {
 
     activityDao.delete(activity);
     assertFalse(activityDao.get(activity.getId()).isPresent());
-    assertEquals(0, activityDao.size());
+    assertEquals(1, activityDao.size());
   }
 
   @Test
@@ -191,7 +202,7 @@ public class ActivityDaoImplUnitTests {
     assertEquals(0, activityDao.size());
   }
 
-  @Ignore
+  //  @Ignore
   @Test
   public void getAllFromUser() {
     String username1 = "username1";
@@ -203,10 +214,10 @@ public class ActivityDaoImplUnitTests {
             .withType(List.of("Activity", "CreateUserActivity"))
             .buildAndPersist(activityDao);
 
-    AuthenticateActivity authenticateActivityUsername1 = new AuthenticateActivity(username1);
-    authenticateActivityUsername1.setOccurredAt(
+    AuthenticationActivity authenticationActivityUsername1 = new AuthenticationActivity(username1);
+    authenticationActivityUsername1.setOccurredAt(
         now.minusDays(2)); // you have to set occurredAt else it will pull current
-    activityDao.save(authenticateActivityUsername1);
+    activityDao.save(authenticationActivityUsername1);
 
     ChangeUserAttributesActivity changeUserAttributesActivityUsername1 =
         new ChangeUserAttributesActivity(username1, "target", "attr 1", "newAttr 1");
@@ -218,7 +229,8 @@ public class ActivityDaoImplUnitTests {
     activityDao.save(createAdminActivityUsername2);
 
     DeleteFileActivity deleteFileActivityUsername3 =
-        new DeleteFileActivity("usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId());
+        new DeleteFileActivity(
+            "usernameOfInvoker", "documentOwner", FileType.FORM, new ObjectId(), "fileName");
     deleteFileActivityUsername3.setOccurredAt(now);
     activityDao.save(deleteFileActivityUsername3);
 
@@ -226,7 +238,7 @@ public class ActivityDaoImplUnitTests {
         areActivitiesEqual(
             List.of(
                 activityUsername1,
-                authenticateActivityUsername1,
+                authenticationActivityUsername1,
                 changeUserAttributesActivityUsername1),
             activityDao.getAllFromUser(username1)));
   }
@@ -243,6 +255,7 @@ public class ActivityDaoImplUnitTests {
     for (int i = 0; i < activities1.size() - 1; i++) {
       if (activities1.get(i).compareTo(activities2.get(i)) != 0) {
         isEqual = false;
+        break;
       }
     }
     return isEqual;

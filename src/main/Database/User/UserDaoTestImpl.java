@@ -2,9 +2,8 @@ package Database.User;
 
 import Config.DeploymentLevel;
 import User.User;
-import org.bson.types.ObjectId;
-
 import java.util.*;
+import org.bson.types.ObjectId;
 
 public class UserDaoTestImpl implements UserDao {
   Map<String, User> userMap;
@@ -20,6 +19,11 @@ public class UserDaoTestImpl implements UserDao {
   @Override
   public Optional<User> get(String username) {
     return Optional.ofNullable(userMap.get(username));
+  }
+
+  @Override
+  public Optional<User> getByEmail(String email) {
+    return Optional.empty();
   }
 
   @Override
@@ -44,7 +48,6 @@ public class UserDaoTestImpl implements UserDao {
 
   @Override
   public List<User> getAllFromOrg(String orgName) {
-
     List<User> result = new ArrayList<>();
     for (User user : userMap.values()) {
       if (user.getOrganization().equals(orgName)) {

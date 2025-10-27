@@ -3,6 +3,7 @@ package User;
 import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import File.File;
@@ -11,6 +12,7 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
+import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -20,12 +22,11 @@ import io.javalin.http.UploadedFile;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
@@ -35,6 +36,7 @@ public class UserController {
   UserDao userDao;
   TokenDao tokenDao;
   ActivityDao activityDao;
+  FormDao formDao;
   FileDao fileDao;
 
   public UserController(
@@ -42,13 +44,20 @@ public class UserController {
       TokenDao tokenDao,
       FileDao fileDao,
       ActivityDao activityDao,
+      FormDao formDao,
       MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
+    this.formDao = formDao;
     this.db = db;
   }
+
+    public static final String newUserActualURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
+    public static final String newUserTestURL =
+            Objects.requireNonNull(System.getenv("NEW_USER_TESTURL"));
 
   public Handler ingestCsv =
       ctx -> {
@@ -157,6 +166,139 @@ public class UserController {
           responseJSON.put("lastName", "");
           responseJSON.put("twoFactorOn", "");
         }
+        ctx.result(responseJSON.toString());
+      };
+
+  /**
+   * Initializes the Google OAuth2 Login Workflow.
+   *
+   * <p>Implements CSRF and PKCE protections.</p>
+   *
+   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   */
+  public Handler googleLoginRequestHandler =
+      ctx -> {
+        ctx.req.getSession().invalidate();
+        JSONObject req = new JSONObject(ctx.body());
+        String redirectUri = req.optString("redirectUri", null);
+        String originUri = req.optString("originUri", null);
+        log.info("Processing Google login request with redirect URI: {}," +
+            "origin URI: {}",
+            redirectUri, originUri);
+
+        ProcessGoogleLoginRequestService processGoogleLoginRequestService =
+            new ProcessGoogleLoginRequestService(redirectUri, originUri);
+        Message response = processGoogleLoginRequestService.executeAndGetResponse();
+        JSONObject responseJSON = response.toJSON();
+        log.info("Google login request processed with status: {}",  response.getErrorName());
+
+        if (response == GoogleLoginRequestMessage.REQUEST_SUCCESS) {
+          log.info("Setting session attributes");
+          ctx.sessionAttribute("origin_uri", originUri);
+          ctx.sessionAttribute("redirect_uri", redirectUri);
+          ctx.sessionAttribute("PKCECodeVerifier",
+              processGoogleLoginRequestService.getCodeVerifier());
+          ctx.sessionAttribute("state", processGoogleLoginRequestService.getCsrfToken());
+
+          responseJSON.put("codeChallenge", processGoogleLoginRequestService.getCodeChallenge());
+          responseJSON.put("state", processGoogleLoginRequestService.getCsrfToken());
+          ctx.result(responseJSON.toString());
+        }
+        ctx.result(responseJSON.toString());
+      };
+
+  /**
+   * Redirect URI endpoint for Google OAuth2 workflow.
+   *
+   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   */
+  public Handler googleLoginResponseHandler =
+      ctx -> {
+          String authCode = ctx.queryParam("code");
+          String state = ctx.queryParam("state");
+          String ip = ctx.ip();
+          String userAgent = ctx.userAgent();
+          String codeVerifier = ctx.sessionAttribute("PKCECodeVerifier");
+          String originUri = ctx.sessionAttribute("origin_uri");
+          String redirectUri = ctx.sessionAttribute("redirect_uri");
+          String storedCsrfToken = ctx.sessionAttribute("state");
+
+          log.info("Processing Google login response with: authorization code: {}," +
+              "state: {}," +
+              "retrieved code verifier: {}," +
+              "retrieved origin URI: {}," +
+              "retrieved redirect URI: {}," +
+              "retrieved CSRF token: {}",
+              authCode, state, codeVerifier, originUri, redirectUri, storedCsrfToken
+          );
+          ProcessGoogleLoginResponseService processGoogleLoginResponseService =
+          new ProcessGoogleLoginResponseService(
+              userDao,
+              activityDao,
+              state,
+              storedCsrfToken,
+              authCode,
+              codeVerifier,
+              originUri,
+              redirectUri,
+              ip,
+              userAgent
+          );
+        Message response = processGoogleLoginResponseService.executeAndGetResponse();
+        log.info("Google login response processed with status: {}", response.getErrorName());
+
+          if (response == GoogleLoginResponseMessage.AUTH_SUCCESS) {
+            log.debug("Setting session attributes of privilegeLevel: {}, " +
+                    "orgName: {}, " +
+                    "username: {}, " +
+                    "fullName: {}",
+                processGoogleLoginResponseService.getUserRole(),
+                processGoogleLoginResponseService.getOrganization(),
+                processGoogleLoginResponseService.getUsername(),
+                processGoogleLoginResponseService.getFullName());
+            ctx.sessionAttribute("privilegeLevel",
+                processGoogleLoginResponseService.getUserRole());
+            ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
+            ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
+            ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
+          }
+          ctx.sessionAttribute("PKCECodeVerifier", null);
+          ctx.sessionAttribute("origin_uri", null);
+          ctx.sessionAttribute("redirect_uri", null);
+          ctx.sessionAttribute("state", null);
+
+          // NOTE: query parameters are NOT passed to the frontend
+          // for increased privacy and security. Instead, the getSessionUser
+          // endpoint will be called to verify that the login was successful
+          ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
+      };
+
+  /**
+   * Endpoint for validating Google logins.
+   */
+  public Handler getSessionUser =
+      ctx -> {
+        JSONObject responseJSON = new JSONObject();
+
+        // NOTE: no service needed here because existing session
+        // attributes are being retrieved and returned
+        String org = ctx.sessionAttribute("orgName");
+        String username = ctx.sessionAttribute("username");
+        String fullName = ctx.sessionAttribute("fullName");
+        UserType role = ctx.sessionAttribute("privilegeLevel");
+        log.info("Retrieved session attributes of org: {}, " +
+            "username: {}, " +
+            "fullName: {}, " +
+            "and role: {}",
+            org, username, fullName, role
+        );
+
+        responseJSON.put("organization", org == null ? "" : org);
+        responseJSON.put("username", username == null ? "" : username);
+        responseJSON.put("fullName", fullName == null ? "" : fullName);
+        responseJSON.put("userRole", role == null ? "" : role);
+
+        log.info("Returning response with session info: {}", responseJSON);
         ctx.result(responseJSON.toString());
       };
 
@@ -436,6 +578,8 @@ public class UserController {
         UploadFileService service =
             new UploadFileService(
                 fileDao,
+                activityDao,
+                username,
                 fileToUpload,
                 Optional.empty(),
                 Optional.empty(),
@@ -454,12 +598,15 @@ public class UserController {
         DownloadFileService serv =
             new DownloadFileService(
                 fileDao,
+                activityDao,
+                username,
                 username,
                 Optional.empty(),
                 Optional.empty(),
                 FileType.PROFILE_PICTURE,
                 Optional.empty(),
-                Optional.empty());
+                Optional.empty(),
+                formDao);
         Message mes = serv.executeAndGetResponse();
         responseJSON = mes.toJSON();
         if (mes == FileMessage.SUCCESS) {
@@ -552,6 +699,38 @@ public class UserController {
             new AssignWorkerToUserService(
                 userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
         Message message = getMembersService.executeAndGetResponse();
+        ctx.result(message.toResponseString());
+      };
+
+  public Handler getOnboardingChecklist =
+      ctx -> {
+        log.info("Started getOnboardingChecklist handler");
+
+        String username = ctx.sessionAttribute("username");
+        String originUri = ctx.header("Origin");
+        GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
+            userDao, formDao, fileDao, username, originUri);
+        Message message = getOnboardingChecklistService.executeAndGetResponse();
+        if (message == UserMessage.AUTH_SUCCESS) {
+          log.info("Successfully generated onboarding checklist");
+          ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
+          return;
+        }
+        log.error("Error occurred while generating onboarding checklist for user");
+        ctx.status(401).json(Map.of("error", "Unauthorized"));
+      };
+
+  public Handler postOnboardingStatus =
+      ctx -> {
+        log.info("Started postOnboardingStatus handler");
+        OnboardingStatus newOnboardingStatus =
+            ctx.bodyAsClass(OnboardingStatus.class);
+
+        String username = ctx.sessionAttribute("username");
+
+        PostOnboardingChecklistService postOnboardingChecklistService = new
+            PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
+        Message message = postOnboardingChecklistService.executeAndGetResponse();
         ctx.result(message.toResponseString());
       };
 }

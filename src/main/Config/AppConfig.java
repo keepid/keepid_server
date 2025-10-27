@@ -83,24 +83,25 @@ public class AppConfig {
     // We need to instantiate the controllers with the database.
     EncryptionController encryptionController = new EncryptionController(db);
     OrganizationController orgController = new OrganizationController(db, activityDao);
-    UserController userController = new UserController(userDao, tokenDao, fileDao, activityDao, db);
+    UserController userController =
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     FormController formController = new FormController(formDao, userDao, encryptionController);
-    FileController fileController = new FileController(db, userDao, fileDao, encryptionController);
+    FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     OptionalUserInformationController optionalUserInformationController =
-        new OptionalUserInformationController(optionalUserInformationDao);
+        new OptionalUserInformationController(optionalUserInformationDao, activityDao);
     BillingController billingController = new BillingController();
     MailController mailController =
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
-        new PdfControllerV2(fileDao, formDao, userDao, encryptionController);
+        new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -147,8 +148,13 @@ public class AppConfig {
     app.post("/get-questions-2", pdfControllerV2.getQuestions);
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
+    app.post("/get-application-registry", formController.getAppRegistry);
+
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
+    app.post("/googleLoginRequest", userController.googleLoginRequestHandler);
+    app.get("/googleLoginResponse", userController.googleLoginResponseHandler);
+    app.get("/get-session-user", userController.getSessionUser);
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
@@ -162,6 +168,8 @@ public class AppConfig {
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
     app.post("/assign-worker-to-user", userController.assignWorkerToUser);
+    app.get("/onboarding-checklist", userController.getOnboardingChecklist);
+    app.post("/onboarding-checklist", userController.postOnboardingStatus);
 
     // TODO: no longer necessary with upload file route
     app.post("/upload-pfp", userController.uploadPfp);
@@ -192,6 +200,7 @@ public class AppConfig {
     /* --------------- SEARCH FUNCTIONALITY ------------- */
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
+    app.post("/get-org-activities", activityController.findOrganizationActivities);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);
@@ -280,6 +289,10 @@ public class AppConfig {
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
     app.post("/donation-checkout", billingController.donationCheckout);
+
+    /* --------------- WEEKLY METRICS ------------- */
+    app.get("/get-weekly-applications", formController.getWeeklyApplications);
+    app.get("/get-weekly-uploaded-ids", fileController.getWeeklyUploadedIds);
 
     /* --------------- MAIL FORM FEATURES ------------- */
     app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);

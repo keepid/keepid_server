@@ -28,7 +28,7 @@ public enum FormMailAddress {
       "Harrisburg",
       "PA",
       "17106",
-      BigDecimal.valueOf(40.0),
+      new BigDecimal("40.0"),
       ImmutableSet.of("PA"),
       ImmutableSet.of("ANY")),
   PA_VOTER_REGISTRATION_PHIL(

@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
+import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -41,6 +43,7 @@ public class DownloadPDFServiceUnitTests {
   private FileDao fileDao;
   private FormDao formDao;
   private UserDao userDao;
+  private ActivityDao activityDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
   private UserParams clientOneUserParams;
@@ -65,6 +68,7 @@ public class DownloadPDFServiceUnitTests {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    this.activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     File sampleBlankFile2 =
@@ -89,7 +93,7 @@ public class DownloadPDFServiceUnitTests {
     try {
       this.encryptionController = new EncryptionController(db);
     } catch (Exception e) {
-      log.error("Generating test encryption controller failed");
+      log.error("Generating test encryption controller failed: {}", e.getMessage());
     }
     try {
       this.userDao.save(
@@ -259,6 +263,7 @@ public class DownloadPDFServiceUnitTests {
         uploadAnnotatedSSFormAndGetFileId(
             fileDao,
             formDao,
+            activityDao,
             clientOneUserParams,
             encryptionController,
             signatureStream,
