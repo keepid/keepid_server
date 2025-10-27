@@ -327,9 +327,9 @@ public class AppConfig {
               config.http.generateEtags = false; // auto generate etags (default is false)
               config.http.defaultContentType = "text/plain";
               config.router.contextPath = "/";
-              config.showJavalinBanner = false;
               config.bundledPlugins.enableCors(cors -> {
-                cors.addRule(rule -> rule.allowHost(
+                cors.addRule(rule -> {
+                  rule.allowHost(
                     "https://keep.id",
                     "https://server.keep.id",
                     "http://localhost",
@@ -337,11 +337,15 @@ public class AppConfig {
                     "http://127.0.0.1:3000",
                     "http://localhost:3001",
                     "https://staged.keep.id",
-                    "https://staging.keep.id"
-                ));
+                    "https://staging.keep.id",
+                    "http://staging.keep.id",
+                  );
+                  rule.allowCredentials = true;
+                  rule.allowHeaders("Content-Type", "Authorization", "X-Requested-With");
+                  rule.allowMethods("GET", "POST", "PUT", "PATCH", "DELETE");
+                });
               });
-
-//              config.bundledPlugins.enableDevLogging();
+              
               config.showJavalinBanner = false;
               config.jetty.modifyServletContextHandler(ctx -> {
                 try {
