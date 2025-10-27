@@ -44,7 +44,9 @@ import java.util.HashMap;
 import java.util.Optional;
 import lombok.SneakyThrows;
 import org.bson.types.ObjectId;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AppConfig {
   public static Long ASYNC_TIME_OUT = 10L;
   public static int SERVER_PORT = Integer.parseInt(System.getenv("PORT"));
@@ -52,6 +54,7 @@ public class AppConfig {
 
   @SneakyThrows
   public static Javalin appFactory(DeploymentLevel deploymentLevel) {
+    log.info("Deployment level set to: {}", deploymentLevel);
     System.setProperty("logback.configurationFile", "../Logger/Resources/logback.xml");
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
