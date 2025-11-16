@@ -28,7 +28,7 @@ public class WindmillNotificationClientTest {
             }
         };
 
-        assertDoesNotThrow(() -> client.sendSms("+12025551234", "Test"));
+        assertDoesNotThrow(() -> testClient.sendSms("+12025551234", "Test"));
     }
 
     @Test
