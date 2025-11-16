@@ -90,7 +90,7 @@ public class WindmillNotificationClient {
         log.info("Sending SMS to {} with message: {}", to, message);
 
         Callback callback = new Callback() {
-            public void onFailure(@NotNull Call call, @NotNull java.io.IOException e) {
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 log.error("sendSms failed: " + e.getMessage());
             }
 
