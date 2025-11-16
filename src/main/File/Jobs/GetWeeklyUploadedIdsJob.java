@@ -40,7 +40,7 @@ public class GetWeeklyUploadedIdsJob {
     blocks.put(
         createSectionBlock("The number of uploaded IDs this week is *" + files.size() + "*."));
 
-    // Group by organization -> uploader
+    // Group by organization
     Map<String, Map<String, List<File>>> orgMap =
         files.stream()
             .collect(
