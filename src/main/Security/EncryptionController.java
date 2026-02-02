@@ -65,20 +65,9 @@ public class EncryptionController {
         } catch (IOException e) {
           System.err.println("Error reading file: " + e.getMessage());
         }
-      } else if (db.getName().equals("staging-db")) {
-        // For Docker/Staging: If no key exists, generate one and save it.
-        log.info("No key found for staging-db. Generating new key...");
-        EncryptionTools tools = new EncryptionTools(db);
-        tools.generateGoogleCredentials();
-        tools.generateAndUploadKeySet();
-
-        // Now fetch it again
-        keyDocument = keyHandles.find().first();
-        if (keyDocument == null) {
-          throw new GeneralSecurityException("Failed to generate and save key for staging-db");
-        }
-        // Proceed to use the unexpected keyDocument below
       }
+      // If no key found and not test-db, throw an exception
+      throw new GeneralSecurityException("No encryption key found in database: " + db.getName());
     }
     keyDocument.remove("_id");
     keyDocument.remove("keyType");

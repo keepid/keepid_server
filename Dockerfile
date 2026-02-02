@@ -1,5 +1,6 @@
 # Stage 1: Build the application
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+# Using non-Alpine for native library compatibility
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
@@ -15,7 +16,15 @@ COPY src ./src
 RUN mvn package -DskipTests
 
 # Stage 2: Run the application
-FROM eclipse-temurin:21-jre-alpine
+# Using non-Alpine Debian-based image for Argon2 native library compatibility
+# This ensures glibc is available for JNA/native libraries on ARM64
+FROM eclipse-temurin:21-jre
+
+# Install any missing system libraries that might be needed
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libc6 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

@@ -38,7 +38,6 @@ This is the easiest way to get started. It works on any device (Mac, Windows, Li
    > 2. Rebuild and run: `docker-compose up --build`
 
 3. The server is ready when you see "Javalin has started" in the logs.
-   > **First Run Note:** You may see a log saying "No key found for staging-db. Generating new key...". This is normal and means the database is being initialized for you.
 
    Access the server at `http://localhost:8080`.
 

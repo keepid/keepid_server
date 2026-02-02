@@ -12,7 +12,10 @@ services:
     environment:
       - PORT=7000
       - TEST_PORT=7001
-      - MONGO_URI=mongodb://mongo:27017/staging-db
+      # MONGO_URI should be set in .env file to point to your MongoDB cluster
+      # For local Docker MongoDB, use: mongodb://mongo:27017/staging-db
+      # For remote cluster (where staging-db and prod-db exist), use your cluster connection string
+      # The database name in the URI is ignored - the code uses getDatabase() with the deployment level
       - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
     volumes:
       - ./google-credentials.json:/app/google-credentials.json:ro
