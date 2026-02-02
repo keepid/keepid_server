@@ -5,7 +5,7 @@ services:
     build: .
     container_name: keepid_server
     ports:
-      - "8080:7000" # Map host 8080 to container 7000 (Avoids macOS AirPlay conflict on 7000)
+      - "7001:7000" # Map host 8080 to container 7000 (Avoids macOS AirPlay conflict on 7000)
       - "5005:5005" # Debug port
     env_file:
       - .env
