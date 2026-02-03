@@ -24,8 +24,7 @@ public class EncryptionController {
 
   public static final String masterKeyUri = Objects.requireNonNull(System.getenv("MASTERKEYURI"));
 
-  public static final String credentials =
-      Objects.requireNonNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
+  public static final String credentials = Objects.requireNonNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
 
   public EncryptionController(MongoDatabase db) throws GeneralSecurityException, IOException {
     this.db = db;
@@ -33,13 +32,17 @@ public class EncryptionController {
   }
 
   private Aead generateAead() throws GeneralSecurityException, IOException {
+    log.info("DEBUG: Running new EncryptionController logic");
     log.info("Generating AEAD Prim");
     AeadConfig.register();
     MongoCollection<Document> keyHandles = db.getCollection("keys", Document.class);
     Document keyDocument = keyHandles.find().first();
+
+    log.info("DEBUG: Database Name is: '{}'", db.getName());
+
     if (keyDocument == null) {
       System.out.println(db.getName());
-      if (db.getName().equals("test-db")){
+      if (db.getName().equals("test-db")) {
         EncryptionTools tools = new EncryptionTools(db);
         tools.generateGoogleCredentials();
         try (BufferedReader reader = new BufferedReader(new FileReader("key.json"))) {
@@ -49,10 +52,9 @@ public class EncryptionController {
               JSONObject keyJson = new JSONObject(jsonString);
               keyJson.remove("_id");
               keyJson.remove("keyType");
-              KeysetHandle keysetHandle =
-                      KeysetHandle.read(
-                              JsonKeysetReader.withJsonObject(keyJson),
-                              new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
+              KeysetHandle keysetHandle = KeysetHandle.read(
+                  JsonKeysetReader.withJsonObject(keyJson),
+                  new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
               return keysetHandle.getPrimitive(Aead.class);
             } catch (JSONException e) {
               System.err.println("Error parsing JSON string: " + e.getMessage());
@@ -64,16 +66,17 @@ public class EncryptionController {
           System.err.println("Error reading file: " + e.getMessage());
         }
       }
+      // If no key found and not test-db, throw an exception
+      throw new GeneralSecurityException("No encryption key found in database: " + db.getName());
     }
     keyDocument.remove("_id");
     keyDocument.remove("keyType");
 
     JSONObject keyJson = new JSONObject(keyDocument);
 
-    KeysetHandle keysetHandle =
-        KeysetHandle.read(
-            JsonKeysetReader.withJsonObject(keyJson),
-            new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
+    KeysetHandle keysetHandle = KeysetHandle.read(
+        JsonKeysetReader.withJsonObject(keyJson),
+        new GcpKmsClient().withCredentials(credentials).getAead(masterKeyUri));
 
     return keysetHandle.getPrimitive(Aead.class);
   }

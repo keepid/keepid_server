@@ -12,7 +12,46 @@ Keep.id Server Application. Built with Java and Kotlin, this application serves 
 
 https://docs.google.com/document/d/1gmrSSzV4gzMEUXjU6bq57TjtAl6zrw1i61FxxzykK94/edit?usp=sharing 
 
-How to get the backend service running:
+
+### Docker Setup (Recommended)
+This is the easiest way to get started. It works on any device (Mac, Windows, Linux) and does NOT require you to install Java, Maven, or MongoDB on your machine.
+
+**Prerequisites:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+**How to run:**
+1. Create a `.env` file in the root directory (same level as this README) regarding keys. You will need:
+   ```
+   MASTERKEYURI=...
+   GOOGLE_APPLICATION_CREDENTIALS_CONTENTS={...}
+   ```
+   *Ask a team member for these values if you don't have them.*
+
+2. Run the application:
+   ```bash
+   docker-compose up
+   ```
+   This will start both the Java Server (port 7000) and the MongoDB database.
+
+   > **Note:** If you make changes to the Java code, you must rebuilding the image to see them:
+   > 1. Stop the server (`Ctrl+C`)
+   > 2. Rebuild and run: `docker-compose up --build`
+
+3. The server is ready when you see "Javalin has started" in the logs.
+
+   Access the server at `http://localhost:8080`.
+
+**How to debug:**
+The app exposes port `5005` for remote debugging. In IntelliJ:
+1. Run -> Edit Configurations -> + -> Remote JVM Debug.
+2. Set Port to `5005` and name it "Docker Debug".
+3. Run this configuration *after* `docker-compose up` is running.
+
+---
+
+### Legacy Manual Setup
+How to get the backend service running locally (without Docker):
+
 1) make sure you have Java in the JAVA_HOME environment variable
 2) make sure you have maven (run "mvn --version" in terminal to check)
 3) make sure you have Java 21 JDK/JRE installed. If you wish to have multiple Java versions, look into Java Jabba, which is a Java Version Manager.
