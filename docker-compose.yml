@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: keepid_server
+    ports:
+      - "7001:7000" # Map host 8080 to container 7000 (Avoids macOS AirPlay conflict on 7000)
+      - "5005:5005" # Debug port
+    env_file:
+      - .env
+    environment:
+      - PORT=7000
+      - TEST_PORT=7001
+      # MONGO_URI should be set in .env file to point to your MongoDB cluster
+      # For local Docker MongoDB, use: mongodb://mongo:27017/staging-db
+      # For remote cluster (where staging-db and prod-db exist), use your cluster connection string
+      # The database name in the URI is ignored - the code uses getDatabase() with the deployment level
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+    volumes:
+      - ./google-credentials.json:/app/google-credentials.json:ro
+      - ./logs:/app/logs
+    depends_on:
+      - mongo
+    networks:
+      - keepid-network
+
+  mongo:
+    image: mongo:latest
+    container_name: keepid_mongo
+    ports:
+      - "27017:27017" # Exposed to host so you can connect via Compass/IntelliJ Database tool
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - keepid-network
+
+networks:
+  keepid-network:
+    driver: bridge
+
+volumes:
+  mongo-data:

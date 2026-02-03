@@ -7,13 +7,13 @@ public enum OrgEnrollmentStatus implements Message {
   ORG_EXISTS("ORG_EXISTS: Organization Exists Already"),
   SUCCESSFUL_ENROLLMENT("SUCCESSFUL_ENROLLMENT: Please Wait 1-3 Business Days For Response"),
   PASS_HASH_FAILURE("PASS_HASH_FAILURE: Server Password Failure, Please Try Again"),
-  FIELD_EMPTY(""),
-  NAME_LEN_OVER_30(""),
-  EMAIL_LEN_OVER_40(""),
-  INVALID_CHARACTERS(""),
-  PASS_UNDER_8(""),
+  FIELD_EMPTY("FIELD_EMPTY: Field Empty"),
+  NAME_LEN_OVER_30("NAME_LEN_OVER_30: Name Length Over 30"),
+  EMAIL_LEN_OVER_40("EMAIL_LEN_OVER_40: Email Length Over 40"),
+  INVALID_CHARACTERS("INVALID_CHARACTERS: Invalid Characters"),
+  PASS_UNDER_8("PASS_UNDER_8: Password Under 8 Characters"),
   INVALID_PARAMETER("INVALID_PARAMETER: Please Check Input"),
-  FAIL_TO_CREATE("Could not create user and/or org"),
+  FAIL_TO_CREATE("FAIL_TO_CREATE: Could not create user and/or org"),
   SUCCESS("SUCCESS: Success");
 
   public String errorMessage;
