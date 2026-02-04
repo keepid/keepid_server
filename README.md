@@ -33,6 +33,8 @@ This is the easiest way to get started. It works on any device (Mac, Windows, Li
    Access the server at `http://localhost:7001`.
    The app exposes port `5005` for remote debugging.
 
+4. mvn test won't work out of the box since it relies on loading in .env variables into the terminal. IntelliJ handled that with the EnvFile plugin. If you have Node, you can use `npx env-cmd -f .env -- mvn verify`
+
 ---
 
 ### Legacy Manual Setup
