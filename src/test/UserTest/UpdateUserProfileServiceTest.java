@@ -51,7 +51,7 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     assertEquals("new@example.com", updatedUser.getEmail());
@@ -77,7 +77,7 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());
@@ -99,7 +99,8 @@ public class UpdateUserProfileServiceTest {
 
     OptionalInformation existingInfo = new OptionalInformation();
     Person existingPerson = new Person();
-    // firstName/lastName should be null for user's own Person (they come from root level)
+    // firstName/lastName should be null for user's own Person (they come from root
+    // level)
     existingPerson.setMiddleName("M");
     existingPerson.setSsn("123-45-6789");
     existingInfo.setPerson(existingPerson);
@@ -124,14 +125,15 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
     // Should preserve existing fields
     assertEquals("123-45-6789", updatedUser.getOptionalInformation().getPerson().getSsn());
-    // Should update middleName (firstName/lastName ignored - they come from root level)
+    // Should update middleName (firstName/lastName ignored - they come from root
+    // level)
     assertEquals("M", updatedUser.getOptionalInformation().getPerson().getMiddleName());
     // Should preserve other nested objects
     assertNotNull(updatedUser.getOptionalInformation().getBasicInfo());
@@ -199,13 +201,14 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getBasicInfo());
     assertNotNull(updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress());
-    assertEquals("123 Main St", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getStreetAddress());
+    assertEquals("123 Main St",
+        updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getStreetAddress());
     assertEquals("Philadelphia", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getCity());
     assertEquals("PA", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getState());
     assertEquals("19104", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getZip());
@@ -236,8 +239,8 @@ public class UpdateUserProfileServiceTest {
     JSONObject updateRequest = new JSONObject();
     JSONObject optionalInfo = new JSONObject();
     JSONObject person = new JSONObject();
-    person.put("firstName", "PersonFirst");  // Should be ignored
-    person.put("lastName", "PersonLast");    // Should be ignored
+    person.put("firstName", "PersonFirst"); // Should be ignored
+    person.put("lastName", "PersonLast"); // Should be ignored
     person.put("middleName", "Middle");
     optionalInfo.put("person", person);
     updateRequest.put("optionalInformation", optionalInfo);
@@ -246,13 +249,13 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     // Root level names should remain unchanged
     assertEquals("RootFirst", updatedUser.getFirstName());
     assertEquals("RootLast", updatedUser.getLastName());
-    
+
     // Person.firstName/lastName should remain null (not updated)
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
@@ -348,7 +351,8 @@ public class UpdateUserProfileServiceTest {
     assertNotNull(updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress());
     assertEquals("New York", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getCity());
     // Other fields should be preserved
-    assertEquals("123 Main St", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getStreetAddress());
+    assertEquals("123 Main St",
+        updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getStreetAddress());
     assertEquals("PA", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getState());
   }
 
@@ -361,7 +365,8 @@ public class UpdateUserProfileServiceTest {
         .withLastName("RootLast")
         .buildAndPersist(userDao);
 
-    // Try to update firstName/lastName in Person using dot notation - should be ignored
+    // Try to update firstName/lastName in Person using dot notation - should be
+    // ignored
     JSONObject updateRequest = new JSONObject();
     updateRequest.put("optionalInformation.person.firstName", "PersonFirst");
     updateRequest.put("optionalInformation.person.lastName", "PersonLast");
@@ -377,7 +382,7 @@ public class UpdateUserProfileServiceTest {
     // Root level names should remain unchanged
     assertEquals("RootFirst", updatedUser.getFirstName());
     assertEquals("RootLast", updatedUser.getLastName());
-    
+
     // Person.firstName/lastName should remain null (not updated)
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
@@ -465,7 +470,7 @@ public class UpdateUserProfileServiceTest {
     Message response = service.executeAndGetResponse();
 
     assertEquals(UserMessage.SUCCESS, response);
-    
+
     User updatedUser = userDao.get("testuser").orElse(null);
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());

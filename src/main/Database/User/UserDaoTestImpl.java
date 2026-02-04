@@ -435,13 +435,17 @@ public class UserDaoTestImpl implements UserDao {
 
     if (currentPart.equals("person") && optionalInfo.getPerson() != null && startIndex + 1 < parts.length) {
       deleteFromPerson(optionalInfo.getPerson(), parts, startIndex + 1);
-    } else if (currentPart.equals("basicInfo") && optionalInfo.getBasicInfo() != null && startIndex + 1 < parts.length) {
+    } else if (currentPart.equals("basicInfo") && optionalInfo.getBasicInfo() != null
+        && startIndex + 1 < parts.length) {
       deleteFromBasicInfo(optionalInfo.getBasicInfo(), parts, startIndex + 1);
-    } else if (currentPart.equals("veteranStatus") && optionalInfo.getVeteranStatus() != null && startIndex + 1 < parts.length) {
+    } else if (currentPart.equals("veteranStatus") && optionalInfo.getVeteranStatus() != null
+        && startIndex + 1 < parts.length) {
       deleteFromVeteranStatus(optionalInfo.getVeteranStatus(), parts, startIndex + 1);
-    } else if (currentPart.equals("demographicInfo") && optionalInfo.getDemographicInfo() != null && startIndex + 1 < parts.length) {
+    } else if (currentPart.equals("demographicInfo") && optionalInfo.getDemographicInfo() != null
+        && startIndex + 1 < parts.length) {
       deleteFromDemographicInfo(optionalInfo.getDemographicInfo(), parts, startIndex + 1);
-    } else if (currentPart.equals("familyInfo") && optionalInfo.getFamilyInfo() != null && startIndex + 1 < parts.length) {
+    } else if (currentPart.equals("familyInfo") && optionalInfo.getFamilyInfo() != null
+        && startIndex + 1 < parts.length) {
       deleteFromFamilyInfo(optionalInfo.getFamilyInfo(), parts, startIndex + 1);
     }
   }

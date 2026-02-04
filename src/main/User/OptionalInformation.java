@@ -9,7 +9,8 @@ import java.io.Serializable;
 
 /**
  * Wrapper class for optional user information.
- * Contains nested objects: person, basicInfo, demographicInfo, familyInfo, veteranStatus.
+ * Contains nested objects: person, basicInfo, demographicInfo, familyInfo,
+ * veteranStatus.
  * All fields are optional to maintain backward compatibility.
  */
 @Getter

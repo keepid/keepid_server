@@ -120,7 +120,8 @@ public class GetUserInfoService implements Service {
       return true;
     }
 
-    // Skip firstName/lastName from optionalInformation.person - they come from root level
+    // Skip firstName/lastName from optionalInformation.person - they come from root
+    // level
     boolean isPersonFirstName = "firstName".equals(key) && prefix.contains("optionalInformation.person");
     boolean isPersonLastName = "lastName".equals(key) && prefix.contains("optionalInformation.person");
     return isPersonFirstName || isPersonLastName;
