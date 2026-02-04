@@ -29,6 +29,21 @@ public class VeteranStatus implements Serializable {
   }
 
   public JSONObject serialize() {
-    return new JSONObject(this);
+    JSONObject json = new JSONObject();
+    json.put("isVeteran", isVeteran);
+    json.put("isProtectedVeteran", isProtectedVeteran);
+    if (branch != null) {
+      json.put("branch", branch);
+    }
+    if (yearsOfService != null) {
+      json.put("yearsOfService", yearsOfService);
+    }
+    if (rank != null) {
+      json.put("rank", rank);
+    }
+    if (discharge != null) {
+      json.put("discharge", discharge);
+    }
+    return json;
   }
 }
