@@ -139,7 +139,7 @@ public class UserDaoTestImpl implements UserDao {
         if (user.getOptionalInformation() == null) {
           user.setOptionalInformation(new OptionalInformation());
         }
-        updateOptionalInformationField(user.getOptionalInformation(), value);
+        updateOptionalInformationField(value);
       } else if (parts.length >= 3 && parts[0].equals("optionalInformation")) {
         // optionalInformation.nested.field
         if (user.getOptionalInformation() == null) {
@@ -185,7 +185,7 @@ public class UserDaoTestImpl implements UserDao {
     }
   }
 
-  private void updateOptionalInformationField(OptionalInformation optionalInfo, Object value) {
+  private void updateOptionalInformationField(Object value) {
     // This would be for setting entire objects, which is less common
     // Most updates will go through updateNestedField
   }
@@ -283,6 +283,9 @@ public class UserDaoTestImpl implements UserDao {
         } else {
           basicInfo.setResidentialAddress((Address) value);
         }
+        break;
+      default:
+        // Unknown field name - ignore
         break;
     }
   }
@@ -514,41 +517,25 @@ public class UserDaoTestImpl implements UserDao {
       return;
     }
     String field = parts[startIndex];
-    try {
-      // Use reflection to set field to null, bypassing @NonNull validation
-      // In production, MongoDB $unset will handle this properly
-      // NOTE: setAccessible() is necessary here for test implementation to work with @NonNull fields
-      // This is a test-only implementation and should not be used in production code
-      java.lang.reflect.Field fieldObj = Address.class.getDeclaredField(field);
-      fieldObj.setAccessible(true);
-      fieldObj.set(address, null);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      // If reflection fails, try using setter (might fail for @NonNull fields)
-      try {
-        switch (field) {
-          case "streetAddress":
-            address.setStreetAddress(null);
-            break;
-          case "apartmentNumber":
-            address.setApartmentNumber(null);
-            break;
-          case "city":
-            address.setCity(null);
-            break;
-          case "state":
-            address.setState(null);
-            break;
-          case "zip":
-            address.setZip(null);
-            break;
-          default:
-            // Unknown field name - ignore
-            break;
-        }
-      } catch (Exception ex) {
-        // If setter also fails, that's okay - MongoDB $unset will handle it in
-        // production
-      }
+    switch (field) {
+      case "streetAddress":
+        address.setStreetAddress(null);
+        break;
+      case "apartmentNumber":
+        address.setApartmentNumber(null);
+        break;
+      case "city":
+        address.setCity(null);
+        break;
+      case "state":
+        address.setState(null);
+        break;
+      case "zip":
+        address.setZip(null);
+        break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
@@ -581,46 +568,31 @@ public class UserDaoTestImpl implements UserDao {
       return;
     }
     String field = parts[startIndex];
-    try {
-      // Use reflection to set field to null, bypassing @NonNull validation
-      // NOTE: setAccessible() is necessary here for test implementation to work with @NonNull fields
-      // This is a test-only implementation and should not be used in production code
-      java.lang.reflect.Field fieldObj = DemographicInfo.class.getDeclaredField(field);
-      fieldObj.setAccessible(true);
-      fieldObj.set(demographicInfo, null);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      // If reflection fails, try using setter (might fail for @NonNull fields)
-      try {
-        switch (field) {
-          case "languagePreference":
-            demographicInfo.setLanguagePreference(null);
-            break;
-          case "isEthnicityHispanicLatino":
-            demographicInfo.setIsEthnicityHispanicLatino(null);
-            break;
-          case "race":
-            demographicInfo.setRace(null);
-            break;
-          case "cityOfBirth":
-            demographicInfo.setCityOfBirth(null);
-            break;
-          case "stateOfBirth":
-            demographicInfo.setStateOfBirth(null);
-            break;
-          case "countryOfBirth":
-            demographicInfo.setCountryOfBirth(null);
-            break;
-          case "citizenship":
-            demographicInfo.setCitizenship(null);
-            break;
-          default:
-            // Unknown field name - ignore
-            break;
-        }
-      } catch (Exception ex) {
-        // If setter also fails, that's okay - MongoDB $unset will handle it in
-        // production
-      }
+    switch (field) {
+      case "languagePreference":
+        demographicInfo.setLanguagePreference(null);
+        break;
+      case "isEthnicityHispanicLatino":
+        demographicInfo.setIsEthnicityHispanicLatino(null);
+        break;
+      case "race":
+        demographicInfo.setRace(null);
+        break;
+      case "cityOfBirth":
+        demographicInfo.setCityOfBirth(null);
+        break;
+      case "stateOfBirth":
+        demographicInfo.setStateOfBirth(null);
+        break;
+      case "countryOfBirth":
+        demographicInfo.setCountryOfBirth(null);
+        break;
+      case "citizenship":
+        demographicInfo.setCitizenship(null);
+        break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
