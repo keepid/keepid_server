@@ -79,6 +79,9 @@ public class User {
   @BsonProperty(value = "onboardingStatus")
   private OnboardingStatus onboardingStatus;
 
+  @BsonProperty(value = "optionalInformation")
+  private OptionalInformation optionalInformation;
+
   public User() {}
 
   public User(
@@ -220,6 +223,10 @@ public class User {
 
   public OnboardingStatus getOnboardingStatus() { return this.onboardingStatus; }
 
+  public OptionalInformation getOptionalInformation() {
+    return this.optionalInformation;
+  }
+
   /** *************** SETTERS ********************* */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
@@ -318,6 +325,11 @@ public class User {
 
   public User setOnboardingStatus(OnboardingStatus onboardingStatus) {
     this.onboardingStatus = onboardingStatus;
+    return this;
+  }
+
+  public User setOptionalInformation(OptionalInformation optionalInformation) {
+    this.optionalInformation = optionalInformation;
     return this;
   }
 
@@ -480,6 +492,25 @@ public class User {
     userJSON.put("twoFactorOn", twoFactorOn);
     userJSON.put("defaultIds", defaultIds);
     userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
+    if (optionalInformation != null) {
+      JSONObject optionalInfoJSON = new JSONObject();
+      if (optionalInformation.getPerson() != null) {
+        optionalInfoJSON.put("person", optionalInformation.getPerson().serialize());
+      }
+      if (optionalInformation.getBasicInfo() != null) {
+        optionalInfoJSON.put("basicInfo", optionalInformation.getBasicInfo().serialize());
+      }
+      if (optionalInformation.getDemographicInfo() != null) {
+        optionalInfoJSON.put("demographicInfo", optionalInformation.getDemographicInfo().serialize());
+      }
+      if (optionalInformation.getFamilyInfo() != null) {
+        optionalInfoJSON.put("familyInfo", optionalInformation.getFamilyInfo().serialize());
+      }
+      if (optionalInformation.getVeteranStatus() != null) {
+        optionalInfoJSON.put("veteranStatus", optionalInformation.getVeteranStatus().serialize());
+      }
+      userJSON.put("optionalInformation", optionalInfoJSON);
+    }
     return userJSON;
   }
 
