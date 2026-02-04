@@ -323,12 +323,6 @@ public class UserDaoTestImpl implements UserDao {
       case "discharge":
         veteranStatus.setDischarge((String) value);
         break;
-      case "isVeteran":
-        veteranStatus.setIsVeteran((Boolean) value);
-        break;
-      case "isProtectedVeteran":
-        veteranStatus.setIsProtectedVeteran((Boolean) value);
-        break;
     }
   }
 
