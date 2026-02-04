@@ -185,9 +185,11 @@ public class UserDaoTestImpl implements UserDao {
     }
   }
 
+  @SuppressWarnings("unused")
   private void updateOptionalInformationField(Object value) {
     // This would be for setting entire objects, which is less common
     // Most updates will go through updateNestedField
+    // Parameter kept for potential future use
   }
 
   private void updateNestedField(OptionalInformation optionalInfo, String[] parts, int startIndex, Object value) {
@@ -464,6 +466,9 @@ public class UserDaoTestImpl implements UserDao {
         break;
       case "birthDate":
         person.setBirthDate(null);
+        break;
+      default:
+        // Unknown field, ignore
         break;
     }
   }

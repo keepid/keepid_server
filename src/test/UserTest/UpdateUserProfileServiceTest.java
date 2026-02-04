@@ -142,7 +142,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void validateEmailFormat() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);

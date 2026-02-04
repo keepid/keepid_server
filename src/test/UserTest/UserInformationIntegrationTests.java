@@ -60,7 +60,7 @@ public class UserInformationIntegrationTests {
   // ---------- update-user-profile tests ----------
 
   @Test
-  public void updateUserProfile_ownProfile_dotNotation_success() {
+  public void updateUserProfileOwnProfileDotNotationSuccess() {
     String username = "profile-update-client";
     String password = "profile-update-password";
     EntityFactory.createUser()
@@ -91,7 +91,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfile_ownProfile_rootLevelField_success() {
+  public void updateUserProfileOwnProfileRootLevelFieldSuccess() {
     String username = "profile-update-root";
     String password = "profile-update-password";
     EntityFactory.createUser()
@@ -120,7 +120,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfile_withoutSession_authFailure() {
+  public void updateUserProfileWithoutSessionAuthFailure() {
     JSONObject updateRequest = new JSONObject();
     updateRequest.put("email", "new@example.com");
 
@@ -134,7 +134,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfile_adminUpdatesClientInSameOrg_success() {
+  public void updateUserProfileAdminUpdatesClientInSameOrgSuccess() {
     String adminUsername = "profile-admin";
     String clientUsername = "profile-client";
     String password = "shared-password";
@@ -173,7 +173,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfile_clientTriesToUpdateAnotherClient_insufficientPrivilege() {
+  public void updateUserProfileClientTriesToUpdateAnotherClientInsufficientPrivilege() {
     String client1Username = "client-one";
     String client2Username = "client-two";
     String password = "shared-password";
@@ -210,7 +210,7 @@ public class UserInformationIntegrationTests {
   // ---------- delete-profile-field tests ----------
 
   @Test
-  public void deleteProfileField_ownProfile_success() {
+  public void deleteProfileFieldOwnProfileSuccess() {
     String username = "delete-field-client";
     String password = "delete-field-password";
 
@@ -247,7 +247,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void deleteProfileField_withoutSession_authFailure() {
+  public void deleteProfileFieldWithoutSessionAuthFailure() {
     JSONObject deleteRequest = new JSONObject();
     deleteRequest.put("fieldPath", "optionalInformation.demographicInfo.languagePreference");
 
@@ -261,7 +261,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void deleteProfileField_emptyFieldPath_invalidParameter() {
+  public void deleteProfileFieldEmptyFieldPathInvalidParameter() {
     String username = "delete-field-empty";
     String password = "delete-field-password";
     EntityFactory.createUser()
@@ -286,7 +286,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void deleteProfileField_adminDeletesClientField_success() {
+  public void deleteProfileFieldAdminDeletesClientFieldSuccess() {
     String adminUsername = "delete-admin";
     String clientUsername = "delete-client";
     String password = "shared-password";
@@ -334,7 +334,7 @@ public class UserInformationIntegrationTests {
   // ---------- get-user-info authorization tests ----------
 
   @Test
-  public void getUserInfo_adminGetsClientInSameOrg_success() {
+  public void getUserInfoAdminGetsClientInSameOrgSuccess() {
     String adminUsername = "getinfo-admin";
     String clientUsername = "getinfo-client";
     String password = "shared-password";
@@ -376,7 +376,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void getUserInfo_clientTriesToGetAnotherClient_insufficientPrivilege() {
+  public void getUserInfoClientTriesToGetAnotherClientInsufficientPrivilege() {
     String client1Username = "getinfo-client1";
     String client2Username = "getinfo-client2";
     String password = "shared-password";
@@ -410,7 +410,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void getUserInfo_withoutSession_authFailure() {
+  public void getUserInfoWithoutSessionAuthFailure() {
     JSONObject getRequest = new JSONObject();
     getRequest.put("username", "any-user");
 
@@ -424,7 +424,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void getUserInfo_ownProfile_noUsername_success() {
+  public void getUserInfoOwnProfileNoUsernameSuccess() {
     String username = "getinfo-own";
     String password = "getinfo-password";
     EntityFactory.createUser()
