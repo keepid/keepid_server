@@ -161,7 +161,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void validatePhoneNumberFormat() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
