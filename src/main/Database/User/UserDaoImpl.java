@@ -102,6 +102,8 @@ public class UserDaoImpl implements UserDao {
 
   @Override
   public void updateField(String username, String fieldPath, Object value) {
+    // MongoDB $set with dot notation creates nested structures automatically,
+    // but we need to ensure the update is applied correctly
     userCollection.updateOne(
         eq("username", username),
         new Document("$set", new Document(fieldPath, value)));

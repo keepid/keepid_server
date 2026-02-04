@@ -47,10 +47,19 @@ public class UpdateUserProfileService implements Service {
             JSONObject nestedObjectUpdates = splitUpdates[1];
 
             processDotNotationUpdates(dotNotationUpdates);
+            
+            // Reload user after dot notation updates to sync in-memory object with MongoDB
+            // This ensures nested object updates below work with the latest data
+            if (dotNotationUpdates.length() > 0) {
+                this.user = userDao.get(username).orElseThrow();
+            }
+            
             processNestedObjectUpdates(nestedObjectUpdates);
 
-            // Save updated user
-            userDao.update(user);
+            // Save updated user (only if we did nested object updates, dot notation already persisted)
+            if (nestedObjectUpdates.length() > 0) {
+                userDao.update(user);
+            }
             log.info("Successfully updated user profile for: " + username);
             return UserMessage.SUCCESS;
         } catch (ValidationException e) {

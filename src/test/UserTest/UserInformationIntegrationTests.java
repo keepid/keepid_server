@@ -45,6 +45,8 @@ public class UserInformationIntegrationTests {
   @After
   public void reset() {
     TestUtils.logout();
+    // Clear cookies to ensure clean state between tests
+    Unirest.config().reset();
     userDao.clear();
     tokenDao.clear();
     activityDao.clear();
