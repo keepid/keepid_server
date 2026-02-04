@@ -102,7 +102,7 @@ public class User {
       UserType userType)
       throws ValidationException {
 
-    UserValidationMessage validationMessage = User.isValid(
+    UserValidationMessage validationMessage = isValid(
         firstName,
         lastName,
         birthDate,

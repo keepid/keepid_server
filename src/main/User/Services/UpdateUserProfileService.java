@@ -42,37 +42,12 @@ public class UpdateUserProfileService implements Service {
         this.user = optionalUser.get();
 
         try {
-            // Separate dot-notation field updates from nested object updates
-            JSONObject dotNotationUpdates = new JSONObject();
-            JSONObject nestedObjectUpdates = new JSONObject();
+            JSONObject[] splitUpdates = splitUpdateRequest(updateRequest);
+            JSONObject dotNotationUpdates = splitUpdates[0];
+            JSONObject nestedObjectUpdates = splitUpdates[1];
 
-            // Split request into dot-notation fields and nested objects
-            for (String key : JSONObject.getNames(updateRequest)) {
-                if (key.contains(".")) {
-                    // Dot notation field (e.g., "optionalInformation.demographicInfo.languagePreference")
-                    dotNotationUpdates.put(key, updateRequest.get(key));
-                } else {
-                    // Regular nested object (e.g., "optionalInformation": {...})
-                    nestedObjectUpdates.put(key, updateRequest.get(key));
-                }
-            }
-
-            // Process dot-notation field updates first (these use MongoDB $set directly)
-            if (dotNotationUpdates.length() > 0) {
-                updateFieldsWithDotNotation(dotNotationUpdates);
-            }
-
-            // Process nested object updates (backward compatible with existing structure)
-            if (nestedObjectUpdates.has("email") || nestedObjectUpdates.has("phone") || 
-                nestedObjectUpdates.has("address") || nestedObjectUpdates.has("city") ||
-                nestedObjectUpdates.has("state") || nestedObjectUpdates.has("zipcode") ||
-                nestedObjectUpdates.has("firstName") || nestedObjectUpdates.has("lastName")) {
-                updateRootLevelFields(nestedObjectUpdates);
-            }
-
-            if (nestedObjectUpdates.has("optionalInformation")) {
-                updateOptionalInformation(nestedObjectUpdates.getJSONObject("optionalInformation"));
-            }
+            processDotNotationUpdates(dotNotationUpdates);
+            processNestedObjectUpdates(nestedObjectUpdates);
 
             // Save updated user
             userDao.update(user);
@@ -85,6 +60,44 @@ public class UpdateUserProfileService implements Service {
             log.error("Error updating user profile: " + e.getMessage(), e);
             return UserMessage.AUTH_FAILURE;
         }
+    }
+
+    private JSONObject[] splitUpdateRequest(JSONObject request) {
+        JSONObject dotNotationUpdates = new JSONObject();
+        JSONObject nestedObjectUpdates = new JSONObject();
+
+        for (String key : JSONObject.getNames(request)) {
+            if (key.contains(".")) {
+                dotNotationUpdates.put(key, request.get(key));
+            } else {
+                nestedObjectUpdates.put(key, request.get(key));
+            }
+        }
+
+        return new JSONObject[]{dotNotationUpdates, nestedObjectUpdates};
+    }
+
+    private void processDotNotationUpdates(JSONObject dotNotationUpdates) throws ValidationException {
+        if (dotNotationUpdates.length() > 0) {
+            updateFieldsWithDotNotation(dotNotationUpdates);
+        }
+    }
+
+    private void processNestedObjectUpdates(JSONObject nestedObjectUpdates) throws ValidationException {
+        if (hasRootLevelFields(nestedObjectUpdates)) {
+            updateRootLevelFields(nestedObjectUpdates);
+        }
+
+        if (nestedObjectUpdates.has("optionalInformation")) {
+            updateOptionalInformation(nestedObjectUpdates.getJSONObject("optionalInformation"));
+        }
+    }
+
+    private boolean hasRootLevelFields(JSONObject request) {
+        return request.has("email") || request.has("phone") || 
+               request.has("address") || request.has("city") ||
+               request.has("state") || request.has("zipcode") ||
+               request.has("firstName") || request.has("lastName");
     }
 
     private void updateFieldsWithDotNotation(JSONObject dotNotationUpdates) throws ValidationException {
@@ -186,74 +199,86 @@ public class UpdateUserProfileService implements Service {
     }
 
     private void updateRootLevelFields(JSONObject request) throws ValidationException {
-        // Update email
+        updateEmailIfPresent(request);
+        updatePhoneIfPresent(request);
+        updateAddressIfPresent(request);
+        updateCityIfPresent(request);
+        updateStateIfPresent(request);
+        updateZipcodeIfPresent(request);
+    }
+
+    private void updateEmailIfPresent(JSONObject request) throws ValidationException {
         if (request.has("email")) {
-            String email = request.optString("email", null);
-            if (email != null && !email.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidEmail(email)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_EMAIL));
-                }
+            String email = getValidatedString(request, "email", ValidationUtils::isValidEmail, 
+                    UserValidationMessage.INVALID_EMAIL);
+            if (email != null) {
                 user.setEmail(email);
             }
         }
+    }
 
-        // Update phone
+    private void updatePhoneIfPresent(JSONObject request) throws ValidationException {
         if (request.has("phone")) {
-            String phone = request.optString("phone", null);
-            if (phone != null && !phone.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidPhoneNumber(phone)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_PHONENUMBER));
-                }
+            String phone = getValidatedString(request, "phone", ValidationUtils::isValidPhoneNumber, 
+                    UserValidationMessage.INVALID_PHONENUMBER);
+            if (phone != null) {
                 user.setPhone(phone);
             }
         }
+    }
 
-        // Update address fields
+    private void updateAddressIfPresent(JSONObject request) throws ValidationException {
         if (request.has("address")) {
-            String address = request.optString("address", null);
-            if (address != null && !address.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidAddress(address)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_ADDRESS));
-                }
+            String address = getValidatedString(request, "address", ValidationUtils::isValidAddress, 
+                    UserValidationMessage.INVALID_ADDRESS);
+            if (address != null) {
                 user.setAddress(address);
             }
         }
+    }
 
+    private void updateCityIfPresent(JSONObject request) throws ValidationException {
         if (request.has("city")) {
-            String city = request.optString("city", null);
-            if (city != null && !city.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidCity(city)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_CITY));
-                }
+            String city = getValidatedString(request, "city", ValidationUtils::isValidCity, 
+                    UserValidationMessage.INVALID_CITY);
+            if (city != null) {
                 user.setCity(city);
             }
         }
+    }
 
+    private void updateStateIfPresent(JSONObject request) throws ValidationException {
         if (request.has("state")) {
-            String state = request.optString("state", null);
-            if (state != null && !state.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidUSState(state)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_STATE));
-                }
+            String state = getValidatedString(request, "state", ValidationUtils::isValidUSState, 
+                    UserValidationMessage.INVALID_STATE);
+            if (state != null) {
                 user.setState(state);
             }
         }
+    }
 
+    private void updateZipcodeIfPresent(JSONObject request) throws ValidationException {
         if (request.has("zipcode")) {
-            String zipcode = request.optString("zipcode", null);
-            if (zipcode != null && !zipcode.equals(JSONObject.NULL.toString())) {
-                if (!ValidationUtils.isValidZipCode(zipcode)) {
-                    throw new ValidationException(
-                            UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_ZIPCODE));
-                }
+            String zipcode = getValidatedString(request, "zipcode", ValidationUtils::isValidZipCode, 
+                    UserValidationMessage.INVALID_ZIPCODE);
+            if (zipcode != null) {
                 user.setZipcode(zipcode);
             }
         }
+    }
+
+    private String getValidatedString(JSONObject request, String key, 
+            java.util.function.Function<String, Boolean> validator, 
+            UserValidationMessage errorMessage) throws ValidationException {
+        String value = request.optString(key, null);
+        if (value != null && !value.equals(JSONObject.NULL.toString())) {
+            if (!validator.apply(value)) {
+                throw new ValidationException(
+                        UserValidationMessage.toUserMessageJSON(errorMessage));
+            }
+            return value;
+        }
+        return null;
     }
 
     private void updateOptionalInformation(JSONObject optionalInfoJSON) throws ValidationException {
@@ -329,17 +354,35 @@ public class UpdateUserProfileService implements Service {
 
     private void updateBasicInfo(JSONObject basicInfoJSON, OptionalInformation optionalInfo)
             throws ValidationException {
+        BasicInfo basicInfo = getOrCreateBasicInfo(optionalInfo);
+
+        updateBasicInfoSimpleFields(basicInfoJSON, basicInfo);
+        updateBasicInfoValidatedFields(basicInfoJSON, basicInfo);
+        updateBasicInfoAddressFields(basicInfoJSON, basicInfo);
+        updateBasicInfoRemainingFields(basicInfoJSON, basicInfo);
+    }
+
+    private BasicInfo getOrCreateBasicInfo(OptionalInformation optionalInfo) {
         BasicInfo basicInfo = optionalInfo.getBasicInfo();
         if (basicInfo == null) {
             basicInfo = new BasicInfo();
             optionalInfo.setBasicInfo(basicInfo);
         }
+        return basicInfo;
+    }
 
-        // Merge fields
+    private void updateBasicInfoSimpleFields(JSONObject basicInfoJSON, BasicInfo basicInfo) {
         if (basicInfoJSON.has("genderAssignedAtBirth")) {
             basicInfo.setGenderAssignedAtBirth(getStringOrNull(basicInfoJSON, "genderAssignedAtBirth"));
         }
+    }
 
+    private void updateBasicInfoValidatedFields(JSONObject basicInfoJSON, BasicInfo basicInfo) throws ValidationException {
+        updateValidatedEmailField(basicInfoJSON, basicInfo);
+        updateValidatedPhoneField(basicInfoJSON, basicInfo);
+    }
+
+    private void updateValidatedEmailField(JSONObject basicInfoJSON, BasicInfo basicInfo) throws ValidationException {
         if (basicInfoJSON.has("emailAddress")) {
             String email = getStringOrNull(basicInfoJSON, "emailAddress");
             if (email != null && !ValidationUtils.isValidEmail(email)) {
@@ -348,7 +391,9 @@ public class UpdateUserProfileService implements Service {
             }
             basicInfo.setEmailAddress(email);
         }
+    }
 
+    private void updateValidatedPhoneField(JSONObject basicInfoJSON, BasicInfo basicInfo) throws ValidationException {
         if (basicInfoJSON.has("phoneNumber")) {
             String phone = getStringOrNull(basicInfoJSON, "phoneNumber");
             if (phone != null && !ValidationUtils.isValidPhoneNumber(phone)) {
@@ -357,7 +402,9 @@ public class UpdateUserProfileService implements Service {
             }
             basicInfo.setPhoneNumber(phone);
         }
+    }
 
+    private void updateBasicInfoAddressFields(JSONObject basicInfoJSON, BasicInfo basicInfo) throws ValidationException {
         if (basicInfoJSON.has("mailingAddress")) {
             basicInfo.setMailingAddress(parseAddress(basicInfoJSON.getJSONObject("mailingAddress")));
         }
@@ -365,8 +412,9 @@ public class UpdateUserProfileService implements Service {
         if (basicInfoJSON.has("residentialAddress")) {
             basicInfo.setResidentialAddress(parseAddress(basicInfoJSON.getJSONObject("residentialAddress")));
         }
+    }
 
-        // Update other BasicInfo fields
+    private void updateBasicInfoRemainingFields(JSONObject basicInfoJSON, BasicInfo basicInfo) {
         updateFieldIfPresent(basicInfoJSON, "differentBirthName", basicInfo::setDifferentBirthName, Boolean.class);
         updateFieldIfPresent(basicInfoJSON, "firstName", basicInfo::setFirstName, String.class);
         updateFieldIfPresent(basicInfoJSON, "middleName", basicInfo::setMiddleName, String.class);
@@ -382,40 +430,51 @@ public class UpdateUserProfileService implements Service {
     }
 
     private void updateDemographicInfo(JSONObject demographicInfoJSON, OptionalInformation optionalInfo) {
+        DemographicInfo demographicInfo = getOrCreateDemographicInfo(optionalInfo);
+
+        try {
+            DemographicInfo updated = parseDemographicInfoFromJSON(demographicInfoJSON);
+            mergeDemographicInfoFields(updated, demographicInfo);
+        } catch (Exception e) {
+            log.error("Error updating demographicInfo: " + e.getMessage(), e);
+        }
+    }
+
+    private DemographicInfo getOrCreateDemographicInfo(OptionalInformation optionalInfo) {
         DemographicInfo demographicInfo = optionalInfo.getDemographicInfo();
         if (demographicInfo == null) {
             demographicInfo = new DemographicInfo();
             optionalInfo.setDemographicInfo(demographicInfo);
         }
+        return demographicInfo;
+    }
 
-        // Use ObjectMapper for complex nested objects
+    private DemographicInfo parseDemographicInfoFromJSON(JSONObject demographicInfoJSON) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            DemographicInfo updated = objectMapper.readValue(demographicInfoJSON.toString(), DemographicInfo.class);
-            // Merge: copy non-null fields from updated to existing
-            if (updated.getLanguagePreference() != null) {
-                demographicInfo.setLanguagePreference(updated.getLanguagePreference());
-            }
-            if (updated.getIsEthnicityHispanicLatino() != null) {
-                demographicInfo.setIsEthnicityHispanicLatino(updated.getIsEthnicityHispanicLatino());
-            }
-            if (updated.getRace() != null) {
-                demographicInfo.setRace(updated.getRace());
-            }
-            if (updated.getCityOfBirth() != null) {
-                demographicInfo.setCityOfBirth(updated.getCityOfBirth());
-            }
-            if (updated.getStateOfBirth() != null) {
-                demographicInfo.setStateOfBirth(updated.getStateOfBirth());
-            }
-            if (updated.getCountryOfBirth() != null) {
-                demographicInfo.setCountryOfBirth(updated.getCountryOfBirth());
-            }
-            if (updated.getCitizenship() != null) {
-                demographicInfo.setCitizenship(updated.getCitizenship());
-            }
-        } catch (Exception e) {
-            log.error("Error updating demographicInfo: " + e.getMessage(), e);
+        return objectMapper.readValue(demographicInfoJSON.toString(), DemographicInfo.class);
+    }
+
+    private void mergeDemographicInfoFields(DemographicInfo updated, DemographicInfo existing) {
+        if (updated.getLanguagePreference() != null) {
+            existing.setLanguagePreference(updated.getLanguagePreference());
+        }
+        if (updated.getIsEthnicityHispanicLatino() != null) {
+            existing.setIsEthnicityHispanicLatino(updated.getIsEthnicityHispanicLatino());
+        }
+        if (updated.getRace() != null) {
+            existing.setRace(updated.getRace());
+        }
+        if (updated.getCityOfBirth() != null) {
+            existing.setCityOfBirth(updated.getCityOfBirth());
+        }
+        if (updated.getStateOfBirth() != null) {
+            existing.setStateOfBirth(updated.getStateOfBirth());
+        }
+        if (updated.getCountryOfBirth() != null) {
+            existing.setCountryOfBirth(updated.getCountryOfBirth());
+        }
+        if (updated.getCitizenship() != null) {
+            existing.setCitizenship(updated.getCitizenship());
         }
     }
 
@@ -494,36 +553,28 @@ public class UpdateUserProfileService implements Service {
         }
 
         Address address = new Address();
-
-        String streetAddress = getStringOrNull(addressJSON, "streetAddress");
-        if (streetAddress != null && !ValidationUtils.isValidAddress(streetAddress)) {
-            throw new ValidationException(
-                    UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_ADDRESS));
-        }
-        address.setStreetAddress(streetAddress);
-
-        String city = getStringOrNull(addressJSON, "city");
-        if (city != null && !ValidationUtils.isValidCity(city)) {
-            throw new ValidationException(UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_CITY));
-        }
-        address.setCity(city);
-
-        String state = getStringOrNull(addressJSON, "state");
-        if (state != null && !ValidationUtils.isValidUSState(state)) {
-            throw new ValidationException(UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_STATE));
-        }
-        address.setState(state);
-
-        String zip = getStringOrNull(addressJSON, "zip");
-        if (zip != null && !ValidationUtils.isValidZipCode(zip)) {
-            throw new ValidationException(
-                    UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_ZIPCODE));
-        }
-        address.setZip(zip);
-
+        address.setStreetAddress(parseAndValidateAddressField(addressJSON, "streetAddress", 
+                ValidationUtils::isValidAddress, UserValidationMessage.INVALID_ADDRESS));
+        address.setCity(parseAndValidateAddressField(addressJSON, "city", 
+                ValidationUtils::isValidCity, UserValidationMessage.INVALID_CITY));
+        address.setState(parseAndValidateAddressField(addressJSON, "state", 
+                ValidationUtils::isValidUSState, UserValidationMessage.INVALID_STATE));
+        address.setZip(parseAndValidateAddressField(addressJSON, "zip", 
+                ValidationUtils::isValidZipCode, UserValidationMessage.INVALID_ZIPCODE));
         address.setApartmentNumber(getStringOrNull(addressJSON, "apartmentNumber"));
 
         return address;
+    }
+
+    private String parseAndValidateAddressField(JSONObject addressJSON, String key,
+            java.util.function.Function<String, Boolean> validator,
+            UserValidationMessage errorMessage) throws ValidationException {
+        String value = getStringOrNull(addressJSON, key);
+        if (value != null && !validator.apply(value)) {
+            throw new ValidationException(
+                    UserValidationMessage.toUserMessageJSON(errorMessage));
+        }
+        return value;
     }
 
     private String getStringOrNull(JSONObject json, String key) {

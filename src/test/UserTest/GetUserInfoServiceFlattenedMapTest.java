@@ -33,7 +33,7 @@ public class GetUserInfoServiceFlattenedMapTest {
 
     @Test
     public void getFlattenedFieldMapReturnsRootLevelFields() {
-        User user = EntityFactory.createUser()
+        EntityFactory.createUser()
                 .withUsername("testuser")
                 .withUserType(UserType.Client)
                 .withEmail("test@example.com")

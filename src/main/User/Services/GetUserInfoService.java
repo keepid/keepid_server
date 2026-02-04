@@ -103,43 +103,52 @@ public class GetUserInfoService implements Service {
     }
 
     for (String key : names) {
-      // Skip password for security
-      if ("password".equals(key)) {
-        continue;
-      }
-
-      // Skip firstName/lastName from optionalInformation.person - they come from root
-      // level
-      if ("firstName".equals(key) && prefix.contains("optionalInformation.person")) {
-        continue;
-      }
-      if ("lastName".equals(key) && prefix.contains("optionalInformation.person")) {
+      if (shouldSkipKey(key, prefix)) {
         continue;
       }
 
       String fullKey = prefix.isEmpty() ? key : prefix + "." + key;
       Object value = json.opt(key);
 
-      if (value == null || JSONObject.NULL.equals(value)) {
-        // Skip null values
-        continue;
-      } else if (value instanceof JSONObject) {
-        // Recursively flatten nested JSONObjects
-        flattenJSON((JSONObject) value, fullKey, result);
-      } else if (value instanceof org.json.JSONArray) {
-        // Handle arrays with index notation
-        org.json.JSONArray array = (org.json.JSONArray) value;
-        for (int i = 0; i < array.length(); i++) {
-          Object item = array.opt(i);
-          if (item instanceof JSONObject) {
-            flattenJSON((JSONObject) item, fullKey + "." + i, result);
-          } else if (item != null && !JSONObject.NULL.equals(item)) {
-            result.put(fullKey + "." + i, convertToString(item));
-          }
-        }
-      } else {
-        // Primitive or simple object - convert to string
-        result.put(fullKey, convertToString(value));
+      processValue(value, fullKey, result);
+    }
+  }
+
+  private boolean shouldSkipKey(String key, String prefix) {
+    // Skip password for security
+    if ("password".equals(key)) {
+      return true;
+    }
+
+    // Skip firstName/lastName from optionalInformation.person - they come from root level
+    boolean isPersonFirstName = "firstName".equals(key) && prefix.contains("optionalInformation.person");
+    boolean isPersonLastName = "lastName".equals(key) && prefix.contains("optionalInformation.person");
+    return isPersonFirstName || isPersonLastName;
+  }
+
+  private void processValue(Object value, String fullKey, Map<String, String> result) {
+    if (value == null || JSONObject.NULL.equals(value)) {
+      // Skip null values
+      return;
+    }
+
+    if (value instanceof JSONObject) {
+      flattenJSON((JSONObject) value, fullKey, result);
+    } else if (value instanceof org.json.JSONArray) {
+      processArray((org.json.JSONArray) value, fullKey, result);
+    } else {
+      // Primitive or simple object - convert to string
+      result.put(fullKey, convertToString(value));
+    }
+  }
+
+  private void processArray(org.json.JSONArray array, String fullKey, Map<String, String> result) {
+    for (int i = 0; i < array.length(); i++) {
+      Object item = array.opt(i);
+      if (item instanceof JSONObject) {
+        flattenJSON((JSONObject) item, fullKey + "." + i, result);
+      } else if (item != null && !JSONObject.NULL.equals(item)) {
+        result.put(fullKey + "." + i, convertToString(item));
       }
     }
   }

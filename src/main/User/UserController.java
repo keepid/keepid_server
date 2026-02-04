@@ -14,6 +14,8 @@ import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
+import static User.UserMessage.*;
+import static User.UserType.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mongodb.client.MongoDatabase;
@@ -760,46 +762,62 @@ public class UserController {
     String sessionOrgName = ctx.sessionAttribute("orgName");
     UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
 
-    // Check if session user exists
+    Message sessionCheck = validateSessionUser(sessionUsername);
+    if (sessionCheck != null) {
+      return sessionCheck;
+    }
+
+    // If accessing own profile, authorized
+    if (isAccessingOwnProfile(targetUsername, sessionUsername)) {
+      return null;
+    }
+
+    // Different user - check permissions
+    Message permissionCheck = checkUserPermissions(sessionUserType);
+    if (permissionCheck != null) {
+      return permissionCheck;
+    }
+
+    // Check target user exists and same organization
+    return checkTargetUserAndOrganization(targetUsername, sessionOrgName);
+  }
+
+  private Message validateSessionUser(String sessionUsername) {
     if (sessionUsername == null || sessionUsername.isEmpty()) {
-      return UserMessage.AUTH_FAILURE;
+      return AUTH_FAILURE;
     }
 
     Optional<User> sessionUserOpt = userDao.get(sessionUsername);
     if (sessionUserOpt.isEmpty()) {
-      return UserMessage.AUTH_FAILURE;
+      return AUTH_FAILURE;
     }
 
-    // If no target username provided, use session username (user accessing their own profile)
-    if (targetUsername == null || targetUsername.isEmpty()) {
-      return null; // Authorized - accessing own profile
-    }
+    return null;
+  }
 
-    // If target username is same as session username, authorized
-    if (targetUsername.equals(sessionUsername)) {
-      return null; // Authorized - accessing own profile
-    }
+  private boolean isAccessingOwnProfile(String targetUsername, String sessionUsername) {
+    return targetUsername == null || targetUsername.isEmpty() || targetUsername.equals(sessionUsername);
+  }
 
-    // Different user - check if session user has permission
+  private Message checkUserPermissions(UserType sessionUserType) {
     // Only Worker, Admin, or Director can access other users' profiles
-    if (sessionUserType != UserType.Worker && 
-        sessionUserType != UserType.Admin && 
-        sessionUserType != UserType.Director) {
-      return UserMessage.INSUFFICIENT_PRIVILEGE;
+    if (sessionUserType != Worker && sessionUserType != Admin && sessionUserType != Director) {
+      return INSUFFICIENT_PRIVILEGE;
     }
+    return null;
+  }
 
-    // Check if target user exists
+  private Message checkTargetUserAndOrganization(String targetUsername, String sessionOrgName) {
     Optional<User> targetUserOpt = userDao.get(targetUsername);
     if (targetUserOpt.isEmpty()) {
-      return UserMessage.USER_NOT_FOUND;
+      return USER_NOT_FOUND;
     }
 
     User targetUser = targetUserOpt.get();
     String targetOrgName = targetUser.getOrganization();
 
-    // Check if same organization
     if (!targetOrgName.equals(sessionOrgName)) {
-      return UserMessage.CROSS_ORG_ACTION_DENIED;
+      return CROSS_ORG_ACTION_DENIED;
     }
 
     return null; // Authorized

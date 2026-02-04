@@ -134,7 +134,7 @@ public class DeleteUserProfileFieldServiceTest {
 
     @Test
     public void cannotDeleteRequiredFields() {
-        User user = EntityFactory.createUser()
+        EntityFactory.createUser()
                 .withUsername("testuser")
                 .withUserType(UserType.Client)
                 .withEmail("test@example.com")

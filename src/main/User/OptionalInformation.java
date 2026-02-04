@@ -31,8 +31,4 @@ public class OptionalInformation implements Serializable {
 
   @BsonProperty(value = "veteranStatus")
   private VeteranStatus veteranStatus;
-
-  public OptionalInformation() {
-    // Default constructor for MongoDB
-  }
 }

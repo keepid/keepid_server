@@ -139,7 +139,7 @@ public class UserDaoTestImpl implements UserDao {
         if (user.getOptionalInformation() == null) {
           user.setOptionalInformation(new OptionalInformation());
         }
-        updateOptionalInformationField(user.getOptionalInformation(), parts[1], value);
+        updateOptionalInformationField(user.getOptionalInformation(), value);
       } else if (parts.length >= 3 && parts[0].equals("optionalInformation")) {
         // optionalInformation.nested.field
         if (user.getOptionalInformation() == null) {
@@ -148,7 +148,7 @@ public class UserDaoTestImpl implements UserDao {
         updateNestedField(user.getOptionalInformation(), parts, 1, value);
       }
     } catch (Exception e) {
-      throw new RuntimeException("Error updating field: " + fieldPath, e);
+      throw new IllegalStateException("Error updating field: " + fieldPath, e);
     }
   }
 
@@ -179,10 +179,13 @@ public class UserDaoTestImpl implements UserDao {
       case "lastName":
         user.setLastName((String) value);
         break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
-  private void updateOptionalInformationField(OptionalInformation optionalInfo, String fieldName, Object value) {
+  private void updateOptionalInformationField(OptionalInformation optionalInfo, Object value) {
     // This would be for setting entire objects, which is less common
     // Most updates will go through updateNestedField
   }
@@ -239,6 +242,9 @@ public class UserDaoTestImpl implements UserDao {
         break;
       case "birthDate":
         person.setBirthDate((Date) value);
+        break;
+      default:
+        // Unknown field name - ignore
         break;
     }
   }
@@ -302,6 +308,9 @@ public class UserDaoTestImpl implements UserDao {
       case "zip":
         address.setZip((String) value);
         break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
@@ -322,6 +331,9 @@ public class UserDaoTestImpl implements UserDao {
         break;
       case "discharge":
         veteranStatus.setDischarge((String) value);
+        break;
+      default:
+        // Unknown field name - ignore
         break;
     }
   }
@@ -354,6 +366,9 @@ public class UserDaoTestImpl implements UserDao {
       case "citizenship":
         demographicInfo.setCitizenship((Citizenship) value);
         break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
@@ -381,7 +396,7 @@ public class UserDaoTestImpl implements UserDao {
       }
     } catch (Exception e) {
       // Log and rethrow to see what's happening
-      throw new RuntimeException("Error deleting field: " + fieldPath, e);
+      throw new IllegalStateException("Error deleting field: " + fieldPath, e);
     }
   }
 
@@ -402,6 +417,9 @@ public class UserDaoTestImpl implements UserDao {
       case "veteranStatus":
         optionalInfo.setVeteranStatus(null);
         break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
@@ -412,26 +430,16 @@ public class UserDaoTestImpl implements UserDao {
 
     String currentPart = parts[startIndex];
 
-    if (currentPart.equals("person") && optionalInfo.getPerson() != null) {
-      if (startIndex + 1 < parts.length) {
-        deleteFromPerson(optionalInfo.getPerson(), parts, startIndex + 1);
-      }
-    } else if (currentPart.equals("basicInfo") && optionalInfo.getBasicInfo() != null) {
-      if (startIndex + 1 < parts.length) {
-        deleteFromBasicInfo(optionalInfo.getBasicInfo(), parts, startIndex + 1);
-      }
-    } else if (currentPart.equals("veteranStatus") && optionalInfo.getVeteranStatus() != null) {
-      if (startIndex + 1 < parts.length) {
-        deleteFromVeteranStatus(optionalInfo.getVeteranStatus(), parts, startIndex + 1);
-      }
-    } else if (currentPart.equals("demographicInfo") && optionalInfo.getDemographicInfo() != null) {
-      if (startIndex + 1 < parts.length) {
-        deleteFromDemographicInfo(optionalInfo.getDemographicInfo(), parts, startIndex + 1);
-      }
-    } else if (currentPart.equals("familyInfo") && optionalInfo.getFamilyInfo() != null) {
-      if (startIndex + 1 < parts.length) {
-        deleteFromFamilyInfo(optionalInfo.getFamilyInfo(), parts, startIndex + 1);
-      }
+    if (currentPart.equals("person") && optionalInfo.getPerson() != null && startIndex + 1 < parts.length) {
+      deleteFromPerson(optionalInfo.getPerson(), parts, startIndex + 1);
+    } else if (currentPart.equals("basicInfo") && optionalInfo.getBasicInfo() != null && startIndex + 1 < parts.length) {
+      deleteFromBasicInfo(optionalInfo.getBasicInfo(), parts, startIndex + 1);
+    } else if (currentPart.equals("veteranStatus") && optionalInfo.getVeteranStatus() != null && startIndex + 1 < parts.length) {
+      deleteFromVeteranStatus(optionalInfo.getVeteranStatus(), parts, startIndex + 1);
+    } else if (currentPart.equals("demographicInfo") && optionalInfo.getDemographicInfo() != null && startIndex + 1 < parts.length) {
+      deleteFromDemographicInfo(optionalInfo.getDemographicInfo(), parts, startIndex + 1);
+    } else if (currentPart.equals("familyInfo") && optionalInfo.getFamilyInfo() != null && startIndex + 1 < parts.length) {
+      deleteFromFamilyInfo(optionalInfo.getFamilyInfo(), parts, startIndex + 1);
     }
   }
 
@@ -509,6 +517,8 @@ public class UserDaoTestImpl implements UserDao {
     try {
       // Use reflection to set field to null, bypassing @NonNull validation
       // In production, MongoDB $unset will handle this properly
+      // NOTE: setAccessible() is necessary here for test implementation to work with @NonNull fields
+      // This is a test-only implementation and should not be used in production code
       java.lang.reflect.Field fieldObj = Address.class.getDeclaredField(field);
       fieldObj.setAccessible(true);
       fieldObj.set(address, null);
@@ -530,6 +540,9 @@ public class UserDaoTestImpl implements UserDao {
             break;
           case "zip":
             address.setZip(null);
+            break;
+          default:
+            // Unknown field name - ignore
             break;
         }
       } catch (Exception ex) {
@@ -557,6 +570,9 @@ public class UserDaoTestImpl implements UserDao {
       case "discharge":
         veteranStatus.setDischarge(null);
         break;
+      default:
+        // Unknown field name - ignore
+        break;
     }
   }
 
@@ -567,6 +583,8 @@ public class UserDaoTestImpl implements UserDao {
     String field = parts[startIndex];
     try {
       // Use reflection to set field to null, bypassing @NonNull validation
+      // NOTE: setAccessible() is necessary here for test implementation to work with @NonNull fields
+      // This is a test-only implementation and should not be used in production code
       java.lang.reflect.Field fieldObj = DemographicInfo.class.getDeclaredField(field);
       fieldObj.setAccessible(true);
       fieldObj.set(demographicInfo, null);
@@ -594,6 +612,9 @@ public class UserDaoTestImpl implements UserDao {
             break;
           case "citizenship":
             demographicInfo.setCitizenship(null);
+            break;
+          default:
+            // Unknown field name - ignore
             break;
         }
       } catch (Exception ex) {
@@ -626,6 +647,9 @@ public class UserDaoTestImpl implements UserDao {
         break;
       case "siblings":
         familyInfo.setSiblings(null);
+        break;
+      default:
+        // Unknown field name - ignore
         break;
     }
   }
