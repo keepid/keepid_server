@@ -161,7 +161,7 @@ public class GetUserInfoServiceFlattenedMapTest {
 
     @Test
     public void getFlattenedFieldMapReturnsEmptyMapForNullFields() {
-        User user = EntityFactory.createUser()
+        EntityFactory.createUser()
                 .withUsername("testuser")
                 .withUserType(UserType.Client)
                 .buildAndPersist(userDao);

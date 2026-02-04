@@ -229,7 +229,7 @@ public class DeleteUserProfileFieldServiceTest {
 
     @Test
     public void invalidFieldPathReturnsError() {
-        User user = EntityFactory.createUser()
+        EntityFactory.createUser()
                 .withUsername("testuser")
                 .withUserType(UserType.Client)
                 .buildAndPersist(userDao);
