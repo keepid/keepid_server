@@ -22,3 +22,14 @@ workflows:
             name: maven/default
             tag: "21.0"
           context: "Keep.id Slack"
+          environment:
+            PORT: "7001"
+            TEST_PORT: "7001"
+            NEW_USER_ACTUALURL: "https://httpbin.org/post"
+            NEW_USER_TESTURL: "https://httpbin.org/post"
+            NEW_ORG_ACTUALURL: "https://httpbin.org/post"
+            NEW_ORG_TESTURL: "https://httpbin.org/post"
+            ISSUE_REPORT_ACTUALURL: "https://httpbin.org/post"
+            ISSUE_REPORT_TESTURL: "https://httpbin.org/post"
+            WEEKLY_REPORT_ACTUALURL: "https://httpbin.org/post"
+            WEEKLY_REPORT_TESTURL: "https://httpbin.org/post"
