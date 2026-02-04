@@ -163,6 +163,9 @@ public class AppConfig {
     app.post("/change-password", accountSecurityController.changePassword);
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.post("/get-user-info", userController.getUserInfo);
+    // New unified profile endpoints
+    app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/delete-profile-field", userController.deleteProfileField);
     app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);

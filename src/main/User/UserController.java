@@ -453,14 +453,28 @@ public class UserController {
   public Handler getUserInfo =
       ctx -> {
         log.info("Started getUserInfo handler");
-        String username;
+        JSONObject req = new JSONObject(ctx.body());
+        
+        String targetUsername = null;
         try {
-          JSONObject req = new JSONObject(ctx.body());
-          username = req.getString("username");
+          targetUsername = req.optString("username", null);
+          if (targetUsername != null && targetUsername.isEmpty()) {
+            targetUsername = null;
+          }
         } catch (Exception e) {
           log.info("Username not passed in request, using ctx username");
-          username = ctx.sessionAttribute("username");
         }
+
+        // Check authorization
+        Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+        if (authCheck != null) {
+          ctx.result(authCheck.toJSON().toString());
+          return;
+        }
+
+        // Use target username or default to session username
+        String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+        
         GetUserInfoService infoService = new GetUserInfoService(userDao, username);
         Message response = infoService.executeAndGetResponse();
         if (response != UserMessage.SUCCESS) { // if fail return
@@ -732,5 +746,141 @@ public class UserController {
             PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
         Message message = postOnboardingChecklistService.executeAndGetResponse();
         ctx.result(message.toResponseString());
+      };
+
+  /**
+   * Helper method to check authorization for accessing/modifying user profiles.
+   * 
+   * @param ctx The Javalin context
+   * @param targetUsername The username of the user being accessed (optional, defaults to session user)
+   * @return null if authorized, or a Message error if authorization fails
+   */
+  private Message checkProfileAuthorization(io.javalin.http.Context ctx, String targetUsername) {
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+
+    // Check if session user exists
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      return UserMessage.AUTH_FAILURE;
+    }
+
+    Optional<User> sessionUserOpt = userDao.get(sessionUsername);
+    if (sessionUserOpt.isEmpty()) {
+      return UserMessage.AUTH_FAILURE;
+    }
+
+    // If no target username provided, use session username (user accessing their own profile)
+    if (targetUsername == null || targetUsername.isEmpty()) {
+      return null; // Authorized - accessing own profile
+    }
+
+    // If target username is same as session username, authorized
+    if (targetUsername.equals(sessionUsername)) {
+      return null; // Authorized - accessing own profile
+    }
+
+    // Different user - check if session user has permission
+    // Only Worker, Admin, or Director can access other users' profiles
+    if (sessionUserType != UserType.Worker && 
+        sessionUserType != UserType.Admin && 
+        sessionUserType != UserType.Director) {
+      return UserMessage.INSUFFICIENT_PRIVILEGE;
+    }
+
+    // Check if target user exists
+    Optional<User> targetUserOpt = userDao.get(targetUsername);
+    if (targetUserOpt.isEmpty()) {
+      return UserMessage.USER_NOT_FOUND;
+    }
+
+    User targetUser = targetUserOpt.get();
+    String targetOrgName = targetUser.getOrganization();
+
+    // Check if same organization
+    if (!targetOrgName.equals(sessionOrgName)) {
+      return UserMessage.CROSS_ORG_ACTION_DENIED;
+    }
+
+    return null; // Authorized
+  }
+
+  /**
+   * Update user profile with partial updates (supports both dot notation and nested objects).
+   * POST /update-user-profile
+   * Request: Any subset of User fields (nested objects or dot notation supported)
+   * Example: { "username": "client123", "optionalInformation.demographicInfo.languagePreference": "Spanish" }
+   * Response: SUCCESS or validation error
+   */
+  public Handler updateUserProfile =
+      ctx -> {
+        log.info("Started updateUserProfile handler");
+        JSONObject req = new JSONObject(ctx.body());
+        
+        String targetUsername = null;
+        try {
+          targetUsername = req.optString("username", null);
+          if (targetUsername != null && targetUsername.isEmpty()) {
+            targetUsername = null;
+          }
+        } catch (Exception e) {
+          // Username not provided, will use session user
+        }
+
+        // Check authorization
+        Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+        if (authCheck != null) {
+          ctx.result(authCheck.toJSON().toString());
+          return;
+        }
+
+        // Use target username or default to session username
+        String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+        
+        // Remove username from request if present (it's used for authorization, not update)
+        JSONObject updateRequest = new JSONObject(req.toString());
+        updateRequest.remove("username");
+
+        UpdateUserProfileService updateService = new UpdateUserProfileService(userDao, username, updateRequest);
+        Message response = updateService.executeAndGetResponse();
+        ctx.result(response.toJSON().toString());
+      };
+
+  /**
+   * Delete a field from user profile using dot notation.
+   * POST /delete-profile-field
+   * Request: { "username": "client123", "fieldPath": "optionalInformation.person.middleName" }
+   * Response: SUCCESS or error
+   */
+  public Handler deleteProfileField =
+      ctx -> {
+        log.info("Started deleteProfileField handler");
+        JSONObject req = new JSONObject(ctx.body());
+        
+        String targetUsername = null;
+        try {
+          targetUsername = req.optString("username", null);
+          if (targetUsername != null && targetUsername.isEmpty()) {
+            targetUsername = null;
+          }
+        } catch (Exception e) {
+          // Username not provided, will use session user
+        }
+
+        String fieldPath = req.getString("fieldPath");
+
+        // Check authorization
+        Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+        if (authCheck != null) {
+          ctx.result(authCheck.toJSON().toString());
+          return;
+        }
+
+        // Use target username or default to session username
+        String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+
+        DeleteUserProfileFieldService deleteService = new DeleteUserProfileFieldService(userDao, username, fieldPath);
+        Message response = deleteService.executeAndGetResponse();
+        ctx.result(response.toJSON().toString());
       };
 }
