@@ -92,4 +92,18 @@ public class UserDaoImpl implements UserDao {
   public void save(User user) {
     userCollection.insertOne(user);
   }
+
+  @Override
+  public void deleteField(String username, String fieldPath) {
+    userCollection.updateOne(
+        eq("username", username),
+        new Document("$unset", new Document(fieldPath, "")));
+  }
+
+  @Override
+  public void updateField(String username, String fieldPath, Object value) {
+    userCollection.updateOne(
+        eq("username", username),
+        new Document("$set", new Document(fieldPath, value)));
+  }
 }

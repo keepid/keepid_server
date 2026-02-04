@@ -22,4 +22,17 @@ public interface UserDao extends Dao<User> {
   void update(User user);
 
   void resetPassword(User user, String newpassword);
+
+  /**
+   * @param username  The username of the user
+   * @param fieldPath The dot-notation path to the field to delete
+   */
+  void deleteField(String username, String fieldPath);
+
+  /**
+   * @param username  The username of the user
+   * @param fieldPath The dot-notation path to the field to update
+   * @param value     The value to set (can be any type that MongoDB supports)
+   */
+  void updateField(String username, String fieldPath, Object value);
 }

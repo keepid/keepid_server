@@ -223,6 +223,221 @@ public class UpdateUserProfileServiceTest {
   }
 
   @Test
+  public void firstNameLastNameInPersonAreNotMutable() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .withFirstName("RootFirst")
+        .withLastName("RootLast")
+        .buildAndPersist(userDao);
+
+    // Try to update firstName/lastName through optionalInformation.person
+    // These should be ignored - they come from root level User fields
+    JSONObject updateRequest = new JSONObject();
+    JSONObject optionalInfo = new JSONObject();
+    JSONObject person = new JSONObject();
+    person.put("firstName", "PersonFirst");  // Should be ignored
+    person.put("lastName", "PersonLast");    // Should be ignored
+    person.put("middleName", "Middle");
+    optionalInfo.put("person", person);
+    updateRequest.put("optionalInformation", optionalInfo);
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+    
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    // Root level names should remain unchanged
+    assertEquals("RootFirst", updatedUser.getFirstName());
+    assertEquals("RootLast", updatedUser.getLastName());
+    
+    // Person.firstName/lastName should remain null (not updated)
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getPerson());
+    assertNull(updatedUser.getOptionalInformation().getPerson().getFirstName());
+    assertNull(updatedUser.getOptionalInformation().getPerson().getLastName());
+    // middleName should be updated
+    assertEquals("Middle", updatedUser.getOptionalInformation().getPerson().getMiddleName());
+  }
+
+  @Test
+  public void updateIndividualFieldWithDotNotation() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    // Update individual demographic field using dot notation
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.demographicInfo.languagePreference", "Spanish");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getDemographicInfo());
+    assertEquals("Spanish", updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference());
+  }
+
+  @Test
+  public void updateMultipleFieldsWithDotNotation() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    // Update multiple individual fields using dot notation
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.demographicInfo.languagePreference", "French");
+    updateRequest.put("optionalInformation.demographicInfo.cityOfBirth", "New York");
+    updateRequest.put("optionalInformation.person.middleName", "Middle");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getDemographicInfo());
+    assertEquals("French", updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference());
+    assertEquals("New York", updatedUser.getOptionalInformation().getDemographicInfo().getCityOfBirth());
+    assertNotNull(updatedUser.getOptionalInformation().getPerson());
+    assertEquals("Middle", updatedUser.getOptionalInformation().getPerson().getMiddleName());
+  }
+
+  @Test
+  public void updateNestedAddressFieldWithDotNotation() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .build();
+
+    OptionalInformation optionalInfo = new OptionalInformation();
+    BasicInfo basicInfo = new BasicInfo();
+    Address mailingAddress = new Address();
+    mailingAddress.setStreetAddress("123 Main St");
+    mailingAddress.setCity("Philadelphia");
+    mailingAddress.setState("PA");
+    mailingAddress.setZip("19104");
+    basicInfo.setMailingAddress(mailingAddress);
+    optionalInfo.setBasicInfo(basicInfo);
+    user.setOptionalInformation(optionalInfo);
+    userDao.save(user);
+
+    // Update only the city in mailingAddress using dot notation
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.basicInfo.mailingAddress.city", "New York");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getBasicInfo());
+    assertNotNull(updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress());
+    assertEquals("New York", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getCity());
+    // Other fields should be preserved
+    assertEquals("123 Main St", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getStreetAddress());
+    assertEquals("PA", updatedUser.getOptionalInformation().getBasicInfo().getMailingAddress().getState());
+  }
+
+  @Test
+  public void updateFieldWithDotNotationIgnoresFirstNameLastNameInPerson() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .withFirstName("RootFirst")
+        .withLastName("RootLast")
+        .buildAndPersist(userDao);
+
+    // Try to update firstName/lastName in Person using dot notation - should be ignored
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.person.firstName", "PersonFirst");
+    updateRequest.put("optionalInformation.person.lastName", "PersonLast");
+    updateRequest.put("optionalInformation.person.middleName", "Middle");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    // Root level names should remain unchanged
+    assertEquals("RootFirst", updatedUser.getFirstName());
+    assertEquals("RootLast", updatedUser.getLastName());
+    
+    // Person.firstName/lastName should remain null (not updated)
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getPerson());
+    assertNull(updatedUser.getOptionalInformation().getPerson().getFirstName());
+    assertNull(updatedUser.getOptionalInformation().getPerson().getLastName());
+    // middleName should be updated
+    assertEquals("Middle", updatedUser.getOptionalInformation().getPerson().getMiddleName());
+  }
+
+  @Test
+  public void updateFieldWithDotNotationValidatesEmail() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    // Try to update email with invalid format using dot notation
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.basicInfo.emailAddress", "invalid-email");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    // Should return validation error (not SUCCESS)
+    assertNotEquals(UserMessage.SUCCESS.toJSON().toString(), response.toJSON().toString());
+  }
+
+  @Test
+  public void updateFieldWithDotNotationAndNestedObjectBackwardCompatible() {
+    User user = EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    // Mix dot notation and nested object structure (backward compatible)
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.demographicInfo.languagePreference", "Spanish");
+    // Also include nested object structure
+    JSONObject optionalInfo = new JSONObject();
+    JSONObject person = new JSONObject();
+    person.put("middleName", "Middle");
+    optionalInfo.put("person", person);
+    updateRequest.put("optionalInformation", optionalInfo);
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertNotNull(updatedUser.getOptionalInformation());
+    // Both updates should be applied
+    assertNotNull(updatedUser.getOptionalInformation().getDemographicInfo());
+    assertEquals("Spanish", updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference());
+    assertNotNull(updatedUser.getOptionalInformation().getPerson());
+    assertEquals("Middle", updatedUser.getOptionalInformation().getPerson().getMiddleName());
+  }
+
+  @Test
   public void nullValuesClearFields() {
     User user = EntityFactory.createUser()
         .withUsername("testuser")
