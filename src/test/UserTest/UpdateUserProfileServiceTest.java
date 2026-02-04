@@ -67,9 +67,9 @@ public class UpdateUserProfileServiceTest {
 
     JSONObject updateRequest = new JSONObject();
     JSONObject person = new JSONObject();
-    person.put("firstName", "John");
-    person.put("lastName", "Doe");
+    // firstName/lastName are ignored - they come from root level User fields
     person.put("middleName", "Middle");
+    person.put("ssn", "123-45-6789");
     updateRequest.put("optionalInformation", new JSONObject());
     updateRequest.getJSONObject("optionalInformation").put("person", person);
 
@@ -82,9 +82,11 @@ public class UpdateUserProfileServiceTest {
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
-    assertEquals("John", updatedUser.getOptionalInformation().getPerson().getFirstName());
-    assertEquals("Doe", updatedUser.getOptionalInformation().getPerson().getLastName());
+    // firstName/lastName should remain null in Person (they come from root level)
+    assertNull(updatedUser.getOptionalInformation().getPerson().getFirstName());
+    assertNull(updatedUser.getOptionalInformation().getPerson().getLastName());
     assertEquals("Middle", updatedUser.getOptionalInformation().getPerson().getMiddleName());
+    assertEquals("123-45-6789", updatedUser.getOptionalInformation().getPerson().getSsn());
   }
 
   @Test
@@ -97,8 +99,8 @@ public class UpdateUserProfileServiceTest {
 
     OptionalInformation existingInfo = new OptionalInformation();
     Person existingPerson = new Person();
-    existingPerson.setFirstName("Jane");
-    existingPerson.setLastName("Smith");
+    // firstName/lastName should be null for user's own Person (they come from root level)
+    existingPerson.setMiddleName("M");
     existingPerson.setSsn("123-45-6789");
     existingInfo.setPerson(existingPerson);
 
@@ -128,10 +130,8 @@ public class UpdateUserProfileServiceTest {
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
     // Should preserve existing fields
-    assertEquals("Jane", updatedUser.getOptionalInformation().getPerson().getFirstName());
-    assertEquals("Smith", updatedUser.getOptionalInformation().getPerson().getLastName());
     assertEquals("123-45-6789", updatedUser.getOptionalInformation().getPerson().getSsn());
-    // Should add new field
+    // Should update middleName (firstName/lastName ignored - they come from root level)
     assertEquals("M", updatedUser.getOptionalInformation().getPerson().getMiddleName());
     // Should preserve other nested objects
     assertNotNull(updatedUser.getOptionalInformation().getBasicInfo());
@@ -255,8 +255,8 @@ public class UpdateUserProfileServiceTest {
     assertNotNull(updatedUser);
     assertNotNull(updatedUser.getOptionalInformation());
     assertNotNull(updatedUser.getOptionalInformation().getPerson());
-    assertEquals("Jane", updatedUser.getOptionalInformation().getPerson().getFirstName());
+    // firstName/lastName come from root level, not Person
+    // middleName should be cleared (set to null)
     assertNull(updatedUser.getOptionalInformation().getPerson().getMiddleName());
-    assertEquals("Smith", updatedUser.getOptionalInformation().getPerson().getLastName());
   }
 }

@@ -82,7 +82,8 @@ public class User {
   @BsonProperty(value = "optionalInformation")
   private OptionalInformation optionalInformation;
 
-  public User() {}
+  public User() {
+  }
 
   public User(
       String firstName,
@@ -101,22 +102,21 @@ public class User {
       UserType userType)
       throws ValidationException {
 
-    UserValidationMessage validationMessage =
-        User.isValid(
-            firstName,
-            lastName,
-            birthDate,
-            email,
-            phone,
-            organization,
-            address,
-            city,
-            state,
-            zipcode,
-            username,
-            password,
-            defaultIds,
-            userType);
+    UserValidationMessage validationMessage = User.isValid(
+        firstName,
+        lastName,
+        birthDate,
+        email,
+        phone,
+        organization,
+        address,
+        city,
+        state,
+        zipcode,
+        username,
+        password,
+        defaultIds,
+        userType);
 
     if (validationMessage != UserValidationMessage.VALID)
       throw new ValidationException(UserValidationMessage.toUserMessageJSON(validationMessage));
@@ -198,8 +198,7 @@ public class User {
 
   public Map<String, String> getDefaultIds() {
     return this.defaultIds;
-  }
-  ;
+  };
 
   public UserType getUserType() {
     return this.userType;
@@ -221,7 +220,9 @@ public class User {
     return this.assignedWorkerUsernames;
   }
 
-  public OnboardingStatus getOnboardingStatus() { return this.onboardingStatus; }
+  public OnboardingStatus getOnboardingStatus() {
+    return this.onboardingStatus;
+  }
 
   public OptionalInformation getOptionalInformation() {
     return this.optionalInformation;
@@ -431,8 +432,10 @@ public class User {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
     User user = (User) o;
     return Objects.equals(this.id, user.id)
         && Objects.equals(this.firstName, user.firstName)
@@ -495,7 +498,12 @@ public class User {
     if (optionalInformation != null) {
       JSONObject optionalInfoJSON = new JSONObject();
       if (optionalInformation.getPerson() != null) {
-        optionalInfoJSON.put("person", optionalInformation.getPerson().serialize());
+        // Exclude firstName/lastName from Person - they come from root level User
+        // fields
+        JSONObject personJSON = optionalInformation.getPerson().serialize();
+        personJSON.remove("firstName");
+        personJSON.remove("lastName");
+        optionalInfoJSON.put("person", personJSON);
       }
       if (optionalInformation.getBasicInfo() != null) {
         optionalInfoJSON.put("basicInfo", optionalInformation.getBasicInfo().serialize());
@@ -516,8 +524,8 @@ public class User {
 
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> result =
-        objectMapper.convertValue(this, new TypeReference<Map<String, Object>>() {});
+    Map<String, Object> result = objectMapper.convertValue(this, new TypeReference<Map<String, Object>>() {
+    });
     result.remove("id");
     return result;
   }
