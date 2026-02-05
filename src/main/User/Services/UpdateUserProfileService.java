@@ -3,7 +3,7 @@ package User.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
-import OptionalUserInformation.*;
+import User.UserInformation.*;
 import User.OptionalInformation;
 import User.User;
 import User.UserMessage;

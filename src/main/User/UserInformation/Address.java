@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 

@@ -1,7 +1,7 @@
 package Database.User;
 
 import Config.DeploymentLevel;
-import OptionalUserInformation.*;
+import User.UserInformation.*;
 import User.OptionalInformation;
 import User.User;
 import java.util.*;

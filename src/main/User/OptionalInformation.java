@@ -1,6 +1,6 @@
 package User;
 
-import OptionalUserInformation.*;
+import User.UserInformation.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.bson.codecs.pojo.annotations.BsonProperty;

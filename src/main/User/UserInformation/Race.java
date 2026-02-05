@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 public enum Race {
   NATIVE_HAWAIIAN("Native Hawaiian"),

@@ -4,7 +4,7 @@ import Config.DeploymentLevel;
 import Config.Message;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
-import OptionalUserInformation.*;
+import User.UserInformation.*;
 import TestUtils.EntityFactory;
 import User.OptionalInformation;
 import User.Services.DeleteUserProfileFieldService;

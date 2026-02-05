@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 public enum MaritalStatus {
   SINGLE,

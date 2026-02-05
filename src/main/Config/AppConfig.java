@@ -11,8 +11,6 @@ import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
-import Database.OptionalUserInformation.OptionalUserInformationDao;
-import Database.OptionalUserInformation.OptionalUserInformationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
@@ -24,7 +22,6 @@ import Form.FormController;
 import Issue.IssueController;
 import Mail.FileBackfillController;
 import Mail.MailController;
-import OptionalUserInformation.OptionalUserInformationController;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
@@ -59,8 +56,6 @@ public class AppConfig {
     Javalin app = AppConfig.createJavalinApp(deploymentLevel);
     MongoConfig.getMongoClient();
     UserDao userDao = UserDaoFactory.create(deploymentLevel);
-    OptionalUserInformationDao optionalUserInformationDao =
-        OptionalUserInformationDaoFactory.create(deploymentLevel);
     TokenDao tokenDao = TokenDaoFactory.create(deploymentLevel);
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
@@ -94,8 +89,6 @@ public class AppConfig {
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
-    OptionalUserInformationController optionalUserInformationController =
-        new OptionalUserInformationController(optionalUserInformationDao, activityDao);
     BillingController billingController = new BillingController();
     MailController mailController =
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
@@ -281,13 +274,6 @@ public class AppConfig {
     app.get("/users/:username", productionController.readUser);
     app.patch("/users/:username", productionController.updateUser);
     app.delete("/users/:username", productionController.deleteUser);
-
-    /* --------------- SEARCH FUNCTIONALITY ------------- */
-    app.patch("/change-optional-info/", optionalUserInformationController.updateInformation);
-    app.get("/get-optional-info/:username", optionalUserInformationController.getInformation);
-    app.delete(
-        "/delete-optional-info/:username", optionalUserInformationController.deleteInformation);
-    app.post("/save-optional-info/", optionalUserInformationController.saveInformation);
 
     /* -------------- Billing ----------------- */
     app.get("/donation-generate-client-token", billingController.donationGenerateClientToken);
