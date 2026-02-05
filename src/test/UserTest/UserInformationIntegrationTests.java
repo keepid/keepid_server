@@ -9,7 +9,9 @@ import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
+import OptionalUserInformation.Citizenship;
 import OptionalUserInformation.DemographicInfo;
+import OptionalUserInformation.Race;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.OptionalInformation;
@@ -205,6 +207,74 @@ public class UserInformationIntegrationTests {
 
     JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
     assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+  }
+
+  @Test
+  public void updateUserProfileNestedObjectWithRaceAndCitizenshipEnumSuccess() {
+    String username = "profile-demographic-enum";
+    String password = "profile-demographic-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(username, password);
+
+    JSONObject demographicInfo = new JSONObject();
+    demographicInfo.put("languagePreference", "English");
+    demographicInfo.put("race", "ASIAN");
+    demographicInfo.put("citizenship", "US_CITIZEN");
+    JSONObject optionalInformation = new JSONObject();
+    optionalInformation.put("demographicInfo", demographicInfo);
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation", optionalInformation);
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .header("Content-Type", "application/json")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedUser = userDao.get(username).orElseThrow();
+    assertThat(updatedUser.getOptionalInformation()).isNotNull();
+    assertThat(updatedUser.getOptionalInformation().getDemographicInfo()).isNotNull();
+    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference())
+        .isEqualTo("English");
+    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getRace())
+        .isEqualTo(Race.ASIAN);
+    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getCitizenship())
+        .isEqualTo(Citizenship.US_CITIZEN);
+  }
+
+  @Test
+  public void updateUserProfileInvalidRaceEnumReturnsError() {
+    String username = "profile-invalid-race";
+    String password = "profile-invalid-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(username, password);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.demographicInfo.race", "INVALID_RACE_VALUE");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .header("Content-Type", "application/json")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INVALID_PARAMETER");
   }
 
   // ---------- delete-profile-field tests ----------

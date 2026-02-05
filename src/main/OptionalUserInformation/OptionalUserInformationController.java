@@ -9,11 +9,7 @@ import OptionalUserInformation.Services.CreateOptionalInfoService;
 import OptionalUserInformation.Services.DeleteOptionalInfoService;
 import OptionalUserInformation.Services.GetOptionalInfoService;
 import OptionalUserInformation.Services.UpdateOptionalInfoService;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.Handler;
-import java.text.SimpleDateFormat;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 
@@ -31,68 +27,8 @@ public class OptionalUserInformationController {
   public Handler updateInformation =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
-        ObjectMapper objectMapper = new ObjectMapper();
         CreateOptionalInfoService createOptionalInfoService =
-            new CreateOptionalInfoService(
-                optInfoDao,
-                req.getString("username"),
-                // Parameters for Person
-                req.getString("firstName"),
-                req.getString("middleName"),
-                req.getString("lastName"),
-                req.getString("ssn"),
-                new SimpleDateFormat("yyyy-MM-dd")
-                    .parse(req.getString("birthDate")), // string to date with format yyyy-mm-dd
-                // Parameters for BasicInfo
-                req.getString("genderAssignedAtBirth"),
-                req.getString("emailAddress"),
-                req.getString("phoneNumber"),
-                objectMapper.readValue(
-                    req.getJSONObject("mailingAddress").toString(), Address.class),
-                objectMapper.readValue(
-                    req.getJSONObject("residentialAddress").toString(), Address.class),
-                req.getBoolean("differentBirthName"),
-                req.getString("suffix"),
-                req.getString("birthFirstName"),
-                req.getString("birthMiddleName"),
-                req.getString("birthLastName"),
-                req.getString("birthSuffix"),
-                req.getString("stateIdNumber"),
-                req.getBoolean("haveDisability"),
-                // Parameters for DemographicInfo
-                req.getString("languagePreference"),
-                req.getBoolean("isEthnicityHispanicLatino"),
-                req.getString("race").equals("")
-                    ? Race.UNSELECTED
-                    : Race.valueOf(req.getString("race")),
-                req.getString("cityOfBirth"),
-                req.getString("stateOfBirth"),
-                req.getString("countryOfBirth"),
-                req.getString("citizenship").equals("")
-                    ? Citizenship.UNSELECTED
-                    : Citizenship.valueOf(req.getString("citizenship")),
-                // Parameters for FamilyInfo
-                objectMapper.readValue(
-                    req.getJSONArray("parents").toString(), new TypeReference<List<Person>>() {}),
-                objectMapper.readValue(
-                    req.getJSONArray("legalGuardians").toString(),
-                    new TypeReference<List<Person>>() {}),
-                req.getString("maritalStatus").equals("")
-                    ? MaritalStatus.UNSELECTED
-                    : MaritalStatus.valueOf(req.getString("maritalStatus")),
-                objectMapper.readValue(req.getJSONObject("spouse").toString(), Person.class),
-                objectMapper.readValue(
-                    req.getJSONArray("children").toString(), new TypeReference<List<Person>>() {}),
-                objectMapper.readValue(
-                    req.getJSONArray("siblings").toString(), new TypeReference<List<Person>>() {}),
-
-                // Parameters for VeteranStatus
-                req.getBoolean("isVeteran"),
-                req.getBoolean("isProtectedVeteran"),
-                req.getString("branch"),
-                req.getString("yearsOfService"),
-                req.getString("rank"),
-                req.getString("discharge"));
+            OptionalUserInformationRequestParser.parseAndCreate(optInfoDao, req);
         OptionalUserInformation optionalUserInformation = createOptionalInfoService.build();
         UpdateOptionalInfoService updateOptionalInfoService =
             new UpdateOptionalInfoService(optInfoDao, activityDao, optionalUserInformation);
@@ -117,69 +53,8 @@ public class OptionalUserInformationController {
   public Handler saveInformation =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
-        ObjectMapper objectMapper = new ObjectMapper();
-
         CreateOptionalInfoService createOptionalInfoService =
-            new CreateOptionalInfoService(
-                optInfoDao,
-                req.getString("username"),
-                // Parameters for Person
-                req.getString("firstName"),
-                req.getString("middleName"),
-                req.getString("lastName"),
-                req.getString("ssn"),
-                new SimpleDateFormat("yyyy-MM-dd").parse(req.getString("birthDate")),
-                // Parameters for BasicInfo
-                req.getString("genderAssignedAtBirth"),
-                req.getString("emailAddress"),
-                req.getString("phoneNumber"),
-                objectMapper.readValue(
-                    req.getJSONObject("mailingAddress").toString(), Address.class),
-                objectMapper.readValue(
-                    req.getJSONObject("residentialAddress").toString(), Address.class),
-                req.getBoolean("differentBirthName"),
-                req.getString("suffix"),
-                req.getString("birthFirstName"),
-                req.getString("birthMiddleName"),
-                req.getString("birthLastName"),
-                req.getString("birthSuffix"),
-                req.getString("stateIdNumber"),
-                req.getBoolean("haveDisability"),
-                // Parameters for DemographicInfo
-                req.getString("languagePreference"),
-                req.getBoolean("isEthnicityHispanicLatino"),
-                req.getString("race").equals("")
-                    ? Race.UNSELECTED
-                    : Race.valueOf(req.getString("race")),
-                req.getString("cityOfBirth"),
-                req.getString("stateOfBirth"),
-                req.getString("countryOfBirth"),
-                req.getString("citizenship").equals("")
-                    ? Citizenship.UNSELECTED
-                    : Citizenship.valueOf(req.getString("citizenship")),
-                // Parameters for FamilyInfo
-                objectMapper.readValue(
-                    req.getJSONArray("parents").toString(), new TypeReference<List<Person>>() {}),
-                objectMapper.readValue(
-                    req.getJSONArray("legalGuardians").toString(),
-                    new TypeReference<List<Person>>() {}),
-                req.getString("maritalStatus").equals("")
-                    ? MaritalStatus.UNSELECTED
-                    : MaritalStatus.valueOf(req.getString("maritalStatus")),
-                objectMapper.readValue(req.getJSONObject("spouse").toString(), Person.class),
-                objectMapper.readValue(
-                    req.getJSONArray("children").toString(), new TypeReference<List<Person>>() {}),
-                objectMapper.readValue(
-                    req.getJSONArray("siblings").toString(), new TypeReference<List<Person>>() {}),
-
-                // Parameters for VeteranStatus
-                req.getBoolean("isVeteran"),
-                req.getBoolean("isProtectedVeteran"),
-                req.getString("branch"),
-                req.getString("yearsOfService"),
-                req.getString("rank"),
-                req.getString("discharge"));
-
+            OptionalUserInformationRequestParser.parseAndCreate(optInfoDao, req);
         Message response = createOptionalInfoService.executeAndGetResponse();
         ctx.result(response.toJSON().toString());
       };

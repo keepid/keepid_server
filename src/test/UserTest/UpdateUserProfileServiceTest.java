@@ -317,6 +317,54 @@ public class UpdateUserProfileServiceTest {
   }
 
   @Test
+  public void updateDemographicInfoNestedObjectWithRaceAndCitizenshipEnumSuccess() {
+    EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    JSONObject demographicInfo = new JSONObject();
+    demographicInfo.put("languagePreference", "English");
+    demographicInfo.put("race", "ASIAN");
+    demographicInfo.put("citizenship", "US_CITIZEN");
+    JSONObject optionalInformation = new JSONObject();
+    optionalInformation.put("demographicInfo", demographicInfo);
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation", optionalInformation);
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertNotNull(updatedUser.getOptionalInformation());
+    assertNotNull(updatedUser.getOptionalInformation().getDemographicInfo());
+    assertEquals("English", updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference());
+    assertEquals(Race.ASIAN, updatedUser.getOptionalInformation().getDemographicInfo().getRace());
+    assertEquals(Citizenship.US_CITIZEN, updatedUser.getOptionalInformation().getDemographicInfo().getCitizenship());
+  }
+
+  @Test
+  public void updateDemographicInfoInvalidRaceEnumReturnsError() {
+    EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("optionalInformation.demographicInfo.race", "INVALID_RACE_VALUE");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertTrue(response instanceof ValidationException);
+    JSONObject responseJSON = response.toJSON();
+    assertEquals("INVALID_PARAMETER", responseJSON.getString("status"));
+  }
+
+  @Test
   public void updateNestedAddressFieldWithDotNotation() {
     User user = EntityFactory.createUser()
         .withUsername("testuser")
