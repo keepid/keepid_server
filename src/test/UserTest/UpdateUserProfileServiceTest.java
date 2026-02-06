@@ -227,7 +227,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void firstNameLastNameInPersonAreNotMutable() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .withFirstName("RootFirst")
