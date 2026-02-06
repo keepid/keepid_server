@@ -267,7 +267,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateIndividualFieldWithDotNotation() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
@@ -290,7 +290,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateMultipleFieldsWithDotNotation() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
@@ -406,7 +406,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateFieldWithDotNotationIgnoresFirstNameLastNameInPerson() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .withFirstName("RootFirst")
@@ -442,7 +442,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateFieldWithDotNotationValidatesEmail() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
@@ -460,7 +460,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateFieldWithDotNotationAndNestedObjectBackwardCompatible() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
