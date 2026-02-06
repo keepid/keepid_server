@@ -180,7 +180,7 @@ public class UpdateUserProfileServiceTest {
 
   @Test
   public void updateNestedAddressFields() {
-    User user = EntityFactory.createUser()
+    EntityFactory.createUser()
         .withUsername("testuser")
         .withUserType(UserType.Client)
         .buildAndPersist(userDao);
