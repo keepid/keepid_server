@@ -4,8 +4,10 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
+import Organization.Organization;
 import File.File;
 import File.FileMessage;
 import File.FileType;
@@ -40,6 +42,7 @@ public class UserController {
   ActivityDao activityDao;
   FormDao formDao;
   FileDao fileDao;
+  OrgDao orgDao;
 
   public UserController(
       UserDao userDao,
@@ -47,12 +50,14 @@ public class UserController {
       FileDao fileDao,
       ActivityDao activityDao,
       FormDao formDao,
+      OrgDao orgDao,
       MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
+    this.orgDao = orgDao;
     this.db = db;
   }
 
@@ -463,6 +468,64 @@ public class UserController {
       JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
       ctx.result(mergedInfo.toString());
     }
+  };
+
+  /**
+   * Get organization details (name, address, phone, email) for the client's org.
+   * User must belong to the requested organization.
+   * POST /get-organization-info
+   * Request: { "orgName": "Organization Name" }
+   */
+  public Handler getOrganizationInfo = ctx -> {
+    log.info("Started getOrganizationInfo handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      ctx.result(AUTH_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String requestedOrgName = req.optString("orgName", null);
+    if (requestedOrgName == null || requestedOrgName.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    // User can only fetch org info for their own organization
+    if (!requestedOrgName.equals(sessionOrgName)) {
+      ctx.result(CROSS_ORG_ACTION_DENIED.toJSON().toString());
+      return;
+    }
+
+    Optional<Organization> orgOpt = orgDao.get(requestedOrgName);
+    if (orgOpt.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    Organization org = orgOpt.get();
+    List<String> addressParts = new ArrayList<>();
+    if (org.getOrgStreetAddress() != null && !org.getOrgStreetAddress().isEmpty()) {
+      addressParts.add(org.getOrgStreetAddress());
+    }
+    List<String> cityStateZip = new ArrayList<>();
+    if (org.getOrgCity() != null && !org.getOrgCity().isEmpty()) cityStateZip.add(org.getOrgCity());
+    if (org.getOrgState() != null && !org.getOrgState().isEmpty()) cityStateZip.add(org.getOrgState());
+    if (org.getOrgZipcode() != null && !org.getOrgZipcode().isEmpty()) cityStateZip.add(org.getOrgZipcode());
+    if (!cityStateZip.isEmpty()) {
+      addressParts.add(String.join(", ", cityStateZip));
+    }
+    String address = String.join(", ", addressParts);
+
+    JSONObject res = new JSONObject();
+    res.put("status", "SUCCESS");
+    res.put("name", org.getOrgName());
+    res.put("address", address);
+    res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
+    res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
+    ctx.result(res.toString());
   };
 
   public Handler getMembers = ctx -> {

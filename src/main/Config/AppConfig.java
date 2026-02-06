@@ -79,7 +79,7 @@ public class AppConfig {
     EncryptionController encryptionController = new EncryptionController(db);
     OrganizationController orgController = new OrganizationController(db, activityDao);
     UserController userController =
-        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, db);
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
@@ -156,6 +156,7 @@ public class AppConfig {
     app.post("/change-password", accountSecurityController.changePassword);
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.post("/get-user-info", userController.getUserInfo);
+    app.post("/get-organization-info", userController.getOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
     app.post("/delete-profile-field", userController.deleteProfileField);
