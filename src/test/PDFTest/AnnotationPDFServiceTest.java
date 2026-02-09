@@ -49,8 +49,11 @@ public class AnnotationPDFServiceTest {
     if(this.userDao != null) {
       this.userDao.clear();
     }
-    TestUtils.tearDownTestDB();
-    TestUtils.logout();
+    try {
+      TestUtils.logout();
+    } catch (Exception e) {
+      // Ignore – server may already be stopped or no session active
+    }
   }
 
   @AfterClass

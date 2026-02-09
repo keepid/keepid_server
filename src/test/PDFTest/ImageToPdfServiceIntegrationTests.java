@@ -40,7 +40,11 @@ public class ImageToPdfServiceIntegrationTests {
         if(this.userDao != null) {
             this.userDao.clear();
         }
-        TestUtils.logout();
+        try {
+            TestUtils.logout();
+        } catch (Exception e) {
+            // Ignore – server may already be stopped or no session active
+        }
     }
 
     @AfterClass
