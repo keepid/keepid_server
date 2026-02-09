@@ -14,11 +14,28 @@ jobs:
       - slack/notify:
           event: pass
           template: basic_success_1
+  maven_test:
+    executor:
+      name: maven/default
+      tag: "21.0"
+    environment:
+      PORT: "7001"
+      TEST_PORT: "7001"
+      NEW_USER_ACTUALURL: "https://httpbin.org/post"
+      NEW_USER_TESTURL: "https://httpbin.org/post"
+      NEW_ORG_ACTUALURL: "https://httpbin.org/post"
+      NEW_ORG_TESTURL: "https://httpbin.org/post"
+      ISSUE_REPORT_ACTUALURL: "https://httpbin.org/post"
+      ISSUE_REPORT_TESTURL: "https://httpbin.org/post"
+      WEEKLY_REPORT_ACTUALURL: "https://httpbin.org/post"
+      WEEKLY_REPORT_TESTURL: "https://httpbin.org/post"
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: mvn verify
 workflows:
   maven_test:
     jobs:
-      - maven/test:
-          executor:
-            name: maven/default
-            tag: "21.0"
+      - maven_test:
           context: "Keep.id Slack"
