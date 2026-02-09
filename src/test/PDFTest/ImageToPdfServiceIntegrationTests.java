@@ -22,6 +22,8 @@ import static TestUtils.EntityFactory.createUser;
 import static TestUtils.TestUtils.assertPDFEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Ignore("Deprecated: v1 /upload endpoint was removed. Image-to-PDF logic is covered by "
+    + "ImageToPdfServiceUnitTests and the PDFV2Test suite.")
 public class ImageToPdfServiceIntegrationTests {
     private UserDao userDao;
 

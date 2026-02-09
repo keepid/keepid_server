@@ -31,6 +31,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.*;
 
+@Ignore("Deprecated: v1 endpoints (/upload, /get-application-questions, /fill-application) were "
+    + "removed. Replaced by PDFV2Test suite.")
 public class AnnotationPDFServiceTest {
   private UserDao userDao;
 
