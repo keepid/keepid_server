@@ -101,6 +101,12 @@ public class TestUtils {
     // If there are entries in the database, they should be cleared before more are added.
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
 
+    // Clear existing collections so re-runs and cross-class invocations start clean
+    testDB.getCollection("organization").drop();
+    testDB.getCollection("user").drop();
+    testDB.getCollection("tokens").drop();
+    testDB.getCollection("keys").drop();
+
     try {
       /* *********************** Broad Street Ministry ************************ */
       Organization broadStreetMinistry =
@@ -434,6 +440,19 @@ public class TestUtils {
               TestUtils.hashPassword("client2YMCA"),
               UserType.Client);
 
+      /* ******************** Test Org (for invited-user tests) **************************** */
+      Organization testOrg =
+          new Organization(
+              "Test Org",
+              "http://www.testorg.org",
+              "111222333",
+              "100 Test Ave",
+              "New York",
+              "NY",
+              "10003",
+              "contact@testorg.org",
+              "1234567890");
+
       /* *********************** 2FA Token Test Users ************************ */
 
       Organization twoFactorTokenOrg =
@@ -651,6 +670,7 @@ public class TestUtils {
           Arrays.asList(
               broadStreetMinistry,
               ymca,
+              testOrg,
               twoFactorTokenOrg,
               accountSettingsOrg,
               passwordSettingsOrg));
