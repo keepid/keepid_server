@@ -755,13 +755,13 @@ public class TestUtils {
     stopServer();
   }
 
-  // A private method for hashing passwords.
+  // A private method for hashing passwords (lightweight params for test speed).
   public static String hashPassword(String plainPass) {
     Argon2 argon2 = Argon2Factory.create();
     char[] passwordArr = plainPass.toCharArray();
     String passwordHash = null;
     try {
-      passwordHash = argon2.hash(10, 65536, 1, passwordArr);
+      passwordHash = argon2.hash(1, 1024, 1, passwordArr);
       argon2.wipeArray(passwordArr);
     } catch (Exception e) {
       argon2.wipeArray(passwordArr);
