@@ -71,6 +71,12 @@ public class TestUtils {
         System.exit(0);
       }
       app = AppConfig.appFactory(DeploymentLevel.TEST);
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        if (app != null) {
+          app.stop();
+          app = null;
+        }
+      }));
       return app;
     }
     return app;
@@ -750,9 +756,10 @@ public class TestUtils {
   }
 
   // Tears down the test database by clearing all collections.
+  // The server is intentionally kept alive so other test classes that
+  // share the same JVM can reuse it (encryption keys stay in memory).
   public static void tearDownTestDB() {
     MongoConfig.dropDatabase(DeploymentLevel.TEST);
-    stopServer();
   }
 
   // A private method for hashing passwords (lightweight params for test speed).
