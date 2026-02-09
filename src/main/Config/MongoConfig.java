@@ -70,10 +70,5 @@ public class MongoConfig {
       throw new IllegalStateException("Please start a client before dropping a database");
     }
     db.drop();
-    try {
-      Thread.sleep(4000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 }

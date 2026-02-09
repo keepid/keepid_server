@@ -18,7 +18,6 @@ import org.junit.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 import static com.mongodb.client.model.Filters.eq;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,12 +59,6 @@ public class ProductionControllerIntegrationTests {
   @Before
   public void login() {
     TestUtils.login("devYMCA", "devYMCA123");
-    try {
-      TimeUnit.SECONDS.sleep(1); // this looks super jank but basically we are running into concurrency problems
-      // if we login too fast because the login call is asynchronous because we are using unirest
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
   }
 
   @After
