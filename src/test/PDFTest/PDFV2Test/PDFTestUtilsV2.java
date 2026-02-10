@@ -1,11 +1,15 @@
 package PDFTest.PDFV2Test;
 
+import static org.junit.Assert.assertEquals;
+
+import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
+import PDF.PdfMessage;
 import PDF.Services.V2Services.GetQuestionsPDFServiceV2;
 import PDF.Services.V2Services.UploadAnnotatedPDFServiceV2;
 import PDF.Services.V2Services.UploadPDFServiceV2;
@@ -64,7 +68,8 @@ public class PDFTestUtilsV2 {
     UploadAnnotatedPDFServiceV2 uploadService =
         new UploadAnnotatedPDFServiceV2(
             fileDao, formDao, userDao, developerUserParams, blankFileParams, encryptionController);
-    System.out.println(uploadService.executeAndGetResponse());
+    Message uploadResponse = uploadService.executeAndGetResponse();
+    assertEquals("uploadBlankSSForm failed: " + uploadResponse, PdfMessage.SUCCESS, uploadResponse);
     return uploadService.getUploadedFileId();
   }
 
@@ -73,7 +78,11 @@ public class PDFTestUtilsV2 {
     FileParams getQuestionsFileParams = new FileParams().setFileId(SSFileId.toString());
     GetQuestionsPDFServiceV2 getService =
         new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
-    System.out.println(getService.executeAndGetResponse());
+    Message getQuestionsResponse = getService.executeAndGetResponse();
+    assertEquals(
+        "getQuestionsSSForm failed: " + getQuestionsResponse,
+        PdfMessage.SUCCESS,
+        getQuestionsResponse);
     return getService.getApplicationInformation();
   }
 
@@ -139,7 +148,11 @@ public class PDFTestUtilsV2 {
     UploadSignedPDFServiceV2 uploadService =
         new UploadSignedPDFServiceV2(
             fileDao, formDao, activityDao, clientUserParams, fillFileParams, encryptionController);
-    uploadService.executeAndGetResponse();
+    Message uploadResponse = uploadService.executeAndGetResponse();
+    assertEquals(
+        "uploadAnnotatedSSForm failed: " + uploadResponse,
+        PdfMessage.SUCCESS,
+        uploadResponse);
     return uploadService.getFilledFileObjectId();
   }
 

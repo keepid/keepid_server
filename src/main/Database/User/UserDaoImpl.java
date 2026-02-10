@@ -67,7 +67,7 @@ public class UserDaoImpl implements UserDao {
 
   @Override
   public void clear() {
-    userCollection.drop();
+    userCollection.deleteMany(new Document());
   }
 
   @Override

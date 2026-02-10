@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 public class FormDaoImpl implements FormDao {
@@ -38,7 +39,7 @@ public class FormDaoImpl implements FormDao {
 
   @Override
   public void clear() {
-    formCollection.drop();
+    formCollection.deleteMany(new Document());
   }
 
   @Override

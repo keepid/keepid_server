@@ -5,6 +5,7 @@ import Config.MongoConfig;
 import Organization.Organization;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
@@ -63,7 +64,7 @@ public class OrgDaoImpl implements OrgDao {
 
   @Override
   public void clear() {
-    orgCollection.drop();
+    orgCollection.deleteMany(new Document());
   }
 
   @Override
