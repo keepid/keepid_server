@@ -3,8 +3,6 @@ package UserTest;
 import static com.mongodb.client.model.Filters.eq;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
@@ -26,7 +24,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
-import io.javalin.http.Context;
 import java.util.Optional;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -46,7 +43,6 @@ public class ChangePasswordIntegrationTests {
     TestUtils.tearDownTestDB();
   }
 
-  Context ctx = mock(Context.class);
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
   UserDao userDao = UserDaoFactory.create(DeploymentLevel.TEST);
   TokenDao tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);

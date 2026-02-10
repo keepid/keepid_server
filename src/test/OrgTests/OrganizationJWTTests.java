@@ -306,6 +306,7 @@ public class OrganizationJWTTests {
     String testOrgs[] = {
       "Broad Street Ministry",
       "YMCA",
+      "Test Org",
       "2FA Token Org",
       "Account Settings Org",
       "Password Settings Org"

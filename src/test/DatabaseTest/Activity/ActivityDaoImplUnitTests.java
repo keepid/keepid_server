@@ -183,7 +183,7 @@ public class ActivityDaoImplUnitTests {
 
     activityDao.delete(activity);
     assertFalse(activityDao.get(activity.getId()).isPresent());
-    assertEquals(1, activityDao.size());
+    assertEquals(0, activityDao.size());
   }
 
   @Test

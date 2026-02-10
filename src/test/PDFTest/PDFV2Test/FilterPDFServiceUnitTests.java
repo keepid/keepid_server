@@ -7,6 +7,7 @@ import Config.DeploymentLevel;
 import Config.Message;
 import Config.MongoConfig;
 import Database.Activity.ActivityDao;
+import Database.Activity.ActivityDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -68,6 +69,7 @@ public class FilterPDFServiceUnitTests {
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    this.activityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     File sampleBlankFile2 =
@@ -209,7 +211,10 @@ public class FilterPDFServiceUnitTests {
   public void reset() {
     this.fileDao.clear();
     this.formDao.clear();
-    if(this.userDao != null) {
+    if (this.activityDao != null) {
+      this.activityDao.clear();
+    }
+    if (this.userDao != null) {
       this.userDao.clear();
     }
     try {

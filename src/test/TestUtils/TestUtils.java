@@ -24,7 +24,7 @@ import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
-import org.bson.Document;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -108,10 +108,12 @@ public class TestUtils {
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
 
     // Clear existing collections so re-runs and cross-class invocations start clean
+    // Note: do NOT drop the "keys" collection -- it contains the real encryption
+    // keyset used by EncryptionController. Dropping it breaks any test that needs
+    // encryption and runs after this setup.
     testDB.getCollection("organization").drop();
     testDB.getCollection("user").drop();
     testDB.getCollection("tokens").drop();
-    testDB.getCollection("keys").drop();
 
     try {
       /* *********************** Broad Street Ministry ************************ */
@@ -741,11 +743,6 @@ public class TestUtils {
       MongoCollection<Tokens> tokenCollection = testDB.getCollection("tokens", Tokens.class);
       tokenCollection.insertMany(Arrays.asList(validToken, expiredToken));
 
-      // Add an AED to the test database
-      MongoCollection<Document> keysCollection = testDB.getCollection("keys", Document.class);
-      Document aed = new Document();
-      aed.append("primaryKeyId", 1234567890);
-      keysCollection.insertOne(aed);
     } catch (Exception e) {
       e.printStackTrace();
     }
