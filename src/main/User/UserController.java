@@ -259,6 +259,16 @@ public class UserController {
       ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
       ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
       ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
+      ctx.sessionAttribute("googleLoginError", null);
+    } else {
+      // Store the error reason so the client can display a descriptive message
+      ctx.sessionAttribute("googleLoginError", response.getErrorName());
+      // If user not found, store Google profile for sign-up pre-fill
+      if (response == GoogleLoginResponseMessage.USER_NOT_FOUND) {
+        ctx.sessionAttribute("googleEmail", processGoogleLoginResponseService.getGoogleEmail());
+        ctx.sessionAttribute("googleFirstName", processGoogleLoginResponseService.getGoogleFirstName());
+        ctx.sessionAttribute("googleLastName", processGoogleLoginResponseService.getGoogleLastName());
+      }
     }
     ctx.sessionAttribute("PKCECodeVerifier", null);
     ctx.sessionAttribute("origin_uri", null);
@@ -283,6 +293,7 @@ public class UserController {
     String username = ctx.sessionAttribute("username");
     String fullName = ctx.sessionAttribute("fullName");
     UserType role = ctx.sessionAttribute("privilegeLevel");
+    String googleLoginError = ctx.sessionAttribute("googleLoginError");
     log.info("Retrieved session attributes of org: {}, " +
         "username: {}, " +
         "fullName: {}, " +
@@ -293,6 +304,25 @@ public class UserController {
     responseJSON.put("username", username == null ? "" : username);
     responseJSON.put("fullName", fullName == null ? "" : fullName);
     responseJSON.put("userRole", role == null ? "" : role);
+    if (googleLoginError != null) {
+      responseJSON.put("googleLoginError", googleLoginError);
+      // Clear the error after reading so it's only shown once
+      ctx.sessionAttribute("googleLoginError", null);
+
+      // Include Google profile data if available (for sign-up pre-fill)
+      String googleEmail = ctx.sessionAttribute("googleEmail");
+      String googleFirstName = ctx.sessionAttribute("googleFirstName");
+      String googleLastName = ctx.sessionAttribute("googleLastName");
+      if (googleEmail != null) {
+        responseJSON.put("googleEmail", googleEmail);
+        responseJSON.put("googleFirstName", googleFirstName != null ? googleFirstName : "");
+        responseJSON.put("googleLastName", googleLastName != null ? googleLastName : "");
+        // Clear after reading
+        ctx.sessionAttribute("googleEmail", null);
+        ctx.sessionAttribute("googleFirstName", null);
+        ctx.sessionAttribute("googleLastName", null);
+      }
+    }
 
     log.info("Returning response with session info: {}", responseJSON);
     ctx.result(responseJSON.toString());
