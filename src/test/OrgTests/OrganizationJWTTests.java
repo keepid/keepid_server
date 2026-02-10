@@ -1,7 +1,14 @@
 package OrgTests;
 
+import Config.DeploymentLevel;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import Security.SecurityUtils;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
+import User.UserType;
 import Validation.ValidationException;
 import io.jsonwebtoken.Claims;
 import kong.unirest.HttpResponse;
@@ -21,15 +28,57 @@ import static org.junit.Assert.assertEquals;
 public class OrganizationJWTTests {
   private SecurityUtils securityUtils = new SecurityUtils();
 
+  private static UserDao userDao;
+  private static OrgDao orgDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+
+    // Create all 6 orgs needed by findAllOrgs test
+    EntityFactory.createOrganization()
+        .withOrgName("Broad Street Ministry")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("YMCA")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Test Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("2FA Token Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Account Settings Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Password Settings Org")
+        .buildAndPersist(orgDao);
+
+    // adminBSM for invite tests
+    EntityFactory.createUser()
+        .withUsername("adminBSM")
+        .withPasswordToHash("adminBSM")
+        .withOrgName("Broad Street Ministry")
+        .withUserType(UserType.Director)
+        .buildAndPersist(userDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
   }
 
   @Test

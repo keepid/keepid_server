@@ -2,7 +2,14 @@ package UserTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import Config.DeploymentLevel;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
+import User.UserType;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
@@ -12,15 +19,76 @@ import org.junit.Test;
 
 public class UserControllerIntegrationTest {
 
+  private static UserDao userDao;
+  private static OrgDao orgDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Broad Street Ministry")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withEmail("mikedahl@broadstreetministry.org")
+        .withPhoneNumber("1234567890")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Test Org")
+        .withWebsite("http://www.testorg.org")
+        .withEIN("111222333")
+        .withAddress("100 Test Ave")
+        .withCity("New York")
+        .withState("NY")
+        .withZipcode("10003")
+        .withEmail("contact@testorg.org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createUser()
+        .withFirstName("Mike")
+        .withLastName("Dahl")
+        .withBirthDate("06-16-1960")
+        .withEmail("mikedahl@broadstreetministry.org")
+        .withPhoneNumber("1234567890")
+        .withOrgName("Broad Street Ministry")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername("adminBSM")
+        .withPasswordToHash("adminBSM")
+        .withUserType(UserType.Director)
+        .buildAndPersist(userDao);
+
+    // Workers and clients for getClients/getMembers tests
+    EntityFactory.createUser()
+        .withFirstName("Worker")
+        .withLastName("Tff")
+        .withUsername("workertffBSM")
+        .withPasswordToHash("workertffBSM")
+        .withOrgName("Broad Street Ministry")
+        .withUserType(UserType.Worker)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withFirstName("Client")
+        .withLastName("Bsm")
+        .withUsername("client1BSM")
+        .withPasswordToHash("client1BSM")
+        .withOrgName("Broad Street Ministry")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
   }
 
   @Test

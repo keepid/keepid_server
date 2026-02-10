@@ -2,9 +2,13 @@ package UserTest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.IpObject;
 import User.User;
+import User.UserType;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import kong.unirest.HttpResponse;
@@ -22,15 +26,24 @@ import java.util.List;
 import static com.mongodb.client.model.Filters.eq;
 
 public class LogInHistoryTest {
+  private static UserDao userDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+
+    EntityFactory.createUser()
+        .withUsername("login-history-test")
+        .withPasswordToHash("login-history-test")
+        .withOrgName("login history Org")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
   }
 
   @Test

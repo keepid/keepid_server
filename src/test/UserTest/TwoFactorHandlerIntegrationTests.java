@@ -1,28 +1,84 @@
 package UserTest;
 
-import kong.unirest.Unirest;
+import Config.DeploymentLevel;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
+import Database.Token.TokenDao;
+import Database.Token.TokenDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
+import User.UserType;
 import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.util.Date;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.mock;
 
 public class TwoFactorHandlerIntegrationTests {
+
+  private static UserDao userDao;
+  private static OrgDao orgDao;
+  private static TokenDao tokenDao;
 
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    tokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+
+    EntityFactory.createOrganization()
+        .withOrgName("2FA Token Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createUser()
+        .withUsername("tokentest-valid")
+        .withPasswordToHash("tokentest-valid")
+        .withOrgName("2FA Token Org")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withUsername("tokentest-notoken")
+        .withPasswordToHash("tokentest-notoken")
+        .withOrgName("2FA Token Org")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withUsername("tokentest-expired")
+        .withPasswordToHash("tokentest-expired")
+        .withOrgName("2FA Token Org")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    // Valid token (expires Jan 1, 2090)
+    EntityFactory.createTokens()
+        .withUsername("tokentest-valid")
+        .withTwoFactorCode("444555")
+        .withTwoFactorExp(new Date(Long.valueOf("3786930000000")))
+        .buildAndPersist(tokenDao);
+
+    // Expired token (expired Jan 1, 1970)
+    EntityFactory.createTokens()
+        .withUsername("tokentest-expired")
+        .withTwoFactorCode("123123")
+        .withTwoFactorExp(new Date(Long.valueOf("0")))
+        .buildAndPersist(tokenDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
+    tokenDao.clear();
   }
 
   @Test
