@@ -143,7 +143,7 @@ public class UserController {
     String userAgent = ctx.userAgent();
     log.info("Attempting to login " + username);
 
-    LoginService loginService = new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
+    LoginService loginService = new LoginService(userDao, activityDao, username, password, ip, userAgent);
     Message response = loginService.executeAndGetResponse();
     log.info(response.toString() + response.getErrorDescription());
     JSONObject responseJSON = response.toJSON();
@@ -152,7 +152,6 @@ public class UserController {
       responseJSON.put("organization", loginService.getOrganization());
       responseJSON.put("firstName", loginService.getFirstName());
       responseJSON.put("lastName", loginService.getLastName());
-      responseJSON.put("twoFactorOn", loginService.isTwoFactorOn());
 
       ctx.sessionAttribute("privilegeLevel", loginService.getUserRole());
       ctx.sessionAttribute("orgName", loginService.getOrganization());
@@ -163,7 +162,6 @@ public class UserController {
       responseJSON.put("organization", "");
       responseJSON.put("firstName", "");
       responseJSON.put("lastName", "");
-      responseJSON.put("twoFactorOn", "");
     }
     ctx.result(responseJSON.toString());
   };
@@ -339,14 +337,12 @@ public class UserController {
       responseJSON.put("organization", authenticateUserService.getOrganization());
       responseJSON.put("firstName", authenticateUserService.getFirstName());
       responseJSON.put("lastName", authenticateUserService.getLastName());
-      responseJSON.put("twoFactorOn", authenticateUserService.isTwoFactorOn());
     } else {
       responseJSON.put("username", "");
       responseJSON.put("userRole", "");
       responseJSON.put("organization", "");
       responseJSON.put("firstName", "");
       responseJSON.put("lastName", "");
-      responseJSON.put("twoFactorOn", "");
     }
     ctx.result(responseJSON.toString());
   };

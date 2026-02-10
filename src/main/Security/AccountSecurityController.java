@@ -55,16 +55,6 @@ public class AccountSecurityController {
         ctx.result(changeAccountSettingService.executeAndGetResponse().toResponseString());
       };
 
-  public Handler change2FASetting =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        Boolean isTwoFactorOn = req.getBoolean("twoFactorOn");
-        String username = ctx.sessionAttribute("username");
-        Change2FAService change2FAService =
-            new Change2FAService(userDao, activityDao, username, isTwoFactorOn);
-        ctx.result(change2FAService.executeAndGetResponse().toResponseString());
-      };
-
   public Handler resetPassword =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
@@ -76,19 +66,4 @@ public class AccountSecurityController {
         ctx.result(resetPasswordService.executeAndGetResponse().toResponseString());
       };
 
-  public Handler twoFactorAuth =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        String token = req.getString("token");
-        TwoFactorAuthService twoFactorAuthService =
-            new TwoFactorAuthService(userDao, tokenDao, username, token);
-        Message message = twoFactorAuthService.executeAndGetResponse();
-        if (message == UserMessage.SUCCESS) {
-          ctx.sessionAttribute("privilegeLevel", twoFactorAuthService.getUserType());
-          ctx.sessionAttribute("orgName", twoFactorAuthService.getOrgName());
-          ctx.sessionAttribute("username", twoFactorAuthService.getUsername());
-        }
-        ctx.result(message.toResponseString());
-      };
 }

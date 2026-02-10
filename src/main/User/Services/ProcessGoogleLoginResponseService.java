@@ -236,11 +236,6 @@ public class ProcessGoogleLoginResponseService implements Service {
         return user.getFirstName() + " " + user.getLastName();
     }
 
-    public boolean isTwoFactorOn() {
-        Objects.requireNonNull(user);
-        return user.getTwoFactorOn();
-    }
-
     /** Google profile getters (available after executeAndGetResponse, even when USER_NOT_FOUND) */
     public String getGoogleEmail() {
         return googleEmail;

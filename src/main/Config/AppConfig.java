@@ -160,7 +160,6 @@ public class AppConfig {
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
     app.post("/delete-profile-field", userController.deleteProfileField);
-    app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -184,8 +183,6 @@ public class AppConfig {
 
     /* -------------- ACCOUNT SETTINGS ------------------ */
     app.post("/change-account-setting", accountSecurityController.changeAccountSetting);
-    app.post("/change-two-factor-setting", accountSecurityController.change2FASetting);
-
     /* -------------- SUBMIT BUG------------------ */
     app.post("/submit-issue", issueController.submitIssue);
 

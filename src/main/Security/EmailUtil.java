@@ -18,19 +18,6 @@ import java.util.Objects;
 import java.util.Properties;
 
 public class EmailUtil {
-  private static String verificationCodeEmailPath =
-      Paths.get("").toAbsolutePath().toString()
-          + File.separator
-          + "src"
-          + File.separator
-          + "main"
-          + File.separator
-          + "Security"
-          + File.separator
-          + "Resources"
-          + File.separator
-          + "verificationCodeEmail.html";
-
   private static String passwordResetLinkEmailPath =
       Paths.get("").toAbsolutePath().toString()
           + File.separator
@@ -99,25 +86,6 @@ public class EmailUtil {
     } catch (MessagingException | UnsupportedEncodingException e) {
       e.printStackTrace();
     }
-  }
-
-  public static String getVerificationCodeEmail(String verificationCode) throws EmailExceptions {
-    File verificationCodeEmail = new File(verificationCodeEmailPath);
-    try {
-      Document htmlDoc = Jsoup.parse(verificationCodeEmail, "UTF-8");
-      Element targetElement = htmlDoc.getElementById("targetVerificationCode");
-      if (targetElement != null) {
-        targetElement.text(verificationCode);
-      } else {
-        throw new EmailExceptions(EmailMessages.CODE_DOM_NOT_FOUND);
-      }
-      return htmlDoc.toString();
-    } catch (FileNotFoundException e) {
-      throw new EmailExceptions(EmailMessages.HTML_NOT_FOUND);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return null;
   }
 
   public static String getPasswordResetEmail(String jwt) throws EmailExceptions {
