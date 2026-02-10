@@ -8,6 +8,8 @@ import Config.Message;
 import Config.MongoConfig;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -17,9 +19,11 @@ import Security.Services.ChangePasswordService;
 import Security.Services.ForgotPasswordService;
 import Security.Services.ResetPasswordService;
 import Security.Tokens;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserMessage;
+import User.UserType;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import de.mkammerer.argon2.Argon2;
@@ -32,15 +36,38 @@ import org.junit.Test;
 public class ChangePasswordIntegrationTests {
   private static final int EXPIRATION_TIME_2_HOURS = 7200000;
 
+  private static UserDao staticUserDao;
+  private static OrgDao orgDao;
+  private static TokenDao staticTokenDao;
+  private static ActivityDao staticActivityDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    staticUserDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    staticTokenDao = TokenDaoFactory.create(DeploymentLevel.TEST);
+    staticActivityDao = ActivityDaoFactory.create(DeploymentLevel.TEST);
+
+    EntityFactory.createOrganization()
+        .withOrgName("Password Settings Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createUser()
+        .withUsername("password-reset-test")
+        .withPasswordToHash("a4d3jgHow0")
+        .withEmail("contact@example.com")
+        .withOrgName("Password Settings Org")
+        .withUserType(UserType.Client)
+        .buildAndPersist(staticUserDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    staticUserDao.clear();
+    orgDao.clear();
+    staticTokenDao.clear();
+    staticActivityDao.clear();
   }
 
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);
