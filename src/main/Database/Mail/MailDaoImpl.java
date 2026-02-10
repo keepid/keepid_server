@@ -10,6 +10,7 @@ import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 public class MailDaoImpl implements MailDao {
@@ -41,7 +42,7 @@ public class MailDaoImpl implements MailDao {
 
   @Override
   public void clear() {
-    mailCollection.drop();
+    mailCollection.deleteMany(new Document());
   }
 
   @Override

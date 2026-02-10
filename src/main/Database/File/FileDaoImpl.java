@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
@@ -55,7 +56,7 @@ public class FileDaoImpl implements FileDao {
   @Override
   public void clear() {
     if(fileCollection != null) {
-      fileCollection.drop();
+      fileCollection.deleteMany(new Document());
     }
     if (fileBucket != null) {
       fileBucket.drop();

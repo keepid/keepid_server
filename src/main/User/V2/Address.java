@@ -9,9 +9,9 @@ import lombok.*;
 @NoArgsConstructor
 public class Address {
 
-  @NonNull String streetAddress;
+  String streetAddress;
   String apartmentNumber;
-  @NonNull String city;
-  @NonNull String state;
-  @NonNull String zip;
+  String city;
+  String state;
+  String zip;
 }

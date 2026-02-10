@@ -6,6 +6,7 @@ import Security.Tokens;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ReplaceOptions;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class TokenDaoImpl implements TokenDao {
 
   @Override
   public void clear() {
-    tokenCollection.drop();
+    tokenCollection.deleteMany(new Document());
   }
 
   @Override

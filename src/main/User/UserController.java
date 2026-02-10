@@ -4,8 +4,10 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
+import Organization.Organization;
 import File.File;
 import File.FileMessage;
 import File.FileType;
@@ -14,6 +16,8 @@ import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
+import static User.UserMessage.*;
+import static User.UserType.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.mongodb.client.MongoDatabase;
@@ -38,6 +42,7 @@ public class UserController {
   ActivityDao activityDao;
   FormDao formDao;
   FileDao fileDao;
+  OrgDao orgDao;
 
   public UserController(
       UserDao userDao,
@@ -45,501 +50,552 @@ public class UserController {
       FileDao fileDao,
       ActivityDao activityDao,
       FormDao formDao,
+      OrgDao orgDao,
       MongoDatabase db) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
+    this.orgDao = orgDao;
     this.db = db;
   }
 
-    public static final String newUserActualURL =
-            Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
-    public static final String newUserTestURL =
-            Objects.requireNonNull(System.getenv("NEW_USER_TESTURL"));
+  public static final String newUserActualURL = Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
+  public static final String newUserTestURL = Objects.requireNonNull(System.getenv("NEW_USER_TESTURL"));
 
-  public Handler ingestCsv =
-      ctx -> {
-        String csvName = "Face to Face Birth Certificate Clinic Signups.csv";
-        String orgName = "Face to Face";
-        String creatorUsername = "FACE-TO-FACE-ADMIN";
-        String defaultBirthdate = "01-01-2025";
-        String faceToFaceAddress = "123 E Price St";
-        String faceToFaceCity = "Philadelphia";
-        String faceToFaceState = "PA";
-        String faceToFaceZip = "19144";
-        List<String[]> records = new ArrayList<>();
+  public Handler ingestCsv = ctx -> {
+    String csvName = "Face to Face Birth Certificate Clinic Signups.csv";
+    String orgName = "Face to Face";
+    String creatorUsername = "FACE-TO-FACE-ADMIN";
+    String defaultBirthdate = "01-01-2025";
+    String faceToFaceAddress = "123 E Price St";
+    String faceToFaceCity = "Philadelphia";
+    String faceToFaceState = "PA";
+    String faceToFaceZip = "19144";
+    List<String[]> records = new ArrayList<>();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(csvName))) {
-          String line;
-          String header = br.readLine();
-          while ((line = br.readLine()) != null) {
-            String[] values = line.split(",");
-            if (values.length >= 4) {
-              String[] entry = new String[4];
-              entry[0] = values[0].trim(); // First Name
-              entry[1] = values[1].trim(); // Last Name
-              entry[2] = values[2].trim(); // Email
-              entry[3] = values[3].trim(); // Phone Number
-              records.add(entry);
-            }
-          }
-        } catch (IOException e) {
-          e.printStackTrace();
+    try (BufferedReader br = new BufferedReader(new FileReader(csvName))) {
+      String line;
+      String header = br.readLine();
+      while ((line = br.readLine()) != null) {
+        String[] values = line.split(",");
+        if (values.length >= 4) {
+          String[] entry = new String[4];
+          entry[0] = values[0].trim(); // First Name
+          entry[1] = values[1].trim(); // Last Name
+          entry[2] = values[2].trim(); // Email
+          entry[3] = values[3].trim(); // Phone Number
+          records.add(entry);
         }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
-        for (String[] record : records) {
-          String clientFirstName = record[0];
-          String clientLastName = record[1];
-          String clientEmail = record[2];
-          String clientPhoneNumber = record[3];
-          String clientUsername =
-              clientFirstName.toLowerCase() + "-" + clientLastName.toLowerCase();
-          String clientPassword =
-              clientFirstName.toLowerCase()
-                  + clientLastName.toLowerCase()
-                  + clientPhoneNumber.substring(
-                      clientPhoneNumber.length() - 4); // firstnamelastnamelast4phone
-          System.out.println("First Name: " + clientFirstName);
-          System.out.println("Last Name: " + clientLastName);
-          System.out.println("Email: " + clientEmail);
-          System.out.println("Phone Number: " + clientPhoneNumber);
-          System.out.println("---------------------------");
+    for (String[] record : records) {
+      String clientFirstName = record[0];
+      String clientLastName = record[1];
+      String clientEmail = record[2];
+      String clientPhoneNumber = record[3];
+      String clientUsername = clientFirstName.toLowerCase() + "-" + clientLastName.toLowerCase();
+      String clientPassword = clientFirstName.toLowerCase()
+          + clientLastName.toLowerCase()
+          + clientPhoneNumber.substring(
+              clientPhoneNumber.length() - 4); // firstnamelastnamelast4phone
+      System.out.println("First Name: " + clientFirstName);
+      System.out.println("Last Name: " + clientLastName);
+      System.out.println("Email: " + clientEmail);
+      System.out.println("Phone Number: " + clientPhoneNumber);
+      System.out.println("---------------------------");
 
-          CreateUserService createUserService =
-              new CreateUserService(
-                  userDao,
-                  activityDao,
-                  UserType.Admin,
-                  orgName,
-                  creatorUsername,
-                  clientFirstName,
-                  clientLastName,
-                  defaultBirthdate,
-                  clientEmail,
-                  clientPhoneNumber,
-                  faceToFaceAddress,
-                  faceToFaceCity,
-                  faceToFaceState,
-                  faceToFaceZip,
-                  false,
-                  clientUsername,
-                  clientPassword,
-                  UserType.Client);
-          Message response = createUserService.executeAndGetResponse();
-          System.out.println(response.toResponseString());
-        }
-        ctx.result("SUCCESS");
-      };
+      CreateUserService createUserService = new CreateUserService(
+          userDao,
+          activityDao,
+          UserType.Admin,
+          orgName,
+          creatorUsername,
+          clientFirstName,
+          clientLastName,
+          defaultBirthdate,
+          clientEmail,
+          clientPhoneNumber,
+          faceToFaceAddress,
+          faceToFaceCity,
+          faceToFaceState,
+          faceToFaceZip,
+          false,
+          clientUsername,
+          clientPassword,
+          UserType.Client);
+      Message response = createUserService.executeAndGetResponse();
+      System.out.println(response.toResponseString());
+    }
+    ctx.result("SUCCESS");
+  };
 
-  public Handler loginUser =
-      ctx -> {
-        ctx.req.getSession().invalidate();
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        String password = req.getString("password");
-        String ip = ctx.ip();
-        String userAgent = ctx.userAgent();
-        log.info("Attempting to login " + username);
+  public Handler loginUser = ctx -> {
+    ctx.req.getSession().invalidate();
+    JSONObject req = new JSONObject(ctx.body());
+    String username = req.getString("username");
+    String password = req.getString("password");
+    String ip = ctx.ip();
+    String userAgent = ctx.userAgent();
+    log.info("Attempting to login " + username);
 
-        LoginService loginService =
-            new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
-        Message response = loginService.executeAndGetResponse();
-        log.info(response.toString() + response.getErrorDescription());
-        JSONObject responseJSON = response.toJSON();
-        if (response == UserMessage.AUTH_SUCCESS) {
-          responseJSON.put("userRole", loginService.getUserRole());
-          responseJSON.put("organization", loginService.getOrganization());
-          responseJSON.put("firstName", loginService.getFirstName());
-          responseJSON.put("lastName", loginService.getLastName());
-          responseJSON.put("twoFactorOn", loginService.isTwoFactorOn());
+    LoginService loginService = new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
+    Message response = loginService.executeAndGetResponse();
+    log.info(response.toString() + response.getErrorDescription());
+    JSONObject responseJSON = response.toJSON();
+    if (response == UserMessage.AUTH_SUCCESS) {
+      responseJSON.put("userRole", loginService.getUserRole());
+      responseJSON.put("organization", loginService.getOrganization());
+      responseJSON.put("firstName", loginService.getFirstName());
+      responseJSON.put("lastName", loginService.getLastName());
+      responseJSON.put("twoFactorOn", loginService.isTwoFactorOn());
 
-          ctx.sessionAttribute("privilegeLevel", loginService.getUserRole());
-          ctx.sessionAttribute("orgName", loginService.getOrganization());
-          ctx.sessionAttribute("username", loginService.getUsername());
-          ctx.sessionAttribute("fullName", loginService.getFullName());
-        } else {
-          responseJSON.put("userRole", "");
-          responseJSON.put("organization", "");
-          responseJSON.put("firstName", "");
-          responseJSON.put("lastName", "");
-          responseJSON.put("twoFactorOn", "");
-        }
-        ctx.result(responseJSON.toString());
-      };
+      ctx.sessionAttribute("privilegeLevel", loginService.getUserRole());
+      ctx.sessionAttribute("orgName", loginService.getOrganization());
+      ctx.sessionAttribute("username", loginService.getUsername());
+      ctx.sessionAttribute("fullName", loginService.getFullName());
+    } else {
+      responseJSON.put("userRole", "");
+      responseJSON.put("organization", "");
+      responseJSON.put("firstName", "");
+      responseJSON.put("lastName", "");
+      responseJSON.put("twoFactorOn", "");
+    }
+    ctx.result(responseJSON.toString());
+  };
 
   /**
    * Initializes the Google OAuth2 Login Workflow.
    *
-   * <p>Implements CSRF and PKCE protections.</p>
+   * <p>
+   * Implements CSRF and PKCE protections.
+   * </p>
    *
-   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   * @see <a href=
+   *      "https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
    */
-  public Handler googleLoginRequestHandler =
-      ctx -> {
-        ctx.req.getSession().invalidate();
-        JSONObject req = new JSONObject(ctx.body());
-        String redirectUri = req.optString("redirectUri", null);
-        String originUri = req.optString("originUri", null);
-        log.info("Processing Google login request with redirect URI: {}," +
-            "origin URI: {}",
-            redirectUri, originUri);
+  public Handler googleLoginRequestHandler = ctx -> {
+    ctx.req.getSession().invalidate();
+    JSONObject req = new JSONObject(ctx.body());
+    String redirectUri = req.optString("redirectUri", null);
+    String originUri = req.optString("originUri", null);
+    log.info("Processing Google login request with redirect URI: {}," +
+        "origin URI: {}",
+        redirectUri, originUri);
 
-        ProcessGoogleLoginRequestService processGoogleLoginRequestService =
-            new ProcessGoogleLoginRequestService(redirectUri, originUri);
-        Message response = processGoogleLoginRequestService.executeAndGetResponse();
-        JSONObject responseJSON = response.toJSON();
-        log.info("Google login request processed with status: {}",  response.getErrorName());
+    ProcessGoogleLoginRequestService processGoogleLoginRequestService = new ProcessGoogleLoginRequestService(
+        redirectUri, originUri);
+    Message response = processGoogleLoginRequestService.executeAndGetResponse();
+    JSONObject responseJSON = response.toJSON();
+    log.info("Google login request processed with status: {}", response.getErrorName());
 
-        if (response == GoogleLoginRequestMessage.REQUEST_SUCCESS) {
-          log.info("Setting session attributes");
-          ctx.sessionAttribute("origin_uri", originUri);
-          ctx.sessionAttribute("redirect_uri", redirectUri);
-          ctx.sessionAttribute("PKCECodeVerifier",
-              processGoogleLoginRequestService.getCodeVerifier());
-          ctx.sessionAttribute("state", processGoogleLoginRequestService.getCsrfToken());
+    if (response == GoogleLoginRequestMessage.REQUEST_SUCCESS) {
+      log.info("Setting session attributes");
+      ctx.sessionAttribute("origin_uri", originUri);
+      ctx.sessionAttribute("redirect_uri", redirectUri);
+      ctx.sessionAttribute("PKCECodeVerifier",
+          processGoogleLoginRequestService.getCodeVerifier());
+      ctx.sessionAttribute("state", processGoogleLoginRequestService.getCsrfToken());
 
-          responseJSON.put("codeChallenge", processGoogleLoginRequestService.getCodeChallenge());
-          responseJSON.put("state", processGoogleLoginRequestService.getCsrfToken());
-          ctx.result(responseJSON.toString());
-        }
-        ctx.result(responseJSON.toString());
-      };
+      responseJSON.put("codeChallenge", processGoogleLoginRequestService.getCodeChallenge());
+      responseJSON.put("state", processGoogleLoginRequestService.getCsrfToken());
+      ctx.result(responseJSON.toString());
+    }
+    ctx.result(responseJSON.toString());
+  };
 
   /**
    * Redirect URI endpoint for Google OAuth2 workflow.
    *
-   * @see <a href="https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
+   * @see <a href=
+   *      "https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
    */
-  public Handler googleLoginResponseHandler =
-      ctx -> {
-          String authCode = ctx.queryParam("code");
-          String state = ctx.queryParam("state");
-          String ip = ctx.ip();
-          String userAgent = ctx.userAgent();
-          String codeVerifier = ctx.sessionAttribute("PKCECodeVerifier");
-          String originUri = ctx.sessionAttribute("origin_uri");
-          String redirectUri = ctx.sessionAttribute("redirect_uri");
-          String storedCsrfToken = ctx.sessionAttribute("state");
+  public Handler googleLoginResponseHandler = ctx -> {
+    String authCode = ctx.queryParam("code");
+    String state = ctx.queryParam("state");
+    String ip = ctx.ip();
+    String userAgent = ctx.userAgent();
+    String codeVerifier = ctx.sessionAttribute("PKCECodeVerifier");
+    String originUri = ctx.sessionAttribute("origin_uri");
+    String redirectUri = ctx.sessionAttribute("redirect_uri");
+    String storedCsrfToken = ctx.sessionAttribute("state");
 
-          log.info("Processing Google login response with: authorization code: {}," +
-              "state: {}," +
-              "retrieved code verifier: {}," +
-              "retrieved origin URI: {}," +
-              "retrieved redirect URI: {}," +
-              "retrieved CSRF token: {}",
-              authCode, state, codeVerifier, originUri, redirectUri, storedCsrfToken
-          );
-          ProcessGoogleLoginResponseService processGoogleLoginResponseService =
-          new ProcessGoogleLoginResponseService(
-              userDao,
-              activityDao,
-              state,
-              storedCsrfToken,
-              authCode,
-              codeVerifier,
-              originUri,
-              redirectUri,
-              ip,
-              userAgent
-          );
-        Message response = processGoogleLoginResponseService.executeAndGetResponse();
-        log.info("Google login response processed with status: {}", response.getErrorName());
+    log.info("Processing Google login response with: authorization code: {}," +
+        "state: {}," +
+        "retrieved code verifier: {}," +
+        "retrieved origin URI: {}," +
+        "retrieved redirect URI: {}," +
+        "retrieved CSRF token: {}",
+        authCode, state, codeVerifier, originUri, redirectUri, storedCsrfToken);
+    ProcessGoogleLoginResponseService processGoogleLoginResponseService = new ProcessGoogleLoginResponseService(
+        userDao,
+        activityDao,
+        state,
+        storedCsrfToken,
+        authCode,
+        codeVerifier,
+        originUri,
+        redirectUri,
+        ip,
+        userAgent);
+    Message response = processGoogleLoginResponseService.executeAndGetResponse();
+    log.info("Google login response processed with status: {}", response.getErrorName());
 
-          if (response == GoogleLoginResponseMessage.AUTH_SUCCESS) {
-            log.debug("Setting session attributes of privilegeLevel: {}, " +
-                    "orgName: {}, " +
-                    "username: {}, " +
-                    "fullName: {}",
-                processGoogleLoginResponseService.getUserRole(),
-                processGoogleLoginResponseService.getOrganization(),
-                processGoogleLoginResponseService.getUsername(),
-                processGoogleLoginResponseService.getFullName());
-            ctx.sessionAttribute("privilegeLevel",
-                processGoogleLoginResponseService.getUserRole());
-            ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
-            ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
-            ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
-          }
-          ctx.sessionAttribute("PKCECodeVerifier", null);
-          ctx.sessionAttribute("origin_uri", null);
-          ctx.sessionAttribute("redirect_uri", null);
-          ctx.sessionAttribute("state", null);
+    if (response == GoogleLoginResponseMessage.AUTH_SUCCESS) {
+      log.debug("Setting session attributes of privilegeLevel: {}, " +
+          "orgName: {}, " +
+          "username: {}, " +
+          "fullName: {}",
+          processGoogleLoginResponseService.getUserRole(),
+          processGoogleLoginResponseService.getOrganization(),
+          processGoogleLoginResponseService.getUsername(),
+          processGoogleLoginResponseService.getFullName());
+      ctx.sessionAttribute("privilegeLevel",
+          processGoogleLoginResponseService.getUserRole());
+      ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
+      ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
+      ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
+    }
+    ctx.sessionAttribute("PKCECodeVerifier", null);
+    ctx.sessionAttribute("origin_uri", null);
+    ctx.sessionAttribute("redirect_uri", null);
+    ctx.sessionAttribute("state", null);
 
-          // NOTE: query parameters are NOT passed to the frontend
-          // for increased privacy and security. Instead, the getSessionUser
-          // endpoint will be called to verify that the login was successful
-          ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
-      };
+    // NOTE: query parameters are NOT passed to the frontend
+    // for increased privacy and security. Instead, the getSessionUser
+    // endpoint will be called to verify that the login was successful
+    ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
+  };
 
   /**
    * Endpoint for validating Google logins.
    */
-  public Handler getSessionUser =
-      ctx -> {
-        JSONObject responseJSON = new JSONObject();
+  public Handler getSessionUser = ctx -> {
+    JSONObject responseJSON = new JSONObject();
 
-        // NOTE: no service needed here because existing session
-        // attributes are being retrieved and returned
-        String org = ctx.sessionAttribute("orgName");
-        String username = ctx.sessionAttribute("username");
-        String fullName = ctx.sessionAttribute("fullName");
-        UserType role = ctx.sessionAttribute("privilegeLevel");
-        log.info("Retrieved session attributes of org: {}, " +
-            "username: {}, " +
-            "fullName: {}, " +
-            "and role: {}",
-            org, username, fullName, role
-        );
+    // NOTE: no service needed here because existing session
+    // attributes are being retrieved and returned
+    String org = ctx.sessionAttribute("orgName");
+    String username = ctx.sessionAttribute("username");
+    String fullName = ctx.sessionAttribute("fullName");
+    UserType role = ctx.sessionAttribute("privilegeLevel");
+    log.info("Retrieved session attributes of org: {}, " +
+        "username: {}, " +
+        "fullName: {}, " +
+        "and role: {}",
+        org, username, fullName, role);
 
-        responseJSON.put("organization", org == null ? "" : org);
-        responseJSON.put("username", username == null ? "" : username);
-        responseJSON.put("fullName", fullName == null ? "" : fullName);
-        responseJSON.put("userRole", role == null ? "" : role);
+    responseJSON.put("organization", org == null ? "" : org);
+    responseJSON.put("username", username == null ? "" : username);
+    responseJSON.put("fullName", fullName == null ? "" : fullName);
+    responseJSON.put("userRole", role == null ? "" : role);
 
-        log.info("Returning response with session info: {}", responseJSON);
-        ctx.result(responseJSON.toString());
-      };
+    log.info("Returning response with session info: {}", responseJSON);
+    ctx.result(responseJSON.toString());
+  };
 
-  public Handler authenticateUser =
-      ctx -> {
-        String sessionUsername = ctx.sessionAttribute("username");
-        AuthenticateUserService authenticateUserService =
-            new AuthenticateUserService(userDao, sessionUsername);
-        Message response = authenticateUserService.executeAndGetResponse();
-        JSONObject responseJSON = response.toJSON();
-        if (response == UserMessage.AUTH_SUCCESS) {
-          responseJSON.put("username", authenticateUserService.getUsername());
-          responseJSON.put("userRole", authenticateUserService.getUserRole());
-          responseJSON.put("organization", authenticateUserService.getOrganization());
-          responseJSON.put("firstName", authenticateUserService.getFirstName());
-          responseJSON.put("lastName", authenticateUserService.getLastName());
-          responseJSON.put("twoFactorOn", authenticateUserService.isTwoFactorOn());
-        } else {
-          responseJSON.put("username", "");
-          responseJSON.put("userRole", "");
-          responseJSON.put("organization", "");
-          responseJSON.put("firstName", "");
-          responseJSON.put("lastName", "");
-          responseJSON.put("twoFactorOn", "");
+  public Handler authenticateUser = ctx -> {
+    String sessionUsername = ctx.sessionAttribute("username");
+    AuthenticateUserService authenticateUserService = new AuthenticateUserService(userDao, sessionUsername);
+    Message response = authenticateUserService.executeAndGetResponse();
+    JSONObject responseJSON = response.toJSON();
+    if (response == UserMessage.AUTH_SUCCESS) {
+      responseJSON.put("username", authenticateUserService.getUsername());
+      responseJSON.put("userRole", authenticateUserService.getUserRole());
+      responseJSON.put("organization", authenticateUserService.getOrganization());
+      responseJSON.put("firstName", authenticateUserService.getFirstName());
+      responseJSON.put("lastName", authenticateUserService.getLastName());
+      responseJSON.put("twoFactorOn", authenticateUserService.isTwoFactorOn());
+    } else {
+      responseJSON.put("username", "");
+      responseJSON.put("userRole", "");
+      responseJSON.put("organization", "");
+      responseJSON.put("firstName", "");
+      responseJSON.put("lastName", "");
+      responseJSON.put("twoFactorOn", "");
+    }
+    ctx.result(responseJSON.toString());
+  };
+
+  public Handler usernameExists = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String username = req.getString("username");
+    CheckUsernameExistsService checkUsernameExistsService = new CheckUsernameExistsService(userDao, username);
+    ctx.result(checkUsernameExistsService.executeAndGetResponse().toResponseString());
+  };
+
+  public Handler createNewUser = ctx -> {
+    log.info("Starting createNewUser handler");
+    JSONObject req = new JSONObject(ctx.body());
+    UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
+    String organizationName = ctx.sessionAttribute("orgName");
+    String sessionUsername = ctx.sessionAttribute("username");
+    String firstName = req.getString("firstname").strip();
+    String lastName = req.getString("lastname").strip();
+    String birthDate = req.getString("birthDate").strip();
+    String email = req.getString("email").toLowerCase().strip();
+    String phone = req.getString("phonenumber").strip();
+    String address = req.getString("address").strip();
+    String city = req.getString("city").strip();
+    String state = req.getString("state").strip();
+    String zipcode = req.getString("zipcode").strip();
+    Boolean twoFactorOn = req.getBoolean("twoFactorOn");
+    String username = req.getString("username").strip();
+    String password = req.getString("password").strip();
+    String userTypeString = req.getString("personRole").strip();
+    UserType userType = UserType.userTypeFromString(userTypeString);
+
+    log.info(sessionUserLevel + " " + organizationName + " " + firstName);
+
+    CreateUserService createUserService = new CreateUserService(
+        userDao,
+        activityDao,
+        sessionUserLevel,
+        organizationName,
+        sessionUsername,
+        firstName,
+        lastName,
+        birthDate,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        zipcode,
+        twoFactorOn,
+        username,
+        password,
+        userType);
+    Message response = createUserService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  public Handler deleteUser = ctx -> {
+    log.info("Starting deleteUser handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String password = req.getString("password").strip();
+    log.info("Attempting to delete " + sessionUsername);
+
+    DeleteUserService deleteUserService = new DeleteUserService(db, userDao, sessionUsername, password);
+    Message response = deleteUserService.executeAndGetResponse();
+    log.info(response.toString() + response.getErrorDescription());
+    ctx.result(response.toJSON().toString());
+  };
+
+  public Handler createNewInvitedUser = ctx -> {
+    log.info("Starting createNewUser handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String firstName = req.getString("firstname").strip();
+    String lastName = req.getString("lastname").strip();
+    String birthDate = req.getString("birthDate").strip();
+    String email = req.getString("email").strip();
+    String phone = req.getString("phonenumber").strip();
+    String address = req.getString("address").strip();
+    String city = req.getString("city").strip();
+    String state = req.getString("state").strip();
+    String zipcode = req.getString("zipcode").strip();
+    Boolean twoFactorOn = req.getBoolean("twoFactorOn");
+    String username = req.getString("username").strip();
+    String password = req.getString("password").strip();
+    UserType userType = UserType.userTypeFromString(req.getString("personRole").strip());
+    String organizationName = req.getString("orgName").strip();
+
+    CreateUserService createUserService = new CreateUserService(
+        userDao,
+        activityDao,
+        UserType.Director,
+        organizationName,
+        null,
+        firstName,
+        lastName,
+        birthDate,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        zipcode,
+        twoFactorOn,
+        username,
+        password,
+        userType);
+    Message response = createUserService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  public Handler logout = ctx -> {
+    ctx.req.getSession().invalidate();
+    log.info("Signed out");
+    ctx.result(UserMessage.SUCCESS.toJSON().toString());
+  };
+
+  public Handler getUserInfo = ctx -> {
+    log.info("Started getUserInfo handler");
+
+    String targetUsername = null;
+    String body = ctx.body();
+    if (body != null && !body.trim().isEmpty()) {
+      try {
+        JSONObject req = new JSONObject(body);
+        targetUsername = req.optString("username", null);
+        if (targetUsername != null && targetUsername.isEmpty()) {
+          targetUsername = null;
         }
-        ctx.result(responseJSON.toString());
-      };
+      } catch (Exception e) {
+        log.info("Could not parse request body, using ctx username");
+      }
+    }
 
-  public Handler usernameExists =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        CheckUsernameExistsService checkUsernameExistsService =
-            new CheckUsernameExistsService(userDao, username);
-        ctx.result(checkUsernameExistsService.executeAndGetResponse().toResponseString());
-      };
+    // Check authorization
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
 
-  public Handler createNewUser =
-      ctx -> {
-        log.info("Starting createNewUser handler");
-        JSONObject req = new JSONObject(ctx.body());
-        UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
-        String organizationName = ctx.sessionAttribute("orgName");
-        String sessionUsername = ctx.sessionAttribute("username");
-        String firstName = req.getString("firstname").strip();
-        String lastName = req.getString("lastname").strip();
-        String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("email").toLowerCase().strip();
-        String phone = req.getString("phonenumber").strip();
-        String address = req.getString("address").strip();
-        String city = req.getString("city").strip();
-        String state = req.getString("state").strip();
-        String zipcode = req.getString("zipcode").strip();
-        Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-        String username = req.getString("username").strip();
-        String password = req.getString("password").strip();
-        String userTypeString = req.getString("personRole").strip();
-        UserType userType = UserType.userTypeFromString(userTypeString);
+    // Use target username or default to session username
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
-        log.info(sessionUserLevel + " " + organizationName + " " + firstName);
+    GetUserInfoService infoService = new GetUserInfoService(userDao, username);
+    Message response = infoService.executeAndGetResponse();
+    if (response != UserMessage.SUCCESS) { // if fail return
+      ctx.result(response.toJSON().toString());
+    } else {
+      JSONObject userInfo = infoService.getUserFields(); // get user info here
+      JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
+      ctx.result(mergedInfo.toString());
+    }
+  };
 
-        CreateUserService createUserService =
-            new CreateUserService(
-                userDao,
-                activityDao,
-                sessionUserLevel,
-                organizationName,
-                sessionUsername,
-                firstName,
-                lastName,
-                birthDate,
-                email,
-                phone,
-                address,
-                city,
-                state,
-                zipcode,
-                twoFactorOn,
-                username,
-                password,
-                userType);
-        Message response = createUserService.executeAndGetResponse();
-        ctx.result(response.toJSON().toString());
-      };
+  /**
+   * Get organization details (name, address, phone, email) for the client's org.
+   * User must belong to the requested organization.
+   * POST /get-organization-info
+   * Request: { "orgName": "Organization Name" }
+   */
+  public Handler getOrganizationInfo = ctx -> {
+    log.info("Started getOrganizationInfo handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
 
-  public Handler deleteUser =
-      ctx -> {
-        log.info("Starting deleteUser handler");
-        JSONObject req = new JSONObject(ctx.body());
-        String sessionUsername = ctx.sessionAttribute("username");
-        String password = req.getString("password").strip();
-        log.info("Attempting to delete " + sessionUsername);
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      ctx.result(AUTH_FAILURE.toJSON().toString());
+      return;
+    }
 
-        DeleteUserService deleteUserService =
-            new DeleteUserService(db, userDao, sessionUsername, password);
-        Message response = deleteUserService.executeAndGetResponse();
-        log.info(response.toString() + response.getErrorDescription());
-        ctx.result(response.toJSON().toString());
-      };
+    String requestedOrgName = req.optString("orgName", null);
+    if (requestedOrgName == null || requestedOrgName.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
 
-  public Handler createNewInvitedUser =
-      ctx -> {
-        log.info("Starting createNewUser handler");
-        JSONObject req = new JSONObject(ctx.body());
+    // User can only fetch org info for their own organization
+    if (!requestedOrgName.equals(sessionOrgName)) {
+      ctx.result(CROSS_ORG_ACTION_DENIED.toJSON().toString());
+      return;
+    }
 
-        String firstName = req.getString("firstname").strip();
-        String lastName = req.getString("lastname").strip();
-        String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("email").strip();
-        String phone = req.getString("phonenumber").strip();
-        String address = req.getString("address").strip();
-        String city = req.getString("city").strip();
-        String state = req.getString("state").strip();
-        String zipcode = req.getString("zipcode").strip();
-        Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-        String username = req.getString("username").strip();
-        String password = req.getString("password").strip();
-        UserType userType = UserType.userTypeFromString(req.getString("personRole").strip());
-        String organizationName = req.getString("orgName").strip();
+    Optional<Organization> orgOpt = orgDao.get(requestedOrgName);
+    if (orgOpt.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
 
-        CreateUserService createUserService =
-            new CreateUserService(
-                userDao,
-                activityDao,
-                UserType.Director,
-                organizationName,
-                null,
-                firstName,
-                lastName,
-                birthDate,
-                email,
-                phone,
-                address,
-                city,
-                state,
-                zipcode,
-                twoFactorOn,
-                username,
-                password,
-                userType);
-        Message response = createUserService.executeAndGetResponse();
-        ctx.result(response.toJSON().toString());
-      };
+    Organization org = orgOpt.get();
+    List<String> addressParts = new ArrayList<>();
+    if (org.getOrgStreetAddress() != null && !org.getOrgStreetAddress().isEmpty()) {
+      addressParts.add(org.getOrgStreetAddress());
+    }
+    List<String> cityStateZip = new ArrayList<>();
+    if (org.getOrgCity() != null && !org.getOrgCity().isEmpty()) cityStateZip.add(org.getOrgCity());
+    if (org.getOrgState() != null && !org.getOrgState().isEmpty()) cityStateZip.add(org.getOrgState());
+    if (org.getOrgZipcode() != null && !org.getOrgZipcode().isEmpty()) cityStateZip.add(org.getOrgZipcode());
+    if (!cityStateZip.isEmpty()) {
+      addressParts.add(String.join(", ", cityStateZip));
+    }
+    String address = String.join(", ", addressParts);
 
-  public Handler logout =
-      ctx -> {
-        ctx.req.getSession().invalidate();
-        log.info("Signed out");
-        ctx.result(UserMessage.SUCCESS.toJSON().toString());
-      };
+    JSONObject res = new JSONObject();
+    res.put("status", "SUCCESS");
+    res.put("name", org.getOrgName());
+    res.put("address", address);
+    res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
+    res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
+    ctx.result(res.toString());
+  };
 
-  public Handler getUserInfo =
-      ctx -> {
-        log.info("Started getUserInfo handler");
-        String username;
-        try {
-          JSONObject req = new JSONObject(ctx.body());
-          username = req.getString("username");
-        } catch (Exception e) {
-          log.info("Username not passed in request, using ctx username");
-          username = ctx.sessionAttribute("username");
-        }
-        GetUserInfoService infoService = new GetUserInfoService(userDao, username);
-        Message response = infoService.executeAndGetResponse();
-        if (response != UserMessage.SUCCESS) { // if fail return
-          ctx.result(response.toJSON().toString());
-        } else {
-          JSONObject userInfo = infoService.getUserFields(); // get user info here
-          JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
-          ctx.result(mergedInfo.toString());
-        }
-      };
+  public Handler getMembers = ctx -> {
+    log.info("Started getMembers handler");
+    JSONObject req = new JSONObject(ctx.body());
+    JSONObject res = new JSONObject();
 
-  public Handler getMembers =
-      ctx -> {
-        log.info("Started getMembers handler");
-        JSONObject req = new JSONObject(ctx.body());
-        JSONObject res = new JSONObject();
+    String searchValue = req.getString("name").trim();
+    String orgName = ctx.sessionAttribute("orgName");
+    UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
+    String listType = req.getString("listType").toUpperCase();
 
-        String searchValue = req.getString("name").trim();
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
-        String listType = req.getString("listType").toUpperCase();
+    GetMembersService getMembersService = new GetMembersService(userDao, searchValue, orgName, privilegeLevel,
+        listType);
+    Message message = getMembersService.executeAndGetResponse();
+    if (message == UserMessage.SUCCESS) {
+      res.put("people", getMembersService.getPeoplePage());
+      res.put("numPeople", getMembersService.getNumReturnedElements());
+      ctx.result(mergeJSON(res, message.toJSON()).toString());
+    } else {
+      ctx.result(message.toResponseString());
+    }
+  };
 
-        GetMembersService getMembersService =
-            new GetMembersService(userDao, searchValue, orgName, privilegeLevel, listType);
-        Message message = getMembersService.executeAndGetResponse();
-        if (message == UserMessage.SUCCESS) {
-          res.put("people", getMembersService.getPeoplePage());
-          res.put("numPeople", getMembersService.getNumReturnedElements());
-          ctx.result(mergeJSON(res, message.toJSON()).toString());
-        } else {
-          ctx.result(message.toResponseString());
-        }
-      };
-
-  public Handler getAllMembersByRole =
-      ctx -> {
-        log.info("Started getAllMembersByRoles handler");
-        JSONObject req = new JSONObject(ctx.body());
-        JSONObject res = new JSONObject();
-        String orgName = ctx.sessionAttribute("orgName");
-        UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
-        GetAllMembersByRoleService getAllMembersByRoleService =
-            new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
-        Message message = getAllMembersByRoleService.executeAndGetResponse();
-        if (message == UserMessage.SUCCESS) {
-          res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
-          res.put("numPeople", getAllMembersByRoleService.getUsersWithSpecificRole().size());
-          ctx.result(mergeJSON(res, message.toJSON()).toString());
-        } else {
-          ctx.result(message.toResponseString());
-        }
-      };
+  public Handler getAllMembersByRole = ctx -> {
+    log.info("Started getAllMembersByRoles handler");
+    JSONObject req = new JSONObject(ctx.body());
+    JSONObject res = new JSONObject();
+    String orgName = ctx.sessionAttribute("orgName");
+    UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
+    GetAllMembersByRoleService getAllMembersByRoleService = new GetAllMembersByRoleService(userDao, orgName,
+        privilegeLevel);
+    Message message = getAllMembersByRoleService.executeAndGetResponse();
+    if (message == UserMessage.SUCCESS) {
+      res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
+      res.put("numPeople", getAllMembersByRoleService.getUsersWithSpecificRole().size());
+      ctx.result(mergeJSON(res, message.toJSON()).toString());
+    } else {
+      ctx.result(message.toResponseString());
+    }
+  };
 
   /*
-   Returned JSON format:
-     {“username”: “username”,
-        "history": [
-           {
-             “date”:”month/day/year, hour:min, Local Time”,
-             “device”:”Mobile” or "Computer",
-             “IP”:”exampleIP”,
-             “location”: “Postal, City”,
-           }
-      ]
-   }
-  */
-  public Handler getLogInHistory =
-      ctx -> {
-        log.info("Started getLogInHistory handler");
-        String username = ctx.sessionAttribute("username");
-        LoginHistoryService loginHistoryService = new LoginHistoryService(userDao, username);
-        Message responseMessage = loginHistoryService.executeAndGetResponse();
-        JSONObject res = responseMessage.toJSON();
-        if (responseMessage == UserMessage.SUCCESS) {
-          res.put("username", loginHistoryService.getUsername());
-          res.put("history", loginHistoryService.getLoginHistoryArray());
-        }
-        ctx.result(res.toString());
-      };
+   * Returned JSON format:
+   * {“username”: “username”,
+   * "history": [
+   * {
+   * “date”:”month/day/year, hour:min, Local Time”,
+   * “device”:”Mobile” or "Computer",
+   * “IP”:”exampleIP”,
+   * “location”: “Postal, City”,
+   * }
+   * ]
+   * }
+   */
+  public Handler getLogInHistory = ctx -> {
+    log.info("Started getLogInHistory handler");
+    String username = ctx.sessionAttribute("username");
+    LoginHistoryService loginHistoryService = new LoginHistoryService(userDao, username);
+    Message responseMessage = loginHistoryService.executeAndGetResponse();
+    JSONObject res = responseMessage.toJSON();
+    if (responseMessage == UserMessage.SUCCESS) {
+      res.put("username", loginHistoryService.getUsername());
+      res.put("history", loginHistoryService.getLoginHistoryArray());
+    }
+    ctx.result(res.toString());
+  };
 
   public static JSONObject mergeJSON(
       JSONObject object1, JSONObject object2) { // helper function to merge 2 json objects
@@ -550,187 +606,332 @@ public class UserController {
     return merged;
   }
 
-  public Handler uploadPfp =
-      ctx -> {
-        String username = ctx.formParam("username");
-        String fileName = ctx.formParam("fileName");
-        UploadedFile file = ctx.uploadedFile("file");
-        log.info(username + " is attempting to upload a profile picture");
-        Optional<User> optionalUser = userDao.get(username);
-        if (optionalUser.isEmpty()) {
-          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
-          return;
-        }
-        User user = optionalUser.get();
-        Date uploadDate =
-            Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-        File fileToUpload =
-            new File(
-                username,
-                uploadDate,
-                file.getContent(),
-                FileType.PROFILE_PICTURE,
-                IdCategoryType.NONE,
-                file.getFilename(),
-                user.getOrganization(),
-                false,
-                file.getContentType());
-        UploadFileService service =
-            new UploadFileService(
-                fileDao,
-                activityDao,
-                username,
-                fileToUpload,
-                Optional.empty(),
-                Optional.empty(),
-                false,
-                Optional.empty(),
-                Optional.empty());
-        JSONObject res = service.executeAndGetResponse().toJSON();
-        ctx.result(res.toString());
-      };
+  public Handler uploadPfp = ctx -> {
+    String username = ctx.formParam("username");
+    String fileName = ctx.formParam("fileName");
+    UploadedFile file = ctx.uploadedFile("file");
+    log.info(username + " is attempting to upload a profile picture");
+    Optional<User> optionalUser = userDao.get(username);
+    if (optionalUser.isEmpty()) {
+      ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+    User user = optionalUser.get();
+    Date uploadDate = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+    File fileToUpload = new File(
+        username,
+        uploadDate,
+        file.getContent(),
+        FileType.PROFILE_PICTURE,
+        IdCategoryType.NONE,
+        file.getFilename(),
+        user.getOrganization(),
+        false,
+        file.getContentType());
+    UploadFileService service = new UploadFileService(
+        fileDao,
+        activityDao,
+        username,
+        fileToUpload,
+        Optional.empty(),
+        Optional.empty(),
+        false,
+        Optional.empty(),
+        Optional.empty());
+    JSONObject res = service.executeAndGetResponse().toJSON();
+    ctx.result(res.toString());
+  };
 
-  public Handler loadPfp =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
-        JSONObject responseJSON;
-        DownloadFileService serv =
-            new DownloadFileService(
-                fileDao,
-                activityDao,
-                username,
-                username,
-                Optional.empty(),
-                Optional.empty(),
-                FileType.PROFILE_PICTURE,
-                Optional.empty(),
-                Optional.empty(),
-                formDao);
-        Message mes = serv.executeAndGetResponse();
-        responseJSON = mes.toJSON();
-        if (mes == FileMessage.SUCCESS) {
-          ctx.header("Content-Type", "image/" + serv.getContentType());
-          ctx.result(serv.getInputStream());
-        } else ctx.result(responseJSON.toString());
-      };
+  public Handler loadPfp = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String username = req.getString("username");
+    JSONObject responseJSON;
+    DownloadFileService serv = new DownloadFileService(
+        fileDao,
+        activityDao,
+        username,
+        username,
+        Optional.empty(),
+        Optional.empty(),
+        FileType.PROFILE_PICTURE,
+        Optional.empty(),
+        Optional.empty(),
+        formDao);
+    Message mes = serv.executeAndGetResponse();
+    responseJSON = mes.toJSON();
+    if (mes == FileMessage.SUCCESS) {
+      ctx.header("Content-Type", "image/" + serv.getContentType());
+      ctx.result(serv.getInputStream());
+    } else
+      ctx.result(responseJSON.toString());
+  };
 
-  public Handler setDefaultIds =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = ctx.sessionAttribute("username");
-        String id = req.getString("id");
-        String docTypeString = req.getString("documentType");
-        DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
+  public Handler setDefaultIds = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String username = ctx.sessionAttribute("username");
+    String id = req.getString("id");
+    String docTypeString = req.getString("documentType");
+    DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-        // Session attributes contains the following information: {orgName=Stripe testing,
-        // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
-        log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
+    // Session attributes contains the following information: {orgName=Stripe
+    // testing,
+    // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+    log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
 
-        SetUserDefaultIdService setUserDefaultIdService =
-            new SetUserDefaultIdService(userDao, username, documentType, id);
-        Message response = setUserDefaultIdService.executeAndGetResponse();
+    SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, username, documentType, id);
+    Message response = setUserDefaultIdService.executeAndGetResponse();
 
-        if (response == UserMessage.SUCCESS) {
-          // Instead of a success message, would be better to return the new ID to be displayed or
-          // something similar for get
-          JSONObject responseJSON = new JSONObject();
-          responseJSON.put(
-              "Message",
-              "DefaultId for "
-                  + DocumentType.stringFromDocumentType(documentType)
-                  + " has successfully been set");
-          responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
-          JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
-          ctx.result(mergedInfo.toString());
-        }
-      };
+    if (response == UserMessage.SUCCESS) {
+      // Instead of a success message, would be better to return the new ID to be
+      // displayed or
+      // something similar for get
+      JSONObject responseJSON = new JSONObject();
+      responseJSON.put(
+          "Message",
+          "DefaultId for "
+              + DocumentType.stringFromDocumentType(documentType)
+              + " has successfully been set");
+      responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
+      JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+      ctx.result(mergedInfo.toString());
+    }
+  };
 
-  public Handler getDefaultIds =
-      ctx -> {
-        JSONObject req = new JSONObject(ctx.body());
-        String username = ctx.sessionAttribute("username");
-        String docTypeString = req.getString("documentType");
-        DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
+  public Handler getDefaultIds = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String username = ctx.sessionAttribute("username");
+    String docTypeString = req.getString("documentType");
+    DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-        // Session attributes contains the following information: {orgName=Stripe testing,
-        // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
-        log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
+    // Session attributes contains the following information: {orgName=Stripe
+    // testing,
+    // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
+    log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
 
-        GetUserDefaultIdService getUserDefaultIdService =
-            new GetUserDefaultIdService(userDao, username, documentType);
-        Message response = getUserDefaultIdService.executeAndGetResponse();
+    GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, username, documentType);
+    Message response = getUserDefaultIdService.executeAndGetResponse();
 
-        if (response == UserMessage.SUCCESS) {
-          String fileId = getUserDefaultIdService.getId(documentType);
-          log.info("fileId retrieved is " + fileId);
-          // Instead of a success message, would be better to return the new ID to be displayed or
-          // something similar for get
-          JSONObject responseJSON = new JSONObject();
-          responseJSON.put(
-              "Message",
-              "DefaultId for "
-                  + DocumentType.stringFromDocumentType(documentType)
-                  + " has successfully been retrieved");
-          responseJSON.put("fileId", fileId);
-          responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
-          JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
-          ctx.result(mergedInfo.toString());
-        } else {
-          log.info("Error: {}", response.getErrorName());
-          ctx.result(response.toResponseString());
-        }
-      };
+    if (response == UserMessage.SUCCESS) {
+      String fileId = getUserDefaultIdService.getId(documentType);
+      log.info("fileId retrieved is " + fileId);
+      // Instead of a success message, would be better to return the new ID to be
+      // displayed or
+      // something similar for get
+      JSONObject responseJSON = new JSONObject();
+      responseJSON.put(
+          "Message",
+          "DefaultId for "
+              + DocumentType.stringFromDocumentType(documentType)
+              + " has successfully been retrieved");
+      responseJSON.put("fileId", fileId);
+      responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
+      JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
+      ctx.result(mergedInfo.toString());
+    } else {
+      log.info("Error: {}", response.getErrorName());
+      ctx.result(response.toResponseString());
+    }
+  };
 
-  public Handler assignWorkerToUser =
-      ctx -> {
-        log.info("Started assignWorkerToUser handler");
-        JSONObject req = new JSONObject(ctx.body());
-        String currentlyLoggedInUsername = ctx.sessionAttribute("username");
-        String targetUser = req.getString("user");
+  public Handler assignWorkerToUser = ctx -> {
+    log.info("Started assignWorkerToUser handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String currentlyLoggedInUsername = ctx.sessionAttribute("username");
+    String targetUser = req.getString("user");
 
-        // convert json list to java list
-        Gson gson = new Gson();
-        List<String> workerUsernamesToAdd =
-            gson.fromJson(
-                req.get("workerUsernamesToAdd").toString(),
-                new TypeToken<ArrayList<String>>() {}.getType());
-        AssignWorkerToUserService getMembersService =
-            new AssignWorkerToUserService(
-                userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
-        Message message = getMembersService.executeAndGetResponse();
-        ctx.result(message.toResponseString());
-      };
+    // convert json list to java list
+    Gson gson = new Gson();
+    List<String> workerUsernamesToAdd = gson.fromJson(
+        req.get("workerUsernamesToAdd").toString(),
+        new TypeToken<ArrayList<String>>() {
+        }.getType());
+    AssignWorkerToUserService getMembersService = new AssignWorkerToUserService(
+        userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
+    Message message = getMembersService.executeAndGetResponse();
+    ctx.result(message.toResponseString());
+  };
 
-  public Handler getOnboardingChecklist =
-      ctx -> {
-        log.info("Started getOnboardingChecklist handler");
+  public Handler getOnboardingChecklist = ctx -> {
+    log.info("Started getOnboardingChecklist handler");
 
-        String username = ctx.sessionAttribute("username");
-        String originUri = ctx.header("Origin");
-        GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
-            userDao, formDao, fileDao, username, originUri);
-        Message message = getOnboardingChecklistService.executeAndGetResponse();
-        if (message == UserMessage.AUTH_SUCCESS) {
-          log.info("Successfully generated onboarding checklist");
-          ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
-          return;
-        }
-        log.error("Error occurred while generating onboarding checklist for user");
-        ctx.status(401).json(Map.of("error", "Unauthorized"));
-      };
+    String username = ctx.sessionAttribute("username");
+    String originUri = ctx.header("Origin");
+    GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
+        userDao, formDao, fileDao, username, originUri);
+    Message message = getOnboardingChecklistService.executeAndGetResponse();
+    if (message == UserMessage.AUTH_SUCCESS) {
+      log.info("Successfully generated onboarding checklist");
+      ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
+      return;
+    }
+    log.error("Error occurred while generating onboarding checklist for user");
+    ctx.status(401).json(Map.of("error", "Unauthorized"));
+  };
 
-  public Handler postOnboardingStatus =
-      ctx -> {
-        log.info("Started postOnboardingStatus handler");
-        OnboardingStatus newOnboardingStatus =
-            ctx.bodyAsClass(OnboardingStatus.class);
+  public Handler postOnboardingStatus = ctx -> {
+    log.info("Started postOnboardingStatus handler");
+    OnboardingStatus newOnboardingStatus = ctx.bodyAsClass(OnboardingStatus.class);
 
-        String username = ctx.sessionAttribute("username");
+    String username = ctx.sessionAttribute("username");
 
-        PostOnboardingChecklistService postOnboardingChecklistService = new
-            PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
-        Message message = postOnboardingChecklistService.executeAndGetResponse();
-        ctx.result(message.toResponseString());
-      };
+    PostOnboardingChecklistService postOnboardingChecklistService = new PostOnboardingChecklistService(userDao,
+        username, newOnboardingStatus);
+    Message message = postOnboardingChecklistService.executeAndGetResponse();
+    ctx.result(message.toResponseString());
+  };
+
+  /**
+   * Helper method to check authorization for accessing/modifying user profiles.
+   * 
+   * @param ctx            The Javalin context
+   * @param targetUsername The username of the user being accessed (optional,
+   *                       defaults to session user)
+   * @return null if authorized, or a Message error if authorization fails
+   */
+  private Message checkProfileAuthorization(io.javalin.http.Context ctx, String targetUsername) {
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+
+    Message sessionCheck = validateSessionUser(sessionUsername);
+    if (sessionCheck != null) {
+      return sessionCheck;
+    }
+
+    // If accessing own profile, authorized
+    if (isAccessingOwnProfile(targetUsername, sessionUsername)) {
+      return null;
+    }
+
+    // Different user - check permissions
+    Message permissionCheck = checkUserPermissions(sessionUserType);
+    if (permissionCheck != null) {
+      return permissionCheck;
+    }
+
+    // Check target user exists and same organization
+    return checkTargetUserAndOrganization(targetUsername, sessionOrgName);
+  }
+
+  private Message validateSessionUser(String sessionUsername) {
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      return AUTH_FAILURE;
+    }
+
+    Optional<User> sessionUserOpt = userDao.get(sessionUsername);
+    if (sessionUserOpt.isEmpty()) {
+      return AUTH_FAILURE;
+    }
+
+    return null;
+  }
+
+  private boolean isAccessingOwnProfile(String targetUsername, String sessionUsername) {
+    return targetUsername == null || targetUsername.isEmpty() || targetUsername.equals(sessionUsername);
+  }
+
+  private Message checkUserPermissions(UserType sessionUserType) {
+    // Only Worker, Admin, or Director can access other users' profiles
+    if (sessionUserType != Worker && sessionUserType != Admin && sessionUserType != Director) {
+      return INSUFFICIENT_PRIVILEGE;
+    }
+    return null;
+  }
+
+  private Message checkTargetUserAndOrganization(String targetUsername, String sessionOrgName) {
+    Optional<User> targetUserOpt = userDao.get(targetUsername);
+    if (targetUserOpt.isEmpty()) {
+      return USER_NOT_FOUND;
+    }
+
+    User targetUser = targetUserOpt.get();
+    String targetOrgName = targetUser.getOrganization();
+
+    if (!targetOrgName.equals(sessionOrgName)) {
+      return CROSS_ORG_ACTION_DENIED;
+    }
+
+    return null; // Authorized
+  }
+
+  /**
+   * Update user profile with partial updates (supports both dot notation and
+   * nested objects).
+   * POST /update-user-profile
+   * Request: Any subset of User fields (nested objects or dot notation supported)
+   * Example: { "username": "client123",
+   * "optionalInformation.demographicInfo.languagePreference": "Spanish" }
+   * Response: SUCCESS or validation error
+   */
+  public Handler updateUserProfile = ctx -> {
+    log.info("Started updateUserProfile handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = null;
+    try {
+      targetUsername = req.optString("username", null);
+      if (targetUsername != null && targetUsername.isEmpty()) {
+        targetUsername = null;
+      }
+    } catch (Exception e) {
+      // Username not provided, will use session user
+    }
+
+    // Check authorization
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    // Use target username or default to session username
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+
+    // Remove username from request if present (it's used for authorization, not
+    // update)
+    JSONObject updateRequest = new JSONObject(req.toString());
+    updateRequest.remove("username");
+
+    UpdateUserProfileService updateService = new UpdateUserProfileService(userDao, username, updateRequest);
+    Message response = updateService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  /**
+   * Delete a field from user profile using dot notation.
+   * POST /delete-profile-field
+   * Request: { "username": "client123", "fieldPath":
+   * "optionalInformation.person.middleName" }
+   * Response: SUCCESS or error
+   */
+  public Handler deleteProfileField = ctx -> {
+    log.info("Started deleteProfileField handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = null;
+    try {
+      targetUsername = req.optString("username", null);
+      if (targetUsername != null && targetUsername.isEmpty()) {
+        targetUsername = null;
+      }
+    } catch (Exception e) {
+      // Username not provided, will use session user
+    }
+
+    String fieldPath = req.getString("fieldPath");
+
+    // Check authorization
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    // Use target username or default to session username
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+
+    DeleteUserProfileFieldService deleteService = new DeleteUserProfileFieldService(userDao, username, fieldPath);
+    Message response = deleteService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
 }

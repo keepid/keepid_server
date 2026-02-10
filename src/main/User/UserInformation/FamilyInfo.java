@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -6,6 +6,8 @@ import lombok.*;
 import org.json.JSONObject;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -13,15 +15,14 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class VeteranStatus implements Serializable {
+public class FamilyInfo implements Serializable {
   private static final long serialVersionUID = 1L;
-
-  @NonNull private boolean isVeteran;
-  @NonNull private boolean isProtectedVeteran;
-  private String branch;
-  private String yearsOfService;
-  private String rank;
-  private String discharge;
+  private List<Person> parents = Collections.emptyList();
+  private List<Person> legalGuardians = Collections.emptyList();
+  private MaritalStatus maritalStatus;
+  private Person spouse;
+  private List<Person> children = Collections.emptyList();
+  private List<Person> siblings = Collections.emptyList();
 
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();

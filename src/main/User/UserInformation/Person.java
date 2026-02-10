@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.io.Serializable;

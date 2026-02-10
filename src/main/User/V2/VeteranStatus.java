@@ -13,8 +13,8 @@ import java.util.Map;
 @NoArgsConstructor
 public class VeteranStatus {
 
-  @NonNull private boolean isVeteran;
-  @NonNull private boolean isProtectedVeteran;
+  private boolean isVeteran;
+  private boolean isProtectedVeteran;
   private String branch;
   private String yearsOfService;
   private String rank;

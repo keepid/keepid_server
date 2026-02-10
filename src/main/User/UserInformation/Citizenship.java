@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 public enum Citizenship {
   US_CITIZEN("U.S. Citizen"),

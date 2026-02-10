@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,12 +18,12 @@ public class DemographicInfo implements Serializable {
 
   private String languagePreference;
   // false is Non-Hispanic/Latino, true is Hispanic/Latino
-  @NonNull private Boolean isEthnicityHispanicLatino;
-  @NonNull private Race race;
-  @NonNull private String cityOfBirth;
-  @NonNull private String stateOfBirth;
-  @NonNull private String countryOfBirth;
-  @NonNull private Citizenship citizenship;
+  private Boolean isEthnicityHispanicLatino;
+  private Race race;
+  private String cityOfBirth;
+  private String stateOfBirth;
+  private String countryOfBirth;
+  private Citizenship citizenship;
 
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();

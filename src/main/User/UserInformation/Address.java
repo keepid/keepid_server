@@ -1,4 +1,4 @@
-package OptionalUserInformation;
+package User.UserInformation;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -14,11 +14,11 @@ import org.json.JSONObject;
 public class Address implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  @NonNull String streetAddress;
+  String streetAddress;
   String apartmentNumber;
-  @NonNull String city;
-  @NonNull String state;
-  @NonNull String zip;
+  String city;
+  String state;
+  String zip;
 
   public JSONObject serialize() {
     return new JSONObject(this);

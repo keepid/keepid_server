@@ -15,6 +15,7 @@ import com.mongodb.client.MongoDatabase;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 public class ActivityDaoImpl implements ActivityDao {
@@ -96,7 +97,7 @@ public class ActivityDaoImpl implements ActivityDao {
 
   @Override
   public void clear() {
-    activityCollection.drop();
+    activityCollection.deleteMany(new Document());
   }
 
   @Override

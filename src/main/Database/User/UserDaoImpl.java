@@ -67,7 +67,7 @@ public class UserDaoImpl implements UserDao {
 
   @Override
   public void clear() {
-    userCollection.drop();
+    userCollection.deleteMany(new Document());
   }
 
   @Override
@@ -91,5 +91,21 @@ public class UserDaoImpl implements UserDao {
   @Override
   public void save(User user) {
     userCollection.insertOne(user);
+  }
+
+  @Override
+  public void deleteField(String username, String fieldPath) {
+    userCollection.updateOne(
+        eq("username", username),
+        new Document("$unset", new Document(fieldPath, "")));
+  }
+
+  @Override
+  public void updateField(String username, String fieldPath, Object value) {
+    // MongoDB $set with dot notation creates nested structures automatically,
+    // but we need to ensure the update is applied correctly
+    userCollection.updateOne(
+        eq("username", username),
+        new Document("$set", new Document(fieldPath, value)));
   }
 }
