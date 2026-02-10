@@ -2,7 +2,13 @@ package UserTest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.Organization.OrgDaoFactory;
+import Database.Organization.OrgDao;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
+import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -27,15 +33,31 @@ public class PfpTestIntegration {
           + File.separator
           + "resources";
 
+  private static UserDao userDao;
+  private static OrgDao orgDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+
+    EntityFactory.createOrganization()
+        .withOrgName("login history Org")
+        .buildAndPersist(orgDao);
+
+    EntityFactory.createUser()
+        .withUsername("createAdminOwner")
+        .withPasswordToHash("login-history-test")
+        .withOrgName("login history Org")
+        .withUserType(UserType.Director)
+        .buildAndPersist(userDao);
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
   }
 
   MongoDatabase db = MongoConfig.getDatabase(DeploymentLevel.TEST);

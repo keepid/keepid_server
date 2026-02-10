@@ -2,13 +2,17 @@ package ProductionAPITest;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import Organization.Organization;
 import Security.SecurityUtils;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -25,35 +29,60 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ProductionControllerIntegrationTests {
 
   static String YMCAOrganizationId = "";
+  private static UserDao userDao;
+  private static OrgDao orgDao;
 
   @BeforeClass
   public static void setUp() throws ValidationException {
     TestUtils.startServer();
-    TestUtils.setUpTestDB();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
 
-    MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
-    var dbOrganizations = testDB.getCollection("organization", Organization.class);
-    var YMCAOrg = dbOrganizations.find(eq("orgName", "YMCA")).first();
-    assert YMCAOrg != null;
-    YMCAOrganizationId = YMCAOrg.getId().toHexString();
+    Organization ymca = EntityFactory.createOrganization()
+        .withOrgName("YMCA")
+        .withWebsite("http://www.ymca.net")
+        .withEIN("987654321")
+        .withAddress("11088 Knights Rd")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19154")
+        .withEmail("info@ymca.net")
+        .withPhoneNumber("1234567890")
+        .buildAndPersist(orgDao);
 
-    var developerUser = new User(
-            "Test",
-            "Developer",
-            "06-16-1960",
-            "developer@keep.id",
-            "1234567890",
-            "YMCA",
-            "234 Main St",
-            "Philadelphia",
-            "PA",
-            "19104",
-            false,
-            "devYMCA",
-            TestUtils.hashPassword("devYMCA123"),
-            UserType.Developer);
-    MongoCollection<User> userCollection = testDB.getCollection("user", User.class);
-    userCollection.insertOne(developerUser);
+    YMCAOrganizationId = ymca.getId().toHexString();
+
+    EntityFactory.createUser()
+        .withFirstName("Ym")
+        .withLastName("Ca")
+        .withBirthDate("06-16-1960")
+        .withEmail("info@ymca.net")
+        .withPhoneNumber("1234567890")
+        .withOrgName("YMCA")
+        .withAddress("11088 Knights Road")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19154")
+        .withUsername("adminYMCA")
+        .withPasswordToHash("adminYMCA")
+        .withUserType(UserType.Director)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withFirstName("Test")
+        .withLastName("Developer")
+        .withBirthDate("06-16-1960")
+        .withEmail("developer@keep.id")
+        .withPhoneNumber("1234567890")
+        .withOrgName("YMCA")
+        .withAddress("234 Main St")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername("devYMCA")
+        .withPasswordToHash("devYMCA123")
+        .withUserType(UserType.Developer)
+        .buildAndPersist(userDao);
   }
 
   @Before
@@ -68,7 +97,8 @@ public class ProductionControllerIntegrationTests {
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
   }
 
   @Test

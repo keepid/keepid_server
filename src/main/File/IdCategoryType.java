@@ -8,6 +8,7 @@ public enum IdCategoryType {
     MEDICAID_CARD("Medical Insurance Card"),
     VETERAN_ID_CARD("Veteran ID Card"),
     SCHOOL_TRANSCRIPT("School Transcript"),
+    ID_ME_RECOVERY_CODES("ID.me Recovery Codes"),
     OTHER("Other"),
     NONE("None");
 
@@ -37,6 +38,8 @@ public enum IdCategoryType {
                 return IdCategoryType.VETERAN_ID_CARD;
             case "School Transcript":
                 return IdCategoryType.SCHOOL_TRANSCRIPT;
+            case "ID.me Recovery Codes":
+                return IdCategoryType.ID_ME_RECOVERY_CODES;
             case "Other":
                 return IdCategoryType.OTHER;
             case "None":
