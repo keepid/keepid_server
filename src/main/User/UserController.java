@@ -437,16 +437,19 @@ public class UserController {
 
   public Handler getUserInfo = ctx -> {
     log.info("Started getUserInfo handler");
-    JSONObject req = new JSONObject(ctx.body());
 
     String targetUsername = null;
-    try {
-      targetUsername = req.optString("username", null);
-      if (targetUsername != null && targetUsername.isEmpty()) {
-        targetUsername = null;
+    String body = ctx.body();
+    if (body != null && !body.trim().isEmpty()) {
+      try {
+        JSONObject req = new JSONObject(body);
+        targetUsername = req.optString("username", null);
+        if (targetUsername != null && targetUsername.isEmpty()) {
+          targetUsername = null;
+        }
+      } catch (Exception e) {
+        log.info("Could not parse request body, using ctx username");
       }
-    } catch (Exception e) {
-      log.info("Username not passed in request, using ctx username");
     }
 
     // Check authorization
