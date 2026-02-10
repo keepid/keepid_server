@@ -16,8 +16,8 @@ import java.util.Map;
 public class VeteranStatus implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  @NonNull private boolean isVeteran;
-  @NonNull private boolean isProtectedVeteran;
+  private boolean isVeteran;
+  private boolean isProtectedVeteran;
   private String branch;
   private String yearsOfService;
   private String rank;

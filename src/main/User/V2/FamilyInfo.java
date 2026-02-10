@@ -14,10 +14,10 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FamilyInfo {
-  @NonNull private List<Person> parents = Collections.emptyList();
-  @NonNull private MaritalStatus maritalStatus;
+  private List<Person> parents = Collections.emptyList();
+  private MaritalStatus maritalStatus;
   private Person spouse;
-  @NonNull private List<Person> children = Collections.emptyList();
+  private List<Person> children = Collections.emptyList();
 
   public Map<String, Object> toMap() {
     ObjectMapper objectMapper = new ObjectMapper();

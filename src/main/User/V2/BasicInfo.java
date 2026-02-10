@@ -26,7 +26,7 @@ public class BasicInfo {
   private String birthMiddleName;
   private String birthLastName;
   private String birthSuffix;
-  @NonNull private String ssn;
+  private String ssn;
   private Boolean haveDisability;
   private String idNumber;
 
