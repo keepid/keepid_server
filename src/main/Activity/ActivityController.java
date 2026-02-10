@@ -29,7 +29,11 @@ public class ActivityController {
   public Handler findMyActivities =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
-        checkState(ctx.sessionAttribute("username") != null);
+        if (ctx.sessionAttribute("username") == null) {
+          ctx.status(401);
+          ctx.result(new JSONObject().put("error", "Unauthorized").toString());
+          return;
+        }
         String username = req.getString("username");
         GetAllActivitiesForUser fas = new GetAllActivitiesForUser(activityDao, username);
         Message responseMessage = fas.executeAndGetResponse();
