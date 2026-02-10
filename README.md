@@ -20,32 +20,22 @@ This is the easiest way to get started. It works on any device (Mac, Windows, Li
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 
 **How to run:**
-1. Create a `.env` file in the root directory (same level as this README) regarding keys. You will need:
-   ```
-   MASTERKEYURI=...
-   GOOGLE_APPLICATION_CREDENTIALS_CONTENTS={...}
-   ```
-   *Ask a team member for these values if you don't have them.*
-
+1. Ask a team member for an `.env` file to copy into the root directory (same level as this README). This file contains things like db connections and encryption keys so don't share them.
+   
 2. Run the application:
    ```bash
-   docker-compose up
+   docker-compose up --build
    ```
-   This will start both the Java Server (port 7000) and the MongoDB database.
-
-   > **Note:** If you make changes to the Java code, you must rebuilding the image to see them:
-   > 1. Stop the server (`Ctrl+C`)
-   > 2. Rebuild and run: `docker-compose up --build`
+   This will start both the Java Server and the MongoDB database. You have to rerun with --build everytime you make a change.
 
 3. The server is ready when you see "Javalin has started" in the logs.
 
-   Access the server at `http://localhost:8080`.
+   Access the server at `http://localhost:7001`.
+   The app exposes port `5005` for remote debugging.
 
-**How to debug:**
-The app exposes port `5005` for remote debugging. In IntelliJ:
-1. Run -> Edit Configurations -> + -> Remote JVM Debug.
-2. Set Port to `5005` and name it "Docker Debug".
-3. Run this configuration *after* `docker-compose up` is running.
+4. mvn test won't work out of the box since it relies on loading in .env variables into the terminal. IntelliJ handled that with the EnvFile plugin. If you have Node, you can use `npx env-cmd -f .env -- mvn verify`
+or
+`npx env-cmd -f .env -- mvn test -Dtest={test class}`
 
 ---
 

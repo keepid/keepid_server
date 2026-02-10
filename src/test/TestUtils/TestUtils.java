@@ -24,7 +24,7 @@ import org.apache.pdfbox.pdmodel.common.PDStream;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDNonTerminalField;
-import org.bson.Document;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -71,6 +71,12 @@ public class TestUtils {
         System.exit(0);
       }
       app = AppConfig.appFactory(DeploymentLevel.TEST);
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        if (app != null) {
+          app.stop();
+          app = null;
+        }
+      }));
       return app;
     }
     return app;
@@ -100,6 +106,14 @@ public class TestUtils {
   public static void setUpTestDB() {
     // If there are entries in the database, they should be cleared before more are added.
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
+
+    // Clear existing collections so re-runs and cross-class invocations start clean
+    // Note: do NOT drop the "keys" collection -- it contains the real encryption
+    // keyset used by EncryptionController. Dropping it breaks any test that needs
+    // encryption and runs after this setup.
+    testDB.getCollection("organization").drop();
+    testDB.getCollection("user").drop();
+    testDB.getCollection("tokens").drop();
 
     try {
       /* *********************** Broad Street Ministry ************************ */
@@ -434,6 +448,19 @@ public class TestUtils {
               TestUtils.hashPassword("client2YMCA"),
               UserType.Client);
 
+      /* ******************** Test Org (for invited-user tests) **************************** */
+      Organization testOrg =
+          new Organization(
+              "Test Org",
+              "http://www.testorg.org",
+              "111222333",
+              "100 Test Ave",
+              "New York",
+              "NY",
+              "10003",
+              "contact@testorg.org",
+              "1234567890");
+
       /* *********************** 2FA Token Test Users ************************ */
 
       Organization twoFactorTokenOrg =
@@ -651,6 +678,7 @@ public class TestUtils {
           Arrays.asList(
               broadStreetMinistry,
               ymca,
+              testOrg,
               twoFactorTokenOrg,
               accountSettingsOrg,
               passwordSettingsOrg));
@@ -715,11 +743,6 @@ public class TestUtils {
       MongoCollection<Tokens> tokenCollection = testDB.getCollection("tokens", Tokens.class);
       tokenCollection.insertMany(Arrays.asList(validToken, expiredToken));
 
-      // Add an AED to the test database
-      MongoCollection<Document> keysCollection = testDB.getCollection("keys", Document.class);
-      Document aed = new Document();
-      aed.append("primaryKeyId", 1234567890);
-      keysCollection.insertOne(aed);
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -730,18 +753,19 @@ public class TestUtils {
   }
 
   // Tears down the test database by clearing all collections.
+  // The server is intentionally kept alive so other test classes that
+  // share the same JVM can reuse it (encryption keys stay in memory).
   public static void tearDownTestDB() {
     MongoConfig.dropDatabase(DeploymentLevel.TEST);
-    stopServer();
   }
 
-  // A private method for hashing passwords.
+  // A private method for hashing passwords (lightweight params for test speed).
   public static String hashPassword(String plainPass) {
     Argon2 argon2 = Argon2Factory.create();
     char[] passwordArr = plainPass.toCharArray();
     String passwordHash = null;
     try {
-      passwordHash = argon2.hash(10, 65536, 1, passwordArr);
+      passwordHash = argon2.hash(1, 1024, 1, passwordArr);
       argon2.wipeArray(passwordArr);
     } catch (Exception e) {
       argon2.wipeArray(passwordArr);
