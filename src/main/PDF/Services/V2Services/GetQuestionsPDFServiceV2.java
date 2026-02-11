@@ -99,8 +99,15 @@ public class GetQuestionsPDFServiceV2 implements Service {
     // e.g. "Question:with:colons:fieldName" -> questionText="Question:with:colons", directive="fieldName"
     int lastColonIndex = questionName.lastIndexOf(':');
     if (lastColonIndex < 0) {
-      // No colon at all -- just question text, no directive
-      fq.setQuestionText(questionName);
+      // No colon -- keep the existing questionText from the DB (set during annotation).
+      // If the DB text is empty or same as the raw field name, humanize it.
+      String existingText = fq.getQuestionText();
+      if (existingText == null || existingText.isEmpty() || existingText.equals(questionName)) {
+        fq.setQuestionText(humanizeFieldName(questionName));
+      }
+      // Still attempt to match the raw field name against the user profile
+      matchFieldFromFlattenedMap(fq, questionName);
+      this.currentFormQuestion = fq;
       return null;
     }
 
@@ -141,9 +148,29 @@ public class GetQuestionsPDFServiceV2 implements Service {
   }
 
   /**
-   * Attempts to match a directive against the flattened user field map. Checks the directive
-   * directly first, then resolves aliases. If no match is found, logs a warning and leaves the
-   * field unmatched (graceful degradation -- never errors).
+   * Converts a camelCase or PascalCase field name into a human-readable label.
+   * e.g. "firstName" -> "First Name", "zipcode" -> "Zipcode", "LastName" -> "Last Name"
+   */
+  private static String humanizeFieldName(String fieldName) {
+    if (fieldName == null || fieldName.isEmpty()) {
+      return fieldName;
+    }
+    // Insert space before each uppercase letter that follows a lowercase letter
+    String spaced = fieldName.replaceAll("([a-z])([A-Z])", "$1 $2");
+    // Capitalize the first letter
+    return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
+  }
+
+  /**
+   * Attempts to match a directive against the flattened user field map.
+   * Matching strategy (in order):
+   *   1. Exact key match
+   *   2. Alias lookup (e.g. emailAddress -> email)
+   *   3. Case-insensitive match against full keys
+   *   4. Case-insensitive match against leaf keys (last segment after last dot)
+   *
+   * If no match is found, logs a debug message and leaves the field unmatched
+   * (graceful degradation -- never errors).
    */
   private void matchFieldFromFlattenedMap(FormQuestion fq, String directive) {
     if (this.flattenedFieldMap == null) {
@@ -151,21 +178,43 @@ public class GetQuestionsPDFServiceV2 implements Service {
       return;
     }
 
-    // Direct lookup
+    // 1. Exact key match
     String value = this.flattenedFieldMap.get(directive);
 
-    // Alias lookup if direct lookup failed
+    // 2. Alias lookup
     if (value == null && FIELD_ALIASES.containsKey(directive)) {
       String aliasedKey = FIELD_ALIASES.get(directive);
       value = this.flattenedFieldMap.get(aliasedKey);
+    }
+
+    // 3. Case-insensitive full-key match
+    if (value == null) {
+      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+        if (entry.getKey().equalsIgnoreCase(directive)) {
+          value = entry.getValue();
+          break;
+        }
+      }
+    }
+
+    // 4. Case-insensitive leaf-key match (e.g. "firstname" matches "optionalInformation.person.firstName")
+    if (value == null) {
+      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+        String key = entry.getKey();
+        int lastDot = key.lastIndexOf('.');
+        String leafKey = lastDot >= 0 ? key.substring(lastDot + 1) : key;
+        if (leafKey.equalsIgnoreCase(directive)) {
+          value = entry.getValue();
+          break;
+        }
+      }
     }
 
     if (value != null) {
       fq.setMatched(true);
       fq.setDefaultValue(value);
     } else {
-      // Graceful degradation: log warning, leave matched=false, defaultValue=""
-      log.warn(
+      log.debug(
           "Field directive '{}' not found in user profile for user '{}'; skipping autofill",
           directive,
           this.username);
@@ -187,7 +236,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
       formField.put("fieldType", formQuestion.getType().toString());
       formField.put("fieldValueOptions", new JSONArray(formQuestion.getOptions()));
       formField.put("fieldDefaultValue", formQuestion.getDefaultValue());
-      formField.put("fieldIsRequired", formQuestion.isRequired());
+      // All fields are optional in the web form -- users can skip what they can't answer.
+      // Unanswered fields are left blank in the filled PDF.
+      formField.put("fieldIsRequired", false);
       formField.put("fieldNumLines", formQuestion.getNumLines());
       formField.put("fieldIsMatched", formQuestion.isMatched());
       formField.put("fieldQuestion", formQuestion.getQuestionText());
