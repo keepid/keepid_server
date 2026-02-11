@@ -121,6 +121,26 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
+  public void loginUserWithEmailTest() {
+    JSONObject body = new JSONObject();
+    body.put("username", "mikedahl@broadstreetministry.org");
+    body.put("password", "adminBSM");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/login")
+            .header("Accept", "*/*")
+            .header("Content-Type", "text/plain")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("AUTH_SUCCESS");
+    assertThat(actualResponseJSON.getString("firstName")).isEqualTo("Mike");
+    assertThat(actualResponseJSON.getString("lastName")).isEqualTo("Dahl");
+    assertThat(actualResponseJSON.getString("organization")).isEqualTo("Broad Street Ministry");
+  }
+
+  @Test
   public void testUserEncryption() {
     TestUtils.login("adminBSM", "adminBSM");
     JSONObject body = new JSONObject();

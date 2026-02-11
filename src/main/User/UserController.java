@@ -137,17 +137,19 @@ public class UserController {
   public Handler loginUser = ctx -> {
     ctx.req.getSession().invalidate();
     JSONObject req = new JSONObject(ctx.body());
-    String username = req.getString("username");
+    String loginIdentifier = req.optString("username", req.optString("email", ""));
     String password = req.getString("password");
     String ip = ctx.ip();
     String userAgent = ctx.userAgent();
-    log.info("Attempting to login " + username);
+    log.info("Attempting to login " + loginIdentifier);
 
-    LoginService loginService = new LoginService(userDao, activityDao, username, password, ip, userAgent);
+    LoginService loginService =
+        new LoginService(userDao, activityDao, loginIdentifier, password, ip, userAgent);
     Message response = loginService.executeAndGetResponse();
     log.info(response.toString() + response.getErrorDescription());
     JSONObject responseJSON = response.toJSON();
     if (response == UserMessage.AUTH_SUCCESS) {
+      responseJSON.put("username", loginService.getUsername());
       responseJSON.put("userRole", loginService.getUserRole());
       responseJSON.put("organization", loginService.getOrganization());
       responseJSON.put("firstName", loginService.getFirstName());
@@ -158,6 +160,7 @@ public class UserController {
       ctx.sessionAttribute("username", loginService.getUsername());
       ctx.sessionAttribute("fullName", loginService.getFullName());
     } else {
+      responseJSON.put("username", "");
       responseJSON.put("userRole", "");
       responseJSON.put("organization", "");
       responseJSON.put("firstName", "");

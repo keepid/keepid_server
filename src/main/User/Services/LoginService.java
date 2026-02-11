@@ -27,7 +27,7 @@ public class LoginService implements Service {
   public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
   private UserDao userDao;
   private ActivityDao activityDao;
-  private final String username;
+  private final String loginIdentifier;
   private final String password;
   private User user;
   private final String ip;
@@ -36,13 +36,13 @@ public class LoginService implements Service {
   public LoginService(
       UserDao userDao,
       ActivityDao activityDao,
-      String username,
+      String loginIdentifier,
       String password,
       String ip,
       String userAgent) {
     this.userDao = userDao;
     this.activityDao = activityDao;
-    this.username = username;
+    this.loginIdentifier = loginIdentifier;
     this.password = password;
     this.ip = ip;
     this.userAgent = userAgent;
@@ -50,15 +50,32 @@ public class LoginService implements Service {
 
   // the execute function will handle all business logic
   public Message executeAndGetResponse() {
-    // validation
-    if (!ValidationUtils.isValidUsername(this.username)
-        || !ValidationUtils.isValidPassword(this.password)) {
-      log.info("Invalid username and/or password");
+    String normalizedIdentifier = loginIdentifier == null ? "" : loginIdentifier.trim();
+    boolean isEmailIdentifier = looksLikeEmailIdentifier(normalizedIdentifier);
+    if (isEmailIdentifier) {
+      normalizedIdentifier = normalizedIdentifier.toLowerCase();
+    }
+
+    if (!ValidationUtils.isValidPassword(this.password)) {
+      log.info("Invalid identifier and/or password");
       return UserMessage.AUTH_FAILURE;
     }
-    // get user
 
-    Optional<User> optionalUser = userDao.get(this.username);
+    Optional<User> optionalUser;
+    if (isEmailIdentifier) {
+      if (!ValidationUtils.isValidEmail(normalizedIdentifier)) {
+        log.info("Invalid identifier and/or password");
+        return UserMessage.AUTH_FAILURE;
+      }
+      optionalUser = userDao.getByEmail(normalizedIdentifier);
+    } else {
+      if (!ValidationUtils.isValidUsername(normalizedIdentifier)) {
+        log.info("Invalid identifier and/or password");
+        return UserMessage.AUTH_FAILURE;
+      }
+      optionalUser = userDao.get(normalizedIdentifier);
+    }
+
     if (optionalUser.isEmpty()) {
       return UserMessage.AUTH_FAILURE;
     }
@@ -71,6 +88,12 @@ public class LoginService implements Service {
     recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao); // get ip location
     log.info("Login Successful!");
     return UserMessage.AUTH_SUCCESS;
+  }
+
+  private boolean looksLikeEmailIdentifier(String identifier) {
+    int at = identifier.indexOf('@');
+    int dot = identifier.lastIndexOf('.');
+    return at > 0 && dot > at + 1 && dot < identifier.length() - 1;
   }
 
   public static void recordActivityLogin(User user, ActivityDao activityDao) {
