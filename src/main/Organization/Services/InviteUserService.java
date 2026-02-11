@@ -2,6 +2,8 @@ package Organization.Services;
 
 import Config.Message;
 import Config.Service;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EmailExceptions;
 import Security.EmailMessages;
 import Security.EmailUtil;
@@ -22,12 +24,19 @@ public class InviteUserService implements Service {
   JSONArray people;
   String sender;
   String orgName;
+  EmailSender emailSender;
 
   public InviteUserService(MongoDatabase db, JSONArray people, String sender, String orgName) {
+    this(db, people, sender, orgName, EmailSenderFactory.smtp());
+  }
+
+  public InviteUserService(
+      MongoDatabase db, JSONArray people, String sender, String orgName, EmailSender emailSender) {
     this.db = db;
     this.people = people;
     this.sender = sender;
     this.orgName = orgName;
+    this.emailSender = emailSender;
   }
 
   @Override
@@ -96,7 +105,7 @@ public class InviteUserService implements Service {
         String emailJWT =
             EmailUtil.getOrganizationInviteEmail(
                 "https://keep.id/create-user/" + jwt, sender, firstName + " " + lastName);
-        EmailUtil.sendEmail(
+        emailSender.sendEmail(
             "Keep ID", email, sender + " has Invited you to Join their Organization", emailJWT);
         //          switch (role) {
         //            case: "Worker":

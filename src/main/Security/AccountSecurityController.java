@@ -14,12 +14,19 @@ public class AccountSecurityController {
   private TokenDao tokenDao;
   private ActivityDao activityDao;
   private EncryptionUtils encryptionUtils;
+  private EmailSender emailSender;
 
   public AccountSecurityController(UserDao userDao, TokenDao tokenDao, ActivityDao activityDao) {
+    this(userDao, tokenDao, activityDao, EmailSenderFactory.smtp());
+  }
+
+  public AccountSecurityController(
+      UserDao userDao, TokenDao tokenDao, ActivityDao activityDao, EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.activityDao = activityDao;
     this.encryptionUtils = EncryptionUtils.getInstance();
+    this.emailSender = emailSender;
   }
 
   public Handler forgotPassword =
@@ -28,7 +35,7 @@ public class AccountSecurityController {
         String loginIdentifier =
             req.optString("username", req.optString("identifier", req.optString("email", "")));
         ForgotPasswordService forgotPasswordService =
-            new ForgotPasswordService(userDao, tokenDao, loginIdentifier);
+            new ForgotPasswordService(userDao, tokenDao, loginIdentifier, emailSender);
         ctx.result(forgotPasswordService.executeAndGetResponse().toResponseString());
       };
 

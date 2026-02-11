@@ -3,6 +3,8 @@ package User.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EmailExceptions;
 import Security.EmailUtil;
 import User.User;
@@ -14,10 +16,17 @@ import java.util.Optional;
 public class SendEmailLoginInstructionsService implements Service {
   private final UserDao userDao;
   private final String username;
+  private final EmailSender emailSender;
 
   public SendEmailLoginInstructionsService(UserDao userDao, String username) {
+    this(userDao, username, EmailSenderFactory.smtp());
+  }
+
+  public SendEmailLoginInstructionsService(
+      UserDao userDao, String username, EmailSender emailSender) {
     this.userDao = userDao;
     this.username = username;
+    this.emailSender = emailSender;
   }
 
   @Override
@@ -36,7 +45,7 @@ public class SendEmailLoginInstructionsService implements Service {
     String normalizedEmail = email.trim().toLowerCase();
     try {
       String message = EmailUtil.getLoginInstructionsEmail();
-      EmailUtil.sendEmail("Keep Id", normalizedEmail, "Keep.id login instructions", message);
+      emailSender.sendEmail("Keep Id", normalizedEmail, "Keep.id login instructions", message);
       return UserMessage.SUCCESS;
     } catch (EmailExceptions e) {
       return e;

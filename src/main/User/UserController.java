@@ -14,6 +14,8 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -43,6 +45,7 @@ public class UserController {
   FormDao formDao;
   FileDao fileDao;
   OrgDao orgDao;
+  EmailSender emailSender;
 
   public UserController(
       UserDao userDao,
@@ -52,6 +55,18 @@ public class UserController {
       FormDao formDao,
       OrgDao orgDao,
       MongoDatabase db) {
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, EmailSenderFactory.smtp());
+  }
+
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      FormDao formDao,
+      OrgDao orgDao,
+      MongoDatabase db,
+      EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
@@ -59,6 +74,7 @@ public class UserController {
     this.formDao = formDao;
     this.orgDao = orgDao;
     this.db = db;
+    this.emailSender = emailSender;
   }
 
   public static final String newUserActualURL = Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
@@ -921,7 +937,8 @@ public class UserController {
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
 
-    UpdateUserProfileService updateService = new UpdateUserProfileService(userDao, username, updateRequest);
+    UpdateUserProfileService updateService =
+        new UpdateUserProfileService(userDao, username, updateRequest, emailSender);
     Message response = updateService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };
@@ -953,7 +970,7 @@ public class UserController {
 
     String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
     SendEmailLoginInstructionsService sendService =
-        new SendEmailLoginInstructionsService(userDao, username);
+        new SendEmailLoginInstructionsService(userDao, username, emailSender);
     Message response = sendService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };

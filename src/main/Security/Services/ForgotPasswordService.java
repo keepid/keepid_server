@@ -4,6 +4,8 @@ import Config.Message;
 import Config.Service;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EmailExceptions;
 import Security.EmailUtil;
 import Security.SecurityUtils;
@@ -19,13 +21,20 @@ public class ForgotPasswordService implements Service {
 
   UserDao userDao;
   TokenDao tokenDao;
+  EmailSender emailSender;
   private String loginIdentifier;
   public static final int EXPIRATION_TIME_2_HOURS = 7200000;
 
   public ForgotPasswordService(UserDao userDao, TokenDao tokenDao, String loginIdentifier) {
+    this(userDao, tokenDao, loginIdentifier, EmailSenderFactory.smtp());
+  }
+
+  public ForgotPasswordService(
+      UserDao userDao, TokenDao tokenDao, String loginIdentifier, EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.loginIdentifier = loginIdentifier;
+    this.emailSender = emailSender;
   }
 
   @Override
@@ -68,7 +77,7 @@ public class ForgotPasswordService implements Service {
     tokenDao.replaceOne(resolvedUsername, newToken);
     try {
       String emailJWT = EmailUtil.getPasswordResetEmail("https://keep.id/reset-password/" + jwt);
-      EmailUtil.sendEmail("Keep Id", emailAddress, "Password Reset Confirmation", emailJWT);
+      emailSender.sendEmail("Keep Id", emailAddress, "Password Reset Confirmation", emailJWT);
     } catch (EmailExceptions e) {
       return e;
     }

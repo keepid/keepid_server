@@ -18,6 +18,7 @@ import Security.SecurityUtils;
 import Security.Services.ChangePasswordService;
 import Security.Services.ForgotPasswordService;
 import Security.Services.ResetPasswordService;
+import Security.EmailSenderFactory;
 import Security.Tokens;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -97,7 +98,8 @@ public class ChangePasswordIntegrationTests {
   public void forgotPasswordCreatesTokenTest() {
     String username = "password-reset-test";
     ForgotPasswordService forgotPasswordService =
-        new ForgotPasswordService(userDao, tokenDao, username);
+        new ForgotPasswordService(
+            userDao, tokenDao, username, EmailSenderFactory.forDeploymentLevel(DeploymentLevel.TEST));
     Message returnMessage = forgotPasswordService.executeAndGetResponse();
     assertEquals(UserMessage.SUCCESS, returnMessage);
     Tokens tokens = tokenDao.get(username).get();
@@ -110,7 +112,8 @@ public class ChangePasswordIntegrationTests {
     String username = "password-reset-test";
     String email = "contact@example.com";
     ForgotPasswordService forgotPasswordService =
-        new ForgotPasswordService(userDao, tokenDao, email);
+        new ForgotPasswordService(
+            userDao, tokenDao, email, EmailSenderFactory.forDeploymentLevel(DeploymentLevel.TEST));
     Message returnMessage = forgotPasswordService.executeAndGetResponse();
     assertEquals(UserMessage.SUCCESS, returnMessage);
     Tokens tokens = tokenDao.get(username).get();

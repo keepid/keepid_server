@@ -28,10 +28,10 @@ public class UserDaoTestImpl implements UserDao {
     if (email == null) {
       return Optional.empty();
     }
-    String normalizedEmail = email.trim().toLowerCase();
+    String normalizedEmail = email.trim();
     for (User user : userMap.values()) {
       String userEmail = user.getEmail();
-      if (userEmail != null && userEmail.trim().toLowerCase().equals(normalizedEmail)) {
+      if (userEmail != null && userEmail.trim().equalsIgnoreCase(normalizedEmail)) {
         return Optional.of(user);
       }
     }

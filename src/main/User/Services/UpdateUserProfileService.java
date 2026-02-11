@@ -3,6 +3,8 @@ package User.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EmailExceptions;
 import Security.EmailUtil;
 import User.UserInformation.*;
@@ -26,12 +28,18 @@ public class UpdateUserProfileService implements Service {
     private final UserDao userDao;
     private final String username;
     private final JSONObject updateRequest;
+    private final EmailSender emailSender;
     private User user;
 
     public UpdateUserProfileService(UserDao userDao, String username, JSONObject updateRequest) {
+        this(userDao, username, updateRequest, EmailSenderFactory.smtp());
+    }
+
+    public UpdateUserProfileService(UserDao userDao, String username, JSONObject updateRequest, EmailSender emailSender) {
         this.userDao = userDao;
         this.username = username;
         this.updateRequest = updateRequest;
+        this.emailSender = emailSender;
     }
 
     @Override
@@ -651,7 +659,7 @@ public class UpdateUserProfileService implements Service {
         }
         try {
             String message = EmailUtil.getAccountEmailChangedNotificationEmail();
-            EmailUtil.sendEmail("Keep Id", updatedEmail, "Keep.id account email updated", message);
+            emailSender.sendEmail("Keep Id", updatedEmail, "Keep.id account email updated", message);
         } catch (EmailExceptions e) {
             log.warn("Unable to send email change notification to {}: {}", updatedEmail, e.getMessage());
         } catch (Exception e) {
