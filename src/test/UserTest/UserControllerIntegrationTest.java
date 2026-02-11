@@ -69,6 +69,7 @@ public class UserControllerIntegrationTest {
     EntityFactory.createUser()
         .withFirstName("Worker")
         .withLastName("Tff")
+        .withEmail("workertff@broadstreetministry.org")
         .withUsername("workertffBSM")
         .withPasswordToHash("workertffBSM")
         .withOrgName("Broad Street Ministry")
@@ -78,6 +79,7 @@ public class UserControllerIntegrationTest {
     EntityFactory.createUser()
         .withFirstName("Client")
         .withLastName("Bsm")
+        .withEmail("client1@broadstreetministry.org")
         .withUsername("client1BSM")
         .withPasswordToHash("client1BSM")
         .withOrgName("Broad Street Ministry")
@@ -276,6 +278,44 @@ public class UserControllerIntegrationTest {
 
     assert (actualResponseJSON.has("status"));
     assertThat(actualResponseJSON.getString("status")).isEqualTo("INVALID_PRIVILEGE_TYPE");
+  }
+
+  @Test
+  public void createInvitedUserDuplicateEmailFailsTest() {
+    JSONObject firstBody = new JSONObject();
+    firstBody.put("firstname", "first");
+    firstBody.put("lastname", "user");
+    firstBody.put("birthDate", "02-16-1998");
+    firstBody.put("email", "dupe-email-test@keep.id");
+    firstBody.put("phonenumber", "1234567890");
+    firstBody.put("address", "123 park ave");
+    firstBody.put("city", "new york");
+    firstBody.put("state", "NY");
+    firstBody.put("zipcode", "10003");
+    firstBody.put("twoFactorOn", false);
+    firstBody.put("username", "dupeEmailUserA");
+    firstBody.put("password", "dupeEmailUserA");
+    firstBody.put("personRole", "Worker");
+    firstBody.put("orgName", "Test Org");
+
+    HttpResponse<String> firstResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
+            .body(firstBody.toString())
+            .asString();
+    JSONObject firstResponseJSON = TestUtils.responseStringToJSON(firstResponse.getBody());
+    assertThat(firstResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+
+    JSONObject secondBody = new JSONObject(firstBody.toString());
+    secondBody.put("firstname", "second");
+    secondBody.put("username", "dupeEmailUserB");
+    secondBody.put("password", "dupeEmailUserB");
+
+    HttpResponse<String> secondResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
+            .body(secondBody.toString())
+            .asString();
+    JSONObject secondResponseJSON = TestUtils.responseStringToJSON(secondResponse.getBody());
+    assertThat(secondResponseJSON.getString("status")).isEqualTo("EMAIL_ALREADY_EXISTS");
   }
 
   @Test
