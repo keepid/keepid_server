@@ -10,7 +10,7 @@ public enum EmailMessages implements Message {
   INVITER_DOM_NOT_FOUND("INVITER_DOM_NOT_FOUND: Can't locate sender name in html"),
   CODE_DOM_NOT_FOUND("CODE_DOM_NOT_FOUND: Can't locate verification code in html"),
   NOT_VALID_EMAIL("NOT_VALID_EMAIL: The email address isn't valid"),
-  UNABLE_TO_SEND("Failed to send emails"),
+  UNABLE_TO_SEND("UNABLE_TO_SEND: Failed to send emails"),
   SUCCESS("SUCCESS:Success.");
 
   private final String errorMessage;
@@ -24,11 +24,16 @@ public enum EmailMessages implements Message {
   }
 
   public String getErrorName() {
-    return this.errorMessage.split(":")[0];
+    String[] split = this.errorMessage.split(":", 2);
+    return split[0].trim();
   }
 
   public String getErrorDescription() {
-    return this.errorMessage.split(":")[1];
+    String[] split = this.errorMessage.split(":", 2);
+    if (split.length < 2) {
+      return this.errorMessage;
+    }
+    return split[1].trim();
   }
 
   public JSONObject toJSON() {

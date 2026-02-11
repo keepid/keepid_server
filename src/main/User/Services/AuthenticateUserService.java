@@ -70,8 +70,4 @@ public class AuthenticateUserService implements Service {
     return user.getFirstName() + " " + user.getLastName();
   }
 
-  public boolean isTwoFactorOn() {
-    Objects.requireNonNull(user);
-    return user.getTwoFactorOn();
-  }
 }

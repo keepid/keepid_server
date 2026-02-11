@@ -3,6 +3,10 @@ package User.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
+import Security.EmailExceptions;
+import Security.EmailUtil;
 import User.UserInformation.*;
 import User.OptionalInformation;
 import User.User;
@@ -10,6 +14,7 @@ import User.UserMessage;
 import User.UserValidationMessage;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
+import com.mongodb.MongoWriteException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -23,12 +28,18 @@ public class UpdateUserProfileService implements Service {
     private final UserDao userDao;
     private final String username;
     private final JSONObject updateRequest;
+    private final EmailSender emailSender;
     private User user;
 
     public UpdateUserProfileService(UserDao userDao, String username, JSONObject updateRequest) {
+        this(userDao, username, updateRequest, EmailSenderFactory.smtp());
+    }
+
+    public UpdateUserProfileService(UserDao userDao, String username, JSONObject updateRequest, EmailSender emailSender) {
         this.userDao = userDao;
         this.username = username;
         this.updateRequest = updateRequest;
+        this.emailSender = emailSender;
     }
 
     @Override
@@ -40,6 +51,7 @@ public class UpdateUserProfileService implements Service {
             return UserMessage.USER_NOT_FOUND;
         }
         this.user = optionalUser.get();
+        String originalEmail = normalizeEmail(this.user.getEmail());
 
         try {
             JSONObject[] splitUpdates = splitUpdateRequest(updateRequest);
@@ -60,11 +72,15 @@ public class UpdateUserProfileService implements Service {
             if (nestedObjectUpdates.length() > 0) {
                 userDao.update(user);
             }
+            notifyOnEmailChange(originalEmail, normalizeEmail(user.getEmail()));
             log.info("Successfully updated user profile for: " + username);
             return UserMessage.SUCCESS;
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
             return e;
+        } catch (MongoWriteException e) {
+            log.warn("Duplicate email while updating profile for {}: {}", username, e.getMessage());
+            return UserMessage.EMAIL_ALREADY_EXISTS;
         } catch (Exception e) {
             log.error("Error updating user profile: " + e.getMessage(), e);
             return UserMessage.AUTH_FAILURE;
@@ -136,6 +152,8 @@ public class UpdateUserProfileService implements Service {
             // Use MongoDB $set for field-level update
             try {
                 userDao.updateField(username, fieldPath, convertedValue);
+            } catch (MongoWriteException e) {
+                throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
             } catch (Exception e) {
                 log.error("Error updating field '{}': {}", fieldPath, e.getMessage());
                 throw new ValidationException(UserMessage.INVALID_PARAMETER.toJSON());
@@ -189,7 +207,7 @@ public class UpdateUserProfileService implements Service {
                 return value;
             }
         } else if (fieldPath.contains(".email") || fieldPath.endsWith("email")) {
-            String email = value.toString();
+            String email = value.toString().trim().toLowerCase();
             if (email != null && !email.isEmpty() && !ValidationUtils.isValidEmail(email)) {
                 throw new ValidationException(
                         UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_EMAIL));
@@ -219,11 +237,24 @@ public class UpdateUserProfileService implements Service {
 
     private void updateEmailIfPresent(JSONObject request) throws ValidationException {
         if (request.has("email")) {
-            String email = getValidatedString(request, "email", ValidationUtils::isValidEmail,
-                    UserValidationMessage.INVALID_EMAIL);
-            if (email != null) {
-                user.setEmail(email);
+            Object rawEmail = request.get("email");
+            if (rawEmail == null || JSONObject.NULL.equals(rawEmail)) {
+                user.setEmail("");
+                return;
             }
+
+            String email = rawEmail.toString().trim().toLowerCase();
+            if (!email.isEmpty() && !ValidationUtils.isValidEmail(email)) {
+                throw new ValidationException(
+                        UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_EMAIL));
+            }
+            if (!email.isEmpty()) {
+                Optional<User> existing = userDao.getByEmail(email);
+                if (existing.isPresent() && !existing.get().getUsername().equals(username)) {
+                    throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
+                }
+            }
+            user.setEmail(email);
         }
     }
 
@@ -612,6 +643,27 @@ public class UpdateUserProfileService implements Service {
             } else if (type == Boolean.class) {
                 setter.accept((T) Boolean.valueOf(value.toString()));
             }
+        }
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase();
+    }
+
+    private void notifyOnEmailChange(String originalEmail, String updatedEmail) {
+        if (updatedEmail.isEmpty() || updatedEmail.equals(originalEmail)) {
+            return;
+        }
+        try {
+            String message = EmailUtil.getAccountEmailChangedNotificationEmail();
+            emailSender.sendEmail("Keep Id", updatedEmail, "Keep.id account email updated", message);
+        } catch (EmailExceptions e) {
+            log.warn("Unable to send email change notification to {}: {}", updatedEmail, e.getMessage());
+        } catch (Exception e) {
+            log.warn("Unexpected error while sending email change notification to {}: {}", updatedEmail, e.getMessage());
         }
     }
 }

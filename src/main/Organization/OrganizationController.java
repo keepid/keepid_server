@@ -6,6 +6,8 @@ import Organization.Services.EnrollOrganizationService;
 import Organization.Services.FindMemberService;
 import Organization.Services.InviteUserService;
 import Organization.Services.ListOrgsService;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EncryptionUtils;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
@@ -21,6 +23,7 @@ public class OrganizationController {
 
   MongoDatabase db;
   ActivityDao activityDao;
+  EmailSender emailSender;
 
   public static final String newOrgTestURL =
       Objects.requireNonNull(System.getenv("NEW_ORG_TESTURL"));
@@ -29,9 +32,14 @@ public class OrganizationController {
   EncryptionUtils encryptionUtils;
 
   public OrganizationController(MongoDatabase db, ActivityDao activityDao) {
+    this(db, activityDao, EmailSenderFactory.smtp());
+  }
+
+  public OrganizationController(MongoDatabase db, ActivityDao activityDao, EmailSender emailSender) {
     this.db = db;
     this.encryptionUtils = EncryptionUtils.getInstance();
     this.activityDao = activityDao;
+    this.emailSender = emailSender;
   }
   //
   //  public Handler organizationSignupValidator =
@@ -199,7 +207,7 @@ public class OrganizationController {
         String sender = ctx.sessionAttribute("fullName");
         String org = ctx.sessionAttribute("orgName");
 
-        InviteUserService iuservice = new InviteUserService(db, people, sender, org);
+        InviteUserService iuservice = new InviteUserService(db, people, sender, org, emailSender);
         ctx.result(iuservice.executeAndGetResponse().toResponseString());
       };
 }

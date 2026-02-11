@@ -17,8 +17,6 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.Date;
-
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,6 +54,27 @@ public class UpdateUserProfileServiceTest {
     assertNotNull(updatedUser);
     assertEquals("new@example.com", updatedUser.getEmail());
     assertEquals("9876543210", updatedUser.getPhone());
+  }
+
+  @Test
+  public void updateRootLevelEmailCanBeClearedToEmptyString() {
+    EntityFactory.createUser()
+        .withUsername("testuser")
+        .withUserType(UserType.Client)
+        .withEmail("old@example.com")
+        .buildAndPersist(userDao);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("email", "");
+
+    UpdateUserProfileService service = new UpdateUserProfileService(userDao, "testuser", updateRequest);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+
+    User updatedUser = userDao.get("testuser").orElse(null);
+    assertNotNull(updatedUser);
+    assertEquals("", updatedUser.getEmail());
   }
 
   @Test

@@ -15,6 +15,7 @@ public enum UserMessage implements Message {
   CLIENT_ENROLL_CLIENT("CLIENT_ENROLL_CLIENT:Only workers or admins can enroll new clients."),
   INVALID_PARAMETER("INVALID_PARAMETER:Please check your parameter"),
   USERNAME_ALREADY_EXISTS("USERNAME_ALREADY_EXISTS:This username is taken."),
+  EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS:This email is already in use."),
   SERVER_ERROR("SERVER_ERROR:There was an error with the server."),
   INSUFFICIENT_PRIVILEGE("INSUFFICIENT_PRIVILEGE:Privilege level too low."),
   INVALID_PRIVILEGE_TYPE("INVALID_PRIVILEGE_TYPE:The privilege type is invalid"),

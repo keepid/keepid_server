@@ -25,6 +25,16 @@ public class UserDaoTestImpl implements UserDao {
 
   @Override
   public Optional<User> getByEmail(String email) {
+    if (email == null) {
+      return Optional.empty();
+    }
+    String normalizedEmail = email.trim();
+    for (User user : userMap.values()) {
+      String userEmail = user.getEmail();
+      if (userEmail != null && userEmail.trim().equalsIgnoreCase(normalizedEmail)) {
+        return Optional.of(user);
+      }
+    }
     return Optional.empty();
   }
 

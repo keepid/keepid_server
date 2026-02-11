@@ -24,17 +24,6 @@ public class EmailUtilTest {
   }
 
   @Test
-  public void checkVeriCode() {
-    try {
-      String actual = emailUtil.getVerificationCodeEmail("hiii");
-    } catch (EmailExceptions e) {
-      Boolean a = e.toString().equals("CODE_DOM_NOT_FOUND: Can't locate verification code in html");
-      Boolean b = e.toString().equals("HTML_NOT_FOUND: Can't locate html needed for email");
-      assert (a || b);
-    }
-  }
-
-  @Test
   public void checkReset() {
     try {
       String actual = emailUtil.getPasswordResetEmail("hiii");

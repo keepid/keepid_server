@@ -22,11 +22,9 @@ import java.util.*;
 
 @Slf4j
 public class ProcessGoogleLoginResponseService implements Service {
-    public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
-    private final String googleClientId = Objects.requireNonNull(
-        System.getenv("GOOGLE_CLIENT_ID"));
-    private final String googleClientSecret = Objects.requireNonNull(
-        System.getenv("GOOGLE_CLIENT_SECRET"));
+    public final String IP_INFO_TOKEN = System.getenv("IPINFO_TOKEN");
+    private final String googleClientId = System.getenv("GOOGLE_CLIENT_ID");
+    private final String googleClientSecret = System.getenv("GOOGLE_CLIENT_SECRET");
     private final UserDao userDao;
     private final ActivityDao activityDao;
     private String origin;
@@ -39,6 +37,11 @@ public class ProcessGoogleLoginResponseService implements Service {
     private final String userAgent;
 
     private User user;
+
+    // Google profile info extracted from ID token (available when USER_NOT_FOUND)
+    private String googleEmail;
+    private String googleFirstName;
+    private String googleLastName;
 
     public ProcessGoogleLoginResponseService(
             UserDao userDao,
@@ -65,6 +68,14 @@ public class ProcessGoogleLoginResponseService implements Service {
 
     @Override
     public Message executeAndGetResponse() throws Exception {
+        if (googleClientId == null || googleClientSecret == null) {
+            log.error("Google OAuth environment variables are not configured. " +
+                "Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.");
+            return GoogleLoginResponseMessage.INTERNAL_ERROR;
+        }
+        if (IP_INFO_TOKEN == null) {
+            log.warn("IPINFO_TOKEN environment variable is not set. IP geolocation will be unavailable.");
+        }
         if (origin == null || !URIUtil.isValidOriginURI(origin)) {
             log.error("Invalid Origin URI provided.");
             origin = "https://keep.id";
@@ -90,9 +101,15 @@ public class ProcessGoogleLoginResponseService implements Service {
                 return GoogleLoginResponseMessage.AUTH_FAILURE;
             }
             log.info("Attempting to find Keep.id account associated with ID Token");
+            // Extract Google profile info from token (for sign-up pre-fill if user not found)
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            googleEmail = payload.getEmail();
+            googleFirstName = (String) payload.get("given_name");
+            googleLastName = (String) payload.get("family_name");
+
             Optional<User> userOptional = convertJwtTokenToUser(idToken);
             if (userOptional.isEmpty()) {
-                log.info("No Keep.id account associated with ID Token");
+                log.info("No Keep.id account associated with ID Token for email: {}", googleEmail);
                 return GoogleLoginResponseMessage.USER_NOT_FOUND;
             }
             user = userOptional.get();
@@ -135,10 +152,15 @@ public class ProcessGoogleLoginResponseService implements Service {
             HttpResponse.BodyHandlers.ofString());
 
         JSONObject responseJSON = new JSONObject(response.body());
-        // log.info("Received response from {} with body: {}", tokenExchangeUrl, responseJSON);
 
         if (!responseJSON.has("id_token")) {
-            log.error("No ID token found in response, returning null");
+            // Log Google's error response to help diagnose token exchange failures
+            String error = responseJSON.optString("error", "unknown");
+            String errorDescription = responseJSON.optString("error_description", "no description");
+            log.error("Google token exchange failed. HTTP status: {}, error: '{}', description: '{}'. " +
+                "Verify that GOOGLE_CLIENT_SECRET is correct and that the redirect URI '{}' " +
+                "is registered in the Google Cloud Console.",
+                response.statusCode(), error, errorDescription, redirectUri);
             return null;
         }
         return GoogleIdToken.parse(new GsonFactory(),
@@ -214,8 +236,16 @@ public class ProcessGoogleLoginResponseService implements Service {
         return user.getFirstName() + " " + user.getLastName();
     }
 
-    public boolean isTwoFactorOn() {
-        Objects.requireNonNull(user);
-        return user.getTwoFactorOn();
+    /** Google profile getters (available after executeAndGetResponse, even when USER_NOT_FOUND) */
+    public String getGoogleEmail() {
+        return googleEmail;
+    }
+
+    public String getGoogleFirstName() {
+        return googleFirstName;
+    }
+
+    public String getGoogleLastName() {
+        return googleLastName;
     }
 }

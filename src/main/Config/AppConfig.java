@@ -28,6 +28,8 @@ import PDF.PdfController;
 import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import Security.EncryptionController;
 import Security.EncryptionTools;
 import Security.EncryptionUtils;
@@ -77,11 +79,12 @@ public class AppConfig {
 
     // We need to instantiate the controllers with the database.
     EncryptionController encryptionController = new EncryptionController(db);
-    OrganizationController orgController = new OrganizationController(db, activityDao);
+    EmailSender emailSender = EmailSenderFactory.forDeploymentLevel(deploymentLevel);
+    OrganizationController orgController = new OrganizationController(db, activityDao, emailSender);
     UserController userController =
-        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db);
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, emailSender);
     AccountSecurityController accountSecurityController =
-        new AccountSecurityController(userDao, tokenDao, activityDao);
+        new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     FormController formController = new FormController(formDao, userDao, encryptionController);
     FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
@@ -159,8 +162,8 @@ public class AppConfig {
     app.post("/get-organization-info", userController.getOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
-    app.post("/two-factor", accountSecurityController.twoFactorAuth);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -184,8 +187,6 @@ public class AppConfig {
 
     /* -------------- ACCOUNT SETTINGS ------------------ */
     app.post("/change-account-setting", accountSecurityController.changeAccountSetting);
-    app.post("/change-two-factor-setting", accountSecurityController.change2FASetting);
-
     /* -------------- SUBMIT BUG------------------ */
     app.post("/submit-issue", issueController.submitIssue);
 
