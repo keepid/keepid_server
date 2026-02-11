@@ -25,9 +25,10 @@ public class AccountSecurityController {
   public Handler forgotPassword =
       ctx -> {
         JSONObject req = new JSONObject(ctx.body());
-        String username = req.getString("username");
+        String loginIdentifier =
+            req.optString("username", req.optString("identifier", req.optString("email", "")));
         ForgotPasswordService forgotPasswordService =
-            new ForgotPasswordService(userDao, tokenDao, username);
+            new ForgotPasswordService(userDao, tokenDao, loginIdentifier);
         ctx.result(forgotPasswordService.executeAndGetResponse().toResponseString());
       };
 

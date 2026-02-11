@@ -106,6 +106,19 @@ public class ChangePasswordIntegrationTests {
   }
 
   @Test
+  public void forgotPasswordWithEmailCreatesTokenTest() {
+    String username = "password-reset-test";
+    String email = "contact@example.com";
+    ForgotPasswordService forgotPasswordService =
+        new ForgotPasswordService(userDao, tokenDao, email);
+    Message returnMessage = forgotPasswordService.executeAndGetResponse();
+    assertEquals(UserMessage.SUCCESS, returnMessage);
+    Tokens tokens = tokenDao.get(username).get();
+    assertEquals(1, tokens.numTokens());
+    tokenDao.removeTokenIfLast(username, tokens, Tokens.TokenType.PASSWORD_RESET);
+  }
+
+  @Test
   public void resetPasswordWithJWTTest() throws Exception {
     String username = "password-reset-test";
     String id = SecurityUtils.generateRandomStringId();
