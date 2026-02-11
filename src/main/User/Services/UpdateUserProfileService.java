@@ -10,6 +10,7 @@ import User.UserMessage;
 import User.UserValidationMessage;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
+import com.mongodb.MongoWriteException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -65,6 +66,9 @@ public class UpdateUserProfileService implements Service {
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
             return e;
+        } catch (MongoWriteException e) {
+            log.warn("Duplicate email while updating profile for {}: {}", username, e.getMessage());
+            return UserMessage.EMAIL_ALREADY_EXISTS;
         } catch (Exception e) {
             log.error("Error updating user profile: " + e.getMessage(), e);
             return UserMessage.AUTH_FAILURE;
@@ -136,6 +140,8 @@ public class UpdateUserProfileService implements Service {
             // Use MongoDB $set for field-level update
             try {
                 userDao.updateField(username, fieldPath, convertedValue);
+            } catch (MongoWriteException e) {
+                throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
             } catch (Exception e) {
                 log.error("Error updating field '{}': {}", fieldPath, e.getMessage());
                 throw new ValidationException(UserMessage.INVALID_PARAMETER.toJSON());
@@ -189,7 +195,7 @@ public class UpdateUserProfileService implements Service {
                 return value;
             }
         } else if (fieldPath.contains(".email") || fieldPath.endsWith("email")) {
-            String email = value.toString();
+            String email = value.toString().trim().toLowerCase();
             if (email != null && !email.isEmpty() && !ValidationUtils.isValidEmail(email)) {
                 throw new ValidationException(
                         UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_EMAIL));
@@ -222,6 +228,13 @@ public class UpdateUserProfileService implements Service {
             String email = getValidatedString(request, "email", ValidationUtils::isValidEmail,
                     UserValidationMessage.INVALID_EMAIL);
             if (email != null) {
+                email = email.trim().toLowerCase();
+                if (!email.isEmpty()) {
+                    Optional<User> existing = userDao.getByEmail(email);
+                    if (existing.isPresent() && !existing.get().getUsername().equals(username)) {
+                        throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
+                    }
+                }
                 user.setEmail(email);
             }
         }
