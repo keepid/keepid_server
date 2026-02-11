@@ -181,10 +181,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
     List<FormQuestion> formQuestions = formBody.getQuestions();
     List<JSONObject> formFields = new LinkedList<>();
     for (FormQuestion formQuestion : formQuestions) {
-      //      Message matchedFieldsMessage = setMatchedFields(formQuestion);
-      //      if (matchedFieldsMessage != null) {
-      //        return matchedFieldsMessage;
-      //      }
+      setMatchedFields(formQuestion);
       JSONObject formField = new JSONObject();
       formField.put("fieldName", formQuestion.getQuestionName());
       formField.put("fieldType", formQuestion.getType().toString());
