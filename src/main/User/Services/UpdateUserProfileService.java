@@ -3,6 +3,8 @@ package User.Services;
 import Config.Message;
 import Config.Service;
 import Database.User.UserDao;
+import Security.EmailExceptions;
+import Security.EmailUtil;
 import User.UserInformation.*;
 import User.OptionalInformation;
 import User.User;
@@ -41,6 +43,7 @@ public class UpdateUserProfileService implements Service {
             return UserMessage.USER_NOT_FOUND;
         }
         this.user = optionalUser.get();
+        String originalEmail = normalizeEmail(this.user.getEmail());
 
         try {
             JSONObject[] splitUpdates = splitUpdateRequest(updateRequest);
@@ -61,6 +64,7 @@ public class UpdateUserProfileService implements Service {
             if (nestedObjectUpdates.length() > 0) {
                 userDao.update(user);
             }
+            notifyOnEmailChange(originalEmail, normalizeEmail(user.getEmail()));
             log.info("Successfully updated user profile for: " + username);
             return UserMessage.SUCCESS;
         } catch (ValidationException e) {
@@ -225,18 +229,24 @@ public class UpdateUserProfileService implements Service {
 
     private void updateEmailIfPresent(JSONObject request) throws ValidationException {
         if (request.has("email")) {
-            String email = getValidatedString(request, "email", ValidationUtils::isValidEmail,
-                    UserValidationMessage.INVALID_EMAIL);
-            if (email != null) {
-                email = email.trim().toLowerCase();
-                if (!email.isEmpty()) {
-                    Optional<User> existing = userDao.getByEmail(email);
-                    if (existing.isPresent() && !existing.get().getUsername().equals(username)) {
-                        throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
-                    }
-                }
-                user.setEmail(email);
+            Object rawEmail = request.get("email");
+            if (rawEmail == null || JSONObject.NULL.equals(rawEmail)) {
+                user.setEmail("");
+                return;
             }
+
+            String email = rawEmail.toString().trim().toLowerCase();
+            if (!email.isEmpty() && !ValidationUtils.isValidEmail(email)) {
+                throw new ValidationException(
+                        UserValidationMessage.toUserMessageJSON(UserValidationMessage.INVALID_EMAIL));
+            }
+            if (!email.isEmpty()) {
+                Optional<User> existing = userDao.getByEmail(email);
+                if (existing.isPresent() && !existing.get().getUsername().equals(username)) {
+                    throw new ValidationException(UserMessage.EMAIL_ALREADY_EXISTS.toJSON());
+                }
+            }
+            user.setEmail(email);
         }
     }
 
@@ -625,6 +635,27 @@ public class UpdateUserProfileService implements Service {
             } else if (type == Boolean.class) {
                 setter.accept((T) Boolean.valueOf(value.toString()));
             }
+        }
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null) {
+            return "";
+        }
+        return email.trim().toLowerCase();
+    }
+
+    private void notifyOnEmailChange(String originalEmail, String updatedEmail) {
+        if (updatedEmail.isEmpty() || updatedEmail.equals(originalEmail)) {
+            return;
+        }
+        try {
+            String message = EmailUtil.getAccountEmailChangedNotificationEmail();
+            EmailUtil.sendEmail("Keep Id", updatedEmail, "Keep.id account email updated", message);
+        } catch (EmailExceptions e) {
+            log.warn("Unable to send email change notification to {}: {}", updatedEmail, e.getMessage());
+        } catch (Exception e) {
+            log.warn("Unexpected error while sending email change notification to {}: {}", updatedEmail, e.getMessage());
         }
     }
 }

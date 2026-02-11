@@ -159,6 +159,7 @@ public class AppConfig {
     app.post("/get-organization-info", userController.getOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);

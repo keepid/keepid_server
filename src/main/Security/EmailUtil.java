@@ -138,4 +138,32 @@ public class EmailUtil {
     }
     return null;
   }
+
+  public static String getAccountEmailChangedNotificationEmail() {
+    return "<html><body style=\"font-family: Arial, sans-serif; line-height: 1.5; color: #222;\">"
+        + "<h2>Keep.id account email updated</h2>"
+        + "<p>An email has been added to your Keep.id account, or the email attached to your Keep.id account has changed.</p>"
+        + "<p>How to log in:</p>"
+        + "<ul>"
+        + "<li>If this email is a Google account, you can use Google authentication.</li>"
+        + "<li>If you do not want to use Google authentication, log in with your password.</li>"
+        + "<li>If you do not remember your password, click <b>Forgot Password</b> on the login page.</li>"
+        + "</ul>"
+        + "<p>If you did not make this change, please contact your organization administrator immediately.</p>"
+        + "</body></html>";
+  }
+
+  public static String getLoginInstructionsEmail() {
+    return "<html><body style=\"font-family: Arial, sans-serif; line-height: 1.5; color: #222;\">"
+        + "<h2>Keep.id login instructions</h2>"
+        + "<p>You have a Keep.id account with this email.</p>"
+        + "<p>How to log in:</p>"
+        + "<ul>"
+        + "<li>If this email is a Google account, you can use Google authentication.</li>"
+        + "<li>If you do not want to use Google authentication, log in with your password.</li>"
+        + "<li>If you do not remember your password, click <b>Forgot Password</b> on the login page.</li>"
+        + "</ul>"
+        + "<p>If you were not expecting this email, please contact your organization administrator.</p>"
+        + "</body></html>";
+  }
 }

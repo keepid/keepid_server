@@ -927,6 +927,38 @@ public class UserController {
   };
 
   /**
+   * Sends login instructions to a user's account email.
+   * POST /send-email-login-instructions
+   * Request: { "username": "client123" } (optional for self)
+   * Response: SUCCESS or error
+   */
+  public Handler sendEmailLoginInstructions = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = null;
+    try {
+      targetUsername = req.optString("username", null);
+      if (targetUsername != null && targetUsername.isEmpty()) {
+        targetUsername = null;
+      }
+    } catch (Exception e) {
+      // Username not provided, will use session user
+    }
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    SendEmailLoginInstructionsService sendService =
+        new SendEmailLoginInstructionsService(userDao, username);
+    Message response = sendService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  /**
    * Delete a field from user profile using dot notation.
    * POST /delete-profile-field
    * Request: { "username": "client123", "fieldPath":
