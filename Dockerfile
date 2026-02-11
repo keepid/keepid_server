@@ -34,6 +34,9 @@ VOLUME /tmp
 # Copy the built jar from the build stage
 COPY --from=build /app/target/*-jar-with-dependencies.jar app.jar
 
+# Copy email templates needed at runtime (EmailUtil reads them from the filesystem)
+COPY --from=build /app/src/main/Security/Resources /app/src/main/Security/Resources
+
 # Expose the application port
 EXPOSE 7000
 # Expose the debug port

@@ -84,7 +84,7 @@ public class EmailUtil {
       // Send the Email.
       Transport.send(msg);
     } catch (MessagingException | UnsupportedEncodingException e) {
-      e.printStackTrace();
+      throw new EmailExceptions(EmailMessages.UNABLE_TO_SEND);
     }
   }
 
