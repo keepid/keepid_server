@@ -22,6 +22,7 @@ import java.io.*;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
@@ -33,6 +34,7 @@ import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+@Slf4j
 public class FillPDFServiceV2 implements Service {
   private FileDao fileDao;
   private FormDao formDao;
@@ -116,52 +118,80 @@ public class FillPDFServiceV2 implements Service {
         continue;
       }
       String formAnswerText = String.valueOf(formAnswers.get(fieldName));
+
+      // Skip null / empty answers -- leave the PDF field untouched for fields the user didn't fill
+      if (formAnswerText == null || formAnswerText.isEmpty() || formAnswerText.equals("null")) {
+        continue;
+      }
+
       formQuestion.setAnswerText(formAnswerText);
       FormQuestion filledFormNewQuestion = formQuestion.copyOfFormQuestion();
       PDField field = acroForm.getField(formQuestion.getQuestionName());
-      if (field instanceof PDButton) {
-        if (field instanceof PDCheckBox) {
-          PDCheckBox checkBoxField = (PDCheckBox) field;
-          boolean fieldAnswer = Boolean.parseBoolean(formQuestion.getAnswerText());
-          filledFormNewQuestion.setAnswerText(Boolean.toString(fieldAnswer));
-          if (fieldAnswer) {
-            checkBoxField.check();
-          } else {
-            checkBoxField.unCheck();
-          }
-        } else if (field instanceof PDPushButton) {
-          // Do nothing. Maybe in the future make it clickable
-          continue;
-        } else if (field instanceof PDRadioButton) {
-          PDRadioButton radioButtonField = (PDRadioButton) field;
-          String fieldAnswer = formQuestion.getAnswerText();
-          filledFormNewQuestion.setAnswerText(fieldAnswer);
-          radioButtonField.setValue(fieldAnswer);
-        }
-      } else if (field instanceof PDVariableText) {
-        if (field instanceof PDChoice) {
-          if (field instanceof PDListBox) {
-            PDListBox listBoxField = (PDListBox) field;
-            List<String> values = new LinkedList<>();
-            for (Object value : new JSONArray(formQuestion.getAnswerText())) {
-              String stringValue = (String) value;
-              values.add(stringValue);
+
+      // If the field doesn't exist in the PDF, just record the answer and move on
+      if (field == null) {
+        filledFormBodyQuestions.add(filledFormNewQuestion);
+        continue;
+      }
+
+      try {
+        if (field instanceof PDButton) {
+          if (field instanceof PDCheckBox) {
+            PDCheckBox checkBoxField = (PDCheckBox) field;
+            boolean fieldAnswer = Boolean.parseBoolean(formQuestion.getAnswerText());
+            filledFormNewQuestion.setAnswerText(Boolean.toString(fieldAnswer));
+            if (fieldAnswer) {
+              checkBoxField.check();
+            } else {
+              checkBoxField.unCheck();
             }
-            filledFormNewQuestion.setAnswerText(values.toString());
-            listBoxField.setValue(values);
-          } else if (field instanceof PDComboBox) {
-            PDComboBox listBoxField = (PDComboBox) field;
-            String formAnswer = formQuestion.getAnswerText();
-            filledFormNewQuestion.setAnswerText(formAnswer);
-            listBoxField.setValue(formAnswer);
+          } else if (field instanceof PDPushButton) {
+            // Do nothing. Maybe in the future make it clickable
+            continue;
+          } else if (field instanceof PDRadioButton) {
+            PDRadioButton radioButtonField = (PDRadioButton) field;
+            String fieldAnswer = formQuestion.getAnswerText();
+            // Skip invalid radio button values (empty, "Off", or values not in the option set)
+            if (fieldAnswer == null || fieldAnswer.isEmpty() || fieldAnswer.equals("Off")) {
+              continue;
+            }
+            filledFormNewQuestion.setAnswerText(fieldAnswer);
+            radioButtonField.setValue(fieldAnswer);
           }
-        } else if (field instanceof PDTextField) {
-          String value = formQuestion.getAnswerText();
-          filledFormNewQuestion.setAnswerText(value);
-          field.setValue(value);
+        } else if (field instanceof PDVariableText) {
+          if (field instanceof PDChoice) {
+            if (field instanceof PDListBox) {
+              PDListBox listBoxField = (PDListBox) field;
+              String answerText = formQuestion.getAnswerText();
+              // Skip empty list box values to avoid JSONArray parse errors
+              if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
+                continue;
+              }
+              List<String> values = new LinkedList<>();
+              for (Object value : new JSONArray(answerText)) {
+                String stringValue = (String) value;
+                values.add(stringValue);
+              }
+              filledFormNewQuestion.setAnswerText(values.toString());
+              listBoxField.setValue(values);
+            } else if (field instanceof PDComboBox) {
+              PDComboBox comboBoxField = (PDComboBox) field;
+              String formAnswer = formQuestion.getAnswerText();
+              filledFormNewQuestion.setAnswerText(formAnswer);
+              comboBoxField.setValue(formAnswer);
+            }
+          } else if (field instanceof PDTextField) {
+            String value = formQuestion.getAnswerText();
+            filledFormNewQuestion.setAnswerText(value);
+            field.setValue(value);
+          }
+        } else if (field instanceof PDSignatureField) {
+          // Handled in signPDF
+          continue;
         }
-      } else if (field instanceof PDSignatureField) {
-        // Handled in signPDF
+      } catch (Exception e) {
+        // Log but don't fail the whole fill for a single field
+        log.warn("Failed to set PDF field '{}': {}", fieldName, e.getMessage());
         continue;
       }
       filledFormBodyQuestions.add(filledFormNewQuestion);
@@ -198,6 +228,7 @@ public class FillPDFServiceV2 implements Service {
       this.filledFileStream = new ByteArrayInputStream(this.filledFileOutputStream.toByteArray());
       return null;
     } catch (Exception e) {
+      log.error("Error merging file and form questions: {}", e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
     }
   }
@@ -254,6 +285,7 @@ public class FillPDFServiceV2 implements Service {
       filledFileEncryptedStream =
           this.encryptionController.encryptFile(this.filledFileStream, this.username);
     } catch (GeneralSecurityException | IOException e) {
+      log.error("Error encrypting filled file for user '{}': {}", this.username, e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
     }
     this.filledFile =

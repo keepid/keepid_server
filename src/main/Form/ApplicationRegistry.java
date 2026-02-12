@@ -28,8 +28,8 @@ public enum ApplicationRegistry {
       BigDecimal.ZERO,
       1,
       new HashMap<String,ObjectId>(){{
-        this.put("Face to Face", new ObjectId("6725daa1ebfdb30698fff327"));
-        this.put("TSA C.A.T.S Program", new ObjectId("672871ed2de24d7c8ba75c30"));
+        this.put("Face to Face", new ObjectId("6725da57ebfdb30698fff2eb"));
+        this.put("TSA C.A.T.S Program", new ObjectId("672870a32de24d7c8ba75bf4"));
       }}),
 
   BC$PA$STANDARD(
@@ -40,7 +40,7 @@ public enum ApplicationRegistry {
       BigDecimal.ZERO,
       1,
       new HashMap<String,ObjectId>(){{
-        this.put("TSA C.A.T.S Program", new ObjectId("67206e7e17d3b63a60456d45"));
+        this.put("TSA C.A.T.S Program", new ObjectId("67206bbb17d3b63a60456c48"));
       }}),
   BC$PA$DUPLICATE(
       IdCategoryType.BIRTH_CERTIFICATE,
@@ -82,7 +82,7 @@ public enum ApplicationRegistry {
       BigDecimal.ZERO,
       1,
       new HashMap<String,ObjectId>(){{
-        this.put("TSA C.A.T.S Program", new ObjectId("6737d90505484e688bdc9420"));
+        this.put("TSA C.A.T.S Program", new ObjectId("6737d8ac905dca46f9a0330e"));
       }}),
   PIDL$PA$PI$DUPLICATE(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
@@ -92,7 +92,7 @@ public enum ApplicationRegistry {
       BigDecimal.ZERO,
       1,
       new HashMap<String,ObjectId>(){{
-        this.put("TSA C.A.T.S Program", new ObjectId("672871ed2de24d7c8ba75c30"));
+        this.put("TSA C.A.T.S Program", new ObjectId("672870a32de24d7c8ba75bf4"));
       }}),
   PIDL$PA$PI$RENEWAL(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
@@ -102,7 +102,7 @@ public enum ApplicationRegistry {
       BigDecimal.ZERO,
       1,
           new HashMap<String,ObjectId>(){{
-            this.put("TSA C.A.T.S Program", new ObjectId("6720718f17d3b63a60456d7c"));
+            this.put("TSA C.A.T.S Program", new ObjectId("6720705917d3b63a60456d54"));
           }}),
   PIDL$PA$PI$CHANGE_OF_ADDRESS(
       IdCategoryType.DRIVERS_LICENSE_PHOTO_ID,
@@ -153,7 +153,7 @@ public enum ApplicationRegistry {
         BigDecimal.ZERO,
         1,
         new HashMap<String,ObjectId>(){{
-          this.put("TSA C.A.T.S Program", new ObjectId("6720679117d3b63a60456c33"));
+          this.put("TSA C.A.T.S Program", new ObjectId("67206361a4290f111ad4fd3f"));
         }}),
 
   BC$NJ$STANDARD(
@@ -164,7 +164,7 @@ public enum ApplicationRegistry {
           BigDecimal.ZERO,
           1,
           new HashMap<String,ObjectId>(){{
-            this.put("TSA C.A.T.S Program", new ObjectId("672877fc2de24d7c8ba75c95"));
+            this.put("TSA C.A.T.S Program", new ObjectId("672870922de24d7c8ba75bee"));
           }});
 
   private final IdCategoryType idCategoryType;
@@ -173,7 +173,12 @@ public enum ApplicationRegistry {
   private final Optional<PIDLSubtype> pidlSubtype;
   private final BigDecimal amount;
   private final int numWeeks;
-  private final Map<String,ObjectId> orgsToFormIds;
+  /**
+   * Maps organization name to the file._id (from the "file" collection) of the annotated
+   * form template. V2 services look up forms via formDao.getByFileId(), so these MUST be
+   * file._id values, NOT form._id values.
+   */
+  private final Map<String,ObjectId> orgsToFileIds;
 
   ApplicationRegistry(
       IdCategoryType idCategoryType,
@@ -182,14 +187,14 @@ public enum ApplicationRegistry {
       ApplicationSubtype applicationSubtype,
       BigDecimal amount,
       int numWeeks,
-      Map<String,ObjectId> orgsToFormsIds) {
+      Map<String,ObjectId> orgsToFileIds) {
     this.idCategoryType = idCategoryType;
     this.usState = usState;
     this.applicationSubtype = applicationSubtype;
     this.pidlSubtype = pidlSubtype;
     this.amount = amount;
     this.numWeeks = numWeeks;
-    this.orgsToFormIds = orgsToFormsIds;
+    this.orgsToFileIds = orgsToFileIds;
   }
 
   public String toString(String org) {
@@ -204,7 +209,7 @@ public enum ApplicationRegistry {
     jsonObject.put("pidlSubtype", this.pidlSubtype.map(PIDLSubtype::toString).orElse(""));
     jsonObject.put("amount", this.amount.toString());
     jsonObject.put("numWeeks", this.numWeeks);
-    jsonObject.put("blankFormId", this.orgsToFormIds.get(org).toString());
+    jsonObject.put("blankFormId", this.orgsToFileIds.get(org).toString());
     return jsonObject;
   }
 }
