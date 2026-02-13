@@ -22,6 +22,8 @@ import Form.FormController;
 import Issue.IssueController;
 import Mail.FileBackfillController;
 import Mail.MailController;
+import Notification.NotificationController;
+import Notification.WindmillNotificationClient;
 import Organization.Organization;
 import Organization.OrganizationController;
 import PDF.PdfController;
@@ -98,6 +100,8 @@ public class AppConfig {
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
+    WindmillNotificationClient notificationClient = new WindmillNotificationClient();
+    NotificationController notificationController = new NotificationController(activityDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -199,6 +203,9 @@ public class AppConfig {
     app.post("/get-all-orgs", orgController.listOrgs);
     app.post("/get-all-activities", activityController.findMyActivities);
     app.post("/get-org-activities", activityController.findOrganizationActivities);
+
+    /* --------------- NOTIFICATION ROUTES ------------- */
+    app.post("/notify-id-pickup", notificationController.notifyIdPickup);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);
