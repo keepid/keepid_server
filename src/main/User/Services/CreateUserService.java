@@ -18,6 +18,7 @@ import User.UserType;
 import Validation.ValidationException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import kong.unirest.Unirest;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +87,9 @@ public class CreateUserService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
+    String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    this.email = normalizedEmail;
+
     // validations
     if (organizationName == null) {
       log.info("Token failure");
@@ -138,6 +142,13 @@ public class CreateUserService implements Service {
     if (optionalUser.isPresent()) {
       log.info("Username already exists");
       return UserMessage.USERNAME_ALREADY_EXISTS;
+    }
+    if (!user.getEmail().isEmpty()) {
+      Optional<User> optionalByEmail = userDao.getByEmail(user.getEmail());
+      if (optionalByEmail.isPresent()) {
+        log.info("Email already exists");
+        return UserMessage.EMAIL_ALREADY_EXISTS;
+      }
     }
 
     // create password hash

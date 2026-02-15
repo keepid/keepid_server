@@ -14,6 +14,8 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
+import Security.EmailSender;
+import Security.EmailSenderFactory;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -43,6 +45,7 @@ public class UserController {
   FormDao formDao;
   FileDao fileDao;
   OrgDao orgDao;
+  EmailSender emailSender;
 
   public UserController(
       UserDao userDao,
@@ -52,6 +55,18 @@ public class UserController {
       FormDao formDao,
       OrgDao orgDao,
       MongoDatabase db) {
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, EmailSenderFactory.smtp());
+  }
+
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      FormDao formDao,
+      OrgDao orgDao,
+      MongoDatabase db,
+      EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
@@ -59,6 +74,7 @@ public class UserController {
     this.formDao = formDao;
     this.orgDao = orgDao;
     this.db = db;
+    this.emailSender = emailSender;
   }
 
   public static final String newUserActualURL = Objects.requireNonNull(System.getenv("NEW_USER_ACTUALURL"));
@@ -137,33 +153,34 @@ public class UserController {
   public Handler loginUser = ctx -> {
     ctx.req.getSession().invalidate();
     JSONObject req = new JSONObject(ctx.body());
-    String username = req.getString("username");
+    String loginIdentifier = req.optString("username", req.optString("email", ""));
     String password = req.getString("password");
     String ip = ctx.ip();
     String userAgent = ctx.userAgent();
-    log.info("Attempting to login " + username);
+    log.info("Attempting to login " + loginIdentifier);
 
-    LoginService loginService = new LoginService(userDao, tokenDao, activityDao, username, password, ip, userAgent);
+    LoginService loginService =
+        new LoginService(userDao, activityDao, loginIdentifier, password, ip, userAgent);
     Message response = loginService.executeAndGetResponse();
     log.info(response.toString() + response.getErrorDescription());
     JSONObject responseJSON = response.toJSON();
     if (response == UserMessage.AUTH_SUCCESS) {
+      responseJSON.put("username", loginService.getUsername());
       responseJSON.put("userRole", loginService.getUserRole());
       responseJSON.put("organization", loginService.getOrganization());
       responseJSON.put("firstName", loginService.getFirstName());
       responseJSON.put("lastName", loginService.getLastName());
-      responseJSON.put("twoFactorOn", loginService.isTwoFactorOn());
 
       ctx.sessionAttribute("privilegeLevel", loginService.getUserRole());
       ctx.sessionAttribute("orgName", loginService.getOrganization());
       ctx.sessionAttribute("username", loginService.getUsername());
       ctx.sessionAttribute("fullName", loginService.getFullName());
     } else {
+      responseJSON.put("username", "");
       responseJSON.put("userRole", "");
       responseJSON.put("organization", "");
       responseJSON.put("firstName", "");
       responseJSON.put("lastName", "");
-      responseJSON.put("twoFactorOn", "");
     }
     ctx.result(responseJSON.toString());
   };
@@ -259,6 +276,16 @@ public class UserController {
       ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
       ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
       ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
+      ctx.sessionAttribute("googleLoginError", null);
+    } else {
+      // Store the error reason so the client can display a descriptive message
+      ctx.sessionAttribute("googleLoginError", response.getErrorName());
+      // If user not found, store Google profile for sign-up pre-fill
+      if (response == GoogleLoginResponseMessage.USER_NOT_FOUND) {
+        ctx.sessionAttribute("googleEmail", processGoogleLoginResponseService.getGoogleEmail());
+        ctx.sessionAttribute("googleFirstName", processGoogleLoginResponseService.getGoogleFirstName());
+        ctx.sessionAttribute("googleLastName", processGoogleLoginResponseService.getGoogleLastName());
+      }
     }
     ctx.sessionAttribute("PKCECodeVerifier", null);
     ctx.sessionAttribute("origin_uri", null);
@@ -283,6 +310,7 @@ public class UserController {
     String username = ctx.sessionAttribute("username");
     String fullName = ctx.sessionAttribute("fullName");
     UserType role = ctx.sessionAttribute("privilegeLevel");
+    String googleLoginError = ctx.sessionAttribute("googleLoginError");
     log.info("Retrieved session attributes of org: {}, " +
         "username: {}, " +
         "fullName: {}, " +
@@ -293,6 +321,25 @@ public class UserController {
     responseJSON.put("username", username == null ? "" : username);
     responseJSON.put("fullName", fullName == null ? "" : fullName);
     responseJSON.put("userRole", role == null ? "" : role);
+    if (googleLoginError != null) {
+      responseJSON.put("googleLoginError", googleLoginError);
+      // Clear the error after reading so it's only shown once
+      ctx.sessionAttribute("googleLoginError", null);
+
+      // Include Google profile data if available (for sign-up pre-fill)
+      String googleEmail = ctx.sessionAttribute("googleEmail");
+      String googleFirstName = ctx.sessionAttribute("googleFirstName");
+      String googleLastName = ctx.sessionAttribute("googleLastName");
+      if (googleEmail != null) {
+        responseJSON.put("googleEmail", googleEmail);
+        responseJSON.put("googleFirstName", googleFirstName != null ? googleFirstName : "");
+        responseJSON.put("googleLastName", googleLastName != null ? googleLastName : "");
+        // Clear after reading
+        ctx.sessionAttribute("googleEmail", null);
+        ctx.sessionAttribute("googleFirstName", null);
+        ctx.sessionAttribute("googleLastName", null);
+      }
+    }
 
     log.info("Returning response with session info: {}", responseJSON);
     ctx.result(responseJSON.toString());
@@ -309,14 +356,12 @@ public class UserController {
       responseJSON.put("organization", authenticateUserService.getOrganization());
       responseJSON.put("firstName", authenticateUserService.getFirstName());
       responseJSON.put("lastName", authenticateUserService.getLastName());
-      responseJSON.put("twoFactorOn", authenticateUserService.isTwoFactorOn());
     } else {
       responseJSON.put("username", "");
       responseJSON.put("userRole", "");
       responseJSON.put("organization", "");
       responseJSON.put("firstName", "");
       responseJSON.put("lastName", "");
-      responseJSON.put("twoFactorOn", "");
     }
     ctx.result(responseJSON.toString());
   };
@@ -892,8 +937,41 @@ public class UserController {
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
 
-    UpdateUserProfileService updateService = new UpdateUserProfileService(userDao, username, updateRequest);
+    UpdateUserProfileService updateService =
+        new UpdateUserProfileService(userDao, username, updateRequest, emailSender);
     Message response = updateService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  /**
+   * Sends login instructions to a user's account email.
+   * POST /send-email-login-instructions
+   * Request: { "username": "client123" } (optional for self)
+   * Response: SUCCESS or error
+   */
+  public Handler sendEmailLoginInstructions = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = null;
+    try {
+      targetUsername = req.optString("username", null);
+      if (targetUsername != null && targetUsername.isEmpty()) {
+        targetUsername = null;
+      }
+    } catch (Exception e) {
+      // Username not provided, will use session user
+    }
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    SendEmailLoginInstructionsService sendService =
+        new SendEmailLoginInstructionsService(userDao, username, emailSender);
+    Message response = sendService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };
 

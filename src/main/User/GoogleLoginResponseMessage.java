@@ -5,9 +5,9 @@ import org.json.JSONObject;
 
 public enum GoogleLoginResponseMessage implements Message {
   AUTH_SUCCESS("Successfully processed Google login."),
-  AUTH_FAILURE("Invalid Google response."),
-  USER_NOT_FOUND("No user with associated account found."),
-  INTERNAL_ERROR("Error occurred while processing.");
+  AUTH_FAILURE("Google authentication failed. The response from Google could not be verified."),
+  USER_NOT_FOUND("No Keep.id account found for this Google account. Please sign up with an organization first."),
+  INTERNAL_ERROR("An internal error occurred while processing Google login. Please try again later.");
 
   private final String message;
 

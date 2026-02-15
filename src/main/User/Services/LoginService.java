@@ -4,13 +4,9 @@ import Activity.UserActivity.AuthenticationActivity.LogInActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
-import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Issue.IssueController;
-import Security.EmailExceptions;
-import Security.EmailUtil;
 import Security.SecurityUtils;
-import Security.Tokens;
 import User.IpObject;
 import User.User;
 import User.UserMessage;
@@ -30,27 +26,23 @@ import org.json.JSONObject;
 public class LoginService implements Service {
   public final String IP_INFO_TOKEN = Objects.requireNonNull(System.getenv("IPINFO_TOKEN"));
   private UserDao userDao;
-  private TokenDao tokenDao;
   private ActivityDao activityDao;
-  private final String username;
+  private final String loginIdentifier;
   private final String password;
   private User user;
   private final String ip;
   private final String userAgent;
-  public static final long JWT_EXPIRATION_IN_MILI = 300000;
 
   public LoginService(
       UserDao userDao,
-      TokenDao tokenDao,
       ActivityDao activityDao,
-      String username,
+      String loginIdentifier,
       String password,
       String ip,
       String userAgent) {
     this.userDao = userDao;
     this.activityDao = activityDao;
-    this.tokenDao = tokenDao;
-    this.username = username;
+    this.loginIdentifier = loginIdentifier;
     this.password = password;
     this.ip = ip;
     this.userAgent = userAgent;
@@ -58,15 +50,32 @@ public class LoginService implements Service {
 
   // the execute function will handle all business logic
   public Message executeAndGetResponse() {
-    // validation
-    if (!ValidationUtils.isValidUsername(this.username)
-        || !ValidationUtils.isValidPassword(this.password)) {
-      log.info("Invalid username and/or password");
+    String normalizedIdentifier = loginIdentifier == null ? "" : loginIdentifier.trim();
+    boolean isEmailIdentifier = looksLikeEmailIdentifier(normalizedIdentifier);
+    if (isEmailIdentifier) {
+      normalizedIdentifier = normalizedIdentifier.toLowerCase();
+    }
+
+    if (!ValidationUtils.isValidPassword(this.password)) {
+      log.info("Invalid identifier and/or password");
       return UserMessage.AUTH_FAILURE;
     }
-    // get user
 
-    Optional<User> optionalUser = userDao.get(this.username);
+    Optional<User> optionalUser;
+    if (isEmailIdentifier) {
+      if (!ValidationUtils.isValidEmail(normalizedIdentifier)) {
+        log.info("Invalid identifier and/or password");
+        return UserMessage.AUTH_FAILURE;
+      }
+      optionalUser = userDao.getByEmail(normalizedIdentifier);
+    } else {
+      if (!ValidationUtils.isValidUsername(normalizedIdentifier)) {
+        log.info("Invalid identifier and/or password");
+        return UserMessage.AUTH_FAILURE;
+      }
+      optionalUser = userDao.get(normalizedIdentifier);
+    }
+
     if (optionalUser.isEmpty()) {
       return UserMessage.AUTH_FAILURE;
     }
@@ -78,14 +87,13 @@ public class LoginService implements Service {
     recordActivityLogin(user, activityDao); // record login activity
     recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao); // get ip location
     log.info("Login Successful!");
-    // if two factor is on, run 2fa
-    if (user.getTwoFactorOn()
-        && (user.getUserType() == UserType.Director
-            || user.getUserType() == UserType.Admin
-            || user.getUserType() == UserType.Worker)) {
-      return perform2FA(user.getEmail());
-    }
     return UserMessage.AUTH_SUCCESS;
+  }
+
+  private boolean looksLikeEmailIdentifier(String identifier) {
+    int at = identifier.indexOf('@');
+    int dot = identifier.lastIndexOf('.');
+    return at > 0 && dot > at + 1 && dot < identifier.length() - 1;
   }
 
   public static void recordActivityLogin(User user, ActivityDao activityDao) {
@@ -134,29 +142,6 @@ public class LoginService implements Service {
     user.setLogInHistory(loginList);
     userDao.update(user);
     log.info("Added login to login history");
-  }
-
-  public Message perform2FA(String email) {
-    String randCode = String.format("%06d", new Random().nextInt(999999));
-    Date expDate = new Date(System.currentTimeMillis() + JWT_EXPIRATION_IN_MILI);
-    try {
-      String emailContent = EmailUtil.getVerificationCodeEmail(randCode);
-      EmailUtil.sendEmail("Keep Id", email, "Keepid Verification Code", emailContent);
-      saveJWTToDb(randCode, expDate);
-    } catch (EmailExceptions emailException) {
-      log.error("Could not send email");
-      return emailException;
-    }
-    return UserMessage.TOKEN_ISSUED;
-  }
-
-  public void saveJWTToDb(String randomCode, Date expirationDate) {
-    tokenDao.replaceOne(
-        username,
-        new Tokens()
-            .setUsername(username)
-            .setTwoFactorCode(randomCode)
-            .setTwoFactorExp(expirationDate));
   }
 
   public boolean verifyPassword(String inputPassword, String userHash) {
@@ -209,8 +194,4 @@ public class LoginService implements Service {
     return user.getFirstName() + " " + user.getLastName();
   }
 
-  public boolean isTwoFactorOn() {
-    Objects.requireNonNull(user);
-    return user.getTwoFactorOn();
-  }
 }
