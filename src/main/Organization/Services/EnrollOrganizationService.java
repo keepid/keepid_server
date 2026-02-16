@@ -7,7 +7,17 @@ import Organization.OrgEnrollmentStatus;
 import Organization.Organization;
 import User.User;
 import User.UserType;
+import User.UserMessage;
+import User.IpObject;
+import Validation.ValidationException;
+import Security.SecurityUtils;
+import Activity.CreateUserActivity.CreateOrgActivity;
+import Issue.IssueController;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoCollection;
+import static com.mongodb.client.model.Filters.eq;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
@@ -99,89 +109,82 @@ public class EnrollOrganizationService implements Service {
     Organization org;
     User user;
 
-    log.error("Not Allowing for the Creation of New Organizations at this Moment");
-    return OrgEnrollmentStatus.FAIL_TO_CREATE;
+    log.info("Attempting to create user and organization");
+    try {
+      org = new Organization(
+          orgName,
+          orgWebsite,
+          orgEIN,
+          orgStreetAddress,
+          orgCity,
+          orgState,
+          orgZipcode,
+          orgEmail,
+          orgPhoneNumber);
+      user = new User(
+          firstName,
+          lastName,
+          birthDate,
+          email,
+          phone,
+          orgName,
+          address,
+          city,
+          state,
+          zipcode,
+          twoFactorOn,
+          username,
+          password,
+          userLevel);
+      CreateOrgActivity createOrgActivity = new CreateOrgActivity(user.getUsername(), org.getOrgName());
+      activityDao.save(createOrgActivity);
+    } catch (ValidationException ve) {
+      log.error("Could not create user and/or org: {}", ve.getMessage());
+      log.error("Validation error details: {}", ve.getJSON().toString());
+      return OrgEnrollmentStatus.FAIL_TO_CREATE;
+    }
 
-    //    log.info("Attempting to create user and organization");
-    //    try {
-    //      org =
-    //          new Organization(
-    //              orgName,
-    //              orgWebsite,
-    //              orgEIN,
-    //              orgStreetAddress,
-    //              orgCity,
-    //              orgState,
-    //              orgZipcode,
-    //              orgEmail,
-    //              orgPhoneNumber);
-    //      user =
-    //          new User(
-    //                  firstName,
-    //                  lastName,
-    //                  birthDate,
-    //                  email,
-    //                  phone,
-    //                  orgName,
-    //                  address,
-    //                  city,
-    //                  state,
-    //                  zipcode,
-    //                  twoFactorOn,
-    //                  username,
-    //                  password,
-    //                  userLevel);
-    //      CreateOrgActivity createOrgActivity =
-    //          new CreateOrgActivity(user.getUsername(), org.getOrgName());
-    //      activityDao.save(createOrgActivity);
-    //    } catch (ValidationException ve) {
-    //      log.error("Could not create user and/or org");
-    //      return OrgEnrollmentStatus.FAIL_TO_CREATE;
-    //    }
-    //
-    //    log.info("Checking for existing user and organization");
-    //    MongoCollection<Organization> orgCollection =
-    //        db.getCollection("organization", Organization.class);
-    //    Organization existingOrg = orgCollection.find(eq("orgName", org.getOrgName())).first();
-    //
-    //    MongoCollection<User> userCollection = db.getCollection("user", User.class);
-    //    User existingUser = userCollection.find(eq("username", user.getUsername())).first();
-    //
-    //    if (existingOrg != null) {
-    //      log.error("Organization already exists");
-    //      return OrgEnrollmentStatus.ORG_EXISTS;
-    //    } else if (existingUser != null) {
-    //      log.error("User already exists");
-    //      return UserMessage.USERNAME_ALREADY_EXISTS;
-    //    } else {
-    //      log.info("Org and User are OK, hashing password");
-    //      String passwordHash = SecurityUtils.hashPassword(password);
-    //      if (passwordHash == null) {
-    //        return OrgEnrollmentStatus.PASS_HASH_FAILURE;
-    //      }
-    //
-    //      log.info("Setting password and inserting user and org into Mongo");
-    //      user.setPassword(passwordHash);
-    //
-    //      List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
-    //      user.setLogInHistory(logInInfo);
-    //      userCollection.insertOne(user);
-    //      orgCollection.insertOne(org);
-    //      log.info("Notifying Slack about new org");
-    //      HttpResponse posted = makeBotMessage(org);
-    //      if (!posted.isSuccess()) {
-    //        log.error("Failed to notify Slack about new org");
-    //        JSONObject body = new JSONObject();
-    //        body.put(
-    //            "text",
-    //            "You are receiving this because an new organization signed up but wasn't
-    // successfully "
-    //                + "posted on Slack.");
-    //        Unirest.post(IssueController.issueReportActualURL).body(body.toString()).asEmpty();
-    //      }
-    //      log.info("Done with enrollOrganization");
-    //      return OrgEnrollmentStatus.SUCCESSFUL_ENROLLMENT;
-    //    }
+    log.info("Checking for existing user and organization");
+    MongoCollection<Organization> orgCollection = db.getCollection("organization", Organization.class);
+    Organization existingOrg = orgCollection.find(eq("orgName", org.getOrgName())).first();
+
+    MongoCollection<User> userCollection = db.getCollection("user", User.class);
+    User existingUser = userCollection.find(eq("username", user.getUsername())).first();
+
+    if (existingOrg != null) {
+      log.error("Organization already exists");
+      return OrgEnrollmentStatus.ORG_EXISTS;
+    } else if (existingUser != null) {
+      log.error("User already exists");
+      return UserMessage.USERNAME_ALREADY_EXISTS;
+    } else {
+      log.info("Org and User are OK, hashing password");
+      String passwordHash = SecurityUtils.hashPassword(password);
+      if (passwordHash == null) {
+        return OrgEnrollmentStatus.PASS_HASH_FAILURE;
+      }
+
+      log.info("Setting password and inserting user and org into Mongo");
+      user.setPassword(passwordHash);
+
+      List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
+      user.setLogInHistory(logInInfo);
+      userCollection.insertOne(user);
+      orgCollection.insertOne(org);
+      log.info("Notifying Slack about new org");
+      HttpResponse posted = makeBotMessage(org);
+      if (!posted.isSuccess()) {
+        log.error("Failed to notify Slack about new org");
+        JSONObject body = new JSONObject();
+        body.put(
+            "text",
+            "You are receiving this because an new organization signed up but wasn't successfully "
+                + "posted on Slack.");
+        Unirest.post(IssueController.issueReportActualURL).body(body.toString()).asEmpty();
+      }
+      log.info("Done with enrollOrganization");
+      return OrgEnrollmentStatus.SUCCESSFUL_ENROLLMENT;
+    }
   }
 
   private HttpResponse makeBotMessage(Organization org) {
@@ -203,11 +206,10 @@ public class EnrollOrganizationService implements Service {
     JSONObject input = new JSONObject();
     input.put("blocks", blocks);
 
-    HttpResponse posted =
-        Unirest.post(newOrgActualURL)
-            .header("accept", "application/json")
-            .body(input.toString())
-            .asEmpty();
+    HttpResponse posted = Unirest.post(newOrgActualURL)
+        .header("accept", "application/json")
+        .body(input.toString())
+        .asEmpty();
     return posted;
   }
 }
