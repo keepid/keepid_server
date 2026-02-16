@@ -33,7 +33,7 @@ public class NotifyIdPickupServiceTest {
     }
 
     @Test
-    public void successfulNotification_savesActivity() {
+    public void successfulNotificationSavesActivity() {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
@@ -59,7 +59,7 @@ public class NotifyIdPickupServiceTest {
     }
 
     @Test
-    public void invalidPhoneNumber_returnsError() {
+    public void invalidPhoneNumberReturnsError() {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
@@ -76,7 +76,7 @@ public class NotifyIdPickupServiceTest {
     }
 
     @Test
-    public void blankMessage_returnsError() {
+    public void blankMessageReturnsError() {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
@@ -93,7 +93,7 @@ public class NotifyIdPickupServiceTest {
     }
 
     @Test
-    public void nullWorkerUsername_returnsError() {
+    public void nullWorkerUsernameReturnsError() {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
