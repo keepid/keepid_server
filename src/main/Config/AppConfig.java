@@ -176,6 +176,7 @@ public class AppConfig {
     app.post("/load-pfp", userController.loadPfp);
     app.post("/username-exists", userController.usernameExists);
     app.post("/delete-user", userController.deleteUser);
+    app.post("/remove-organization-member", userController.removeOrganizationMember);
     app.post("/set-default-id", userController.setDefaultIds);
     app.post("/get-default-id", userController.getDefaultIds);
 
