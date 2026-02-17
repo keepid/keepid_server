@@ -16,6 +16,7 @@ import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
+import Security.Services.ForgotPasswordService;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -417,6 +418,64 @@ public class UserController {
         userType);
     Message response = createUserService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
+  };
+
+  public Handler enrollClient = ctx -> {
+    log.info("Starting enrollClient handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
+    String organizationName = ctx.sessionAttribute("orgName");
+    String sessionUsername = ctx.sessionAttribute("username");
+
+    if (sessionUserLevel == null || organizationName == null || sessionUsername == null) {
+      ctx.result(SESSION_TOKEN_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String firstName = req.getString("firstname").strip();
+    String lastName = req.getString("lastname").strip();
+    String birthDate = req.getString("birthDate").strip();
+    String email = req.getString("email").toLowerCase().strip();
+    String phone = req.optString("phonenumber", "").strip();
+
+    String dobCompact = birthDate.replace("-", "");
+    String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
+    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+
+    String password = UUID.randomUUID().toString();
+
+    CreateUserService createUserService = new CreateUserService(
+        userDao,
+        activityDao,
+        sessionUserLevel,
+        organizationName,
+        sessionUsername,
+        firstName,
+        lastName,
+        birthDate,
+        email,
+        phone,
+        "",
+        "",
+        "",
+        "",
+        false,
+        username,
+        password,
+        UserType.Client);
+    Message createResponse = createUserService.executeAndGetResponse();
+
+    if (createResponse != ENROLL_SUCCESS) {
+      ctx.result(createResponse.toJSON().toString());
+      return;
+    }
+
+    ForgotPasswordService forgotPasswordService =
+        new ForgotPasswordService(userDao, tokenDao, email, emailSender);
+    forgotPasswordService.executeAndGetResponse();
+
+    ctx.result(ENROLL_SUCCESS.toJSON().toString());
   };
 
   public Handler deleteUser = ctx -> {

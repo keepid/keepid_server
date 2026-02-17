@@ -154,6 +154,7 @@ public class AppConfig {
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
+    app.post("/enroll-client", userController.enrollClient);
     app.get("/logout", userController.logout);
     app.post("/forgot-password", accountSecurityController.forgotPassword);
     app.post("/change-password", accountSecurityController.changePassword);
