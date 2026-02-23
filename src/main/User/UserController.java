@@ -1012,4 +1012,22 @@ public class UserController {
     Message response = deleteService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };
+
+  public Handler removeOrganizationMember = ctx -> {
+    log.info("Starting removeOrganizationMember handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+    String targetUsername = req.getString("username").strip();
+
+    log.info("User {} attempting to remove {} from organization {}",
+        sessionUsername, targetUsername, sessionOrgName);
+
+    RemoveOrganizationMemberService removeService = new RemoveOrganizationMemberService(
+        db, userDao, sessionUsername, targetUsername, sessionOrgName, sessionUserType);
+    Message response = removeService.executeAndGetResponse();
+    log.info("Remove member result: {}", response.getErrorDescription());
+    ctx.result(response.toJSON().toString());
+  };
 }
