@@ -6,6 +6,7 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import File.IdCategoryType;
 import PDF.Services.V2Services.*;
@@ -29,6 +30,7 @@ public class PdfControllerV2 {
   private FileDao fileDao;
   private ActivityDao activityDao;
   private UserDao userDao;
+  private OrgDao orgDao;
 
   // Needed for EncryptionController
   private EncryptionController encryptionController;
@@ -37,11 +39,13 @@ public class PdfControllerV2 {
       FileDao fileDao,
       FormDao formDao,
       ActivityDao activityDao,
+      OrgDao orgDao,
       UserDao userDao,
       EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.activityDao = activityDao;
+    this.orgDao = orgDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
   }
@@ -185,7 +189,7 @@ public class PdfControllerV2 {
         userParams.setUserParamsGetApplicationQuestions(ctx, req);
         fileParams.setFileParamsGetApplicationQuestions(req);
         GetQuestionsPDFServiceV2 getQuestionsPDFServiceV2 =
-            new GetQuestionsPDFServiceV2(formDao, userDao, userParams, fileParams);
+            new GetQuestionsPDFServiceV2(formDao, userDao, orgDao, userParams, fileParams);
         Message response = getQuestionsPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
@@ -218,6 +222,7 @@ public class PdfControllerV2 {
 
   public static class UserParams {
     private String username;
+    private String workerUsername;
     private String organizationName;
     private UserType privilegeLevel;
 
@@ -225,6 +230,7 @@ public class PdfControllerV2 {
 
     public UserParams(String username, String organizationName, UserType privilegeLevel) {
       this.username = username;
+      this.workerUsername = username;
       this.organizationName = organizationName;
       this.privilegeLevel = privilegeLevel;
     }
@@ -265,6 +271,7 @@ public class PdfControllerV2 {
         String clientUsernameParameter = Objects.requireNonNull(ctx.formParam("clientUsername"));
         this.username =
             clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
+        this.workerUsername = sessionUsername;
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
@@ -275,6 +282,7 @@ public class PdfControllerV2 {
 
     public void setUserParamsUploadAnnotatedPDF(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.workerUsername = ctx.sessionAttribute("username");
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = UserType.Developer;
     }
@@ -284,6 +292,8 @@ public class PdfControllerV2 {
       String clientUsernameParameter = req.getString("clientUsername");
       this.username =
           clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
+      this.workerUsername = sessionUsername;
+      this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
     }
 
@@ -328,12 +338,14 @@ public class PdfControllerV2 {
       }
       this.username = targetUser.getUsername();
       this.organizationName = targetUserOrg;
+      this.workerUsername = ctx.sessionAttribute("username");
       this.privilegeLevel = targetUser.getUserType();
       return null;
     }
 
     public Message setUserParamsFromSessionUser(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.workerUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
       return null;
@@ -345,6 +357,15 @@ public class PdfControllerV2 {
 
     public UserParams setUsername(String username) {
       this.username = username;
+      return this;
+    }
+
+    public String getWorkerUsername() {
+      return workerUsername;
+    }
+
+    public UserParams setWorkerUsername(String workerUsername) {
+      this.workerUsername = workerUsername;
       return this;
     }
 
