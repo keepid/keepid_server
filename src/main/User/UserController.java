@@ -480,23 +480,14 @@ public class UserController {
     }
 
     Organization org = orgOpt.get();
-    List<String> addressParts = new ArrayList<>();
-    if (org.getOrgStreetAddress() != null && !org.getOrgStreetAddress().isEmpty()) {
-      addressParts.add(org.getOrgStreetAddress());
-    }
-    List<String> cityStateZip = new ArrayList<>();
-    if (org.getOrgCity() != null && !org.getOrgCity().isEmpty()) cityStateZip.add(org.getOrgCity());
-    if (org.getOrgState() != null && !org.getOrgState().isEmpty()) cityStateZip.add(org.getOrgState());
-    if (org.getOrgZipcode() != null && !org.getOrgZipcode().isEmpty()) cityStateZip.add(org.getOrgZipcode());
-    if (!cityStateZip.isEmpty()) {
-      addressParts.add(String.join(", ", cityStateZip));
-    }
-    String address = String.join(", ", addressParts);
+    Address orgAddr = org.getOrgAddress();
+    String addressStr = orgAddr != null ? orgAddr.toString() : "";
 
     JSONObject res = new JSONObject();
     res.put("status", "SUCCESS");
     res.put("name", org.getOrgName());
-    res.put("address", address);
+    res.put("address", addressStr);
+    res.put("orgAddress", orgAddr != null ? orgAddr.serialize() : JSONObject.NULL);
     res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
     res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
     ctx.result(res.toString());

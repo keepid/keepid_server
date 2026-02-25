@@ -12,7 +12,7 @@
  */
 
 const dbName = db.getName();
-const ALLOWED_DBS = ["prod-db", "test-db"];
+const ALLOWED_DBS = ["staging-db", "prod-db", "test-db"];
 
 if (!ALLOWED_DBS.includes(dbName)) {
   print(`ERROR: connected to "${dbName}" — only ${ALLOWED_DBS.join(", ")} are allowed.`);
@@ -90,3 +90,43 @@ users.find().forEach((doc) => {
 });
 
 print(`\nDone. Rolled back: ${rolledBack}, Skipped: ${skipped}, Errors: ${errors}`);
+
+// ========================================================================
+// Organization collection: revert nested address -> flat fields
+// ========================================================================
+print(`\n=== Organization Address ROLLBACK on "${dbName}" ===\n`);
+
+const orgs = db.getCollection("organization");
+const orgTotal = orgs.countDocuments();
+print(`Total organization documents: ${orgTotal}`);
+
+let orgRolled = 0;
+let orgSkipped = 0;
+let orgErrors = 0;
+
+orgs.find().forEach((doc) => {
+  try {
+    const setFields = {};
+    const unsetFields = {};
+
+    if (doc.address && typeof doc.address === "object" && doc.address.line1 !== undefined) {
+      setFields.address = doc.address.line1 || "";
+      if (doc.address.city) setFields.city = doc.address.city;
+      if (doc.address.state) setFields.state = doc.address.state;
+      if (doc.address.zip) setFields.zipcode = doc.address.zip;
+    }
+
+    const hasSet = Object.keys(setFields).length > 0;
+    if (hasSet) {
+      orgs.updateOne({ _id: doc._id }, { $set: setFields });
+      orgRolled++;
+    } else {
+      orgSkipped++;
+    }
+  } catch (e) {
+    print(`ERROR on org ${doc._id}: ${e.message}`);
+    orgErrors++;
+  }
+});
+
+print(`\nDone. Rolled back: ${orgRolled}, Skipped: ${orgSkipped}, Errors: ${orgErrors}`);

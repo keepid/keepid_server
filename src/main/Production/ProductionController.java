@@ -43,10 +43,7 @@ public class ProductionController {
             organizationCreateRequest.getOrgName(),
             organizationCreateRequest.getOrgWebsite(),
             organizationCreateRequest.getOrgEIN(),
-            organizationCreateRequest.getOrgStreetAddress(),
-            organizationCreateRequest.getOrgCity(),
-            organizationCreateRequest.getOrgState(),
-            organizationCreateRequest.getOrgZipcode(),
+            organizationCreateRequest.getOrgAddress(),
             organizationCreateRequest.getOrgEmail(),
             organizationCreateRequest.getOrgPhoneNumber());
 

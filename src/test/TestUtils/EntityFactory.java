@@ -384,15 +384,13 @@ public class EntityFactory {
     @Override
     public Organization build() {
       try {
+        Address orgAddress = new Address(orgStreetAddress, orgCity, orgState, orgZipcode);
         Organization newOrg =
             new Organization(
                 orgName,
                 orgWebsite,
                 orgEIN,
-                orgStreetAddress,
-                orgCity,
-                orgState,
-                orgZipcode,
+                orgAddress,
                 orgEmail,
                 orgPhoneNumber);
         newOrg.setCreationDate(creationDate);

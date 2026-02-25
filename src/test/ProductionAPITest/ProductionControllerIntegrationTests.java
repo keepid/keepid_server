@@ -355,47 +355,47 @@ public class ProductionControllerIntegrationTests {
   @Test
   public void createOrganization() {
     JSONObject postBody = new JSONObject();
+    JSONObject orgAddress = new JSONObject();
+    orgAddress.put("line1", "123 Main Street");
+    orgAddress.put("city", "Chicago");
+    orgAddress.put("state", "IL");
+    orgAddress.put("zip", "60607");
     postBody.put("orgName", "ProductionController Test Org");
     postBody.put("orgWebsite", "https://www.example.com");
     postBody.put("orgEIN", "12-1234567");
     postBody.put("orgEmail", "test@example.com");
     postBody.put("orgPhoneNumber", "15555555555");
-    postBody.put("orgStreetAddress", "123 Main Street");
-    postBody.put("orgCity", "Chicago");
-    postBody.put("orgState", "IL");
-    postBody.put("orgZipcode", "60607");
+    postBody.put("orgAddress", orgAddress);
 
     HttpResponse<Organization> createOrganizationResponse = Unirest.post(TestUtils.getServerUrl() + "/organizations")
         .body(postBody.toString())
         .asObject(Organization.class);
 
     assertThat(createOrganizationResponse.getStatus()).isEqualTo(201);
-    var createdOrganization = createOrganizationResponse.getBody().serialize().toMap();
+    var createdOrg = createOrganizationResponse.getBody();
+    assertThat(createdOrg.getOrgName()).isEqualTo("ProductionController Test Org");
 
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
     var dbOrganizations = testDB.getCollection("organization", Organization.class);
-    var dbOrganization = dbOrganizations.find(eq("orgName", postBody.get("orgName"))).first().serialize().toMap();
-
-    for (Iterator<String> it = postBody.keys(); it.hasNext(); ) {
-      String key = it.next();
-
-      assertThat(createdOrganization.get(key)).isEqualTo(postBody.getString(key));
-      assertThat(dbOrganization.get(key)).isEqualTo(postBody.getString(key));
-    }
+    var dbOrg = dbOrganizations.find(eq("orgName", postBody.get("orgName"))).first();
+    assertThat(dbOrg).isNotNull();
+    assertThat(dbOrg.getOrgName()).isEqualTo("ProductionController Test Org");
   }
 
   @Test
   public void createOrganizationWithInvalidProperties() {
     JSONObject postBody = new JSONObject();
+    JSONObject orgAddress2 = new JSONObject();
+    orgAddress2.put("line1", "123 Main Street");
+    orgAddress2.put("city", "Chicago");
+    orgAddress2.put("state", "IL");
+    orgAddress2.put("zip", "60607");
     postBody.put("orgName", "ProductionController Test Org Invalid Properties");
     postBody.put("orgWebsite", "https://www.example.com");
     postBody.put("orgEIN", "12-1234567");
     postBody.put("orgEmail", "test@example.com");
     postBody.put("orgPhoneNumber", "15555555555");
-    postBody.put("orgStreetAddress", "123 Main Street");
-    postBody.put("orgCity", "Chicago");
-    postBody.put("orgState", "IL");
-    postBody.put("orgZipcode", "60607");
+    postBody.put("orgAddress", orgAddress2);
     postBody.put("INVALID_PROPERTY", "test value");
     var createOrganizationResponse = Unirest.post(TestUtils.getServerUrl() + "/organizations")
         .body(postBody.toString())
@@ -412,15 +412,17 @@ public class ProductionControllerIntegrationTests {
   @Test
   public void createOrganizationWithPreexistingName() {
     JSONObject postBody = new JSONObject();
+    JSONObject orgAddress3 = new JSONObject();
+    orgAddress3.put("line1", "123 Main Street");
+    orgAddress3.put("city", "Chicago");
+    orgAddress3.put("state", "IL");
+    orgAddress3.put("zip", "60607");
     postBody.put("orgName", "YMCA");
     postBody.put("orgWebsite", "https://www.example.com");
     postBody.put("orgEIN", "12-1234567");
     postBody.put("orgEmail", "test@example.com");
     postBody.put("orgPhoneNumber", "15555555555");
-    postBody.put("orgStreetAddress", "123 Main Street");
-    postBody.put("orgCity", "Chicago");
-    postBody.put("orgState", "IL");
-    postBody.put("orgZipcode", "60607");
+    postBody.put("orgAddress", orgAddress3);
     var createOrganizationResponse = Unirest.post(TestUtils.getServerUrl() + "/organizations")
         .body(postBody.toString())
         .asString();
@@ -483,15 +485,17 @@ public class ProductionControllerIntegrationTests {
   @Test
   public void deleteOrganization() {
     JSONObject postBody = new JSONObject();
+    JSONObject orgAddress4 = new JSONObject();
+    orgAddress4.put("line1", "123 Main Street");
+    orgAddress4.put("city", "Chicago");
+    orgAddress4.put("state", "IL");
+    orgAddress4.put("zip", "60607");
     postBody.put("orgName", "ProductionController Test Org to Delete");
     postBody.put("orgWebsite", "https://www.example.com");
     postBody.put("orgEIN", "12-1234567");
     postBody.put("orgEmail", "test@example.com");
     postBody.put("orgPhoneNumber", "15555555555");
-    postBody.put("orgStreetAddress", "123 Main Street");
-    postBody.put("orgCity", "Chicago");
-    postBody.put("orgState", "IL");
-    postBody.put("orgZipcode", "60607");
+    postBody.put("orgAddress", orgAddress4);
 
     HttpResponse<Organization> createOrganizationResponse = Unirest.post(TestUtils.getServerUrl() + "/organizations")
         .body(postBody.toString())

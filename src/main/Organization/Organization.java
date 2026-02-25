@@ -1,6 +1,7 @@
 package Organization;
 
 import Organization.Requests.OrganizationUpdateRequest;
+import User.Address;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,19 +37,7 @@ public class Organization implements Serializable {
 
   @BsonProperty(value = "address")
   @JsonProperty("address")
-  private String orgStreetAddress;
-
-  @BsonProperty(value = "city")
-  @JsonProperty("city")
-  private String orgCity;
-
-  @BsonProperty(value = "state")
-  @JsonProperty("state")
-  private String orgState;
-
-  @BsonProperty(value = "zipcode")
-  @JsonProperty("zipcode")
-  private String orgZipcode;
+  private Address orgAddress;
 
   @BsonProperty(value = "email")
   @JsonProperty("email")
@@ -67,151 +56,51 @@ public class Organization implements Serializable {
       String orgName,
       String orgWebsite,
       String orgEIN,
-      String orgStreetAddress,
-      String orgCity,
-      String orgState,
-      String orgZipcode,
+      Address orgAddress,
       String orgEmail,
       String orgPhoneNumber)
       throws ValidationException {
 
     OrganizationValidationMessage ovm =
-        Organization.isValid(
-            orgName,
-            orgWebsite,
-            orgEIN,
-            orgStreetAddress,
-            orgCity,
-            orgState,
-            orgZipcode,
-            orgEmail,
-            orgPhoneNumber);
+        Organization.isValid(orgName, orgWebsite, orgEIN, orgAddress, orgEmail, orgPhoneNumber);
 
     if (ovm != OrganizationValidationMessage.VALID)
       throw new ValidationException(OrganizationValidationMessage.toOrganizationMessageJSON(ovm));
 
-    Date date = new Date();
     this.id = new ObjectId();
-
     this.orgName = orgName;
     this.orgWebsite = orgWebsite;
     this.orgEIN = orgEIN;
-    this.orgStreetAddress = orgStreetAddress;
-    this.orgCity = orgCity;
-    this.orgState = orgState;
-    this.orgZipcode = orgZipcode;
+    this.orgAddress = orgAddress;
     this.orgEmail = orgEmail;
     this.orgPhoneNumber = orgPhoneNumber;
-    this.creationDate = date;
+    this.creationDate = new Date();
   }
 
-  /** **************** GETTERS ********************* */
-  public ObjectId getId() {
-    return this.id;
-  }
+  public ObjectId getId() { return this.id; }
+  public String getOrgName() { return this.orgName; }
+  public String getOrgWebsite() { return this.orgWebsite; }
+  public String getOrgEIN() { return this.orgEIN; }
+  public Address getOrgAddress() { return this.orgAddress; }
+  public String getOrgEmail() { return this.orgEmail; }
+  public String getOrgPhoneNumber() { return this.orgPhoneNumber; }
+  public Date getCreationDate() { return this.creationDate; }
 
-  public String getOrgName() {
-    return this.orgName;
-  }
-
-  public String getOrgWebsite() {
-    return this.orgWebsite;
-  }
-
-  public String getOrgEIN() {
-    return this.orgEIN;
-  }
-
-  public String getOrgStreetAddress() {
-    return this.orgStreetAddress;
-  }
-
-  public String getOrgCity() {
-    return this.orgCity;
-  }
-
-  public String getOrgState() {
-    return this.orgState;
-  }
-
-  public String getOrgZipcode() {
-    return this.orgZipcode;
-  }
-
-  public String getOrgEmail() {
-    return this.orgEmail;
-  }
-
-  public String getOrgPhoneNumber() {
-    return this.orgPhoneNumber;
-  }
-
-  public Date getCreationDate() {
-    return this.creationDate;
-  }
-
-  /** **************** SETTERS ********************* */
-  public Organization setOrgName(String orgName) {
-    this.orgName = orgName;
-    return this;
-  }
-
-  public Organization setOrgWebsite(String website) {
-    this.orgWebsite = website;
-    return this;
-  }
-
-  public Organization setOrgEIN(String ein) {
-    this.orgEIN = ein;
-    return this;
-  }
-
-  public Organization setOrgStreetAddress(String address) {
-    this.orgStreetAddress = address;
-    return this;
-  }
-
-  public Organization setOrgCity(String city) {
-    this.orgCity = city;
-    return this;
-  }
-
-  public Organization setOrgState(String state) {
-    this.orgState = state;
-    return this;
-  }
-
-  public Organization setOrgZipcode(String zipcode) {
-    this.orgZipcode = zipcode;
-    return this;
-  }
-
-  public Organization setOrgEmail(String email) {
-    this.orgEmail = email;
-    return this;
-  }
-
-  public Organization setOrgPhoneNumber(String phoneNumber) {
-    this.orgPhoneNumber = phoneNumber;
-    return this;
-  }
-
-  public Organization setCreationDate(Date creationDate) {
-    this.creationDate = creationDate;
-    return this;
-  }
+  public Organization setOrgName(String orgName) { this.orgName = orgName; return this; }
+  public Organization setOrgWebsite(String website) { this.orgWebsite = website; return this; }
+  public Organization setOrgEIN(String ein) { this.orgEIN = ein; return this; }
+  public Organization setOrgAddress(Address address) { this.orgAddress = address; return this; }
+  public Organization setOrgEmail(String email) { this.orgEmail = email; return this; }
+  public Organization setOrgPhoneNumber(String phoneNumber) { this.orgPhoneNumber = phoneNumber; return this; }
+  public Organization setCreationDate(Date creationDate) { this.creationDate = creationDate; return this; }
 
   private static OrganizationValidationMessage isValid(
       String orgName,
       String orgWebsite,
       String orgEIN,
-      String orgStreetAddress,
-      String orgCity,
-      String orgState,
-      String orgZipcode,
+      Address orgAddress,
       String orgEmail,
-      String orgPhoneNumber)
-      throws SecurityException {
+      String orgPhoneNumber) {
 
     if (!ValidationUtils.isValidOrgName(orgName)) {
       log.error("Invalid orgname: " + orgName);
@@ -233,20 +122,24 @@ public class Organization implements Serializable {
       log.error("Invalid email: " + orgEmail);
       return OrganizationValidationMessage.INVALID_EMAIL;
     }
-    if (!ValidationUtils.isValidAddress(orgStreetAddress)) {
-      log.error("Invalid address: " + orgStreetAddress);
+    if (orgAddress == null) {
+      log.error("Null address");
       return OrganizationValidationMessage.INVALID_ADDRESS;
     }
-    if (!ValidationUtils.isValidCity(orgCity)) {
-      log.error("Invalid city: " + orgCity);
+    if (!ValidationUtils.isValidAddress(orgAddress.getLine1())) {
+      log.error("Invalid address: " + orgAddress.getLine1());
+      return OrganizationValidationMessage.INVALID_ADDRESS;
+    }
+    if (!ValidationUtils.isValidCity(orgAddress.getCity())) {
+      log.error("Invalid city: " + orgAddress.getCity());
       return OrganizationValidationMessage.INVALID_CITY;
     }
-    if (!ValidationUtils.isValidUSState(orgState)) {
-      log.error("Invalid state: " + orgState);
+    if (!ValidationUtils.isValidUSState(orgAddress.getState())) {
+      log.error("Invalid state: " + orgAddress.getState());
       return OrganizationValidationMessage.INVALID_STATE;
     }
-    if (!ValidationUtils.isValidZipCode(orgZipcode)) {
-      log.error("Invalid zipcode: " + orgZipcode);
+    if (!ValidationUtils.isValidZipCode(orgAddress.getZip())) {
+      log.error("Invalid zipcode: " + orgAddress.getZip());
       return OrganizationValidationMessage.INVALID_ZIPCODE;
     }
     return OrganizationValidationMessage.VALID;
@@ -259,10 +152,7 @@ public class Organization implements Serializable {
     sb.append(", orgName=").append(this.orgName);
     sb.append(", orgWebsite=").append(this.orgWebsite);
     sb.append(", orgEIN=").append(this.orgEIN);
-    sb.append(", orgStreetAddress=").append(this.orgStreetAddress);
-    sb.append(", orgCity=").append(this.orgCity);
-    sb.append(", orgState=").append(this.orgState);
-    sb.append(", orgZipcode=").append(this.orgZipcode);
+    sb.append(", orgAddress=").append(this.orgAddress);
     sb.append(", orgEmail=").append(this.orgEmail);
     sb.append(", orgPhoneNumber=").append(this.orgPhoneNumber);
     sb.append("}");
@@ -278,10 +168,7 @@ public class Organization implements Serializable {
         && Objects.equals(this.orgName, org.orgName)
         && Objects.equals(this.orgWebsite, org.orgWebsite)
         && Objects.equals(this.orgEIN, org.orgEIN)
-        && Objects.equals(this.orgStreetAddress, org.orgStreetAddress)
-        && Objects.equals(this.orgCity, org.orgCity)
-        && Objects.equals(this.orgState, org.orgState)
-        && Objects.equals(this.orgZipcode, org.orgZipcode)
+        && Objects.equals(this.orgAddress, org.orgAddress)
         && Objects.equals(this.orgEmail, org.orgEmail)
         && Objects.equals(this.orgPhoneNumber, org.orgPhoneNumber);
   }
@@ -289,16 +176,8 @@ public class Organization implements Serializable {
   @Override
   public int hashCode() {
     return Objects.hash(
-        this.id,
-        this.orgName,
-        this.orgWebsite,
-        this.orgEIN,
-        this.orgStreetAddress,
-        this.orgCity,
-        this.orgState,
-        this.orgZipcode,
-        this.orgEmail,
-        this.orgPhoneNumber);
+        this.id, this.orgName, this.orgWebsite, this.orgEIN,
+        this.orgAddress, this.orgEmail, this.orgPhoneNumber);
   }
 
   public Map<String, Object> toMap() {
@@ -314,56 +193,32 @@ public class Organization implements Serializable {
     orgJSON.put("orgName", orgName);
     orgJSON.put("orgWebsite", orgWebsite);
     orgJSON.put("orgEIN", orgEIN);
-    orgJSON.put("orgStreetAddress", orgStreetAddress);
-    orgJSON.put("orgCity", orgCity);
-    orgJSON.put("orgState", orgState);
-    orgJSON.put("orgZipcode", orgZipcode);
+    orgJSON.put("orgAddress", orgAddress != null ? orgAddress.serialize() : JSONObject.NULL);
     orgJSON.put("orgEmail", orgEmail);
     orgJSON.put("orgPhoneNumber", orgPhoneNumber);
-//    orgJSON.put("id", id.toHexString());
     orgJSON.put("creationDate", creationDate);
     return orgJSON;
   }
 
-  public Organization updateProperties (OrganizationUpdateRequest updateRequest) {
+  public Organization updateProperties(OrganizationUpdateRequest updateRequest) {
     if (updateRequest.getOrgName() != null && updateRequest.getOrgName().isPresent()) {
       this.setOrgName(updateRequest.getOrgName().get());
     }
-
     if (updateRequest.getOrgWebsite() != null && updateRequest.getOrgWebsite().isPresent()) {
       this.setOrgWebsite(updateRequest.getOrgWebsite().get());
     }
-
     if (updateRequest.getOrgEIN() != null && updateRequest.getOrgEIN().isPresent()) {
       this.setOrgEIN(updateRequest.getOrgEIN().get());
     }
-
-    if (updateRequest.getOrgStreetAddress() != null && updateRequest.getOrgStreetAddress().isPresent()) {
-      this.setOrgStreetAddress(updateRequest.getOrgStreetAddress().get());
+    if (updateRequest.getOrgAddress() != null) {
+      this.setOrgAddress(updateRequest.getOrgAddress());
     }
-
-    if (updateRequest.getOrgCity() != null && updateRequest.getOrgCity().isPresent()) {
-      this.setOrgCity(updateRequest.getOrgCity().get());
-    }
-
-    if (updateRequest.getOrgState() != null && updateRequest.getOrgState().isPresent()) {
-      this.setOrgState(updateRequest.getOrgState().get());
-    }
-
-    if (updateRequest.getOrgZipcode() != null && updateRequest.getOrgZipcode().isPresent()) {
-      this.setOrgZipcode(updateRequest.getOrgZipcode().get());
-    }
-
     if (updateRequest.getOrgEmail() != null && updateRequest.getOrgEmail().isPresent()) {
       this.setOrgEmail(updateRequest.getOrgEmail().get());
     }
-
     if (updateRequest.getOrgPhoneNumber() != null && updateRequest.getOrgPhoneNumber().isPresent()) {
       this.setOrgPhoneNumber(updateRequest.getOrgPhoneNumber().get());
     }
-
     return this;
   }
 }
-
-

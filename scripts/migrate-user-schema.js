@@ -161,3 +161,75 @@ const withPhoneBook = users.countDocuments({
   phoneBook: { $exists: true, $ne: [] },
 });
 print(`Documents with non-empty phoneBook: ${withPhoneBook}`);
+
+// ========================================================================
+// Organization collection: migrate flat address fields -> nested address doc
+// ========================================================================
+print(`\n=== Organization Address Migration on "${dbName}" ===\n`);
+
+const orgs = db.getCollection("organization");
+const orgTotal = orgs.countDocuments();
+print(`Total organization documents: ${orgTotal}`);
+
+let orgMigrated = 0;
+let orgSkipped = 0;
+let orgErrors = 0;
+
+orgs.find().forEach((doc) => {
+  try {
+    const setFields = {};
+    const unsetFields = {};
+
+    const alreadyMigrated = doc.address != null && typeof doc.address === "object";
+
+    if (!alreadyMigrated) {
+      const hasOldFields = typeof doc.address === "string"
+          || doc.city !== undefined || doc.state !== undefined || doc.zipcode !== undefined;
+
+      if (hasOldFields) {
+        setFields.address = {
+          line1: (typeof doc.address === "string" && doc.address) ? doc.address : null,
+          line2: null,
+          city: doc.city || null,
+          state: doc.state || null,
+          zip: doc.zipcode || null,
+          county: null,
+        };
+        if (doc.city !== undefined) unsetFields.city = "";
+        if (doc.state !== undefined) unsetFields.state = "";
+        if (doc.zipcode !== undefined) unsetFields.zipcode = "";
+      }
+    }
+
+    const hasSet = Object.keys(setFields).length > 0;
+    const hasUnset = Object.keys(unsetFields).length > 0;
+
+    if (hasSet || hasUnset) {
+      const update = {};
+      if (hasSet) update.$set = setFields;
+      if (hasUnset) update.$unset = unsetFields;
+      orgs.updateOne({ _id: doc._id }, update);
+      orgMigrated++;
+    } else {
+      orgSkipped++;
+    }
+  } catch (e) {
+    print(`ERROR on org ${doc._id}: ${e.message}`);
+    orgErrors++;
+  }
+});
+
+print(`\nDone. Migrated: ${orgMigrated}, Skipped: ${orgSkipped}, Errors: ${orgErrors}`);
+
+print("\n=== Org Verification ===");
+const orgsWithOldFields = orgs.countDocuments({
+  $or: [
+    { city: { $exists: true } },
+    { state: { $exists: true } },
+    { zipcode: { $exists: true } },
+  ],
+});
+print(`Org documents still with flat city/state/zipcode: ${orgsWithOldFields}`);
+
+const orgsWithNestedAddr = orgs.countDocuments({ "address.line1": { $exists: true } });
+print(`Org documents with nested address: ${orgsWithNestedAddr}`);
