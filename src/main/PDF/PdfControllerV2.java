@@ -176,7 +176,7 @@ public class PdfControllerV2 {
         }
         UploadSignedPDFServiceV2 uploadSignedPDFServiceV2 =
             new UploadSignedPDFServiceV2(
-                fileDao, formDao, activityDao, userParams, fileParams, encryptionController);
+                fileDao, formDao, activityDao, userDao, userParams, fileParams, encryptionController);
         ctx.result(uploadSignedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
