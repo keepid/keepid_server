@@ -1,20 +1,16 @@
 package User.Requests;
 
+import User.Address;
+import User.Name;
 import User.UserType;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.HashMap;
 
-public class UserCreateRequest
-{
-  @BsonProperty(value = "firstName")
-  @JsonProperty("firstName")
-  private String firstName;
-
-  @BsonProperty(value = "lastName")
-  @JsonProperty("lastName")
-  private String lastName;
+public class UserCreateRequest {
+  @JsonProperty("currentName")
+  private Name currentName;
 
   @BsonProperty(value = "birthDate")
   @JsonProperty("birthDate")
@@ -28,21 +24,8 @@ public class UserCreateRequest
   @JsonProperty("phone")
   private String phone;
 
-  @BsonProperty(value = "address")
-  @JsonProperty("address")
-  private String address;
-
-  @BsonProperty(value = "city")
-  @JsonProperty("city")
-  private String city;
-
-  @BsonProperty(value = "state")
-  @JsonProperty("state")
-  private String state;
-
-  @BsonProperty(value = "zipcode")
-  @JsonProperty("zipcode")
-  private String zipcode;
+  @JsonProperty("personalAddress")
+  private Address personalAddress;
 
   @BsonProperty(value = "privilegeLevel")
   @JsonProperty("privilegeLevel")
@@ -60,11 +43,8 @@ public class UserCreateRequest
   @BsonProperty(value = "defaultIds")
   private HashMap<String, String> defaultIds;
 
-
   /** **************** GETTERS ********************* */
-  public String getFirstName() { return firstName; }
-
-  public String getLastName() { return lastName; }
+  public Name getCurrentName() { return currentName; }
 
   public String getBirthDate() { return birthDate; }
 
@@ -72,13 +52,7 @@ public class UserCreateRequest
 
   public String getPhone() { return phone; }
 
-  public String getAddress() { return address; }
-
-  public String getCity() { return city; }
-
-  public String getState() { return state; }
-
-  public String getZipcode() { return zipcode; }
+  public Address getPersonalAddress() { return personalAddress; }
 
   public UserType getUserType() { return userType; }
 
@@ -91,41 +65,15 @@ public class UserCreateRequest
   public HashMap<String, String> getDefaultIds() { return defaultIds; }
 
   /** **************** SETTERS ********************* */
-  public void setFirstName(String firstName) {
-    this.firstName = firstName;
-  }
+  public void setCurrentName(Name currentName) { this.currentName = currentName; }
 
-  public void setLastName(String lastName) {
-    this.lastName = lastName;
-  }
+  public void setBirthDate(String birthDate) { this.birthDate = birthDate; }
 
-  public void setBirthDate(String birthDate) {
-    this.birthDate = birthDate;
-  }
+  public void setEmail(String email) { this.email = email; }
 
-  public void setEmail(String email) {
-    this.email = email;
-  }
+  public void setPhone(String phone) { this.phone = phone; }
 
-  public void setPhone(String phone) {
-    this.phone = phone;
-  }
-
-  public void setAddress(String address) {
-    this.address = address;
-  }
-
-  public void setCity(String city) {
-    this.city = city;
-  }
-
-  public void setState(String state) {
-    this.state = state;
-  }
-
-  public void setZipcode(String zipcode) {
-    this.zipcode = zipcode;
-  }
+  public void setPersonalAddress(Address personalAddress) { this.personalAddress = personalAddress; }
 
   public void setOrganization(String organization) { this.organization = organization; }
 
