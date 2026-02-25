@@ -79,11 +79,6 @@ public class PhoneBookService implements Service {
       phoneBook = new ArrayList<>();
     }
 
-    // Lazy migration: if phone book is empty but root phone exists, seed it
-    if (phoneBook.isEmpty() && user.getPhone() != null && !user.getPhone().isBlank()) {
-      phoneBook.add(new PhoneBookEntry(PhoneBookEntry.PRIMARY_LABEL, user.getPhone()));
-    }
-
     switch (action) {
       case GET:
         this.resultPhoneBook = phoneBook;

@@ -233,7 +233,7 @@ public class ProcessGoogleLoginResponseService implements Service {
 
     public String getFullName() {
         Objects.requireNonNull(user);
-        return user.getFirstName() + " " + user.getLastName();
+        return user.getCurrentName() != null ? user.getCurrentName().getFullName() : "";
     }
 
     /** Google profile getters (available after executeAndGetResponse, even when USER_NOT_FOUND) */

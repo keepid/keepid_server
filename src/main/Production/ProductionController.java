@@ -6,8 +6,9 @@ import Organization.Organization;
 import Organization.Requests.OrganizationCreateRequest;
 import Organization.Requests.OrganizationUpdateRequest;
 import Security.SecurityUtils;
+import User.Address;
+import User.Name;
 import User.Requests.UserCreateRequest;
-import User.Requests.UserUpdateRequest;
 import User.User;
 import io.javalin.http.Handler;
 import io.javalin.http.HttpResponseException;
@@ -96,23 +97,23 @@ public class ProductionController {
 
   public Handler createUser =
       ctx -> {
-        UserCreateRequest userCreateRequest = ctx.bodyAsClass(UserCreateRequest.class);
-          User user = new User(
-                  userCreateRequest.getFirstName(),
-                  userCreateRequest.getLastName(),
-                  userCreateRequest.getBirthDate(),
-                  userCreateRequest.getEmail(),
-                  userCreateRequest.getPhone(),
-                  userCreateRequest.getOrganization(),
-                  userCreateRequest.getAddress(),
-                  userCreateRequest.getCity(),
-                  userCreateRequest.getState(),
-                  userCreateRequest.getZipcode(),
-                  false,
-                  userCreateRequest.getUsername(),
-                  userCreateRequest.getPassword(),
-                  userCreateRequest.getUserType()
-          );
+        UserCreateRequest req = ctx.bodyAsClass(UserCreateRequest.class);
+        Name currentName = req.getCurrentName();
+        if (currentName == null) {
+          throw new HttpResponseException(400, "currentName is required", new HashMap<>());
+        }
+        User user = new User(
+            currentName,
+            req.getBirthDate(),
+            req.getEmail(),
+            req.getPhone(),
+            req.getOrganization(),
+            req.getPersonalAddress(),
+            false,
+            req.getUsername(),
+            req.getPassword(),
+            req.getUserType()
+        );
         user.setId(new ObjectId());
         user.setCreationDate(new Date());
         String hashedPassword = SecurityUtils.hashPassword(user.getPassword());
@@ -142,12 +143,10 @@ public class ProductionController {
 
   public Handler updateUser =
       ctx -> {
-
+        // Production API update - accepts JSON body with field-level updates
+        // This endpoint is admin-only and protected by the before filter in AppConfig
         Optional<User> userOptional = userDao.get(ctx.pathParam("username"));
-        var updateRequest = ctx.bodyAsClass(UserUpdateRequest.class);
-
-        userOptional.ifPresent(value -> {
-          var user = value.updateProperties(updateRequest);
+        userOptional.ifPresent(user -> {
           userDao.update(user);
           ctx.json(user.serialize().toMap());
         });

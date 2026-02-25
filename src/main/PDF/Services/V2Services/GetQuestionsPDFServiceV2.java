@@ -42,8 +42,18 @@ public class GetQuestionsPDFServiceV2 implements Service {
   private static final Map<String, String> FIELD_ALIASES = new HashMap<>();
 
   static {
+    FIELD_ALIASES.put("firstName", "currentName.first");
+    FIELD_ALIASES.put("lastName", "currentName.last");
+    FIELD_ALIASES.put("middleName", "currentName.middle");
+    FIELD_ALIASES.put("phone", "phoneBook.0.phoneNumber");
+    FIELD_ALIASES.put("phoneNumber", "phoneBook.0.phoneNumber");
+    FIELD_ALIASES.put("address", "personalAddress.line1");
+    FIELD_ALIASES.put("streetAddress", "personalAddress.line1");
+    FIELD_ALIASES.put("city", "personalAddress.city");
+    FIELD_ALIASES.put("state", "personalAddress.state");
+    FIELD_ALIASES.put("zipcode", "personalAddress.zip");
+    FIELD_ALIASES.put("genderAssignedAtBirth", "sex");
     FIELD_ALIASES.put("emailAddress", "email");
-    FIELD_ALIASES.put("phoneNumber", "phone");
   }
 
   public GetQuestionsPDFServiceV2(
