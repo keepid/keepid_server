@@ -13,6 +13,8 @@ import User.UserType;
 import org.junit.After;
 import org.junit.Test;
 
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -63,7 +65,7 @@ public class PhoneBookServiceTest {
   }
 
   @Test
-  public void getPhoneBookLazyMigratesFromRootPhone() {
+  public void getPhoneBookReturnsEmptyWhenPhoneBookNull() {
     User user = EntityFactory.createUser()
         .withUsername("legacyuser")
         .withPhoneNumber("5551234567")
@@ -76,10 +78,7 @@ public class PhoneBookServiceTest {
 
     assertEquals(UserMessage.SUCCESS, response);
     List<PhoneBookEntry> book = service.getResultPhoneBook();
-    assertEquals(1, book.size());
-    assertEquals("primary", book.get(0).getLabel());
-    assertEquals("5551234567", book.get(0).getPhoneNumber());
-    assertTrue(book.get(0).hasPrimaryLabel());
+    assertEquals(0, book.size());
   }
 
   @Test
@@ -451,13 +450,13 @@ public class PhoneBookServiceTest {
   }
 
   @Test
-  public void getPhoneFallsBackToLegacyFieldWhenPhoneBookNull() {
+  public void getPhoneReturnsNullWhenPhoneBookNull() {
     User user = EntityFactory.createUser()
         .withPhoneNumber("6305264087")
         .build();
     user.setPhoneBook(null);
 
-    assertEquals("6305264087", user.getPhone());
+    assertNull(user.getPhone());
   }
 
   @Test

@@ -8,7 +8,9 @@ import Form.*;
 import Organization.Organization;
 import Security.SecurityUtils;
 import Security.Tokens;
+import User.Address;
 import User.IpObject;
+import User.Name;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
@@ -225,7 +227,7 @@ public class EntityFactory {
     private String email = "testemail@keep.id";
     private String phone = "1231231234";
     private String organization = "testOrganizationName";
-    private String address = "123 Test St Av";
+    private String addressLine1 = "123 Test St Av";
     private String city = "Philadelphia";
     private String state = "PA";
     private String zipcode = "19104";
@@ -241,18 +243,16 @@ public class EntityFactory {
     @Override
     public User build() {
       try {
+        Name currentName = new Name(firstName, lastName);
+        Address personalAddress = new Address(addressLine1, city, state, zipcode);
         User newUser =
             new User(
-                firstName,
-                lastName,
+                currentName,
                 birthDate,
                 email,
                 phone,
                 organization,
-                address,
-                city,
-                state,
-                zipcode,
+                personalAddress,
                 twoFactorOn,
                 username,
                 password,
@@ -304,7 +304,7 @@ public class EntityFactory {
     }
 
     public PartialUser withAddress(String address) {
-      this.address = address;
+      this.addressLine1 = address;
       return this;
     }
 

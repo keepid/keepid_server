@@ -25,6 +25,8 @@ import PDF.Services.V2Services.DownloadPDFServiceV2;
 import PDF.Services.V2Services.UploadPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.TestUtils;
+import User.Address;
+import User.Name;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
@@ -98,16 +100,12 @@ public class DownloadPDFServiceUnitTests {
     try {
       this.userDao.save(
           new User(
-              "testcFirstName",
-              "testcLastName",
+              new Name("testcFirstName", "testcLastName"),
               "12-12-2012",
               "testcemail@keep.id",
               "2652623333",
               "org2",
-              "1 Keep Ave",
-              "Keep",
-              "PA",
-              "11111",
+              new Address("1 Keep Ave", "Keep", "PA", "11111"),
               false,
               "client1",
               "clientPass123",

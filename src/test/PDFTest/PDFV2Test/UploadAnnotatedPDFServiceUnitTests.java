@@ -18,6 +18,8 @@ import PDF.PdfMessage;
 import PDF.Services.V2Services.UploadAnnotatedPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.TestUtils;
+import User.Address;
+import User.Name;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
@@ -136,16 +138,12 @@ public class UploadAnnotatedPDFServiceUnitTests {
     try {
       userDao.save(
           new User(
-              "testFirstName",
-              "testLastName",
+              new Name("testFirstName", "testLastName"),
               "12-12-2012",
               "testemail@keep.id",
               "2652623333",
               "org0",
-              "1 Keep Ave",
-              "Keep",
-              "PA",
-              "11111",
+              new Address("1 Keep Ave", "Keep", "PA", "11111"),
               false,
               "dev1",
               "devPass123",
