@@ -9,6 +9,7 @@ import Organization.Services.ListOrgsService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
 import Security.EncryptionUtils;
+import User.Address;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
@@ -154,6 +155,7 @@ public class OrganizationController {
         String orgCity = req.getString("organizationAddressCity").toUpperCase().strip();
         String orgState = req.getString("organizationAddressState").toUpperCase().strip();
         String orgZipcode = req.getString("organizationAddressZipcode").strip();
+        Address orgAddress = new Address(orgStreetAddress, orgCity, orgState, orgZipcode);
         String orgEmail = req.getString("organizationEmail").strip();
         String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
 
@@ -177,10 +179,7 @@ public class OrganizationController {
                 orgName,
                 orgWebsite,
                 orgEIN,
-                orgStreetAddress,
-                orgCity,
-                orgState,
-                orgZipcode,
+                orgAddress,
                 orgEmail,
                 orgPhoneNumber);
         ctx.result(eoService.executeAndGetResponse().toJSON().toString());

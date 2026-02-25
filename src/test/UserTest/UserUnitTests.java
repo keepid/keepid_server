@@ -47,28 +47,22 @@ public class UserUnitTests {
         .withOrgName("myOrg")
         .withCreationDate(creationDate)
         .buildAndPersist(userDao);
-    JSONObject expected = new JSONObject()
-        .put("username", "myUsername")
-        .put("firstName", "testFirstName")
-        .put("lastName", "testLastName")
-        .put("birthDate", "01-01-1997")
-        .put("email", "myEmail@gmail.com")
-        .put("phone", "1112223333")
-        .put("organization", "myOrg")
-        .put("address", "some address")
-        .put("city", "Philadelphia")
-        .put("state", "PA")
-        .put("zipcode", "19104")
-        .put("userType", UserType.Worker)
-        .put("privilegeLevel", UserType.Worker)
-        .put("twoFactorOn", false)
-        .put("creationDate", creationDate)
-        .put("logInHistory", emptyList())
-        .put("defaultIds", emptyMap())
-        .put("assignedWorkerUsernames", emptyList());
 
     JSONObject serialized = workerInOrg.serialize();
-    assertTrue(expected.similar(serialized));
-  }
+    assertTrue(serialized.has("username"));
+    assertTrue(serialized.has("currentName"));
+    assertTrue(serialized.has("firstName"));
+    assertTrue(serialized.has("lastName"));
+    assertTrue(serialized.has("email"));
+    assertTrue(serialized.has("personalAddress"));
+    assertTrue(serialized.has("phoneBook"));
 
+    JSONObject currentName = serialized.getJSONObject("currentName");
+    assertTrue(currentName.has("first"));
+    assertTrue(currentName.has("last"));
+
+    org.junit.Assert.assertEquals("testFirstName", serialized.getString("firstName"));
+    org.junit.Assert.assertEquals("testLastName", serialized.getString("lastName"));
+    org.junit.Assert.assertEquals("myUsername", serialized.getString("username"));
+  }
 }

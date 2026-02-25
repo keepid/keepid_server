@@ -86,18 +86,16 @@ public class DeveloperConsole {
 
     User user;
     try {
+      Name currentName = new Name(firstName, lastName);
+      Address personalAddress = new Address(address, city, state, zipcode);
       user =
               new User(
-                      firstName,
-                      lastName,
+                      currentName,
                       birthDate,
                       email,
                       phone,
                       organization,
-                      address,
-                      city,
-                      state,
-                      zipcode,
+                      personalAddress,
                       twoFactorOn,
                       username,
                       password,

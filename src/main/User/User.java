@@ -1,7 +1,6 @@
 package User;
 
 import User.Onboarding.OnboardingStatus;
-import User.Requests.UserUpdateRequest;
 import User.Services.DocumentType;
 import Validation.ValidationException;
 import Validation.ValidationUtils;
@@ -21,11 +20,11 @@ import java.util.*;
 public class User {
   private ObjectId id;
 
-  @BsonProperty(value = "firstName")
-  private String firstName;
+  @BsonProperty(value = "currentName")
+  private Name currentName;
 
-  @BsonProperty(value = "lastName")
-  private String lastName;
+  @BsonProperty(value = "nameHistory")
+  private List<Name> nameHistory;
 
   @BsonProperty(value = "birthDate")
   private String birthDate;
@@ -33,23 +32,14 @@ public class User {
   @BsonProperty(value = "email")
   private String email;
 
-  @BsonProperty(value = "phone")
-  private String phone;
-
   @BsonProperty(value = "organization")
   private String organization;
 
-  @BsonProperty(value = "address")
-  private String address;
+  @BsonProperty(value = "personalAddress")
+  private Address personalAddress;
 
-  @BsonProperty(value = "city")
-  private String city;
-
-  @BsonProperty(value = "state")
-  private String state;
-
-  @BsonProperty(value = "zipcode")
-  private String zipcode;
+  @BsonProperty(value = "mailAddress")
+  private Address mailAddress;
 
   @BsonProperty(value = "username")
   private String username;
@@ -79,23 +69,28 @@ public class User {
   @BsonProperty(value = "onboardingStatus")
   private OnboardingStatus onboardingStatus;
 
-  @BsonProperty(value = "optionalInformation")
-  private OptionalInformation optionalInformation;
+  @BsonProperty(value = "phoneBook")
+  private List<PhoneBookEntry> phoneBook;
+
+  @BsonProperty(value = "sex")
+  private String sex;
+
+  @BsonProperty(value = "motherName")
+  private Name motherName;
+
+  @BsonProperty(value = "fatherName")
+  private Name fatherName;
 
   public User() {
   }
 
   public User(
-      String firstName,
-      String lastName,
+      Name currentName,
       String birthDate,
       String email,
       String phone,
       String organization,
-      String address,
-      String city,
-      String state,
-      String zipcode,
+      Address personalAddress,
       Boolean twoFactorOn,
       String username,
       String password,
@@ -103,19 +98,14 @@ public class User {
       throws ValidationException {
 
     UserValidationMessage validationMessage = isValid(
-        firstName,
-        lastName,
+        currentName,
         birthDate,
         email,
         phone,
         organization,
-        address,
-        city,
-        state,
-        zipcode,
+        personalAddress,
         username,
         password,
-        defaultIds,
         userType);
 
     if (validationMessage != UserValidationMessage.VALID)
@@ -124,16 +114,11 @@ public class User {
     Date date = new Date();
 
     this.id = new ObjectId();
-    this.firstName = firstName;
-    this.lastName = lastName;
+    this.currentName = currentName;
     this.birthDate = birthDate;
     this.email = email;
-    this.phone = phone;
     this.organization = organization;
-    this.address = address;
-    this.city = city;
-    this.state = state;
-    this.zipcode = zipcode;
+    this.personalAddress = personalAddress;
     this.twoFactorOn = twoFactorOn;
     this.username = username;
     this.password = password;
@@ -141,6 +126,10 @@ public class User {
     this.creationDate = date;
     this.defaultIds = new HashMap<>();
     this.assignedWorkerUsernames = new ArrayList<>();
+    this.phoneBook = new ArrayList<>();
+    if (phone != null && !phone.isBlank()) {
+      this.phoneBook.add(new PhoneBookEntry(PhoneBookEntry.PRIMARY_LABEL, phone));
+    }
   }
 
   /** **************** GETTERS ********************* */
@@ -148,12 +137,20 @@ public class User {
     return this.id;
   }
 
+  public Name getCurrentName() {
+    return this.currentName;
+  }
+
   public String getFirstName() {
-    return this.firstName;
+    return currentName != null ? currentName.getFirst() : null;
   }
 
   public String getLastName() {
-    return this.lastName;
+    return currentName != null ? currentName.getLast() : null;
+  }
+
+  public List<Name> getNameHistory() {
+    return this.nameHistory;
   }
 
   public String getBirthDate() {
@@ -164,28 +161,30 @@ public class User {
     return this.email;
   }
 
+  /**
+   * Returns the primary phone number by finding the phoneBook entry labeled "primary".
+   */
   public String getPhone() {
-    return this.phone;
+    if (phoneBook != null) {
+      for (PhoneBookEntry entry : phoneBook) {
+        if (entry.hasPrimaryLabel()) {
+          return entry.getPhoneNumber();
+        }
+      }
+    }
+    return null;
   }
 
   public String getOrganization() {
     return this.organization;
   }
 
-  public String getAddress() {
-    return this.address;
+  public Address getPersonalAddress() {
+    return this.personalAddress;
   }
 
-  public String getCity() {
-    return this.city;
-  }
-
-  public String getState() {
-    return this.state;
-  }
-
-  public String getZipcode() {
-    return this.zipcode;
+  public Address getMailAddress() {
+    return this.mailAddress;
   }
 
   public String getUsername() {
@@ -198,7 +197,7 @@ public class User {
 
   public Map<String, String> getDefaultIds() {
     return this.defaultIds;
-  };
+  }
 
   public UserType getUserType() {
     return this.userType;
@@ -224,18 +223,30 @@ public class User {
     return this.onboardingStatus;
   }
 
-  public OptionalInformation getOptionalInformation() {
-    return this.optionalInformation;
+  public List<PhoneBookEntry> getPhoneBook() {
+    return this.phoneBook;
+  }
+
+  public String getSex() {
+    return this.sex;
+  }
+
+  public Name getMotherName() {
+    return this.motherName;
+  }
+
+  public Name getFatherName() {
+    return this.fatherName;
   }
 
   /** *************** SETTERS ********************* */
-  public User setFirstName(String firstName) {
-    this.firstName = firstName;
+  public User setCurrentName(Name currentName) {
+    this.currentName = currentName;
     return this;
   }
 
-  public User setLastName(String lastName) {
-    this.lastName = lastName;
+  public User setNameHistory(List<Name> nameHistory) {
+    this.nameHistory = nameHistory;
     return this;
   }
 
@@ -249,8 +260,22 @@ public class User {
     return this;
   }
 
+  /**
+   * Sets the primary phone number by updating the "primary" labeled phoneBook entry.
+   * Creates one if none exists.
+   */
   public User setPhone(String phone) {
-    this.phone = phone;
+    if (phoneBook != null) {
+      for (PhoneBookEntry entry : phoneBook) {
+        if (entry.hasPrimaryLabel()) {
+          entry.setPhoneNumber(phone);
+          return this;
+        }
+      }
+      if (phone != null && !phone.isBlank()) {
+        phoneBook.add(new PhoneBookEntry(PhoneBookEntry.PRIMARY_LABEL, phone));
+      }
+    }
     return this;
   }
 
@@ -259,28 +284,18 @@ public class User {
     return this;
   }
 
-  public User setAddress(String address) {
-    this.address = address;
+  public User setPersonalAddress(Address personalAddress) {
+    this.personalAddress = personalAddress;
     return this;
   }
 
-  public User setCity(String city) {
-    this.city = city;
+  public User setMailAddress(Address mailAddress) {
+    this.mailAddress = mailAddress;
     return this;
   }
 
   public User setCreationDate(Date date) {
     this.creationDate = date;
-    return this;
-  }
-
-  public User setState(String state) {
-    this.state = state;
-    return this;
-  }
-
-  public User setZipcode(String zipcode) {
-    this.zipcode = zipcode;
     return this;
   }
 
@@ -329,33 +344,43 @@ public class User {
     return this;
   }
 
-  public User setOptionalInformation(OptionalInformation optionalInformation) {
-    this.optionalInformation = optionalInformation;
+  public User setPhoneBook(List<PhoneBookEntry> phoneBook) {
+    this.phoneBook = phoneBook;
+    return this;
+  }
+
+  public User setSex(String sex) {
+    this.sex = sex;
+    return this;
+  }
+
+  public User setMotherName(Name motherName) {
+    this.motherName = motherName;
+    return this;
+  }
+
+  public User setFatherName(Name fatherName) {
+    this.fatherName = fatherName;
     return this;
   }
 
   private static UserValidationMessage isValid(
-      String firstName,
-      String lastName,
+      Name currentName,
       String birthDate,
       String email,
       String phone,
       String organization,
-      String address,
-      String city,
-      String state,
-      String zipcode,
+      Address personalAddress,
       String username,
       String password,
-      Map<String, String> defaultIds,
       UserType userType) {
 
-    if (!ValidationUtils.isValidFirstName(firstName)) {
-      log.error("Invalid firstName: " + firstName);
+    if (currentName == null || !ValidationUtils.isValidFirstName(currentName.getFirst())) {
+      log.error("Invalid firstName");
       return UserValidationMessage.INVALID_FIRSTNAME;
     }
-    if (!ValidationUtils.isValidLastName(lastName)) {
-      log.error("Invalid lastName: " + lastName);
+    if (!ValidationUtils.isValidLastName(currentName.getLast())) {
+      log.error("Invalid lastName");
       return UserValidationMessage.INVALID_LASTNAME;
     }
     if (!ValidationUtils.isValidBirthDate(birthDate)) {
@@ -363,7 +388,7 @@ public class User {
       return UserValidationMessage.INVALID_BIRTHDATE;
     }
     if (ValidationUtils.hasValue(phone) && !ValidationUtils.isValidPhoneNumber(phone)) {
-      log.error("Invalid orgContactPhoneNumber: " + phone);
+      log.error("Invalid phone: " + phone);
       return UserValidationMessage.INVALID_PHONENUMBER;
     }
     if (!ValidationUtils.isValidOrganizationName(organization)) {
@@ -374,28 +399,34 @@ public class User {
       log.error("Invalid email: " + email);
       return UserValidationMessage.INVALID_EMAIL;
     }
-    if (ValidationUtils.hasValue(address) && !ValidationUtils.isValidAddress(address)) {
-      log.error("Invalid address: " + address);
-      return UserValidationMessage.INVALID_ADDRESS;
-    }
-    if (ValidationUtils.hasValue(city) && !ValidationUtils.isValidCity(city)) {
-      log.error("Invalid city: " + city);
-      return UserValidationMessage.INVALID_CITY;
-    }
-    if (ValidationUtils.hasValue(state) && !ValidationUtils.isValidUSState(state)) {
-      log.error("Invalid state: " + state);
-      return UserValidationMessage.INVALID_STATE;
-    }
-    if (ValidationUtils.hasValue(zipcode) && !ValidationUtils.isValidZipCode(zipcode)) {
-      log.error("Invalid zipcode: " + zipcode);
-      return UserValidationMessage.INVALID_ZIPCODE;
+    if (personalAddress != null) {
+      if (ValidationUtils.hasValue(personalAddress.getLine1())
+          && !ValidationUtils.isValidAddress(personalAddress.getLine1())) {
+        log.error("Invalid address line1");
+        return UserValidationMessage.INVALID_ADDRESS;
+      }
+      if (ValidationUtils.hasValue(personalAddress.getCity())
+          && !ValidationUtils.isValidCity(personalAddress.getCity())) {
+        log.error("Invalid city");
+        return UserValidationMessage.INVALID_CITY;
+      }
+      if (ValidationUtils.hasValue(personalAddress.getState())
+          && !ValidationUtils.isValidUSState(personalAddress.getState())) {
+        log.error("Invalid state");
+        return UserValidationMessage.INVALID_STATE;
+      }
+      if (ValidationUtils.hasValue(personalAddress.getZip())
+          && !ValidationUtils.isValidZipCode(personalAddress.getZip())) {
+        log.error("Invalid zipcode");
+        return UserValidationMessage.INVALID_ZIPCODE;
+      }
     }
     if (!ValidationUtils.isValidUsername(username)) {
       log.error("Invalid username: " + username);
       return UserValidationMessage.INVALID_USERNAME;
     }
     if (!ValidationUtils.isValidPassword(password)) {
-      log.error("Invalid password: " + password);
+      log.error("Invalid password");
       return UserValidationMessage.INVALID_PASSWORD;
     }
     if (!ValidationUtils.isValidUserType(userType.toString())) {
@@ -409,23 +440,22 @@ public class User {
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("User {");
-    sb.append("id=").append(this.id.toHexString());
-    sb.append(", firstName=").append(this.firstName);
-    sb.append(", lastName=").append(this.lastName);
+    sb.append("id=").append(this.id != null ? this.id.toHexString() : "null");
+    sb.append(", currentName=").append(this.currentName);
     sb.append(", birthDate=").append(this.birthDate);
     sb.append(", email=").append(this.email);
-    sb.append(", phone=").append(this.phone);
-    sb.append(", address=").append(this.address);
-    sb.append(", city=").append(this.city);
-    sb.append(", state=").append(this.state);
-    sb.append(", zipcode=").append(this.zipcode);
+    sb.append(", phone=").append(this.getPhone());
+    sb.append(", personalAddress=").append(this.personalAddress);
+    sb.append(", mailAddress=").append(this.mailAddress);
     sb.append(", username=").append(this.username);
     sb.append(", password=").append(this.password);
-    sb.append(", defaultIds=").append(this.defaultIds.toString());
+    sb.append(", defaultIds=").append(this.defaultIds != null ? this.defaultIds.toString() : "null");
     sb.append(", userType=").append(this.userType);
     sb.append(", twoFactorOn=").append(this.twoFactorOn);
     sb.append(", creationDate=").append(this.creationDate);
-    sb.append(", assignedWorkerUsernames=").append(this.assignedWorkerUsernames.toString());
+    sb.append(", assignedWorkerUsernames=").append(this.assignedWorkerUsernames != null ? this.assignedWorkerUsernames.toString() : "null");
+    sb.append(", phoneBook=").append(this.phoneBook != null ? this.phoneBook.toString() : "null");
+    sb.append(", sex=").append(this.sex);
     sb.append("}");
     return sb.toString();
   }
@@ -438,41 +468,43 @@ public class User {
       return false;
     User user = (User) o;
     return Objects.equals(this.id, user.id)
-        && Objects.equals(this.firstName, user.firstName)
-        && Objects.equals(this.lastName, user.lastName)
+        && Objects.equals(this.currentName, user.currentName)
         && Objects.equals(this.birthDate, user.birthDate)
         && Objects.equals(this.email, user.email)
-        && Objects.equals(this.phone, user.phone)
-        && Objects.equals(this.address, user.address)
-        && Objects.equals(this.city, user.city)
-        && Objects.equals(this.state, user.state)
-        && Objects.equals(this.zipcode, user.zipcode)
+        && Objects.equals(this.getPhone(), user.getPhone())
+        && Objects.equals(this.personalAddress, user.personalAddress)
+        && Objects.equals(this.mailAddress, user.mailAddress)
         && Objects.equals(this.username, user.username)
         && Objects.equals(this.password, user.password)
         && Objects.equals(this.defaultIds, user.defaultIds)
         && Objects.equals(this.userType, user.userType)
-        && Objects.equals(this.twoFactorOn, user.twoFactorOn);
+        && Objects.equals(this.twoFactorOn, user.twoFactorOn)
+        && Objects.equals(this.phoneBook, user.phoneBook)
+        && Objects.equals(this.sex, user.sex)
+        && Objects.equals(this.motherName, user.motherName)
+        && Objects.equals(this.fatherName, user.fatherName);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         this.id,
-        this.firstName,
-        this.lastName,
+        this.currentName,
         this.birthDate,
         this.email,
-        this.phone,
-        this.address,
-        this.city,
-        this.state,
-        this.zipcode,
+        this.getPhone(),
+        this.personalAddress,
+        this.mailAddress,
         this.username,
         this.password,
         this.defaultIds,
         this.userType,
         this.twoFactorOn,
-        this.assignedWorkerUsernames);
+        this.assignedWorkerUsernames,
+        this.phoneBook,
+        this.sex,
+        this.motherName,
+        this.fatherName);
   }
 
   public JSONObject serialize() {
@@ -481,43 +513,49 @@ public class User {
     userJSON.put("birthDate", birthDate);
     userJSON.put("privilegeLevel", userType);
     userJSON.put("userType", userType);
-    userJSON.put("firstName", firstName);
-    userJSON.put("lastName", lastName);
     userJSON.put("email", email);
-    userJSON.put("phone", phone);
-    userJSON.put("address", address);
-    userJSON.put("city", city);
-    userJSON.put("state", state);
-    userJSON.put("zipcode", zipcode);
+    userJSON.put("phone", getPhone());
     userJSON.put("organization", organization);
     userJSON.put("logInHistory", logInHistory);
     userJSON.put("creationDate", creationDate);
     userJSON.put("twoFactorOn", twoFactorOn);
     userJSON.put("defaultIds", defaultIds);
     userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
-    if (optionalInformation != null) {
-      JSONObject optionalInfoJSON = new JSONObject();
-      if (optionalInformation.getPerson() != null) {
-        // Exclude firstName/lastName from Person - they come from root level User
-        // fields
-        JSONObject personJSON = optionalInformation.getPerson().serialize();
-        personJSON.remove("firstName");
-        personJSON.remove("lastName");
-        optionalInfoJSON.put("person", personJSON);
+    userJSON.put("sex", sex);
+
+    if (currentName != null) {
+      userJSON.put("currentName", currentName.serialize());
+      userJSON.put("firstName", currentName.getFirst());
+      userJSON.put("lastName", currentName.getLast());
+    }
+    if (nameHistory != null) {
+      org.json.JSONArray nameHistoryArray = new org.json.JSONArray();
+      for (Name name : nameHistory) {
+        nameHistoryArray.put(name.serialize());
       }
-      if (optionalInformation.getBasicInfo() != null) {
-        optionalInfoJSON.put("basicInfo", optionalInformation.getBasicInfo().serialize());
+      userJSON.put("nameHistory", nameHistoryArray);
+    }
+    if (personalAddress != null) {
+      userJSON.put("personalAddress", personalAddress.serialize());
+    }
+    if (mailAddress != null) {
+      userJSON.put("mailAddress", mailAddress.serialize());
+    }
+    if (motherName != null) {
+      userJSON.put("motherName", motherName.serialize());
+    }
+    if (fatherName != null) {
+      userJSON.put("fatherName", fatherName.serialize());
+    }
+    if (phoneBook != null && !phoneBook.isEmpty()) {
+      org.json.JSONArray phoneBookArray = new org.json.JSONArray();
+      for (PhoneBookEntry entry : phoneBook) {
+        JSONObject entryJSON = new JSONObject();
+        entryJSON.put("label", entry.getLabel());
+        entryJSON.put("phoneNumber", entry.getPhoneNumber());
+        phoneBookArray.put(entryJSON);
       }
-      if (optionalInformation.getDemographicInfo() != null) {
-        optionalInfoJSON.put("demographicInfo", optionalInformation.getDemographicInfo().serialize());
-      }
-      if (optionalInformation.getFamilyInfo() != null) {
-        optionalInfoJSON.put("familyInfo", optionalInformation.getFamilyInfo().serialize());
-      }
-      if (optionalInformation.getVeteranStatus() != null) {
-        optionalInfoJSON.put("veteranStatus", optionalInformation.getVeteranStatus().serialize());
-      }
-      userJSON.put("optionalInformation", optionalInfoJSON);
+      userJSON.put("phoneBook", phoneBookArray);
     }
     return userJSON;
   }
@@ -528,47 +566,5 @@ public class User {
     });
     result.remove("id");
     return result;
-  }
-
-  // Should user be able to update defaultIds via updateProperties?
-
-  public User updateProperties(UserUpdateRequest updateRequest) {
-    if (updateRequest.getFirstName() != null && updateRequest.getFirstName().isPresent()) {
-      this.setFirstName(updateRequest.getFirstName().get());
-    }
-
-    if (updateRequest.getLastName() != null && updateRequest.getLastName().isPresent()) {
-      this.setLastName(updateRequest.getLastName().get());
-    }
-
-    if (updateRequest.getBirthDate() != null && updateRequest.getBirthDate().isPresent()) {
-      this.setBirthDate(updateRequest.getBirthDate().get());
-    }
-
-    if (updateRequest.getEmail() != null && updateRequest.getEmail().isPresent()) {
-      this.setEmail(updateRequest.getEmail().get());
-    }
-
-    if (updateRequest.getPhone() != null && updateRequest.getPhone().isPresent()) {
-      this.setPhone(updateRequest.getPhone().get());
-    }
-
-    if (updateRequest.getAddress() != null && updateRequest.getAddress().isPresent()) {
-      this.setAddress(updateRequest.getAddress().get());
-    }
-
-    if (updateRequest.getCity() != null && updateRequest.getCity().isPresent()) {
-      this.setCity(updateRequest.getCity().get());
-    }
-
-    if (updateRequest.getState() != null && updateRequest.getState().isPresent()) {
-      this.setState(updateRequest.getState().get());
-    }
-
-    if (updateRequest.getZipcode() != null && updateRequest.getZipcode().isPresent()) {
-      this.setZipcode(updateRequest.getZipcode().get());
-    }
-
-    return this;
   }
 }

@@ -9,16 +9,12 @@ import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
-import User.UserInformation.Citizenship;
-import User.UserInformation.DemographicInfo;
-import User.UserInformation.Race;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
-import User.OptionalInformation;
+import User.Address;
+import User.Name;
 import User.User;
 import User.UserType;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
@@ -26,6 +22,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 /**
  * Integration tests for the user-information routes.
@@ -47,7 +46,6 @@ public class UserInformationIntegrationTests {
   @After
   public void reset() {
     TestUtils.logout();
-    // Clear cookies to ensure clean state between tests
     Unirest.config().reset();
     userDao.clear();
     tokenDao.clear();
@@ -62,7 +60,7 @@ public class UserInformationIntegrationTests {
   // ---------- update-user-profile tests ----------
 
   @Test
-  public void updateUserProfileOwnProfileDotNotationSuccess() {
+  public void updateUserProfileCurrentNameSuccess() {
     String username = "profile-update-client";
     String password = "profile-update-password";
     EntityFactory.createUser()
@@ -74,8 +72,11 @@ public class UserInformationIntegrationTests {
 
     TestUtils.login(username, password);
 
+    JSONObject nameObj = new JSONObject();
+    nameObj.put("first", "UpdatedFirst");
+    nameObj.put("last", "UpdatedLast");
     JSONObject updateRequest = new JSONObject();
-    updateRequest.put("optionalInformation.demographicInfo.languagePreference", "Spanish");
+    updateRequest.put("currentName", nameObj);
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
@@ -86,14 +87,13 @@ public class UserInformationIntegrationTests {
     assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
 
     User updatedUser = userDao.get(username).orElseThrow();
-    assertThat(updatedUser.getOptionalInformation()).isNotNull();
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo()).isNotNull();
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference())
-        .isEqualTo("Spanish");
+    assertThat(updatedUser.getCurrentName()).isNotNull();
+    assertThat(updatedUser.getCurrentName().getFirst()).isEqualTo("UpdatedFirst");
+    assertThat(updatedUser.getCurrentName().getLast()).isEqualTo("UpdatedLast");
   }
 
   @Test
-  public void updateUserProfileOwnProfileRootLevelFieldSuccess() {
+  public void updateUserProfileRootLevelEmailSuccess() {
     String username = "profile-update-root";
     String password = "profile-update-password";
     EntityFactory.createUser()
@@ -159,7 +159,7 @@ public class UserInformationIntegrationTests {
 
     JSONObject updateRequest = new JSONObject();
     updateRequest.put("username", clientUsername);
-    updateRequest.put("optionalInformation.demographicInfo.languagePreference", "French");
+    updateRequest.put("sex", "Female");
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
@@ -170,8 +170,7 @@ public class UserInformationIntegrationTests {
     assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
 
     User updatedClient = userDao.get(clientUsername).orElseThrow();
-    assertThat(updatedClient.getOptionalInformation().getDemographicInfo().getLanguagePreference())
-        .isEqualTo("French");
+    assertThat(updatedClient.getSex()).isEqualTo("Female");
   }
 
   @Test
@@ -210,9 +209,9 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfileNestedObjectWithRaceAndCitizenshipEnumSuccess() {
-    String username = "profile-demographic-enum";
-    String password = "profile-demographic-password";
+  public void updateUserProfileMailAddressSuccess() {
+    String username = "profile-mail-addr";
+    String password = "profile-mail-password";
     EntityFactory.createUser()
         .withUsername(username)
         .withPasswordToHash(password)
@@ -222,14 +221,13 @@ public class UserInformationIntegrationTests {
 
     TestUtils.login(username, password);
 
-    JSONObject demographicInfo = new JSONObject();
-    demographicInfo.put("languagePreference", "English");
-    demographicInfo.put("race", "ASIAN");
-    demographicInfo.put("citizenship", "US_CITIZEN");
-    JSONObject optionalInformation = new JSONObject();
-    optionalInformation.put("demographicInfo", demographicInfo);
+    JSONObject mailAddr = new JSONObject();
+    mailAddr.put("line1", "PO Box 456");
+    mailAddr.put("city", "New York");
+    mailAddr.put("state", "NY");
+    mailAddr.put("zip", "10001");
     JSONObject updateRequest = new JSONObject();
-    updateRequest.put("optionalInformation", optionalInformation);
+    updateRequest.put("mailAddress", mailAddr);
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
@@ -241,40 +239,11 @@ public class UserInformationIntegrationTests {
     assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
 
     User updatedUser = userDao.get(username).orElseThrow();
-    assertThat(updatedUser.getOptionalInformation()).isNotNull();
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo()).isNotNull();
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference())
-        .isEqualTo("English");
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getRace())
-        .isEqualTo(Race.ASIAN);
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getCitizenship())
-        .isEqualTo(Citizenship.US_CITIZEN);
-  }
-
-  @Test
-  public void updateUserProfileInvalidRaceEnumReturnsError() {
-    String username = "profile-invalid-race";
-    String password = "profile-invalid-password";
-    EntityFactory.createUser()
-        .withUsername(username)
-        .withPasswordToHash(password)
-        .withOrgName(TEST_ORG)
-        .withUserType(UserType.Client)
-        .buildAndPersist(userDao);
-
-    TestUtils.login(username, password);
-
-    JSONObject updateRequest = new JSONObject();
-    updateRequest.put("optionalInformation.demographicInfo.race", "INVALID_RACE_VALUE");
-
-    HttpResponse<String> response =
-        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
-            .header("Content-Type", "application/json")
-            .body(updateRequest.toString())
-            .asString();
-
-    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
-    assertThat(responseJson.getString("status")).isEqualTo("INVALID_PARAMETER");
+    assertThat(updatedUser.getMailAddress()).isNotNull();
+    assertThat(updatedUser.getMailAddress().getLine1()).isEqualTo("PO Box 456");
+    assertThat(updatedUser.getMailAddress().getCity()).isEqualTo("New York");
+    assertThat(updatedUser.getMailAddress().getState()).isEqualTo("NY");
+    assertThat(updatedUser.getMailAddress().getZip()).isEqualTo("10001");
   }
 
   // ---------- delete-profile-field tests ----------
@@ -290,18 +259,13 @@ public class UserInformationIntegrationTests {
         .withOrgName(TEST_ORG)
         .withUserType(UserType.Client)
         .build();
-
-    OptionalInformation optionalInfo = new OptionalInformation();
-    DemographicInfo demographicInfo = new DemographicInfo();
-    demographicInfo.setLanguagePreference("Spanish");
-    optionalInfo.setDemographicInfo(demographicInfo);
-    user.setOptionalInformation(optionalInfo);
+    user.setSex("Male");
     userDao.save(user);
 
     TestUtils.login(username, password);
 
     JSONObject deleteRequest = new JSONObject();
-    deleteRequest.put("fieldPath", "optionalInformation.demographicInfo.languagePreference");
+    deleteRequest.put("fieldPath", "sex");
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/delete-profile-field")
@@ -312,14 +276,13 @@ public class UserInformationIntegrationTests {
     assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
 
     User updatedUser = userDao.get(username).orElseThrow();
-    assertThat(updatedUser.getOptionalInformation().getDemographicInfo().getLanguagePreference())
-        .isNull();
+    assertThat(updatedUser.getSex()).isNull();
   }
 
   @Test
   public void deleteProfileFieldWithoutSessionAuthFailure() {
     JSONObject deleteRequest = new JSONObject();
-    deleteRequest.put("fieldPath", "optionalInformation.demographicInfo.languagePreference");
+    deleteRequest.put("fieldPath", "sex");
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/delete-profile-field")
@@ -374,19 +337,14 @@ public class UserInformationIntegrationTests {
         .withOrgName(TEST_ORG)
         .withUserType(UserType.Client)
         .build();
-
-    OptionalInformation optionalInfo = new OptionalInformation();
-    DemographicInfo demographicInfo = new DemographicInfo();
-    demographicInfo.setLanguagePreference("German");
-    optionalInfo.setDemographicInfo(demographicInfo);
-    clientUser.setOptionalInformation(optionalInfo);
+    clientUser.setMotherName(new Name("Jane", null, "Doe", null, "Smith"));
     userDao.save(clientUser);
 
     TestUtils.login(adminUsername, password);
 
     JSONObject deleteRequest = new JSONObject();
     deleteRequest.put("username", clientUsername);
-    deleteRequest.put("fieldPath", "optionalInformation.demographicInfo.languagePreference");
+    deleteRequest.put("fieldPath", "motherName");
 
     HttpResponse<String> response =
         Unirest.post(TestUtils.getServerUrl() + "/delete-profile-field")
@@ -397,8 +355,7 @@ public class UserInformationIntegrationTests {
     assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
 
     User updatedClient = userDao.get(clientUsername).orElseThrow();
-    assertThat(updatedClient.getOptionalInformation().getDemographicInfo().getLanguagePreference())
-        .isNull();
+    assertThat(updatedClient.getMotherName()).isNull();
   }
 
   // ---------- get-user-info authorization tests ----------

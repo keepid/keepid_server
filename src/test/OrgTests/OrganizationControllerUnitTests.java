@@ -1,6 +1,7 @@
 package OrgTests;
 
 import Organization.Organization;
+import User.Address;
 import Validation.ValidationException;
 import org.junit.Test;
 
@@ -15,10 +16,7 @@ public class OrganizationControllerUnitTests {
     String orgName = "Example Org";
     String orgWebsite = "https://example.com";
     String orgEIN = "12-1234567";
-    String orgStreetAddress = "Example Address";
-    String orgCity = "Chicago";
-    String orgState = "IL";
-    String orgZipcode = "12345";
+    Address orgAddress = new Address("Example Address", "Chicago", "IL", "12345");
     String orgEmail = "email@email.com";
     String orgPhoneNumber = "1234567890";
 
@@ -27,10 +25,7 @@ public class OrganizationControllerUnitTests {
             orgName,
             orgWebsite,
             orgEIN,
-            orgStreetAddress,
-            orgCity,
-            orgState,
-            orgZipcode,
+            orgAddress,
             orgEmail,
             orgPhoneNumber);
 
@@ -38,8 +33,6 @@ public class OrganizationControllerUnitTests {
     Calendar cal = Calendar.getInstance();
     cal.setTime(currDate);
 
-    // Creating an upperbound of 1 sec past the current system time to check against user
-    // creationDate
     cal.add(Calendar.SECOND, 1);
     Date upperBound = cal.getTime();
 

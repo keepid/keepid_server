@@ -100,10 +100,10 @@ public class UserController {
         String[] values = line.split(",");
         if (values.length >= 4) {
           String[] entry = new String[4];
-          entry[0] = values[0].trim(); // First Name
-          entry[1] = values[1].trim(); // Last Name
-          entry[2] = values[2].trim(); // Email
-          entry[3] = values[3].trim(); // Phone Number
+          entry[0] = values[0].trim();
+          entry[1] = values[1].trim();
+          entry[2] = values[2].trim();
+          entry[3] = values[3].trim();
           records.add(entry);
         }
       }
@@ -119,33 +119,15 @@ public class UserController {
       String clientUsername = clientFirstName.toLowerCase() + "-" + clientLastName.toLowerCase();
       String clientPassword = clientFirstName.toLowerCase()
           + clientLastName.toLowerCase()
-          + clientPhoneNumber.substring(
-              clientPhoneNumber.length() - 4); // firstnamelastnamelast4phone
-      System.out.println("First Name: " + clientFirstName);
-      System.out.println("Last Name: " + clientLastName);
-      System.out.println("Email: " + clientEmail);
-      System.out.println("Phone Number: " + clientPhoneNumber);
-      System.out.println("---------------------------");
+          + clientPhoneNumber.substring(clientPhoneNumber.length() - 4);
+
+      Name clientName = new Name(clientFirstName, clientLastName);
+      Address clientAddress = new Address(faceToFaceAddress, faceToFaceCity, faceToFaceState, faceToFaceZip);
 
       CreateUserService createUserService = new CreateUserService(
-          userDao,
-          activityDao,
-          UserType.Admin,
-          orgName,
-          creatorUsername,
-          clientFirstName,
-          clientLastName,
-          defaultBirthdate,
-          clientEmail,
-          clientPhoneNumber,
-          faceToFaceAddress,
-          faceToFaceCity,
-          faceToFaceState,
-          faceToFaceZip,
-          false,
-          clientUsername,
-          clientPassword,
-          UserType.Client);
+          userDao, activityDao, UserType.Admin, orgName, creatorUsername,
+          clientName, defaultBirthdate, clientEmail, clientPhoneNumber,
+          clientAddress, false, clientUsername, clientPassword, UserType.Client);
       Message response = createUserService.executeAndGetResponse();
       System.out.println(response.toResponseString());
     }
@@ -187,24 +169,12 @@ public class UserController {
     ctx.result(responseJSON.toString());
   };
 
-  /**
-   * Initializes the Google OAuth2 Login Workflow.
-   *
-   * <p>
-   * Implements CSRF and PKCE protections.
-   * </p>
-   *
-   * @see <a href=
-   *      "https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
-   */
   public Handler googleLoginRequestHandler = ctx -> {
     ctx.req.getSession().invalidate();
     JSONObject req = new JSONObject(ctx.body());
     String redirectUri = req.optString("redirectUri", null);
     String originUri = req.optString("originUri", null);
-    log.info("Processing Google login request with redirect URI: {}," +
-        "origin URI: {}",
-        redirectUri, originUri);
+    log.info("Processing Google login request with redirect URI: {}, origin URI: {}", redirectUri, originUri);
 
     ProcessGoogleLoginRequestService processGoogleLoginRequestService = new ProcessGoogleLoginRequestService(
         redirectUri, originUri);
@@ -216,8 +186,7 @@ public class UserController {
       log.info("Setting session attributes");
       ctx.sessionAttribute("origin_uri", originUri);
       ctx.sessionAttribute("redirect_uri", redirectUri);
-      ctx.sessionAttribute("PKCECodeVerifier",
-          processGoogleLoginRequestService.getCodeVerifier());
+      ctx.sessionAttribute("PKCECodeVerifier", processGoogleLoginRequestService.getCodeVerifier());
       ctx.sessionAttribute("state", processGoogleLoginRequestService.getCsrfToken());
 
       responseJSON.put("codeChallenge", processGoogleLoginRequestService.getCodeChallenge());
@@ -227,12 +196,6 @@ public class UserController {
     ctx.result(responseJSON.toString());
   };
 
-  /**
-   * Redirect URI endpoint for Google OAuth2 workflow.
-   *
-   * @see <a href=
-   *      "https://developers.google.com/identity/protocols/oauth2/web-server">...</a>
-   */
   public Handler googleLoginResponseHandler = ctx -> {
     String authCode = ctx.queryParam("code");
     String state = ctx.queryParam("state");
@@ -243,46 +206,18 @@ public class UserController {
     String redirectUri = ctx.sessionAttribute("redirect_uri");
     String storedCsrfToken = ctx.sessionAttribute("state");
 
-    log.info("Processing Google login response with: authorization code: {}," +
-        "state: {}," +
-        "retrieved code verifier: {}," +
-        "retrieved origin URI: {}," +
-        "retrieved redirect URI: {}," +
-        "retrieved CSRF token: {}",
-        authCode, state, codeVerifier, originUri, redirectUri, storedCsrfToken);
     ProcessGoogleLoginResponseService processGoogleLoginResponseService = new ProcessGoogleLoginResponseService(
-        userDao,
-        activityDao,
-        state,
-        storedCsrfToken,
-        authCode,
-        codeVerifier,
-        originUri,
-        redirectUri,
-        ip,
-        userAgent);
+        userDao, activityDao, state, storedCsrfToken, authCode, codeVerifier, originUri, redirectUri, ip, userAgent);
     Message response = processGoogleLoginResponseService.executeAndGetResponse();
-    log.info("Google login response processed with status: {}", response.getErrorName());
 
     if (response == GoogleLoginResponseMessage.AUTH_SUCCESS) {
-      log.debug("Setting session attributes of privilegeLevel: {}, " +
-          "orgName: {}, " +
-          "username: {}, " +
-          "fullName: {}",
-          processGoogleLoginResponseService.getUserRole(),
-          processGoogleLoginResponseService.getOrganization(),
-          processGoogleLoginResponseService.getUsername(),
-          processGoogleLoginResponseService.getFullName());
-      ctx.sessionAttribute("privilegeLevel",
-          processGoogleLoginResponseService.getUserRole());
+      ctx.sessionAttribute("privilegeLevel", processGoogleLoginResponseService.getUserRole());
       ctx.sessionAttribute("orgName", processGoogleLoginResponseService.getOrganization());
       ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
       ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
       ctx.sessionAttribute("googleLoginError", null);
     } else {
-      // Store the error reason so the client can display a descriptive message
       ctx.sessionAttribute("googleLoginError", response.getErrorName());
-      // If user not found, store Google profile for sign-up pre-fill
       if (response == GoogleLoginResponseMessage.USER_NOT_FOUND) {
         ctx.sessionAttribute("googleEmail", processGoogleLoginResponseService.getGoogleEmail());
         ctx.sessionAttribute("googleFirstName", processGoogleLoginResponseService.getGoogleFirstName());
@@ -293,31 +228,16 @@ public class UserController {
     ctx.sessionAttribute("origin_uri", null);
     ctx.sessionAttribute("redirect_uri", null);
     ctx.sessionAttribute("state", null);
-
-    // NOTE: query parameters are NOT passed to the frontend
-    // for increased privacy and security. Instead, the getSessionUser
-    // endpoint will be called to verify that the login was successful
     ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
   };
 
-  /**
-   * Endpoint for validating Google logins.
-   */
   public Handler getSessionUser = ctx -> {
     JSONObject responseJSON = new JSONObject();
-
-    // NOTE: no service needed here because existing session
-    // attributes are being retrieved and returned
     String org = ctx.sessionAttribute("orgName");
     String username = ctx.sessionAttribute("username");
     String fullName = ctx.sessionAttribute("fullName");
     UserType role = ctx.sessionAttribute("privilegeLevel");
     String googleLoginError = ctx.sessionAttribute("googleLoginError");
-    log.info("Retrieved session attributes of org: {}, " +
-        "username: {}, " +
-        "fullName: {}, " +
-        "and role: {}",
-        org, username, fullName, role);
 
     responseJSON.put("organization", org == null ? "" : org);
     responseJSON.put("username", username == null ? "" : username);
@@ -325,10 +245,7 @@ public class UserController {
     responseJSON.put("userRole", role == null ? "" : role);
     if (googleLoginError != null) {
       responseJSON.put("googleLoginError", googleLoginError);
-      // Clear the error after reading so it's only shown once
       ctx.sessionAttribute("googleLoginError", null);
-
-      // Include Google profile data if available (for sign-up pre-fill)
       String googleEmail = ctx.sessionAttribute("googleEmail");
       String googleFirstName = ctx.sessionAttribute("googleFirstName");
       String googleLastName = ctx.sessionAttribute("googleLastName");
@@ -336,14 +253,11 @@ public class UserController {
         responseJSON.put("googleEmail", googleEmail);
         responseJSON.put("googleFirstName", googleFirstName != null ? googleFirstName : "");
         responseJSON.put("googleLastName", googleLastName != null ? googleLastName : "");
-        // Clear after reading
         ctx.sessionAttribute("googleEmail", null);
         ctx.sessionAttribute("googleFirstName", null);
         ctx.sessionAttribute("googleLastName", null);
       }
     }
-
-    log.info("Returning response with session info: {}", responseJSON);
     ctx.result(responseJSON.toString());
   };
 
@@ -386,7 +300,7 @@ public class UserController {
     String birthDate = req.getString("birthDate").strip();
     String email = req.getString("email").toLowerCase().strip();
     String phone = req.getString("phonenumber").strip();
-    String address = req.getString("address").strip();
+    String addressLine1 = req.getString("address").strip();
     String city = req.getString("city").strip();
     String state = req.getString("state").strip();
     String zipcode = req.getString("zipcode").strip();
@@ -396,27 +310,13 @@ public class UserController {
     String userTypeString = req.getString("personRole").strip();
     UserType userType = UserType.userTypeFromString(userTypeString);
 
-    log.info(sessionUserLevel + " " + organizationName + " " + firstName);
+    Name currentName = new Name(firstName, lastName);
+    Address personalAddress = new Address(addressLine1, city, state, zipcode);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao,
-        activityDao,
-        sessionUserLevel,
-        organizationName,
-        sessionUsername,
-        firstName,
-        lastName,
-        birthDate,
-        email,
-        phone,
-        address,
-        city,
-        state,
-        zipcode,
-        twoFactorOn,
-        username,
-        password,
-        userType);
+        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        currentName, birthDate, email, phone, personalAddress,
+        twoFactorOn, username, password, userType);
     Message response = createUserService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };
@@ -443,28 +343,14 @@ public class UserController {
     String dobCompact = birthDate.replace("-", "");
     String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
     String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
-
     String password = UUID.randomUUID().toString();
 
+    Name currentName = new Name(firstName, lastName);
+
     CreateUserService createUserService = new CreateUserService(
-        userDao,
-        activityDao,
-        sessionUserLevel,
-        organizationName,
-        sessionUsername,
-        firstName,
-        lastName,
-        birthDate,
-        email,
-        phone,
-        "",
-        "",
-        "",
-        "",
-        false,
-        username,
-        password,
-        UserType.Client);
+        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        currentName, birthDate, email, phone, null,
+        false, username, password, UserType.Client);
     Message createResponse = createUserService.executeAndGetResponse();
 
     if (createResponse != ENROLL_SUCCESS) {
@@ -487,16 +373,14 @@ public class UserController {
     JSONObject req = new JSONObject(ctx.body());
     String sessionUsername = ctx.sessionAttribute("username");
     String password = req.getString("password").strip();
-    log.info("Attempting to delete " + sessionUsername);
 
     DeleteUserService deleteUserService = new DeleteUserService(db, userDao, sessionUsername, password);
     Message response = deleteUserService.executeAndGetResponse();
-    log.info(response.toString() + response.getErrorDescription());
     ctx.result(response.toJSON().toString());
   };
 
   public Handler createNewInvitedUser = ctx -> {
-    log.info("Starting createNewUser handler");
+    log.info("Starting createNewInvitedUser handler");
     JSONObject req = new JSONObject(ctx.body());
 
     String firstName = req.getString("firstname").strip();
@@ -504,7 +388,7 @@ public class UserController {
     String birthDate = req.getString("birthDate").strip();
     String email = req.getString("email").strip();
     String phone = req.getString("phonenumber").strip();
-    String address = req.getString("address").strip();
+    String addressLine1 = req.getString("address").strip();
     String city = req.getString("city").strip();
     String state = req.getString("state").strip();
     String zipcode = req.getString("zipcode").strip();
@@ -514,25 +398,13 @@ public class UserController {
     UserType userType = UserType.userTypeFromString(req.getString("personRole").strip());
     String organizationName = req.getString("orgName").strip();
 
+    Name currentName = new Name(firstName, lastName);
+    Address personalAddress = new Address(addressLine1, city, state, zipcode);
+
     CreateUserService createUserService = new CreateUserService(
-        userDao,
-        activityDao,
-        UserType.Director,
-        organizationName,
-        null,
-        firstName,
-        lastName,
-        birthDate,
-        email,
-        phone,
-        address,
-        city,
-        state,
-        zipcode,
-        twoFactorOn,
-        username,
-        password,
-        userType);
+        userDao, activityDao, UserType.Director, organizationName, null,
+        currentName, birthDate, email, phone, personalAddress,
+        twoFactorOn, username, password, userType);
     Message response = createUserService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };
@@ -560,33 +432,25 @@ public class UserController {
       }
     }
 
-    // Check authorization
     Message authCheck = checkProfileAuthorization(ctx, targetUsername);
     if (authCheck != null) {
       ctx.result(authCheck.toJSON().toString());
       return;
     }
 
-    // Use target username or default to session username
     String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
     GetUserInfoService infoService = new GetUserInfoService(userDao, username);
     Message response = infoService.executeAndGetResponse();
-    if (response != UserMessage.SUCCESS) { // if fail return
+    if (response != UserMessage.SUCCESS) {
       ctx.result(response.toJSON().toString());
     } else {
-      JSONObject userInfo = infoService.getUserFields(); // get user info here
+      JSONObject userInfo = infoService.getUserFields();
       JSONObject mergedInfo = mergeJSON(response.toJSON(), userInfo);
       ctx.result(mergedInfo.toString());
     }
   };
 
-  /**
-   * Get organization details (name, address, phone, email) for the client's org.
-   * User must belong to the requested organization.
-   * POST /get-organization-info
-   * Request: { "orgName": "Organization Name" }
-   */
   public Handler getOrganizationInfo = ctx -> {
     log.info("Started getOrganizationInfo handler");
     JSONObject req = new JSONObject(ctx.body());
@@ -604,7 +468,6 @@ public class UserController {
       return;
     }
 
-    // User can only fetch org info for their own organization
     if (!requestedOrgName.equals(sessionOrgName)) {
       ctx.result(CROSS_ORG_ACTION_DENIED.toJSON().toString());
       return;
@@ -617,23 +480,14 @@ public class UserController {
     }
 
     Organization org = orgOpt.get();
-    List<String> addressParts = new ArrayList<>();
-    if (org.getOrgStreetAddress() != null && !org.getOrgStreetAddress().isEmpty()) {
-      addressParts.add(org.getOrgStreetAddress());
-    }
-    List<String> cityStateZip = new ArrayList<>();
-    if (org.getOrgCity() != null && !org.getOrgCity().isEmpty()) cityStateZip.add(org.getOrgCity());
-    if (org.getOrgState() != null && !org.getOrgState().isEmpty()) cityStateZip.add(org.getOrgState());
-    if (org.getOrgZipcode() != null && !org.getOrgZipcode().isEmpty()) cityStateZip.add(org.getOrgZipcode());
-    if (!cityStateZip.isEmpty()) {
-      addressParts.add(String.join(", ", cityStateZip));
-    }
-    String address = String.join(", ", addressParts);
+    Address orgAddr = org.getOrgAddress();
+    String addressStr = orgAddr != null ? orgAddr.toString() : "";
 
     JSONObject res = new JSONObject();
     res.put("status", "SUCCESS");
     res.put("name", org.getOrgName());
-    res.put("address", address);
+    res.put("address", addressStr);
+    res.put("orgAddress", orgAddr != null ? orgAddr.serialize() : JSONObject.NULL);
     res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
     res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
     ctx.result(res.toString());
@@ -649,8 +503,7 @@ public class UserController {
     UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
     String listType = req.getString("listType").toUpperCase();
 
-    GetMembersService getMembersService = new GetMembersService(userDao, searchValue, orgName, privilegeLevel,
-        listType);
+    GetMembersService getMembersService = new GetMembersService(userDao, searchValue, orgName, privilegeLevel, listType);
     Message message = getMembersService.executeAndGetResponse();
     if (message == UserMessage.SUCCESS) {
       res.put("people", getMembersService.getPeoplePage());
@@ -667,8 +520,7 @@ public class UserController {
     JSONObject res = new JSONObject();
     String orgName = ctx.sessionAttribute("orgName");
     UserType privilegeLevel = UserType.userTypeFromString(req.getString("role"));
-    GetAllMembersByRoleService getAllMembersByRoleService = new GetAllMembersByRoleService(userDao, orgName,
-        privilegeLevel);
+    GetAllMembersByRoleService getAllMembersByRoleService = new GetAllMembersByRoleService(userDao, orgName, privilegeLevel);
     Message message = getAllMembersByRoleService.executeAndGetResponse();
     if (message == UserMessage.SUCCESS) {
       res.put("people", getAllMembersByRoleService.getUsersWithSpecificRole());
@@ -679,19 +531,6 @@ public class UserController {
     }
   };
 
-  /*
-   * Returned JSON format:
-   * {“username”: “username”,
-   * "history": [
-   * {
-   * “date”:”month/day/year, hour:min, Local Time”,
-   * “device”:”Mobile” or "Computer",
-   * “IP”:”exampleIP”,
-   * “location”: “Postal, City”,
-   * }
-   * ]
-   * }
-   */
   public Handler getLogInHistory = ctx -> {
     log.info("Started getLogInHistory handler");
     String username = ctx.sessionAttribute("username");
@@ -705,8 +544,7 @@ public class UserController {
     ctx.result(res.toString());
   };
 
-  public static JSONObject mergeJSON(
-      JSONObject object1, JSONObject object2) { // helper function to merge 2 json objects
+  public static JSONObject mergeJSON(JSONObject object1, JSONObject object2) {
     JSONObject merged = new JSONObject(object1, JSONObject.getNames(object1));
     for (String key : JSONObject.getNames(object2)) {
       merged.put(key, object2.get(key));
@@ -718,7 +556,6 @@ public class UserController {
     String username = ctx.formParam("username");
     String fileName = ctx.formParam("fileName");
     UploadedFile file = ctx.uploadedFile("file");
-    log.info(username + " is attempting to upload a profile picture");
     Optional<User> optionalUser = userDao.get(username);
     if (optionalUser.isEmpty()) {
       ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
@@ -727,25 +564,11 @@ public class UserController {
     User user = optionalUser.get();
     Date uploadDate = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
     File fileToUpload = new File(
-        username,
-        uploadDate,
-        file.getContent(),
-        FileType.PROFILE_PICTURE,
-        IdCategoryType.NONE,
-        file.getFilename(),
-        user.getOrganization(),
-        false,
-        file.getContentType());
+        username, uploadDate, file.getContent(), FileType.PROFILE_PICTURE,
+        IdCategoryType.NONE, file.getFilename(), user.getOrganization(), false, file.getContentType());
     UploadFileService service = new UploadFileService(
-        fileDao,
-        activityDao,
-        username,
-        fileToUpload,
-        Optional.empty(),
-        Optional.empty(),
-        false,
-        Optional.empty(),
-        Optional.empty());
+        fileDao, activityDao, username, fileToUpload,
+        Optional.empty(), Optional.empty(), false, Optional.empty(), Optional.empty());
     JSONObject res = service.executeAndGetResponse().toJSON();
     ctx.result(res.toString());
   };
@@ -753,25 +576,18 @@ public class UserController {
   public Handler loadPfp = ctx -> {
     JSONObject req = new JSONObject(ctx.body());
     String username = req.getString("username");
-    JSONObject responseJSON;
     DownloadFileService serv = new DownloadFileService(
-        fileDao,
-        activityDao,
-        username,
-        username,
-        Optional.empty(),
-        Optional.empty(),
-        FileType.PROFILE_PICTURE,
-        Optional.empty(),
-        Optional.empty(),
-        formDao);
+        fileDao, activityDao, username, username,
+        Optional.empty(), Optional.empty(), FileType.PROFILE_PICTURE,
+        Optional.empty(), Optional.empty(), formDao);
     Message mes = serv.executeAndGetResponse();
-    responseJSON = mes.toJSON();
+    JSONObject responseJSON = mes.toJSON();
     if (mes == FileMessage.SUCCESS) {
       ctx.header("Content-Type", "image/" + serv.getContentType());
       ctx.result(serv.getInputStream());
-    } else
+    } else {
       ctx.result(responseJSON.toString());
+    }
   };
 
   public Handler setDefaultIds = ctx -> {
@@ -781,24 +597,12 @@ public class UserController {
     String docTypeString = req.getString("documentType");
     DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-    // Session attributes contains the following information: {orgName=Stripe
-    // testing,
-    // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
-    log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
-
     SetUserDefaultIdService setUserDefaultIdService = new SetUserDefaultIdService(userDao, username, documentType, id);
     Message response = setUserDefaultIdService.executeAndGetResponse();
 
     if (response == UserMessage.SUCCESS) {
-      // Instead of a success message, would be better to return the new ID to be
-      // displayed or
-      // something similar for get
       JSONObject responseJSON = new JSONObject();
-      responseJSON.put(
-          "Message",
-          "DefaultId for "
-              + DocumentType.stringFromDocumentType(documentType)
-              + " has successfully been set");
+      responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been set");
       responseJSON.put("fileId", setUserDefaultIdService.getDocumentTypeId(documentType));
       JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
       ctx.result(mergedInfo.toString());
@@ -811,32 +615,18 @@ public class UserController {
     String docTypeString = req.getString("documentType");
     DocumentType documentType = DocumentType.documentTypeFromString(docTypeString);
 
-    // Session attributes contains the following information: {orgName=Stripe
-    // testing,
-    // privilegeLevel=Admin, fullName=JASON ZHANG, username=stripetest}
-    log.info("The username in setDefaultIds is: " + ctx.sessionAttribute("username"));
-
     GetUserDefaultIdService getUserDefaultIdService = new GetUserDefaultIdService(userDao, username, documentType);
     Message response = getUserDefaultIdService.executeAndGetResponse();
 
     if (response == UserMessage.SUCCESS) {
       String fileId = getUserDefaultIdService.getId(documentType);
-      log.info("fileId retrieved is " + fileId);
-      // Instead of a success message, would be better to return the new ID to be
-      // displayed or
-      // something similar for get
       JSONObject responseJSON = new JSONObject();
-      responseJSON.put(
-          "Message",
-          "DefaultId for "
-              + DocumentType.stringFromDocumentType(documentType)
-              + " has successfully been retrieved");
+      responseJSON.put("Message", "DefaultId for " + DocumentType.stringFromDocumentType(documentType) + " has successfully been retrieved");
       responseJSON.put("fileId", fileId);
       responseJSON.put("documentType", DocumentType.stringFromDocumentType(documentType));
       JSONObject mergedInfo = mergeJSON(response.toJSON(), responseJSON);
       ctx.result(mergedInfo.toString());
     } else {
-      log.info("Error: {}", response.getErrorName());
       ctx.result(response.toResponseString());
     }
   };
@@ -847,12 +637,10 @@ public class UserController {
     String currentlyLoggedInUsername = ctx.sessionAttribute("username");
     String targetUser = req.getString("user");
 
-    // convert json list to java list
     Gson gson = new Gson();
     List<String> workerUsernamesToAdd = gson.fromJson(
         req.get("workerUsernamesToAdd").toString(),
-        new TypeToken<ArrayList<String>>() {
-        }.getType());
+        new TypeToken<ArrayList<String>>() {}.getType());
     AssignWorkerToUserService getMembersService = new AssignWorkerToUserService(
         userDao, currentlyLoggedInUsername, targetUser, workerUsernamesToAdd);
     Message message = getMembersService.executeAndGetResponse();
@@ -861,142 +649,71 @@ public class UserController {
 
   public Handler getOnboardingChecklist = ctx -> {
     log.info("Started getOnboardingChecklist handler");
-
     String username = ctx.sessionAttribute("username");
     String originUri = ctx.header("Origin");
     GetOnboardingChecklistService getOnboardingChecklistService = new GetOnboardingChecklistService(
         userDao, formDao, fileDao, username, originUri);
     Message message = getOnboardingChecklistService.executeAndGetResponse();
     if (message == UserMessage.AUTH_SUCCESS) {
-      log.info("Successfully generated onboarding checklist");
       ctx.status(200).json(getOnboardingChecklistService.getOnboardingChecklistResponse());
       return;
     }
-    log.error("Error occurred while generating onboarding checklist for user");
     ctx.status(401).json(Map.of("error", "Unauthorized"));
   };
 
   public Handler postOnboardingStatus = ctx -> {
     log.info("Started postOnboardingStatus handler");
     OnboardingStatus newOnboardingStatus = ctx.bodyAsClass(OnboardingStatus.class);
-
     String username = ctx.sessionAttribute("username");
-
-    PostOnboardingChecklistService postOnboardingChecklistService = new PostOnboardingChecklistService(userDao,
-        username, newOnboardingStatus);
+    PostOnboardingChecklistService postOnboardingChecklistService = new PostOnboardingChecklistService(userDao, username, newOnboardingStatus);
     Message message = postOnboardingChecklistService.executeAndGetResponse();
     ctx.result(message.toResponseString());
   };
 
-  /**
-   * Helper method to check authorization for accessing/modifying user profiles.
-   * 
-   * @param ctx            The Javalin context
-   * @param targetUsername The username of the user being accessed (optional,
-   *                       defaults to session user)
-   * @return null if authorized, or a Message error if authorization fails
-   */
   private Message checkProfileAuthorization(io.javalin.http.Context ctx, String targetUsername) {
     String sessionUsername = ctx.sessionAttribute("username");
     String sessionOrgName = ctx.sessionAttribute("orgName");
     UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
 
-    Message sessionCheck = validateSessionUser(sessionUsername);
-    if (sessionCheck != null) {
-      return sessionCheck;
-    }
-
-    // If accessing own profile, authorized
-    if (isAccessingOwnProfile(targetUsername, sessionUsername)) {
-      return null;
-    }
-
-    // Different user - check permissions
-    Message permissionCheck = checkUserPermissions(sessionUserType);
-    if (permissionCheck != null) {
-      return permissionCheck;
-    }
-
-    // Check target user exists and same organization
-    return checkTargetUserAndOrganization(targetUsername, sessionOrgName);
-  }
-
-  private Message validateSessionUser(String sessionUsername) {
     if (sessionUsername == null || sessionUsername.isEmpty()) {
       return AUTH_FAILURE;
     }
-
     Optional<User> sessionUserOpt = userDao.get(sessionUsername);
     if (sessionUserOpt.isEmpty()) {
       return AUTH_FAILURE;
     }
-
-    return null;
-  }
-
-  private boolean isAccessingOwnProfile(String targetUsername, String sessionUsername) {
-    return targetUsername == null || targetUsername.isEmpty() || targetUsername.equals(sessionUsername);
-  }
-
-  private Message checkUserPermissions(UserType sessionUserType) {
-    // Only Worker, Admin, or Director can access other users' profiles
+    if (targetUsername == null || targetUsername.isEmpty() || targetUsername.equals(sessionUsername)) {
+      return null;
+    }
     if (sessionUserType != Worker && sessionUserType != Admin && sessionUserType != Director) {
       return INSUFFICIENT_PRIVILEGE;
     }
-    return null;
-  }
 
-  private Message checkTargetUserAndOrganization(String targetUsername, String sessionOrgName) {
     Optional<User> targetUserOpt = userDao.get(targetUsername);
     if (targetUserOpt.isEmpty()) {
       return USER_NOT_FOUND;
     }
-
-    User targetUser = targetUserOpt.get();
-    String targetOrgName = targetUser.getOrganization();
-
-    if (!targetOrgName.equals(sessionOrgName)) {
+    if (!targetUserOpt.get().getOrganization().equals(sessionOrgName)) {
       return CROSS_ORG_ACTION_DENIED;
     }
-
-    return null; // Authorized
+    return null;
   }
 
-  /**
-   * Update user profile with partial updates (supports both dot notation and
-   * nested objects).
-   * POST /update-user-profile
-   * Request: Any subset of User fields (nested objects or dot notation supported)
-   * Example: { "username": "client123",
-   * "optionalInformation.demographicInfo.languagePreference": "Spanish" }
-   * Response: SUCCESS or validation error
-   */
   public Handler updateUserProfile = ctx -> {
     log.info("Started updateUserProfile handler");
     JSONObject req = new JSONObject(ctx.body());
 
-    String targetUsername = null;
-    try {
-      targetUsername = req.optString("username", null);
-      if (targetUsername != null && targetUsername.isEmpty()) {
-        targetUsername = null;
-      }
-    } catch (Exception e) {
-      // Username not provided, will use session user
-    }
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
 
-    // Check authorization
     Message authCheck = checkProfileAuthorization(ctx, targetUsername);
     if (authCheck != null) {
       ctx.result(authCheck.toJSON().toString());
       return;
     }
 
-    // Use target username or default to session username
     String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
-    // Remove username from request if present (it's used for authorization, not
-    // update)
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
 
@@ -1006,24 +723,10 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
-  /**
-   * Sends login instructions to a user's account email.
-   * POST /send-email-login-instructions
-   * Request: { "username": "client123" } (optional for self)
-   * Response: SUCCESS or error
-   */
   public Handler sendEmailLoginInstructions = ctx -> {
     JSONObject req = new JSONObject(ctx.body());
-
-    String targetUsername = null;
-    try {
-      targetUsername = req.optString("username", null);
-      if (targetUsername != null && targetUsername.isEmpty()) {
-        targetUsername = null;
-      }
-    } catch (Exception e) {
-      // Username not provided, will use session user
-    }
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
 
     Message authCheck = checkProfileAuthorization(ctx, targetUsername);
     if (authCheck != null) {
@@ -1038,42 +741,141 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
-  /**
-   * Delete a field from user profile using dot notation.
-   * POST /delete-profile-field
-   * Request: { "username": "client123", "fieldPath":
-   * "optionalInformation.person.middleName" }
-   * Response: SUCCESS or error
-   */
   public Handler deleteProfileField = ctx -> {
     log.info("Started deleteProfileField handler");
     JSONObject req = new JSONObject(ctx.body());
 
-    String targetUsername = null;
-    try {
-      targetUsername = req.optString("username", null);
-      if (targetUsername != null && targetUsername.isEmpty()) {
-        targetUsername = null;
-      }
-    } catch (Exception e) {
-      // Username not provided, will use session user
-    }
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
 
     String fieldPath = req.getString("fieldPath");
 
-    // Check authorization
     Message authCheck = checkProfileAuthorization(ctx, targetUsername);
     if (authCheck != null) {
       ctx.result(authCheck.toJSON().toString());
       return;
     }
 
-    // Use target username or default to session username
     String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
-
     DeleteUserProfileFieldService deleteService = new DeleteUserProfileFieldService(userDao, username, fieldPath);
     Message response = deleteService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
+  };
+
+  private static org.json.JSONArray phoneBookToJsonArray(java.util.List<PhoneBookEntry> entries) {
+    org.json.JSONArray arr = new org.json.JSONArray();
+    for (PhoneBookEntry entry : entries) {
+      JSONObject e = new JSONObject();
+      e.put("label", entry.getLabel());
+      e.put("phoneNumber", entry.getPhoneNumber());
+      arr.put(e);
+    }
+    return arr;
+  }
+
+  public Handler getPhoneBook = ctx -> {
+    log.info("Started getPhoneBook handler");
+    JSONObject req = new JSONObject(ctx.body().isEmpty() ? "{}" : ctx.body());
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    PhoneBookService service = PhoneBookService.get(userDao, username);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  public Handler addPhoneBookEntry = ctx -> {
+    log.info("Started addPhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String label = req.getString("label");
+    String phoneNumber = req.getString("phoneNumber");
+
+    PhoneBookService service = PhoneBookService.add(userDao, username, label, phoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  public Handler updatePhoneBookEntry = ctx -> {
+    log.info("Started updatePhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String phoneNumber = req.getString("phoneNumber");
+    String newLabel = req.optString("newLabel", null);
+    String newPhoneNumber = req.optString("newPhoneNumber", null);
+
+    PhoneBookService service = PhoneBookService.update(userDao, username, phoneNumber, newLabel, newPhoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  public Handler deletePhoneBookEntry = ctx -> {
+    log.info("Started deletePhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String phoneNumber = req.getString("phoneNumber");
+
+    PhoneBookService service = PhoneBookService.delete(userDao, username, phoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
   };
 
   public Handler removeOrganizationMember = ctx -> {
@@ -1084,13 +886,9 @@ public class UserController {
     UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
     String targetUsername = req.getString("username").strip();
 
-    log.info("User {} attempting to remove {} from organization {}",
-        sessionUsername, targetUsername, sessionOrgName);
-
     RemoveOrganizationMemberService removeService = new RemoveOrganizationMemberService(
         db, userDao, sessionUsername, targetUsername, sessionOrgName, sessionUserType);
     Message response = removeService.executeAndGetResponse();
-    log.info("Remove member result: {}", response.getErrorDescription());
     ctx.result(response.toJSON().toString());
   };
 }

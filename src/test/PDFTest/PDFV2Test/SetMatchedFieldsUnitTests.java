@@ -21,10 +21,8 @@ import PDF.Services.V2Services.GetQuestionsPDFServiceV2;
 import Security.EncryptionController;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
-import User.OptionalInformation;
+import User.Address;
 import User.User;
-import User.UserInformation.Address;
-import User.UserInformation.BasicInfo;
 import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import java.io.File;
@@ -39,10 +37,6 @@ import org.junit.jupiter.api.AfterAll;
 /**
  * TDD tests for setMatchedFields() behavior with flattened field map, alias mapping, graceful
  * degradation on unmatched fields, and last-colon parsing.
- *
- * <p>These tests describe the DESIRED behavior after the refactor. Some will fail against the
- * current implementation and should pass after Step 2 (refactor setMatchedFields) and Step 3
- * (re-enable in getQuestions).
  */
 public class SetMatchedFieldsUnitTests {
   private FileDao fileDao;
@@ -75,14 +69,12 @@ public class SetMatchedFieldsUnitTests {
       throw new RuntimeException(e);
     }
 
-    // Create developer user for uploading forms
     this.developerUserParams =
         new UserParams()
             .setUsername("dev1")
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
 
-    // Create client user with known profile data for matching tests
     User clientUser =
         EntityFactory.createUser()
             .withUsername("matchclient")
@@ -98,19 +90,8 @@ public class SetMatchedFieldsUnitTests {
             .withOrgName("org2")
             .build();
 
-    // Add optional information with nested address for nested field tests
-    OptionalInformation optionalInfo = new OptionalInformation();
-    BasicInfo basicInfo = new BasicInfo();
-    Address mailingAddress = new Address();
-    mailingAddress.setStreetAddress("456 Oak Ave");
-    mailingAddress.setCity("Pittsburgh");
-    mailingAddress.setState("PA");
-    mailingAddress.setZip("15213");
-    basicInfo.setMailingAddress(mailingAddress);
-    basicInfo.setEmailAddress("john.optional@example.com");
-    basicInfo.setPhoneNumber("5559876543");
-    optionalInfo.setBasicInfo(basicInfo);
-    clientUser.setOptionalInformation(optionalInfo);
+    clientUser.setMailAddress(
+        new Address("456 Oak Ave", null, "Pittsburgh", "PA", "15213", null));
     userDao.save(clientUser);
 
     this.clientUserParams =
@@ -119,7 +100,6 @@ public class SetMatchedFieldsUnitTests {
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Client);
 
-    // Upload a blank SS form so the service can initialize
     File sampleBlankFile = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
     InputStream sampleBlankFileStream;
     try {
@@ -139,7 +119,6 @@ public class SetMatchedFieldsUnitTests {
         uploadBlankSSFormAndGetFileId(
             fileDao, formDao, userDao, developerUserParams, blankFileParams, encryptionController);
 
-    // Create and initialize the service (populates user info internally)
     FileParams getQuestionsFileParams = new FileParams().setFileId(uploadedFileId.toString());
     this.service =
         new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
@@ -159,26 +138,24 @@ public class SetMatchedFieldsUnitTests {
     TestUtils.tearDownTestDB();
   }
 
-  // ---- Helper to build a FormQuestion with a given annotation string ----
-
   private FormQuestion makeQuestion(String questionName) {
     return new FormQuestion(
         new ObjectId(),
         FieldType.TEXT_FIELD,
         questionName,
-        "", // questionText (will be set by setMatchedFields)
-        "", // answerText
+        "",
+        "",
         new ArrayList<>(),
-        "", // defaultValue
-        true, // required
-        1, // numLines
-        false, // matched
+        "",
+        true,
+        1,
+        false,
         new ObjectId(),
         "NONE");
   }
 
   // =====================================================================
-  // Direct field matching via flattened map
+  // Direct field matching via flattened map (alias-based for old names)
   // =====================================================================
 
   @Test
@@ -215,7 +192,6 @@ public class SetMatchedFieldsUnitTests {
 
   @Test
   public void aliasEmailAddress() {
-    // "emailAddress" should alias to "email"
     FormQuestion fq = makeQuestion("Email Address:emailAddress");
     Message result = service.setMatchedFields(fq);
     assertNull("Should not return error for alias match", result);
@@ -226,7 +202,6 @@ public class SetMatchedFieldsUnitTests {
 
   @Test
   public void aliasPhoneNumber() {
-    // "phoneNumber" should alias to "phone"
     FormQuestion fq = makeQuestion("Phone Number:phoneNumber");
     Message result = service.setMatchedFields(fq);
     assertNull("Should not return error for alias match", result);
@@ -236,13 +211,12 @@ public class SetMatchedFieldsUnitTests {
   }
 
   // =====================================================================
-  // Nested flattened key matching
+  // New schema nested field matching
   // =====================================================================
 
   @Test
-  public void nestedMailingAddressCity() {
-    FormQuestion fq =
-        makeQuestion("Mailing City:optionalInformation.basicInfo.mailingAddress.city");
+  public void nestedMailAddressCity() {
+    FormQuestion fq = makeQuestion("Mailing City:mailAddress.city");
     Message result = service.setMatchedFields(fq);
     assertNull("Should not return error for nested match", result);
     assertTrue("nested mailing city should be matched", fq.isMatched());
@@ -251,13 +225,30 @@ public class SetMatchedFieldsUnitTests {
   }
 
   @Test
-  public void nestedMailingAddressState() {
-    FormQuestion fq =
-        makeQuestion("Mailing State:optionalInformation.basicInfo.mailingAddress.state");
+  public void nestedMailAddressState() {
+    FormQuestion fq = makeQuestion("Mailing State:mailAddress.state");
     Message result = service.setMatchedFields(fq);
     assertNull("Should not return error for nested match", result);
     assertTrue("nested mailing state should be matched", fq.isMatched());
     assertEquals("PA", fq.getDefaultValue());
+  }
+
+  @Test
+  public void nestedPersonalAddressLine1() {
+    FormQuestion fq = makeQuestion("Street:personalAddress.line1");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("123 Main St", fq.getDefaultValue());
+  }
+
+  @Test
+  public void nestedCurrentNameFirst() {
+    FormQuestion fq = makeQuestion("First:currentName.first");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("John", fq.getDefaultValue());
   }
 
   // =====================================================================
@@ -268,7 +259,6 @@ public class SetMatchedFieldsUnitTests {
   public void unmatchedFieldNoError() {
     FormQuestion fq = makeQuestion("Some Field:unknownFieldThatDoesNotExist");
     Message result = service.setMatchedFields(fq);
-    // NEW behavior: unmatched should NOT return error, just leave unmatched
     assertNull("Should not return error for unmatched field", result);
     assertFalse("unmatched field should have matched=false", fq.isMatched());
     assertEquals("unmatched field should have empty default", "", fq.getDefaultValue());
@@ -331,9 +321,6 @@ public class SetMatchedFieldsUnitTests {
 
   @Test
   public void colonsInQuestionTextParsedByLastColon() {
-    // "Question:with:colons:firstName" should parse:
-    //   questionText = "Question:with:colons"
-    //   directive = "firstName"
     FormQuestion fq = makeQuestion("Question:with:colons:firstName");
     Message result = service.setMatchedFields(fq);
     assertNull("Should not return error for colons in question text", result);

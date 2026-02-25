@@ -165,6 +165,11 @@ public class AppConfig {
     app.post("/update-user-profile", userController.updateUserProfile);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
+    // Phone book endpoints
+    app.post("/get-phone-book", userController.getPhoneBook);
+    app.post("/add-phone-book-entry", userController.addPhoneBookEntry);
+    app.post("/update-phone-book-entry", userController.updatePhoneBookEntry);
+    app.post("/delete-phone-book-entry", userController.deletePhoneBookEntry);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);

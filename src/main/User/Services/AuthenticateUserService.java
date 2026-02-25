@@ -67,7 +67,7 @@ public class AuthenticateUserService implements Service {
 
   public String getFullName() {
     Objects.requireNonNull(user);
-    return user.getFirstName() + " " + user.getLastName();
+    return user.getCurrentName() != null ? user.getCurrentName().getFullName() : "";
   }
 
 }
