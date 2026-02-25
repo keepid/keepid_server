@@ -1,6 +1,7 @@
 package Database.User;
 
 import Config.DeploymentLevel;
+import User.PhoneBookEntry;
 import User.UserInformation.*;
 import User.OptionalInformation;
 import User.User;
@@ -188,6 +189,11 @@ public class UserDaoTestImpl implements UserDao {
         break;
       case "lastName":
         user.setLastName((String) value);
+        break;
+      case "phoneBook":
+        @SuppressWarnings("unchecked")
+        java.util.List<PhoneBookEntry> phoneBook = (java.util.List<PhoneBookEntry>) value;
+        user.setPhoneBook(phoneBook);
         break;
       default:
         // Unknown field name - ignore

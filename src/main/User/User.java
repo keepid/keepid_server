@@ -82,6 +82,9 @@ public class User {
   @BsonProperty(value = "optionalInformation")
   private OptionalInformation optionalInformation;
 
+  @BsonProperty(value = "phoneBook")
+  private List<PhoneBookEntry> phoneBook;
+
   public User() {
   }
 
@@ -141,6 +144,10 @@ public class User {
     this.creationDate = date;
     this.defaultIds = new HashMap<>();
     this.assignedWorkerUsernames = new ArrayList<>();
+    this.phoneBook = new ArrayList<>();
+    if (phone != null && !phone.isBlank()) {
+      this.phoneBook.add(new PhoneBookEntry(PhoneBookEntry.PRIMARY_LABEL, phone));
+    }
   }
 
   /** **************** GETTERS ********************* */
@@ -164,7 +171,23 @@ public class User {
     return this.email;
   }
 
+  /**
+   * Returns the primary phone number. Derives from the phoneBook primary entry
+   * when available, falling back to the legacy root-level phone field for
+   * un-migrated documents.
+   */
+  /**
+   * Returns the primary phone number by finding the entry labeled "primary".
+   * Falls back to the legacy root-level phone field for un-migrated documents.
+   */
   public String getPhone() {
+    if (phoneBook != null) {
+      for (PhoneBookEntry entry : phoneBook) {
+        if (entry.hasPrimaryLabel()) {
+          return entry.getPhoneNumber();
+        }
+      }
+    }
     return this.phone;
   }
 
@@ -228,6 +251,10 @@ public class User {
     return this.optionalInformation;
   }
 
+  public List<PhoneBookEntry> getPhoneBook() {
+    return this.phoneBook;
+  }
+
   /** *************** SETTERS ********************* */
   public User setFirstName(String firstName) {
     this.firstName = firstName;
@@ -249,8 +276,27 @@ public class User {
     return this;
   }
 
+  /**
+   * Sets the primary phone number. Updates the primary phoneBook entry if one
+   * exists, otherwise creates one. Also sets the legacy field for DB compat.
+   */
+  /**
+   * Sets the primary phone number by updating the "primary" labeled entry.
+   * Creates one if none exists. Also sets the legacy field for DB compat.
+   */
   public User setPhone(String phone) {
     this.phone = phone;
+    if (phoneBook != null) {
+      for (PhoneBookEntry entry : phoneBook) {
+        if (entry.hasPrimaryLabel()) {
+          entry.setPhoneNumber(phone);
+          return this;
+        }
+      }
+      if (phone != null && !phone.isBlank()) {
+        phoneBook.add(new PhoneBookEntry(PhoneBookEntry.PRIMARY_LABEL, phone));
+      }
+    }
     return this;
   }
 
@@ -334,6 +380,11 @@ public class User {
     return this;
   }
 
+  public User setPhoneBook(List<PhoneBookEntry> phoneBook) {
+    this.phoneBook = phoneBook;
+    return this;
+  }
+
   private static UserValidationMessage isValid(
       String firstName,
       String lastName,
@@ -414,7 +465,7 @@ public class User {
     sb.append(", lastName=").append(this.lastName);
     sb.append(", birthDate=").append(this.birthDate);
     sb.append(", email=").append(this.email);
-    sb.append(", phone=").append(this.phone);
+    sb.append(", phone=").append(this.getPhone());
     sb.append(", address=").append(this.address);
     sb.append(", city=").append(this.city);
     sb.append(", state=").append(this.state);
@@ -426,6 +477,7 @@ public class User {
     sb.append(", twoFactorOn=").append(this.twoFactorOn);
     sb.append(", creationDate=").append(this.creationDate);
     sb.append(", assignedWorkerUsernames=").append(this.assignedWorkerUsernames.toString());
+    sb.append(", phoneBook=").append(this.phoneBook != null ? this.phoneBook.toString() : "null");
     sb.append("}");
     return sb.toString();
   }
@@ -442,7 +494,7 @@ public class User {
         && Objects.equals(this.lastName, user.lastName)
         && Objects.equals(this.birthDate, user.birthDate)
         && Objects.equals(this.email, user.email)
-        && Objects.equals(this.phone, user.phone)
+        && Objects.equals(this.getPhone(), user.getPhone())
         && Objects.equals(this.address, user.address)
         && Objects.equals(this.city, user.city)
         && Objects.equals(this.state, user.state)
@@ -451,7 +503,8 @@ public class User {
         && Objects.equals(this.password, user.password)
         && Objects.equals(this.defaultIds, user.defaultIds)
         && Objects.equals(this.userType, user.userType)
-        && Objects.equals(this.twoFactorOn, user.twoFactorOn);
+        && Objects.equals(this.twoFactorOn, user.twoFactorOn)
+        && Objects.equals(this.phoneBook, user.phoneBook);
   }
 
   @Override
@@ -462,7 +515,7 @@ public class User {
         this.lastName,
         this.birthDate,
         this.email,
-        this.phone,
+        this.getPhone(),
         this.address,
         this.city,
         this.state,
@@ -472,7 +525,8 @@ public class User {
         this.defaultIds,
         this.userType,
         this.twoFactorOn,
-        this.assignedWorkerUsernames);
+        this.assignedWorkerUsernames,
+        this.phoneBook);
   }
 
   public JSONObject serialize() {
@@ -484,7 +538,7 @@ public class User {
     userJSON.put("firstName", firstName);
     userJSON.put("lastName", lastName);
     userJSON.put("email", email);
-    userJSON.put("phone", phone);
+    userJSON.put("phone", getPhone());
     userJSON.put("address", address);
     userJSON.put("city", city);
     userJSON.put("state", state);
@@ -495,6 +549,16 @@ public class User {
     userJSON.put("twoFactorOn", twoFactorOn);
     userJSON.put("defaultIds", defaultIds);
     userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
+    if (phoneBook != null && !phoneBook.isEmpty()) {
+      org.json.JSONArray phoneBookArray = new org.json.JSONArray();
+      for (PhoneBookEntry entry : phoneBook) {
+        JSONObject entryJSON = new JSONObject();
+        entryJSON.put("label", entry.getLabel());
+        entryJSON.put("phoneNumber", entry.getPhoneNumber());
+        phoneBookArray.put(entryJSON);
+      }
+      userJSON.put("phoneBook", phoneBookArray);
+    }
     if (optionalInformation != null) {
       JSONObject optionalInfoJSON = new JSONObject();
       if (optionalInformation.getPerson() != null) {

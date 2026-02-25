@@ -1076,6 +1076,147 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
+  /**
+   * Returns the phone book for the session user or a target user (caseworker).
+   * POST /get-phone-book
+   * Request: { "username": "client123" } (optional)
+   * Response: { "status": "SUCCESS", "phoneBook": [...] }
+   */
+  private static org.json.JSONArray phoneBookToJsonArray(List<PhoneBookEntry> entries) {
+    org.json.JSONArray arr = new org.json.JSONArray();
+    for (PhoneBookEntry entry : entries) {
+      JSONObject e = new JSONObject();
+      e.put("label", entry.getLabel());
+      e.put("phoneNumber", entry.getPhoneNumber());
+      arr.put(e);
+    }
+    return arr;
+  }
+
+  public Handler getPhoneBook = ctx -> {
+    log.info("Started getPhoneBook handler");
+    JSONObject req = new JSONObject(ctx.body().isEmpty() ? "{}" : ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    PhoneBookService service = PhoneBookService.get(userDao, username);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  /**
+   * Adds a new phone book entry.
+   * POST /add-phone-book-entry
+   * Request: { "label": "daughter", "phoneNumber": "6305551234", "username": "client123" (optional) }
+   */
+  public Handler addPhoneBookEntry = ctx -> {
+    log.info("Started addPhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String label = req.getString("label");
+    String phoneNumber = req.getString("phoneNumber");
+
+    PhoneBookService service = PhoneBookService.add(userDao, username, label, phoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  /**
+   * Updates a phone book entry identified by its current phone number.
+   * POST /update-phone-book-entry
+   * Request: { "phoneNumber": "6305551234", "newLabel": "...", "newPhoneNumber": "...", "username": "..." (optional) }
+   */
+  public Handler updatePhoneBookEntry = ctx -> {
+    log.info("Started updatePhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String phoneNumber = req.getString("phoneNumber");
+    String newLabel = req.optString("newLabel", null);
+    String newPhoneNumber = req.optString("newPhoneNumber", null);
+
+    PhoneBookService service = PhoneBookService.update(userDao, username, phoneNumber, newLabel, newPhoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
+  /**
+   * Deletes a non-primary phone book entry by phone number.
+   * POST /delete-phone-book-entry
+   * Request: { "phoneNumber": "6305551234", "username": "..." (optional) }
+   */
+  public Handler deletePhoneBookEntry = ctx -> {
+    log.info("Started deletePhoneBookEntry handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    String phoneNumber = req.getString("phoneNumber");
+
+    PhoneBookService service = PhoneBookService.delete(userDao, username, phoneNumber);
+    Message response = service.executeAndGetResponse();
+    if (response == UserMessage.SUCCESS) {
+      JSONObject res = response.toJSON();
+      res.put("phoneBook", phoneBookToJsonArray(service.getResultPhoneBook()));
+      ctx.result(res.toString());
+    } else {
+      ctx.result(response.toJSON().toString());
+    }
+  };
+
   public Handler removeOrganizationMember = ctx -> {
     log.info("Starting removeOrganizationMember handler");
     JSONObject req = new JSONObject(ctx.body());
