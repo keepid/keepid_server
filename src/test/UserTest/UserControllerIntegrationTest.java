@@ -27,6 +27,8 @@ public class UserControllerIntegrationTest {
     TestUtils.startServer();
     userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    userDao.clear();
+    orgDao.clear();
 
     EntityFactory.createOrganization()
         .withOrgName("Broad Street Ministry")
@@ -149,15 +151,17 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").body(body.toString()).asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("state")).isEqualTo("PA");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test
@@ -168,15 +172,16 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").body(body.toString()).asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test
@@ -186,15 +191,16 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test

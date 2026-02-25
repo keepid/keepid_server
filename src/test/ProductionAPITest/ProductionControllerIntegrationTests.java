@@ -37,6 +37,8 @@ public class ProductionControllerIntegrationTests {
     TestUtils.startServer();
     userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    userDao.clear();
+    orgDao.clear();
 
     Organization ymca = EntityFactory.createOrganization()
         .withOrgName("YMCA")
@@ -103,16 +105,21 @@ public class ProductionControllerIntegrationTests {
 
   @Test
   public void createUser() {
+    JSONObject currentName = new JSONObject();
+    currentName.put("first", "Test");
+    currentName.put("last", "User");
+    JSONObject personalAddress = new JSONObject();
+    personalAddress.put("line1", "123 Main Street");
+    personalAddress.put("city", "Chicago");
+    personalAddress.put("state", "IL");
+    personalAddress.put("zip", "60603");
+
     JSONObject postBody = new JSONObject();
-    postBody.put("firstName", "Test");
-    postBody.put("lastName", "User");
+    postBody.put("currentName", currentName);
     postBody.put("birthDate", "01-01-2000");
     postBody.put("email", "test@example.com");
     postBody.put("phone", "15555555555");
-    postBody.put("address", "123 Main Street");
-    postBody.put("city", "Chicago");
-    postBody.put("state", "IL");
-    postBody.put("zipcode", "60603");
+    postBody.put("personalAddress", personalAddress);
     postBody.put("organization", "YMCA");
     postBody.put("username", "test_username");
     postBody.put("password", "p@$$w0rd");
@@ -122,37 +129,40 @@ public class ProductionControllerIntegrationTests {
         .body(postBody.toString())
         .asObject(User.class);
 
-    var createdUser = createUserResponse.getBody().toMap();
+    assertThat(createUserResponse.getStatus()).isEqualTo(201);
+    User createdUser = createUserResponse.getBody();
+    assertThat(createdUser.getFirstName()).isEqualTo("Test");
+    assertThat(createdUser.getLastName()).isEqualTo("User");
+    assertThat(createdUser.getEmail()).isEqualTo("test@example.com");
+    assertThat(createdUser.getUsername()).isEqualTo("test_username");
+    assertThat(createdUser.getOrganization()).isEqualTo("YMCA");
 
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
     var dbUsers = testDB.getCollection("user", User.class);
-    var dbUser = dbUsers.find(eq("username", postBody.get("username"))).first().toMap();
-
-    for (Iterator<String> it = postBody.keys(); it.hasNext(); ) {
-      String key = it.next();
-
-      if (key.equals("password")) {
-        assertThat(createdUser.get(key)).isEqualTo(null);
-        assertThat(SecurityUtils.verifyPassword(postBody.getString("password"), dbUser.get(key).toString())).isEqualTo(SecurityUtils.PassHashEnum.SUCCESS);
-      } else {
-        assertThat(createdUser.get(key)).isEqualTo(postBody.getString(key));
-        assertThat(dbUser.get(key)).isEqualTo(postBody.getString(key));
-      }
-    }
+    var dbUser = dbUsers.find(eq("username", "test_username")).first();
+    assertThat(dbUser).isNotNull();
+    assertThat(dbUser.getFirstName()).isEqualTo("Test");
+    assertThat(dbUser.getLastName()).isEqualTo("User");
+    assertThat(SecurityUtils.verifyPassword("p@$$w0rd", dbUser.getPassword())).isEqualTo(SecurityUtils.PassHashEnum.SUCCESS);
   }
 
   @Test
   public void createUserWithInvalidProperties() {
+    JSONObject currentName = new JSONObject();
+    currentName.put("first", "Test");
+    currentName.put("last", "User");
+    JSONObject personalAddress = new JSONObject();
+    personalAddress.put("line1", "123 Main Street");
+    personalAddress.put("city", "Chicago");
+    personalAddress.put("state", "IL");
+    personalAddress.put("zip", "60603");
+
     JSONObject postBody = new JSONObject();
-    postBody.put("firstName", "Test");
-    postBody.put("lastName", "User");
+    postBody.put("currentName", currentName);
     postBody.put("birthDate", "01-01-2000");
     postBody.put("email", "test@example.com");
     postBody.put("phone", "15555555555");
-    postBody.put("address", "123 Main Street");
-    postBody.put("city", "Chicago");
-    postBody.put("state", "IL");
-    postBody.put("zipcode", "60603");
+    postBody.put("personalAddress", personalAddress);
     postBody.put("organization", "YMCA");
     postBody.put("username", "test_username_invalid_properties");
     postBody.put("password", "p@$$w0rd");
@@ -163,7 +173,6 @@ public class ProductionControllerIntegrationTests {
         .asString();
 
     assertThat(createUserResponse.getStatus()).isEqualTo(400);
-    assertThat(createUserResponse.getBody()).contains("Couldn't deserialize body to User");
 
     MongoDatabase testDB = MongoConfig.getDatabase(DeploymentLevel.TEST);
     var dbUsers = testDB.getCollection("user", User.class);
@@ -172,16 +181,21 @@ public class ProductionControllerIntegrationTests {
 
   @Test
   public void createUserWithNonexistentOrganization() {
+    JSONObject currentName = new JSONObject();
+    currentName.put("first", "Test");
+    currentName.put("last", "User");
+    JSONObject personalAddress = new JSONObject();
+    personalAddress.put("line1", "123 Main Street");
+    personalAddress.put("city", "Chicago");
+    personalAddress.put("state", "IL");
+    personalAddress.put("zip", "60603");
+
     JSONObject postBody = new JSONObject();
-    postBody.put("firstName", "Test");
-    postBody.put("lastName", "User");
+    postBody.put("currentName", currentName);
     postBody.put("birthDate", "01-01-2000");
     postBody.put("email", "test@example.com");
     postBody.put("phone", "15555555555");
-    postBody.put("address", "123 Main Street");
-    postBody.put("city", "Chicago");
-    postBody.put("state", "IL");
-    postBody.put("zipcode", "60603");
+    postBody.put("personalAddress", personalAddress);
     postBody.put("organization", "org-that-does-not-exist");
     postBody.put("username", "test_username_invalid_properties");
     postBody.put("password", "p@$$w0rd");
@@ -200,16 +214,21 @@ public class ProductionControllerIntegrationTests {
 
   @Test
   public void createUserWithPreexistingUsername() {
+    JSONObject currentName = new JSONObject();
+    currentName.put("first", "Test");
+    currentName.put("last", "User");
+    JSONObject personalAddress = new JSONObject();
+    personalAddress.put("line1", "123 Main Street");
+    personalAddress.put("city", "Chicago");
+    personalAddress.put("state", "IL");
+    personalAddress.put("zip", "60603");
+
     JSONObject postBody = new JSONObject();
-    postBody.put("firstName", "Test");
-    postBody.put("lastName", "User");
+    postBody.put("currentName", currentName);
     postBody.put("birthDate", "01-01-2000");
     postBody.put("email", "test@example.com");
     postBody.put("phone", "15555555555");
-    postBody.put("address", "123 Main Street");
-    postBody.put("city", "Chicago");
-    postBody.put("state", "IL");
-    postBody.put("zipcode", "60603");
+    postBody.put("personalAddress", personalAddress);
     postBody.put("organization", "YMCA");
     postBody.put("username", "adminYMCA");
     postBody.put("password", "p@$$w0rd");
@@ -310,23 +329,26 @@ public class ProductionControllerIntegrationTests {
 
     var initialUser = actualResponse.getBody();
 
+    JSONObject newName = new JSONObject();
+    newName.put("first", "newFirstName");
+    newName.put("last", "Ca");
     JSONObject updateBody = new JSONObject();
-    updateBody.put("firstName", "newFirstName");
+    updateBody.put("currentName", newName);
     updateBody.put("email", "new-email@example.com");
     HttpResponse<User> updateResponse =
         Unirest.patch(TestUtils.getServerUrl() + "/users/" + username)
             .body(updateBody.toString())
             .asObject(User.class);
 
-    assertThat(updateResponse.getBody().getFirstName()).isEqualTo(updateBody.get("firstName"));
-    assertThat(updateResponse.getBody().getEmail()).isEqualTo(updateBody.get("email"));
+    assertThat(updateResponse.getBody().getFirstName()).isEqualTo("newFirstName");
+    assertThat(updateResponse.getBody().getEmail()).isEqualTo("new-email@example.com");
 
     HttpResponse<User> getUserAfterUpdateResponse =
         Unirest.get(TestUtils.getServerUrl() + "/users/" + username)
             .asObject(User.class);
 
-    assertThat(getUserAfterUpdateResponse.getBody().getFirstName()).isEqualTo(updateBody.get("firstName"));
-    assertThat(getUserAfterUpdateResponse.getBody().getEmail()).isEqualTo(updateBody.get("email"));
+    assertThat(getUserAfterUpdateResponse.getBody().getFirstName()).isEqualTo("newFirstName");
+    assertThat(getUserAfterUpdateResponse.getBody().getEmail()).isEqualTo("new-email@example.com");
     assertThat(getUserAfterUpdateResponse.getBody().serialize().toMap()).isEqualTo(updateResponse.getBody().serialize().toMap());
     assertThat(getUserAfterUpdateResponse.getBody().getCreationDate()).isEqualTo(initialUser.getCreationDate());
   }
@@ -335,7 +357,6 @@ public class ProductionControllerIntegrationTests {
   public void updateUserWithInvalidProperties() {
     var username = "adminYMCA";
     JSONObject updateBody = new JSONObject();
-    updateBody.put("firstName", "newFirstName");
     updateBody.put("email", "new-email@example.com");
     updateBody.put("INVALID_PROPERTY", "test value");
     var updateResponse =

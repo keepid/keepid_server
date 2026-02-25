@@ -9,6 +9,7 @@ import Security.SecurityUtils;
 import User.Address;
 import User.Name;
 import User.Requests.UserCreateRequest;
+import User.Requests.UserUpdateRequest;
 import User.User;
 import io.javalin.http.Handler;
 import io.javalin.http.HttpResponseException;
@@ -140,13 +141,39 @@ public class ProductionController {
 
   public Handler updateUser =
       ctx -> {
-        // Production API update - accepts JSON body with field-level updates
-        // This endpoint is admin-only and protected by the before filter in AppConfig
+        var updateRequest = ctx.bodyAsClass(UserUpdateRequest.class);
         Optional<User> userOptional = userDao.get(ctx.pathParam("username"));
-        userOptional.ifPresent(user -> {
-          userDao.update(user);
-          ctx.json(user.serialize().toMap());
-        });
+        if (userOptional.isEmpty()) {
+          ctx.status(404);
+          return;
+        }
+        User user = userOptional.get();
+        if (updateRequest.getCurrentName() != null && updateRequest.getCurrentName().isPresent()) {
+          user.setCurrentName(updateRequest.getCurrentName().get());
+        }
+        if (updateRequest.getEmail() != null && updateRequest.getEmail().isPresent()) {
+          user.setEmail(updateRequest.getEmail().get());
+        }
+        if (updateRequest.getBirthDate() != null && updateRequest.getBirthDate().isPresent()) {
+          user.setBirthDate(updateRequest.getBirthDate().get());
+        }
+        if (updateRequest.getPersonalAddress() != null && updateRequest.getPersonalAddress().isPresent()) {
+          user.setPersonalAddress(updateRequest.getPersonalAddress().get());
+        }
+        if (updateRequest.getMailAddress() != null && updateRequest.getMailAddress().isPresent()) {
+          user.setMailAddress(updateRequest.getMailAddress().get());
+        }
+        if (updateRequest.getSex() != null && updateRequest.getSex().isPresent()) {
+          user.setSex(updateRequest.getSex().get());
+        }
+        if (updateRequest.getMotherName() != null && updateRequest.getMotherName().isPresent()) {
+          user.setMotherName(updateRequest.getMotherName().get());
+        }
+        if (updateRequest.getFatherName() != null && updateRequest.getFatherName().isPresent()) {
+          user.setFatherName(updateRequest.getFatherName().get());
+        }
+        userDao.update(user);
+        ctx.json(user.serialize().toMap());
       };
 
   public Handler deleteUser =

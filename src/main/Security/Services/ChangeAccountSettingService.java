@@ -6,6 +6,7 @@ import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
+import User.Address;
 import User.Name;
 import User.User;
 import User.UserMessage;
@@ -97,6 +98,34 @@ public class ChangeAccountSettingService implements Service {
           return UserMessage.INVALID_PARAMETER.withMessage("Invalid Email");
         }
         user.setEmail(value);
+        break;
+      case "address":
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setLine1(value);
+          user.setPersonalAddress(addr);
+        }
+        break;
+      case "city":
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setCity(value);
+          user.setPersonalAddress(addr);
+        }
+        break;
+      case "state":
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setState(value);
+          user.setPersonalAddress(addr);
+        }
+        break;
+      case "zipcode":
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setZip(value);
+          user.setPersonalAddress(addr);
+        }
         break;
       default:
         return UserMessage.INVALID_PARAMETER;
