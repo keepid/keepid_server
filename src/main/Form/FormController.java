@@ -1,6 +1,7 @@
 package Form;
 
 import Config.Message;
+import Database.ApplicationRegistry.ApplicationRegistryDao;
 import Database.Form.FormDao;
 import Database.User.UserDao;
 import Form.Jobs.GetWeeklyApplicationsJob;
@@ -26,12 +27,17 @@ public class FormController {
   private FormDao formDao;
   private EncryptionController encryptionController;
   private UserDao userDao;
+  private ApplicationRegistryDao registryDao;
 
   public FormController(
-      FormDao formDao, UserDao userDao, EncryptionController encryptionController) {
+      FormDao formDao,
+      UserDao userDao,
+      EncryptionController encryptionController,
+      ApplicationRegistryDao registryDao) {
     this.formDao = formDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
+    this.registryDao = registryDao;
   }
 
   //  public Handler formTest =
@@ -208,13 +214,13 @@ public class FormController {
         String situation = req.getString("situation");
         String person = req.getString("person");
         String org = req.getString("org");
-        GetApplicationRegistryService getAppRegService = new GetApplicationRegistryService(type, state,
-                situation, person, org);
+        GetApplicationRegistryService getAppRegService =
+            new GetApplicationRegistryService(registryDao, type, state, situation, person, org);
         Message res = getAppRegService.executeAndGetResponse();
         if (res == FormMessage.SUCCESS) {
-            ctx.result(getAppRegService.getJsonInformation());
+          ctx.result(getAppRegService.getJsonInformation());
         } else {
-            ctx.result(res.toResponseString());
+          ctx.result(res.toResponseString());
         }
       };
 

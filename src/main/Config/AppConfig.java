@@ -5,6 +5,8 @@ import Admin.AdminController;
 import Billing.BillingController;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.ApplicationRegistry.ApplicationRegistryDao;
+import Database.ApplicationRegistry.ApplicationRegistryDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
@@ -86,7 +88,9 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
-    FormController formController = new FormController(formDao, userDao, encryptionController);
+    ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
+    FormController formController =
+        new FormController(formDao, userDao, encryptionController, registryDao);
     FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
