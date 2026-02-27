@@ -103,54 +103,45 @@ public class GetQuestionsPDFServiceV2 implements Service {
   }
 
   public Message setMatchedFields(FormQuestion fq) {
-    String questionName = fq.getQuestionName();
+    String directive = fq.getDirective();
 
-    // Split on the LAST colon so that colons in question text are preserved.
-    // e.g. "Question:with:colons:fieldName" -> questionText="Question:with:colons", directive="fieldName"
-    int lastColonIndex = questionName.lastIndexOf(':');
-    if (lastColonIndex < 0) {
-      // No colon -- keep the existing questionText from the DB (set during annotation).
-      // If the DB text is empty or same as the raw field name, humanize it.
-      String existingText = fq.getQuestionText();
-      if (existingText == null || existingText.isEmpty() || existingText.equals(questionName)) {
-        fq.setQuestionText(humanizeFieldName(questionName));
+    // Fall back to parsing questionName for legacy forms that lack a stored directive
+    if (directive == null || directive.isEmpty()) {
+      String questionName = fq.getQuestionName();
+      int lastColonIndex = questionName.lastIndexOf(':');
+      if (lastColonIndex >= 0) {
+        directive = questionName.substring(lastColonIndex + 1);
+        fq.setQuestionText(questionName.substring(0, lastColonIndex));
+      } else {
+        directive = questionName;
       }
-      // Still attempt to match the raw field name against the user profile
-      matchFieldFromFlattenedMap(fq, questionName);
+    }
+
+    String existingText = fq.getQuestionText();
+    if (existingText == null || existingText.isEmpty()
+        || existingText.equals(fq.getQuestionName())) {
+      fq.setQuestionText(humanizeFieldName(fq.getQuestionName()));
+    }
+
+    if (directive == null || directive.isEmpty()) {
       this.currentFormQuestion = fq;
       return null;
     }
 
-    String questionText = questionName.substring(0, lastColonIndex);
-    String directive = questionName.substring(lastColonIndex + 1);
-    fq.setQuestionText(questionText);
-
-    if (directive.isEmpty()) {
-      // Trailing colon with no directive -- treat as no directive
-      return null;
-    }
-
-    // Special directives (keep existing behavior)
     if (directive.startsWith("+")) {
-      // Positively linked field
       fq.setConditionalType("POSITIVE");
       fq.setConditionalOnField(new ObjectId(directive.substring(1)));
     } else if (directive.startsWith("-")) {
-      // Negatively linked field
       fq.setConditionalType("NEGATIVE");
       fq.setConditionalOnField(new ObjectId(directive.substring(1)));
     } else if (directive.equals("anyDate")) {
-      // Make it a date field that can be selected by the client
       fq.setType(FieldType.DATE_FIELD);
     } else if (directive.equals("currentDate")) {
-      // Make a date field with the current date that cannot be changed (value set on frontend)
       fq.setType(FieldType.DATE_FIELD);
       fq.setMatched(true);
     } else if (directive.equals("signature")) {
-      // Signatures not handled in first round of form completion
       fq.setType(FieldType.SIGNATURE);
     } else {
-      // Attempt field matching via flattened map
       matchFieldFromFlattenedMap(fq, directive);
     }
     this.currentFormQuestion = fq;

@@ -116,11 +116,39 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     }
   }
 
+  /**
+   * Parses a PDF field name into a display label and directive.
+   * "First Name:firstName" -> ["First Name", "firstName"]
+   * "ssn" (no colon)       -> ["Ssn", "ssn"]
+   */
+  static String[] parseDirectiveFromFieldName(String fieldName) {
+    int lastColon = fieldName.lastIndexOf(':');
+    if (lastColon < 0) {
+      return new String[] {humanizeFieldName(fieldName), fieldName};
+    }
+    String label = fieldName.substring(0, lastColon);
+    String directive = fieldName.substring(lastColon + 1);
+    if (directive.isEmpty()) {
+      return new String[] {label, null};
+    }
+    return new String[] {label, directive};
+  }
+
+  private static String humanizeFieldName(String fieldName) {
+    if (fieldName == null || fieldName.isEmpty()) {
+      return fieldName;
+    }
+    String spaced = fieldName.replaceAll("([a-z])([A-Z])", "$1 $2");
+    return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
+  }
+
   public FormQuestion getCheckBoxFormQuestion(PDCheckBox field) {
     ObjectId id = new ObjectId();
     FieldType type = FieldType.CHECKBOX;
     String questionName = field.getFullyQualifiedName();
-    String questionText = questionName;
+    String[] parsed = parseDirectiveFromFieldName(questionName);
+    String questionText = parsed[0];
+    String directive = parsed[1];
     String answerText = "";
     List<String> options = new LinkedList<>();
     options.add(field.getOnValue());
@@ -128,14 +156,13 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     boolean required = field.isRequired();
     int numLines = DEFAULT_FIELD_NUM_LINES;
     boolean matched = false;
-    // New ObjectId is used, this value is not read unless needed
-    // in which case this value will be replaced with the correct ObjectId
     ObjectId conditionalOnField = new ObjectId();
     String conditionalType = "NONE";
     return new FormQuestion(
         id,
         type,
         questionName,
+        directive,
         questionText,
         answerText,
         options,
@@ -151,7 +178,9 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     ObjectId id = new ObjectId();
     FieldType type = FieldType.RADIO_BUTTON;
     String questionName = field.getFullyQualifiedName();
-    String questionText = questionName;
+    String[] parsed = parseDirectiveFromFieldName(questionName);
+    String questionText = parsed[0];
+    String directive = parsed[1];
     String answerText = "";
     List<String> options = new LinkedList<>();
     for (String s : field.getOnValues()) {
@@ -167,6 +196,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         id,
         type,
         questionName,
+        directive,
         questionText,
         answerText,
         options,
@@ -182,10 +212,12 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     ObjectId id = new ObjectId();
     FieldType type = (field instanceof PDComboBox) ? FieldType.COMBOBOX : FieldType.LISTBOX;
     String questionName = field.getFullyQualifiedName();
-    String questionText =
-        field.isMultiSelect()
-            ? questionName + " (you can select multiple options with CTRL)"
-            : questionName;
+    String[] parsed = parseDirectiveFromFieldName(questionName);
+    String questionText = parsed[0];
+    String directive = parsed[1];
+    if (field.isMultiSelect()) {
+      questionText += " (you can select multiple options with CTRL)";
+    }
     String answerText = "";
     List<String> options = new LinkedList<>(field.getOptions());
     String defaultValue = "Off";
@@ -198,6 +230,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         id,
         type,
         questionName,
+        directive,
         questionText,
         answerText,
         options,
@@ -213,19 +246,19 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
     ObjectId id = new ObjectId();
     FieldType type;
     String questionName = field.getFullyQualifiedName();
-    String questionText = "";
+    String[] parsed = parseDirectiveFromFieldName(questionName);
+    String questionText = parsed[0];
+    String directive = parsed[1];
     if (field.isReadOnly()) {
       type = FieldType.READ_ONLY_FIELD;
       String fieldValue = field.getValue();
-      if (fieldValue != null && !fieldValue.equals("")) {
-        questionText = questionName + ": " + fieldValue;
+      if (fieldValue != null && !fieldValue.isEmpty()) {
+        questionText = parsed[0] + ": " + fieldValue;
       }
     } else if (field.isMultiline()) {
       type = FieldType.MULTILINE_TEXT_FIELD;
-      questionText = questionName;
     } else {
       type = FieldType.TEXT_FIELD;
-      questionText = questionName;
     }
     String answerText = "";
     List<String> options = new LinkedList<>();
@@ -239,6 +272,7 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         id,
         type,
         questionName,
+        directive,
         questionText,
         answerText,
         options,
@@ -249,48 +283,6 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
         conditionalOnField,
         conditionalType);
   }
-
-  // Conditional fields may be deprecated from previous PdfController
-  //  public void setMatchedAndConditionalFields(FormQuestion formQuestion) throws Exception {
-  //    String questionName = formQuestion.getQuestionName();
-  //    String[] splitQuestionName = questionName.split(":");
-  //    if (splitQuestionName.length != 1
-  //        && splitQuestionName.length != 2
-  //        && splitQuestionName.length != 3) {
-  //      throw new Exception("Invalid number of colons in questionName");
-  //    }
-  //
-  //    formQuestion.setQuestionText(splitQuestionName[0]);
-  //    if (splitQuestionName.length == 1) {
-  //      return;
-  //    }
-  //    String fieldTypeIndicatorString = splitQuestionName[1];
-  //    if (fieldTypeIndicatorString.startsWith("+")) {
-  //      // Positively linked field
-  //      formQuestion.setConditionalType("POSITIVE");
-  //      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
-  //    } else if (fieldTypeIndicatorString.startsWith("-")) {
-  //      // Negatively linked field
-  //      formQuestion.setConditionalType("NEGATIVE");
-  //      formQuestion.setConditionalOnField(new ObjectId(fieldTypeIndicatorString.substring(1)));
-  //    } else if (fieldTypeIndicatorString.equals("anyDate")) {
-  //      // Make it a date field that can be selected by the client
-  //      formQuestion.setType(FieldType.DATE_FIELD);
-  //    } else if (fieldTypeIndicatorString.equals("currentDate")) {
-  //      // Make a date field with the current date that cannot be changed (value set on frontend)
-  //      formQuestion.setType(FieldType.DATE_FIELD);
-  //      formQuestion.setMatched(true);
-  //    } else if (fieldTypeIndicatorString.equals("signature")) {
-  //      // Signatures not handled in first round of form completion
-  //      formQuestion.setType(FieldType.SIGNATURE);
-  //    } else if (this.userInfo.has(fieldTypeIndicatorString)) {
-  //      // Field has a matched database variable, so make that the autofilled value
-  //      formQuestion.setMatched(true);
-  //      formQuestion.setDefaultValue((String) this.userInfo.get(fieldTypeIndicatorString));
-  //    } else {
-  //      throw new Exception("FieldTypeIndicatorString invalid");
-  //    }
-  //  }
 
   public FormQuestion generateFormQuestionFromTerminalField(PDField field) throws Exception {
     FormQuestion generatedFormQuestion = null;
@@ -316,12 +308,6 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
       throw new Exception("Failed to generate FormQuestion");
     }
 
-    //    try {
-    //      setMatchedAndConditionalFields(generatedFormQuestion);
-    //    } catch (Exception e) {
-    //      throw new Exception("Failed to generate matched and conditional fields: " +
-    // e.getMessage());
-    //    }
     return generatedFormQuestion;
   }
 

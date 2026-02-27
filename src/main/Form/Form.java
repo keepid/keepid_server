@@ -240,11 +240,13 @@ public class Form implements Comparable<Form> {
       //              question.getBoolean("matched"),
       //              new ObjectId(),
       //              question.getString("conditionalType"));
+      String directive = question.optString("directive", null);
       FormQuestion formQuestion =
           new FormQuestion(
               new ObjectId(),
               FieldType.createFromString(question.getString("type")),
               question.getString("questionName"),
+              directive,
               question.getString("questionText"),
               "",
               question.getJSONArray("options").toList().stream()

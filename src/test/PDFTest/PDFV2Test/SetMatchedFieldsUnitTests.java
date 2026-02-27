@@ -143,6 +143,7 @@ public class SetMatchedFieldsUnitTests {
         new ObjectId(),
         FieldType.TEXT_FIELD,
         questionName,
+        null,
         "",
         "",
         new ArrayList<>(),
