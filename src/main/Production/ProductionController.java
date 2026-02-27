@@ -6,11 +6,11 @@ import Organization.Organization;
 import Organization.Requests.OrganizationCreateRequest;
 import Organization.Requests.OrganizationUpdateRequest;
 import Security.SecurityUtils;
-import User.Address;
 import User.Name;
 import User.Requests.UserCreateRequest;
 import User.Requests.UserUpdateRequest;
 import User.User;
+import User.UserType;
 import io.javalin.http.Handler;
 import io.javalin.http.HttpResponseException;
 import lombok.extern.slf4j.Slf4j;
@@ -121,11 +121,12 @@ public class ProductionController {
           throw new HttpResponseException(409, "User with username '" + user.getUsername() + "' already exists", new HashMap<>());
         }
 
-        if (user.getOrganization() == null) {
+        if (user.getUserType() != UserType.Developer && user.getOrganization() == null) {
           throw new HttpResponseException(400, "Organization required", new HashMap<>());
         }
 
-        if (orgDao.get(user.getOrganization()).isEmpty()) {
+        if (user.getUserType() != UserType.Developer
+            && orgDao.get(user.getOrganization()).isEmpty()) {
           throw new HttpResponseException(400, "Specified Organization does not exist", new HashMap<>());
         }
 

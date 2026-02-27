@@ -80,7 +80,8 @@ public class CreateUserService implements Service {
     String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     this.email = normalizedEmail;
 
-    if (organizationName == null) {
+    boolean requiresOrganization = userType != UserType.Developer;
+    if (requiresOrganization && organizationName == null) {
       log.info("Token failure");
       return UserMessage.SESSION_TOKEN_FAILURE;
     }
@@ -168,6 +169,9 @@ public class CreateUserService implements Service {
         CreateClientActivity cli = new CreateClientActivity(sessionUsername, user.getUsername());
         activityDao.save(cli);
         break;
+      case Developer:
+        // Developer account creation does not currently emit a dedicated activity event.
+        break;
     }
     log.info("Successfully created user, {}", user.getUsername());
     generateCreateUserSlackMessage();
@@ -192,8 +196,7 @@ public class CreateUserService implements Service {
             + currentName.getFirst()
             + " "
             + currentName.getLast()
-            + " in "
-            + organizationName;
+            + (organizationName == null ? "" : (" in " + organizationName));
     desText.put("text", description);
     desText.put("type", "mrkdwn");
     desJson.put("text", desText);

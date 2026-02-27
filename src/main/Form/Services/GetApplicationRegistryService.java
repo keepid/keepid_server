@@ -41,8 +41,8 @@ public class GetApplicationRegistryService implements Service {
 
   @Override
   public Message executeAndGetResponse() {
-    Optional<ApplicationRegistryEntry> entryOpt =
-        registryDao.find(type, state, situation, person);
+    String lookupKey = type + "$" + state + "$" + situation;
+    Optional<ApplicationRegistryEntry> entryOpt = registryDao.findByLookupKey(lookupKey);
     if (entryOpt.isEmpty()) {
       return FormMessage.INVALID_PARAMETER;
     }

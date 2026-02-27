@@ -12,6 +12,9 @@ public class ApplicationRegistryEntry {
 
   @BsonId private ObjectId id;
 
+  @BsonProperty("lookupKey")
+  private String lookupKey;
+
   @BsonProperty("idCategoryType")
   private String idCategoryType;
 
@@ -42,6 +45,7 @@ public class ApplicationRegistryEntry {
   public ApplicationRegistryEntry() {}
 
   public ApplicationRegistryEntry(
+      String lookupKey,
       String idCategoryType,
       String state,
       String applicationSubtype,
@@ -50,6 +54,7 @@ public class ApplicationRegistryEntry {
       int numWeeks,
       List<OrgMapping> orgMappings) {
     this.id = new ObjectId();
+    this.lookupKey = lookupKey;
     this.idCategoryType = idCategoryType;
     this.state = state;
     this.applicationSubtype = applicationSubtype;
@@ -67,6 +72,14 @@ public class ApplicationRegistryEntry {
 
   public void setId(ObjectId id) {
     this.id = id;
+  }
+
+  public String getLookupKey() {
+    return lookupKey;
+  }
+
+  public void setLookupKey(String lookupKey) {
+    this.lookupKey = lookupKey;
   }
 
   public String getIdCategoryType() {

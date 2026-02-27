@@ -391,7 +391,8 @@ public class User {
       log.error("Invalid phone: " + phone);
       return UserValidationMessage.INVALID_PHONENUMBER;
     }
-    if (!ValidationUtils.isValidOrganizationName(organization)) {
+    boolean requiresOrganization = userType != UserType.Developer;
+    if (requiresOrganization && !ValidationUtils.isValidOrganizationName(organization)) {
       log.error("Invalid organization: " + organization);
       return UserValidationMessage.INVALID_ORGANIZATION;
     }

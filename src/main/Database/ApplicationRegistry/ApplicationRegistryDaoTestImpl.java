@@ -42,6 +42,13 @@ public class ApplicationRegistryDaoTestImpl implements ApplicationRegistryDao {
   }
 
   @Override
+  public Optional<ApplicationRegistryEntry> findByLookupKey(String lookupKey) {
+    return store.values().stream()
+        .filter(e -> lookupKey.equals(e.getLookupKey()))
+        .findFirst();
+  }
+
+  @Override
   public void save(ApplicationRegistryEntry entry) {
     store.put(entry.getId(), entry);
   }

@@ -21,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -142,7 +146,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
     } else if (directive.equals("signature")) {
       fq.setType(FieldType.SIGNATURE);
     } else {
-      matchFieldFromFlattenedMap(fq, directive);
+      if (!matchComputedDirective(fq, directive)) {
+        matchFieldFromFlattenedMap(fq, normalizeProfileDirective(directive));
+      }
     }
     this.currentFormQuestion = fq;
     return null;
@@ -222,6 +228,150 @@ public class GetQuestionsPDFServiceV2 implements Service {
       fq.setMatched(false);
       fq.setDefaultValue("");
     }
+  }
+
+  private String normalizeProfileDirective(String directive) {
+    if (directive == null) return "";
+    String normalized = directive.trim();
+    if (normalized.startsWith("client.")) normalized = normalized.substring("client.".length());
+    else if (normalized.startsWith("worker.")) normalized = normalized.substring("worker.".length());
+    else if (normalized.startsWith("org.")) normalized = normalized.substring("org.".length());
+    return normalized;
+  }
+
+  private boolean matchComputedDirective(FormQuestion fq, String rawDirective) {
+    String normalized = normalizeProfileDirective(rawDirective);
+    if (normalized.startsWith("$")) {
+      normalized = normalized.substring(1);
+    }
+    String value = computeDirectiveValue(normalized);
+    if (value == null || value.isEmpty()) {
+      return false;
+    }
+    fq.setMatched(true);
+    fq.setDefaultValue(value);
+    return true;
+  }
+
+  private String computeDirectiveValue(String computedKey) {
+    switch (computedKey) {
+      case "age":
+        return computeAge();
+      case "birthYear":
+        return getBirthPart(Part.YEAR);
+      case "birthMonth":
+        return getBirthPart(Part.MONTH);
+      case "birthDay":
+        return getBirthPart(Part.DAY);
+      case "primaryPhoneAreaCode":
+        return getPrimaryPhonePart(Part.AREA_CODE);
+      case "primaryPhoneTelephonePrefix":
+        return getPrimaryPhonePart(Part.PREFIX);
+      case "primaryPhoneLineNumber":
+        return getPrimaryPhonePart(Part.LINE_NUMBER);
+      case "fullName":
+        return buildFullName();
+      case "date":
+        return LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+      default:
+        return null;
+    }
+  }
+
+  private enum Part {
+    YEAR,
+    MONTH,
+    DAY,
+    AREA_CODE,
+    PREFIX,
+    LINE_NUMBER
+  }
+
+  private String computeAge() {
+    LocalDate birthDate = parseBirthDate();
+    if (birthDate == null) return null;
+    int years = Period.between(birthDate, LocalDate.now()).getYears();
+    return years >= 0 ? Integer.toString(years) : null;
+  }
+
+  private String getBirthPart(Part part) {
+    LocalDate birthDate = parseBirthDate();
+    if (birthDate == null) return null;
+    switch (part) {
+      case YEAR:
+        return Integer.toString(birthDate.getYear());
+      case MONTH:
+        return Integer.toString(birthDate.getMonthValue());
+      case DAY:
+        return Integer.toString(birthDate.getDayOfMonth());
+      default:
+        return null;
+    }
+  }
+
+  private LocalDate parseBirthDate() {
+    String birthDateStr = this.flattenedFieldMap.get("birthDate");
+    if (birthDateStr == null || birthDateStr.isEmpty()) return null;
+    List<DateTimeFormatter> formatters =
+        List.of(
+            DateTimeFormatter.ofPattern("MM-dd-yyyy"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    for (DateTimeFormatter formatter : formatters) {
+      try {
+        return LocalDate.parse(birthDateStr, formatter);
+      } catch (DateTimeParseException ignored) {
+      }
+    }
+    return null;
+  }
+
+  private String getPrimaryPhonePart(Part part) {
+    String phone = getPrimaryPhoneNumber();
+    if (phone == null) return null;
+    String digitsOnly = phone.replaceAll("\\D", "");
+    if (digitsOnly.length() < 10) return null;
+    String lastTen = digitsOnly.substring(digitsOnly.length() - 10);
+    switch (part) {
+      case AREA_CODE:
+        return lastTen.substring(0, 3);
+      case PREFIX:
+        return lastTen.substring(3, 6);
+      case LINE_NUMBER:
+        return lastTen.substring(6, 10);
+      default:
+        return null;
+    }
+  }
+
+  private String getPrimaryPhoneNumber() {
+    // Preferred lookup: find phoneBook.N.label == "primary", then get phoneBook.N.phoneNumber
+    for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith("phoneBook.") && key.endsWith(".label")
+          && "primary".equalsIgnoreCase(entry.getValue())) {
+        String prefix = key.substring(0, key.length() - ".label".length());
+        String phone = this.flattenedFieldMap.get(prefix + ".phoneNumber");
+        if (phone != null && !phone.isEmpty()) return phone;
+      }
+    }
+    // Fallbacks
+    String fallback = this.flattenedFieldMap.get("phoneBook.0.phoneNumber");
+    if (fallback != null && !fallback.isEmpty()) return fallback;
+    return this.flattenedFieldMap.get("phone");
+  }
+
+  private String buildFullName() {
+    String first = safeValue(this.flattenedFieldMap.get("currentName.first"));
+    String middle = safeValue(this.flattenedFieldMap.get("currentName.middle"));
+    String last = safeValue(this.flattenedFieldMap.get("currentName.last"));
+    String suffix = safeValue(this.flattenedFieldMap.get("currentName.suffix"));
+    String fullName = String.join(" ", List.of(first, middle, last, suffix)).trim();
+    return fullName.isEmpty() ? null : fullName.replaceAll("\\s+", " ");
+  }
+
+  private String safeValue(String value) {
+    return value == null ? "" : value.trim();
   }
 
   public Message getQuestions() {

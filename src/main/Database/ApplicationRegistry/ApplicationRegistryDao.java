@@ -14,6 +14,9 @@ public interface ApplicationRegistryDao extends Dao<ApplicationRegistryEntry> {
   Optional<ApplicationRegistryEntry> find(
       String idCategoryType, String state, String applicationSubtype, String pidlSubtype);
 
+  /** Finds a registry entry by the legacy lookup key (e.g., "SS$FED$REPLACEMENT"). */
+  Optional<ApplicationRegistryEntry> findByLookupKey(String lookupKey);
+
   void addOrgMapping(ObjectId registryId, OrgMapping mapping);
 
   void removeOrgMapping(ObjectId registryId, String orgName);

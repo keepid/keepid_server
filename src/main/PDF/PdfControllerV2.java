@@ -573,4 +573,21 @@ public class PdfControllerV2 {
       return this;
     }
   }
+
+  public Handler parsePdfFields =
+      ctx -> {
+        UploadedFile uploadedFile = ctx.uploadedFile("file");
+        if (uploadedFile == null) {
+          ctx.status(400).result("{\"error\":\"No PDF file provided\"}");
+          return;
+        }
+        ParsePDFFieldsService service = new ParsePDFFieldsService(uploadedFile.getContent());
+        boolean success = service.execute();
+        if (success) {
+          ctx.header("Content-Type", "application/json");
+          ctx.result(service.getExtractedFields().toString());
+        } else {
+          ctx.status(400).result("{\"error\":\"Failed to parse PDF form fields\"}");
+        }
+      };
 }

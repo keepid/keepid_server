@@ -74,6 +74,11 @@ public class ApplicationRegistryDaoImpl implements ApplicationRegistryDao {
   }
 
   @Override
+  public Optional<ApplicationRegistryEntry> findByLookupKey(String lookupKey) {
+    return Optional.ofNullable(collection.find(eq("lookupKey", lookupKey)).first());
+  }
+
+  @Override
   public void save(ApplicationRegistryEntry entry) {
     collection.insertOne(entry);
   }

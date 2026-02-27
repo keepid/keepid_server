@@ -90,7 +90,7 @@ public class AppConfig {
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
     FormController formController =
-        new FormController(formDao, userDao, encryptionController, registryDao);
+        new FormController(formDao, fileDao, userDao, encryptionController, registryDao);
     FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
@@ -149,6 +149,29 @@ public class AppConfig {
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     app.post("/get-application-registry", formController.getAppRegistry);
+    app.get("/get-available-application-options", formController.getAvailableApplicationOptions);
+
+    /* -------------- DEVELOPER PORTAL API --------------------- */
+    app.before(
+        "/api/dev/*",
+        ctx -> {
+          if (ctx.method().equals("OPTIONS")) return;
+          UserType level = ctx.sessionAttribute("privilegeLevel");
+          if (level == null || level != UserType.Developer) {
+            throw new HttpResponseException(403, "Developer access required", new HashMap<>());
+          }
+        });
+    app.post("/api/dev/parse-pdf", pdfControllerV2.parsePdfFields);
+    app.post("/api/dev/create-application", formController.createApplication);
+    app.get("/api/dev/registry", formController.listRegistry);
+    app.get("/api/dev/orgs", formController.listOrgsForDev);
+    app.get("/api/dev/registry/:id/detail", formController.getRegistryDetail);
+    app.post("/api/dev/registry/:id/org-mappings", formController.upsertOrgMapping);
+    app.delete("/api/dev/registry/:id/org-mappings/:orgName", formController.deleteOrgMapping);
+    app.put("/api/dev/registry/:id", formController.updateApplication);
+    app.delete("/api/dev/registry/:id", formController.deleteRegistryEntry);
+    app.get("/api/dev/file/:fileId/pdf", formController.servePdf);
+    app.post("/api/dev/promote", formController.promoteRegistry);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
@@ -343,6 +366,8 @@ public class AppConfig {
                   "https://server.keep.id",
                   "http://localhost",
                   "http://localhost:3000",
+                  "http://localhost:5173",
+                  "https://dev.keep.id",
                   "https://staging.keep.id",
                   "https://staged.keep.id",
                   "127.0.0.1:3000");
