@@ -16,6 +16,7 @@ import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
+import Security.FileStorageCryptoPolicy;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
@@ -283,7 +284,11 @@ public class FillPDFServiceV2 implements Service {
     InputStream filledFileEncryptedStream;
     try {
       filledFileEncryptedStream =
-          this.encryptionController.encryptFile(this.filledFileStream, this.username);
+          FileStorageCryptoPolicy.prepareForStorage(
+              this.filledFileStream,
+              FileType.APPLICATION_PDF,
+              this.username,
+              this.encryptionController);
     } catch (GeneralSecurityException | IOException e) {
       log.error("Error encrypting filled file for user '{}': {}", this.username, e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
@@ -350,9 +355,17 @@ public class FillPDFServiceV2 implements Service {
     this.templateFile = templateFileOptional.get();
     InputStream templateFileStream;
     try {
-      templateFileStream = this.fileDao.getStream(fileObjectId).get();
+      InputStream storedTemplateStream = this.fileDao.getStream(fileObjectId).get();
+      byte[] templateBytes = storedTemplateStream.readAllBytes();
+      templateFileStream =
+          FileStorageCryptoPolicy.openForRead(
+              templateBytes,
+              this.templateFile.getFileType(),
+              this.templateFile.getUsername(),
+              this.encryptionController);
     } catch (Exception e) {
-      return PdfMessage.NO_SUCH_FILE;
+      log.error("Unable to load/decrypt template file '{}': {}", fileObjectId, e.getMessage(), e);
+      return PdfMessage.SERVER_ERROR;
     }
     Optional<Form> templateFormOptional = this.formDao.getByFileId(fileObjectId);
     if (templateFormOptional.isEmpty()) {

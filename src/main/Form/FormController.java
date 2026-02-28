@@ -15,12 +15,12 @@ import Form.Services.PromoteRegistryService;
 import Form.Services.UploadFormService;
 import PDF.Services.V2Services.ParsePDFFieldsService;
 import Security.EncryptionController;
+import Security.FileStorageCryptoPolicy;
 import User.User;
 import User.UserMessage;
 import User.UserType;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -495,9 +495,12 @@ public class FormController {
             Optional<File.File> fileObj = fileDao.get(fileId);
             Optional<InputStream> pdfStream = fileDao.getStream(fileId);
             if (fileObj.isPresent() && pdfStream.isPresent()) {
-              InputStream decrypted =
-                  encryptionController.decryptFile(pdfStream.get(), fileObj.get().getUsername());
-              ParsePDFFieldsService parser = new ParsePDFFieldsService(decrypted);
+              File.File file = fileObj.get();
+              byte[] fileBytes = pdfStream.get().readAllBytes();
+              InputStream readablePdfStream =
+                  FileStorageCryptoPolicy.openForRead(
+                      fileBytes, file.getFileType(), file.getUsername(), encryptionController);
+              ParsePDFFieldsService parser = new ParsePDFFieldsService(readablePdfStream);
               if (parser.execute()) {
                 Map<String, JSONObject> rectMap = new HashMap<>();
                 JSONArray parsed = parser.getExtractedFields();
@@ -550,26 +553,13 @@ public class FormController {
         }
         byte[] fileBytes = streamOpt.get().readAllBytes();
         try {
-          // Normal path: encrypted files should decrypt successfully.
           InputStream decrypted =
-              encryptionController.decryptFile(
-                  new ByteArrayInputStream(fileBytes), file.getUsername());
+              FileStorageCryptoPolicy.openForRead(
+                  fileBytes, file.getFileType(), file.getUsername(), encryptionController);
           ctx.header("Content-Type", "application/pdf");
           ctx.result(decrypted);
-        } catch (Exception decryptError) {
-          // Legacy/manual uploads may already be plain PDF bytes.
-          boolean isPdf =
-              fileBytes.length >= 4
-                  && fileBytes[0] == '%'
-                  && fileBytes[1] == 'P'
-                  && fileBytes[2] == 'D'
-                  && fileBytes[3] == 'F';
-          if (isPdf) {
-            ctx.header("Content-Type", "application/pdf");
-            ctx.result(new ByteArrayInputStream(fileBytes));
-            return;
-          }
-          throw decryptError;
+        } catch (Exception e) {
+          ctx.status(500).result("{\"error\":\"Failed to open PDF\"}");
         }
       };
 

@@ -11,6 +11,7 @@ import File.IdCategoryType;
 import Form.*;
 import Form.ApplicationRegistryEntry.OrgMapping;
 import Security.EncryptionController;
+import Security.FileStorageCryptoPolicy;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -62,13 +63,15 @@ public class CreateApplicationService implements Service {
   @Override
   public Message executeAndGetResponse() {
     try {
-      InputStream encryptedStream = encryptionController.encryptFile(pdfStream, username);
+      InputStream storedTemplateStream =
+          FileStorageCryptoPolicy.prepareForStorage(
+              pdfStream, FileType.FORM, username, encryptionController);
 
       File file =
           new File(
               username,
               new Date(),
-              encryptedStream,
+              storedTemplateStream,
               FileType.FORM,
               IdCategoryType.NONE,
               fileName,
