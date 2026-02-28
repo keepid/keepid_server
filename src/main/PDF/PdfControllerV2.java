@@ -6,6 +6,7 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import File.IdCategoryType;
 import PDF.Services.V2Services.*;
@@ -29,6 +30,7 @@ public class PdfControllerV2 {
   private FileDao fileDao;
   private ActivityDao activityDao;
   private UserDao userDao;
+  private OrgDao orgDao;
 
   // Needed for EncryptionController
   private EncryptionController encryptionController;
@@ -37,11 +39,13 @@ public class PdfControllerV2 {
       FileDao fileDao,
       FormDao formDao,
       ActivityDao activityDao,
+      OrgDao orgDao,
       UserDao userDao,
       EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.activityDao = activityDao;
+    this.orgDao = orgDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
   }
@@ -185,7 +189,7 @@ public class PdfControllerV2 {
         userParams.setUserParamsGetApplicationQuestions(ctx, req);
         fileParams.setFileParamsGetApplicationQuestions(req);
         GetQuestionsPDFServiceV2 getQuestionsPDFServiceV2 =
-            new GetQuestionsPDFServiceV2(formDao, userDao, userParams, fileParams);
+            new GetQuestionsPDFServiceV2(formDao, orgDao, userDao, userParams, fileParams);
         Message response = getQuestionsPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
@@ -218,6 +222,7 @@ public class PdfControllerV2 {
 
   public static class UserParams {
     private String username;
+    private String actorUsername;
     private String organizationName;
     private UserType privilegeLevel;
 
@@ -225,6 +230,7 @@ public class PdfControllerV2 {
 
     public UserParams(String username, String organizationName, UserType privilegeLevel) {
       this.username = username;
+      this.actorUsername = username;
       this.organizationName = organizationName;
       this.privilegeLevel = privilegeLevel;
     }
@@ -262,6 +268,7 @@ public class PdfControllerV2 {
     public Message setUserParamsFillAndUploadSignedPDF(Context ctx) {
       try {
         String sessionUsername = ctx.sessionAttribute("username");
+        this.actorUsername = sessionUsername;
         String clientUsernameParameter = Objects.requireNonNull(ctx.formParam("clientUsername"));
         this.username =
             clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
@@ -275,16 +282,19 @@ public class PdfControllerV2 {
 
     public void setUserParamsUploadAnnotatedPDF(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = UserType.Developer;
     }
 
     public void setUserParamsGetApplicationQuestions(Context ctx, JSONObject req) {
       String sessionUsername = ctx.sessionAttribute("username");
+      this.actorUsername = sessionUsername;
       String clientUsernameParameter = req.getString("clientUsername");
       this.username =
           clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+      this.organizationName = ctx.sessionAttribute("orgName");
     }
 
     public Message setUserParamsFromCtxReq(Context ctx, JSONObject req, UserDao userDao) {
@@ -327,6 +337,7 @@ public class PdfControllerV2 {
         return UserMessage.CROSS_ORG_ACTION_DENIED;
       }
       this.username = targetUser.getUsername();
+      this.actorUsername = ctx.sessionAttribute("username");
       this.organizationName = targetUserOrg;
       this.privilegeLevel = targetUser.getUserType();
       return null;
@@ -334,6 +345,7 @@ public class PdfControllerV2 {
 
     public Message setUserParamsFromSessionUser(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
       return null;
@@ -352,8 +364,17 @@ public class PdfControllerV2 {
       return organizationName;
     }
 
+    public String getActorUsername() {
+      return actorUsername;
+    }
+
     public UserParams setOrganizationName(String organizationName) {
       this.organizationName = organizationName;
+      return this;
+    }
+
+    public UserParams setActorUsername(String actorUsername) {
+      this.actorUsername = actorUsername;
       return this;
     }
 

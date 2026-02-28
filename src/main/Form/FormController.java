@@ -245,24 +245,22 @@ public class FormController {
 
   public Handler getAvailableApplicationOptions =
       ctx -> {
-        String sessionOrg = ctx.sessionAttribute("orgName");
         JSONArray arr = new JSONArray();
         for (ApplicationRegistryEntry entry : registryDao.getAll()) {
           if (entry.getLookupKey() == null || entry.getLookupKey().isBlank()) {
             continue;
           }
-          if (sessionOrg != null && !sessionOrg.isBlank() && entry.getFileIdForOrg(sessionOrg) == null) {
-            continue;
-          }
           String[] parts = entry.getLookupKey().split("\\$", 3);
-          if (parts.length < 3) {
-            continue;
-          }
+          boolean canQuickStart = parts.length >= 3;
+          String type = canQuickStart ? parts[0] : "";
+          String state = canQuickStart ? parts[1] : "";
+          String situation = canQuickStart ? parts[2] : "";
           arr.put(
               new JSONObject()
-                  .put("type", parts[0])
-                  .put("state", parts[1])
-                  .put("situation", parts[2])
+                  .put("type", type)
+                  .put("state", state)
+                  .put("situation", situation)
+                  .put("canQuickStart", canQuickStart)
                   .put("lookupKey", entry.getLookupKey()));
         }
         ctx.header("Content-Type", "application/json");

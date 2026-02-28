@@ -81,4 +81,28 @@ public class GetApplicationRegistryServiceUnitTests {
 
     assertEquals(FormMessage.INVALID_PARAMETER, service.executeAndGetResponse());
   }
+
+  @Test
+  public void supportsLegacyHashDelimitedLookupKeys() {
+    ObjectId fileId = new ObjectId();
+    ApplicationRegistryEntry entry =
+        new ApplicationRegistryEntry(
+            "TEST#NA#NA",
+            "NA",
+            "NA",
+            "NA",
+            null,
+            new BigDecimal("0"),
+            1,
+            List.of(new ApplicationRegistryEntry.OrgMapping("Daniel's org", fileId)));
+    registryDao.save(entry);
+
+    GetApplicationRegistryService service =
+        new GetApplicationRegistryService(
+            registryDao, "TEST", "NA", "NA", "MYSELF", "Daniel's org");
+
+    assertEquals(FormMessage.SUCCESS, service.executeAndGetResponse());
+    JSONObject res = new JSONObject(service.getJsonInformation());
+    assertEquals(fileId.toHexString(), res.getString("blankFormId"));
+  }
 }

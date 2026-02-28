@@ -44,6 +44,11 @@ public class GetApplicationRegistryService implements Service {
     String lookupKey = type + "$" + state + "$" + situation;
     Optional<ApplicationRegistryEntry> entryOpt = registryDao.findByLookupKey(lookupKey);
     if (entryOpt.isEmpty()) {
+      // Backward compatibility for legacy/non-standard keys persisted with "#"
+      String legacyLookupKey = type + "#" + state + "#" + situation;
+      entryOpt = registryDao.findByLookupKey(legacyLookupKey);
+    }
+    if (entryOpt.isEmpty()) {
       return FormMessage.INVALID_PARAMETER;
     }
 

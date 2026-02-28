@@ -10,6 +10,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import Form.FieldType;
@@ -41,6 +43,7 @@ import org.junit.jupiter.api.AfterAll;
 public class SetMatchedFieldsUnitTests {
   private FileDao fileDao;
   private FormDao formDao;
+  private OrgDao orgDao;
   private UserDao userDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
@@ -60,6 +63,7 @@ public class SetMatchedFieldsUnitTests {
     Thread.sleep(1000);
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
+    this.orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
 
@@ -74,6 +78,8 @@ public class SetMatchedFieldsUnitTests {
             .setUsername("dev1")
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
+
+    EntityFactory.createOrganization().withOrgName("org2").buildAndPersist(orgDao);
 
     User clientUser =
         EntityFactory.createUser()
@@ -94,9 +100,26 @@ public class SetMatchedFieldsUnitTests {
         new Address("456 Oak Ave", null, "Pittsburgh", "PA", "15213", null));
     userDao.save(clientUser);
 
+    User workerUser =
+        EntityFactory.createUser()
+            .withUsername("worker1")
+            .withFirstName("Worker")
+            .withLastName("Person")
+            .withEmail("worker@example.com")
+            .withPhoneNumber("2153334444")
+            .withAddress("999 Worker St")
+            .withCity("Camden")
+            .withState("NJ")
+            .withZipcode("08102")
+            .withUserType(UserType.Worker)
+            .withOrgName("org2")
+            .build();
+    userDao.save(workerUser);
+
     this.clientUserParams =
         new UserParams()
             .setUsername("matchclient")
+            .setActorUsername("worker1")
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Client);
 
@@ -121,7 +144,8 @@ public class SetMatchedFieldsUnitTests {
 
     FileParams getQuestionsFileParams = new FileParams().setFileId(uploadedFileId.toString());
     this.service =
-        new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
+        new GetQuestionsPDFServiceV2(
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
     Message initResponse = service.executeAndGetResponse();
     assertEquals(PdfMessage.SUCCESS, initResponse);
   }
@@ -131,6 +155,7 @@ public class SetMatchedFieldsUnitTests {
     fileDao.clear();
     formDao.clear();
     userDao.clear();
+    orgDao.clear();
   }
 
   @AfterAll
@@ -341,5 +366,23 @@ public class SetMatchedFieldsUnitTests {
     assertNull(result);
     assertFalse("No colon means no matching", fq.isMatched());
     assertEquals("Just a plain question", fq.getQuestionText());
+  }
+
+  @Test
+  public void workerDirectiveUsesWorkerProfile() {
+    FormQuestion fq = makeQuestion("Worker First Name:worker.currentName.first");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("Worker", fq.getDefaultValue());
+  }
+
+  @Test
+  public void orgDirectiveUsesOrgDocument() {
+    FormQuestion fq = makeQuestion("Organization Name:org.name");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("org2", fq.getDefaultValue());
   }
 }

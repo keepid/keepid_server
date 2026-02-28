@@ -3,11 +3,13 @@ package PDF.Services.V2Services;
 import Config.Message;
 import Config.Service;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import Form.FieldType;
 import Form.Form;
 import Form.FormQuestion;
 import Form.FormSection;
+import Organization.Organization;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
@@ -33,17 +35,23 @@ import org.json.JSONObject;
 @Slf4j
 public class GetQuestionsPDFServiceV2 implements Service {
   private FormDao formDao;
+  private OrgDao orgDao;
   private UserDao userDao;
-  private String username;
+  private String username; // target client username
+  private String actorUsername; // session user (worker/admin/client)
   private UserType privilegeLevel;
+  private String organizationName;
   private String fileId;
   private JSONObject applicationInformation;
   private Form form;
-  private Map<String, String> flattenedFieldMap;
+  private Map<String, String> clientFlattenedFieldMap;
+  private Map<String, String> workerFlattenedFieldMap;
+  private Map<String, String> orgFlattenedFieldMap;
   private FormQuestion currentFormQuestion;
 
   /** Alias map: common alternative field names -> canonical flattened map keys. */
   private static final Map<String, String> FIELD_ALIASES = new HashMap<>();
+  private static final Map<String, String> ORG_FIELD_ALIASES = new HashMap<>();
 
   static {
     FIELD_ALIASES.put("firstName", "currentName.first");
@@ -58,14 +66,29 @@ public class GetQuestionsPDFServiceV2 implements Service {
     FIELD_ALIASES.put("zipcode", "personalAddress.zip");
     FIELD_ALIASES.put("genderAssignedAtBirth", "sex");
     FIELD_ALIASES.put("emailAddress", "email");
+
+    ORG_FIELD_ALIASES.put("name", "orgName");
+    ORG_FIELD_ALIASES.put("address", "orgAddress.line1");
+    ORG_FIELD_ALIASES.put("city", "orgAddress.city");
+    ORG_FIELD_ALIASES.put("state", "orgAddress.state");
+    ORG_FIELD_ALIASES.put("zipcode", "orgAddress.zip");
+    ORG_FIELD_ALIASES.put("zip", "orgAddress.zip");
+    ORG_FIELD_ALIASES.put("phone", "orgPhoneNumber");
+    ORG_FIELD_ALIASES.put("phoneNumber", "orgPhoneNumber");
+    ORG_FIELD_ALIASES.put("email", "orgEmail");
+    ORG_FIELD_ALIASES.put("website", "orgWebsite");
+    ORG_FIELD_ALIASES.put("ein", "orgEIN");
   }
 
   public GetQuestionsPDFServiceV2(
-      FormDao formDao, UserDao userDao, UserParams userParams, FileParams fileParams) {
+      FormDao formDao, OrgDao orgDao, UserDao userDao, UserParams userParams, FileParams fileParams) {
     this.formDao = formDao;
+    this.orgDao = orgDao;
     this.userDao = userDao;
     this.username = userParams.getUsername();
+    this.actorUsername = userParams.getActorUsername();
     this.privilegeLevel = userParams.getPrivilegeLevel();
+    this.organizationName = userParams.getOrganizationName();
     this.fileId = fileParams.getFileId();
     this.applicationInformation = new JSONObject();
   }
@@ -80,13 +103,41 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (getQuestionsConditionsErrorMessage != null) {
       return getQuestionsConditionsErrorMessage;
     }
-    GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, username);
-    Message getUserInfoServiceResponse = getUserInfoService.executeAndGetResponse();
-    if (getUserInfoServiceResponse != UserMessage.SUCCESS) {
-      return getUserInfoServiceResponse;
+    Message loadProfileMapsResponse = loadDirectiveProfileMaps();
+    if (loadProfileMapsResponse != UserMessage.SUCCESS) {
+      return loadProfileMapsResponse;
     }
-    this.flattenedFieldMap = getUserInfoService.getFlattenedFieldMap();
     return getQuestions();
+  }
+
+  private Message loadDirectiveProfileMaps() {
+    GetUserInfoService clientUserInfoService = new GetUserInfoService(userDao, username);
+    Message clientResponse = clientUserInfoService.executeAndGetResponse();
+    if (clientResponse != UserMessage.SUCCESS) {
+      return clientResponse;
+    }
+    this.clientFlattenedFieldMap = clientUserInfoService.getFlattenedFieldMap();
+
+    String resolvedActorUsername =
+        (actorUsername == null || actorUsername.isBlank()) ? username : actorUsername;
+    GetUserInfoService workerUserInfoService = new GetUserInfoService(userDao, resolvedActorUsername);
+    Message workerResponse = workerUserInfoService.executeAndGetResponse();
+    if (workerResponse == UserMessage.SUCCESS) {
+      this.workerFlattenedFieldMap = workerUserInfoService.getFlattenedFieldMap();
+    } else {
+      // Gracefully fallback so worker.* directives still resolve to something predictable.
+      this.workerFlattenedFieldMap = this.clientFlattenedFieldMap;
+    }
+
+    this.orgFlattenedFieldMap = new HashMap<>();
+    if (organizationName != null && !organizationName.isBlank()) {
+      Optional<Organization> orgOpt = orgDao.get(organizationName);
+      if (orgOpt.isPresent()) {
+        flattenJSON(orgOpt.get().serialize(), "", this.orgFlattenedFieldMap);
+      }
+    }
+
+    return UserMessage.SUCCESS;
   }
 
   public Message checkGetQuestionsConditions() {
@@ -146,8 +197,10 @@ public class GetQuestionsPDFServiceV2 implements Service {
     } else if (directive.equals("signature")) {
       fq.setType(FieldType.SIGNATURE);
     } else {
-      if (!matchComputedDirective(fq, directive)) {
-        matchFieldFromFlattenedMap(fq, normalizeProfileDirective(directive));
+      DirectiveScope directiveScope = getDirectiveScope(directive);
+      String normalizedDirective = normalizeProfileDirective(directive);
+      if (!matchComputedDirective(fq, normalizedDirective, directiveScope)) {
+        matchFieldFromFlattenedMap(fq, normalizedDirective, directiveScope);
       }
     }
     this.currentFormQuestion = fq;
@@ -179,24 +232,31 @@ public class GetQuestionsPDFServiceV2 implements Service {
    * If no match is found, logs a debug message and leaves the field unmatched
    * (graceful degradation -- never errors).
    */
-  private void matchFieldFromFlattenedMap(FormQuestion fq, String directive) {
-    if (this.flattenedFieldMap == null) {
-      log.warn("Flattened field map is null; cannot match directive '{}'", directive);
+  private void matchFieldFromFlattenedMap(
+      FormQuestion fq, String directive, DirectiveScope directiveScope) {
+    Map<String, String> sourceMap = getDirectiveSourceMap(directiveScope);
+    Map<String, String> aliasMap = getDirectiveAliasMap(directiveScope);
+
+    if (sourceMap == null) {
+      log.warn(
+          "Directive source map is null for scope '{}'; cannot match directive '{}'",
+          directiveScope,
+          directive);
       return;
     }
 
     // 1. Exact key match
-    String value = this.flattenedFieldMap.get(directive);
+    String value = sourceMap.get(directive);
 
     // 2. Alias lookup
-    if (value == null && FIELD_ALIASES.containsKey(directive)) {
-      String aliasedKey = FIELD_ALIASES.get(directive);
-      value = this.flattenedFieldMap.get(aliasedKey);
+    if (value == null && aliasMap.containsKey(directive)) {
+      String aliasedKey = aliasMap.get(directive);
+      value = sourceMap.get(aliasedKey);
     }
 
     // 3. Case-insensitive full-key match
     if (value == null) {
-      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+      for (Map.Entry<String, String> entry : sourceMap.entrySet()) {
         if (entry.getKey().equalsIgnoreCase(directive)) {
           value = entry.getValue();
           break;
@@ -206,7 +266,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
     // 4. Case-insensitive leaf-key match (e.g. "firstname" matches "optionalInformation.person.firstName")
     if (value == null) {
-      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+      for (Map.Entry<String, String> entry : sourceMap.entrySet()) {
         String key = entry.getKey();
         int lastDot = key.lastIndexOf('.');
         String leafKey = lastDot >= 0 ? key.substring(lastDot + 1) : key;
@@ -222,8 +282,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
       fq.setDefaultValue(value);
     } else {
       log.debug(
-          "Field directive '{}' not found in user profile for user '{}'; skipping autofill",
+          "Field directive '{}' not found in scope '{}' for user '{}'; skipping autofill",
           directive,
+          directiveScope,
           this.username);
       fq.setMatched(false);
       fq.setDefaultValue("");
@@ -239,12 +300,14 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return normalized;
   }
 
-  private boolean matchComputedDirective(FormQuestion fq, String rawDirective) {
-    String normalized = normalizeProfileDirective(rawDirective);
+  private boolean matchComputedDirective(
+      FormQuestion fq, String normalizedDirective, DirectiveScope directiveScope) {
+    String normalized = normalizedDirective;
     if (normalized.startsWith("$")) {
       normalized = normalized.substring(1);
     }
-    String value = computeDirectiveValue(normalized);
+    Map<String, String> sourceMap = getDirectiveSourceMap(directiveScope);
+    String value = computeDirectiveValue(normalized, sourceMap);
     if (value == null || value.isEmpty()) {
       return false;
     }
@@ -253,24 +316,24 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return true;
   }
 
-  private String computeDirectiveValue(String computedKey) {
+  private String computeDirectiveValue(String computedKey, Map<String, String> sourceMap) {
     switch (computedKey) {
       case "age":
-        return computeAge();
+        return computeAge(sourceMap);
       case "birthYear":
-        return getBirthPart(Part.YEAR);
+        return getBirthPart(Part.YEAR, sourceMap);
       case "birthMonth":
-        return getBirthPart(Part.MONTH);
+        return getBirthPart(Part.MONTH, sourceMap);
       case "birthDay":
-        return getBirthPart(Part.DAY);
+        return getBirthPart(Part.DAY, sourceMap);
       case "primaryPhoneAreaCode":
-        return getPrimaryPhonePart(Part.AREA_CODE);
+        return getPrimaryPhonePart(Part.AREA_CODE, sourceMap);
       case "primaryPhoneTelephonePrefix":
-        return getPrimaryPhonePart(Part.PREFIX);
+        return getPrimaryPhonePart(Part.PREFIX, sourceMap);
       case "primaryPhoneLineNumber":
-        return getPrimaryPhonePart(Part.LINE_NUMBER);
+        return getPrimaryPhonePart(Part.LINE_NUMBER, sourceMap);
       case "fullName":
-        return buildFullName();
+        return buildFullName(sourceMap);
       case "date":
         return LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
       default:
@@ -287,15 +350,15 @@ public class GetQuestionsPDFServiceV2 implements Service {
     LINE_NUMBER
   }
 
-  private String computeAge() {
-    LocalDate birthDate = parseBirthDate();
+  private String computeAge(Map<String, String> sourceMap) {
+    LocalDate birthDate = parseBirthDate(sourceMap);
     if (birthDate == null) return null;
     int years = Period.between(birthDate, LocalDate.now()).getYears();
     return years >= 0 ? Integer.toString(years) : null;
   }
 
-  private String getBirthPart(Part part) {
-    LocalDate birthDate = parseBirthDate();
+  private String getBirthPart(Part part, Map<String, String> sourceMap) {
+    LocalDate birthDate = parseBirthDate(sourceMap);
     if (birthDate == null) return null;
     switch (part) {
       case YEAR:
@@ -309,8 +372,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
     }
   }
 
-  private LocalDate parseBirthDate() {
-    String birthDateStr = this.flattenedFieldMap.get("birthDate");
+  private LocalDate parseBirthDate(Map<String, String> sourceMap) {
+    if (sourceMap == null) return null;
+    String birthDateStr = sourceMap.get("birthDate");
     if (birthDateStr == null || birthDateStr.isEmpty()) return null;
     List<DateTimeFormatter> formatters =
         List.of(
@@ -326,8 +390,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return null;
   }
 
-  private String getPrimaryPhonePart(Part part) {
-    String phone = getPrimaryPhoneNumber();
+  private String getPrimaryPhonePart(Part part, Map<String, String> sourceMap) {
+    String phone = getPrimaryPhoneNumber(sourceMap);
     if (phone == null) return null;
     String digitsOnly = phone.replaceAll("\\D", "");
     if (digitsOnly.length() < 10) return null;
@@ -344,30 +408,96 @@ public class GetQuestionsPDFServiceV2 implements Service {
     }
   }
 
-  private String getPrimaryPhoneNumber() {
+  private String getPrimaryPhoneNumber(Map<String, String> sourceMap) {
+    if (sourceMap == null) return null;
     // Preferred lookup: find phoneBook.N.label == "primary", then get phoneBook.N.phoneNumber
-    for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+    for (Map.Entry<String, String> entry : sourceMap.entrySet()) {
       String key = entry.getKey();
       if (key.startsWith("phoneBook.") && key.endsWith(".label")
           && "primary".equalsIgnoreCase(entry.getValue())) {
         String prefix = key.substring(0, key.length() - ".label".length());
-        String phone = this.flattenedFieldMap.get(prefix + ".phoneNumber");
+        String phone = sourceMap.get(prefix + ".phoneNumber");
         if (phone != null && !phone.isEmpty()) return phone;
       }
     }
     // Fallbacks
-    String fallback = this.flattenedFieldMap.get("phoneBook.0.phoneNumber");
+    String fallback = sourceMap.get("phoneBook.0.phoneNumber");
     if (fallback != null && !fallback.isEmpty()) return fallback;
-    return this.flattenedFieldMap.get("phone");
+    return sourceMap.get("phone");
   }
 
-  private String buildFullName() {
-    String first = safeValue(this.flattenedFieldMap.get("currentName.first"));
-    String middle = safeValue(this.flattenedFieldMap.get("currentName.middle"));
-    String last = safeValue(this.flattenedFieldMap.get("currentName.last"));
-    String suffix = safeValue(this.flattenedFieldMap.get("currentName.suffix"));
+  private String buildFullName(Map<String, String> sourceMap) {
+    if (sourceMap == null) return null;
+    String first = safeValue(sourceMap.get("currentName.first"));
+    String middle = safeValue(sourceMap.get("currentName.middle"));
+    String last = safeValue(sourceMap.get("currentName.last"));
+    String suffix = safeValue(sourceMap.get("currentName.suffix"));
     String fullName = String.join(" ", List.of(first, middle, last, suffix)).trim();
     return fullName.isEmpty() ? null : fullName.replaceAll("\\s+", " ");
+  }
+
+  private enum DirectiveScope {
+    CLIENT,
+    WORKER,
+    ORG
+  }
+
+  private DirectiveScope getDirectiveScope(String directive) {
+    if (directive == null) return DirectiveScope.CLIENT;
+    String trimmed = directive.trim();
+    if (trimmed.startsWith("worker.")) return DirectiveScope.WORKER;
+    if (trimmed.startsWith("org.")) return DirectiveScope.ORG;
+    return DirectiveScope.CLIENT;
+  }
+
+  private Map<String, String> getDirectiveSourceMap(DirectiveScope directiveScope) {
+    switch (directiveScope) {
+      case WORKER:
+        return this.workerFlattenedFieldMap;
+      case ORG:
+        return this.orgFlattenedFieldMap;
+      case CLIENT:
+      default:
+        return this.clientFlattenedFieldMap;
+    }
+  }
+
+  private Map<String, String> getDirectiveAliasMap(DirectiveScope directiveScope) {
+    return directiveScope == DirectiveScope.ORG ? ORG_FIELD_ALIASES : FIELD_ALIASES;
+  }
+
+  private void flattenJSON(JSONObject json, String prefix, Map<String, String> result) {
+    if (json == null) return;
+    String[] names = JSONObject.getNames(json);
+    if (names == null) return;
+
+    for (String key : names) {
+      String fullKey = prefix.isEmpty() ? key : prefix + "." + key;
+      Object value = json.opt(key);
+      if (value == null || JSONObject.NULL.equals(value)) continue;
+      if (value instanceof JSONObject) {
+        flattenJSON((JSONObject) value, fullKey, result);
+      } else if (value instanceof JSONArray) {
+        flattenJSONArray((JSONArray) value, fullKey, result);
+      } else {
+        result.put(fullKey, String.valueOf(value));
+      }
+    }
+  }
+
+  private void flattenJSONArray(JSONArray array, String prefix, Map<String, String> result) {
+    for (int i = 0; i < array.length(); i++) {
+      Object value = array.opt(i);
+      if (value == null || JSONObject.NULL.equals(value)) continue;
+      String fullKey = prefix + "." + i;
+      if (value instanceof JSONObject) {
+        flattenJSON((JSONObject) value, fullKey, result);
+      } else if (value instanceof JSONArray) {
+        flattenJSONArray((JSONArray) value, fullKey, result);
+      } else {
+        result.put(fullKey, String.valueOf(value));
+      }
+    }
   }
 
   private String safeValue(String value) {

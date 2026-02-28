@@ -11,6 +11,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
 import PDF.PdfControllerV2.FileParams;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.AfterAll;
 public class GetQuestionsPDFServiceV2UnitTests {
   private FileDao fileDao;
   private FormDao formDao;
+  private OrgDao orgDao;
   private UserDao userDao;
   private MongoDatabase db;
   private EncryptionController encryptionController;
@@ -60,6 +63,7 @@ public class GetQuestionsPDFServiceV2UnitTests {
     Thread.sleep(1000);
     this.fileDao = FileDaoFactory.create(DeploymentLevel.TEST);
     this.formDao = FormDaoFactory.create(DeploymentLevel.TEST);
+    this.orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
     this.userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     this.db = MongoConfig.getDatabase(DeploymentLevel.TEST);
     File sampleBlankFile1 = new File(resourcesFolderPath + File.separator + "ss-5.pdf");
@@ -117,6 +121,7 @@ public class GetQuestionsPDFServiceV2UnitTests {
     fileDao.clear();
     formDao.clear();
     userDao.clear();
+    orgDao.clear();
     try {
       sampleAnnotatedFileStream.close();
       sampleBlankFileStream1.close();
@@ -136,7 +141,8 @@ public class GetQuestionsPDFServiceV2UnitTests {
     ObjectId fakeObjectId = new ObjectId();
     FileParams getQuestionsFileParams = new FileParams().setFileId(fakeObjectId.toString());
     GetQuestionsPDFServiceV2 getService =
-        new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
+        new GetQuestionsPDFServiceV2(
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
     Message response = getService.executeAndGetResponse();
     assertEquals(PdfMessage.MISSING_FORM, response);
   }
@@ -148,7 +154,8 @@ public class GetQuestionsPDFServiceV2UnitTests {
             fileDao, formDao, userDao, developerUserParams, blankFileParams, encryptionController);
     FileParams getQuestionsFileParams = new FileParams().setFileId(uploadedFileId.toString());
     GetQuestionsPDFServiceV2 getService =
-        new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
+        new GetQuestionsPDFServiceV2(
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
     Message response = getService.executeAndGetResponse();
     assertEquals(PdfMessage.SUCCESS, response);
     JSONArray fields = (JSONArray) getService.getApplicationInformation().get("fields");
