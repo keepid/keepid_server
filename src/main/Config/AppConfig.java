@@ -164,10 +164,7 @@ public class AppConfig {
     app.post("/api/dev/parse-pdf", pdfControllerV2.parsePdfFields);
     app.post("/api/dev/create-application", formController.createApplication);
     app.get("/api/dev/registry", formController.listRegistry);
-    app.get("/api/dev/orgs", formController.listOrgsForDev);
     app.get("/api/dev/registry/:id/detail", formController.getRegistryDetail);
-    app.post("/api/dev/registry/:id/org-mappings", formController.upsertOrgMapping);
-    app.delete("/api/dev/registry/:id/org-mappings/:orgName", formController.deleteOrgMapping);
     app.put("/api/dev/registry/:id", formController.updateApplication);
     app.delete("/api/dev/registry/:id", formController.deleteRegistryEntry);
     app.get("/api/dev/file/:fileId/pdf", formController.servePdf);

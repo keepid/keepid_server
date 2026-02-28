@@ -15,6 +15,9 @@ public class ApplicationRegistryEntry {
   @BsonProperty("lookupKey")
   private String lookupKey;
 
+  @BsonProperty("title")
+  private String title;
+
   @BsonProperty("idCategoryType")
   private String idCategoryType;
 
@@ -46,6 +49,7 @@ public class ApplicationRegistryEntry {
 
   public ApplicationRegistryEntry(
       String lookupKey,
+      String title,
       String idCategoryType,
       String state,
       String applicationSubtype,
@@ -55,6 +59,7 @@ public class ApplicationRegistryEntry {
       List<OrgMapping> orgMappings) {
     this.id = new ObjectId();
     this.lookupKey = lookupKey;
+    this.title = title;
     this.idCategoryType = idCategoryType;
     this.state = state;
     this.applicationSubtype = applicationSubtype;
@@ -80,6 +85,14 @@ public class ApplicationRegistryEntry {
 
   public void setLookupKey(String lookupKey) {
     this.lookupKey = lookupKey;
+  }
+
+  public String getTitle() {
+    return title;
+  }
+
+  public void setTitle(String title) {
+    this.title = title;
   }
 
   public String getIdCategoryType() {
@@ -159,12 +172,28 @@ public class ApplicationRegistryEntry {
    * file._id in the "file" collection, NOT form._id.
    */
   public ObjectId getFileIdForOrg(String orgName) {
-    if (orgMappings == null) return null;
-    return orgMappings.stream()
-        .filter(m -> m.getOrgName().equals(orgName))
-        .map(OrgMapping::getFileId)
-        .findFirst()
-        .orElse(null);
+    if (orgMappings == null || orgMappings.isEmpty()) return null;
+
+    // Prefer the newest explicit org mapping.
+    if (orgName != null && !orgName.isBlank()) {
+      for (int i = orgMappings.size() - 1; i >= 0; i--) {
+        OrgMapping mapping = orgMappings.get(i);
+        if (orgName.equals(mapping.getOrgName())) {
+          return mapping.getFileId();
+        }
+      }
+    }
+
+    // Fall back to a global mapping.
+    for (int i = orgMappings.size() - 1; i >= 0; i--) {
+      OrgMapping mapping = orgMappings.get(i);
+      if ("*".equals(mapping.getOrgName())) {
+        return mapping.getFileId();
+      }
+    }
+
+    // Final fallback: latest mapping regardless of org.
+    return orgMappings.get(orgMappings.size() - 1).getFileId();
   }
 
   public static class OrgMapping {

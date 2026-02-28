@@ -275,22 +275,7 @@ public class FormController {
           JSONObject obj = new JSONObject();
           obj.put("id", entry.getId().toHexString());
           obj.put("lookupKey", entry.getLookupKey());
-          obj.put("idCategoryType", entry.getIdCategoryType());
-          obj.put("state", entry.getState());
-          obj.put("applicationSubtype", entry.getApplicationSubtype());
-          obj.put("pidlSubtype", entry.getPidlSubtype());
-          obj.put("amount", entry.getAmount());
-          obj.put("numWeeks", entry.getNumWeeks());
-          JSONArray mappings = new JSONArray();
-          if (entry.getOrgMappings() != null) {
-            for (ApplicationRegistryEntry.OrgMapping m : entry.getOrgMappings()) {
-              mappings.put(
-                  new JSONObject()
-                      .put("orgName", m.getOrgName())
-                      .put("fileId", m.getFileId().toHexString()));
-            }
-          }
-          obj.put("orgMappings", mappings);
+          obj.put("title", resolveTitleForRegistryEntry(entry));
           arr.put(obj);
         }
         ctx.header("Content-Type", "application/json");
@@ -405,14 +390,6 @@ public class FormController {
           return;
         }
         String username = ctx.sessionAttribute("username");
-        String orgName = ctx.formParam("orgName");
-        if (orgName == null || orgName.isBlank()) {
-          orgName = ctx.sessionAttribute("orgName");
-        }
-        if (orgName == null || orgName.isBlank()) {
-          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
-          return;
-        }
         CreateApplicationService service =
             new CreateApplicationService(
                 fileDao,
@@ -420,7 +397,7 @@ public class FormController {
                 registryDao,
                 encryptionController,
                 username,
-                orgName,
+                "*",
                 uploadedFile.getFilename(),
                 uploadedFile.getContent(),
                 new JSONArray(fieldMappingsStr),
@@ -462,17 +439,12 @@ public class FormController {
         JSONObject registryJson = new JSONObject();
         registryJson.put("id", entry.getId().toHexString());
         registryJson.put("lookupKey", entry.getLookupKey());
-        registryJson.put("idCategoryType", entry.getIdCategoryType());
-        registryJson.put("state", entry.getState());
-        registryJson.put("applicationSubtype", entry.getApplicationSubtype());
-        registryJson.put("pidlSubtype", entry.getPidlSubtype());
-        registryJson.put("amount", entry.getAmount());
-        registryJson.put("numWeeks", entry.getNumWeeks());
+        registryJson.put("title", resolveTitleForRegistryEntry(entry));
 
         String fileIdHex = null;
         JSONArray fieldsArr = new JSONArray();
-        if (entry.getOrgMappings() != null && !entry.getOrgMappings().isEmpty()) {
-          ObjectId fileId = entry.getOrgMappings().get(0).getFileId();
+        ObjectId fileId = entry.getFileIdForOrg(null);
+        if (fileId != null) {
           fileIdHex = fileId.toHexString();
           Optional<Form> formOpt = formDao.getByFileId(fileId);
           if (formOpt.isPresent()) {
@@ -576,14 +548,7 @@ public class FormController {
         if (req.has("registryMetadata")) {
           JSONObject meta = req.getJSONObject("registryMetadata");
           if (meta.has("lookupKey")) entry.setLookupKey(meta.getString("lookupKey"));
-          if (meta.has("idCategoryType"))
-            entry.setIdCategoryType(meta.getString("idCategoryType"));
-          if (meta.has("state")) entry.setState(meta.getString("state"));
-          if (meta.has("applicationSubtype"))
-            entry.setApplicationSubtype(meta.getString("applicationSubtype"));
-          if (meta.has("pidlSubtype")) entry.setPidlSubtype(meta.optString("pidlSubtype", null));
-          if (meta.has("amount")) entry.setAmount(meta.getString("amount"));
-          if (meta.has("numWeeks")) entry.setNumWeeks(meta.getInt("numWeeks"));
+          if (meta.has("title")) entry.setTitle(meta.optString("title", ""));
           registryDao.update(entry);
         }
 
@@ -639,5 +604,23 @@ public class FormController {
       System.out.println(e);
     }
     return Optional.empty();
+  }
+
+  private String resolveTitleForRegistryEntry(ApplicationRegistryEntry entry) {
+    try {
+      ObjectId fileId = entry.getFileIdForOrg(null);
+      if (fileId != null) {
+        Optional<Form> formOpt = formDao.getByFileId(fileId);
+        if (formOpt.isPresent() && formOpt.get().getMetadata() != null) {
+          String metadataTitle = formOpt.get().getMetadata().getTitle();
+          if (metadataTitle != null && !metadataTitle.isBlank()) {
+            return metadataTitle;
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to resolve title from form metadata for registry {}", entry.getId(), e);
+    }
+    return entry.getLookupKey() == null ? "" : entry.getLookupKey();
   }
 }

@@ -13,7 +13,6 @@ import Form.ApplicationRegistryEntry.OrgMapping;
 import Security.EncryptionController;
 import Security.FileStorageCryptoPolicy;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.bson.types.ObjectId;
@@ -21,6 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class CreateApplicationService implements Service {
+  private static final String GLOBAL_ORG_MAPPING = "*";
   private final FileDao fileDao;
   private final FormDao formDao;
   private final ApplicationRegistryDao registryDao;
@@ -145,31 +145,35 @@ public class CreateApplicationService implements Service {
       form.setFileId(fileId);
       formDao.save(form);
 
-      String lookupKey = registryMetadata.optString("lookupKey", "");
-      String idCategoryType = registryMetadata.getString("idCategoryType");
-      String state = registryMetadata.getString("state");
-      String applicationSubtype = registryMetadata.getString("applicationSubtype");
-      String pidlSubtype = registryMetadata.optString("pidlSubtype", null);
-      if (pidlSubtype != null && pidlSubtype.isEmpty()) pidlSubtype = null;
-      BigDecimal amount = new BigDecimal(registryMetadata.optString("amount", "0"));
-      int numWeeks = registryMetadata.optInt("numWeeks", 1);
-
-      Optional<ApplicationRegistryEntry> existingEntry =
-          lookupKey.isEmpty()
-              ? registryDao.find(idCategoryType, state, applicationSubtype, pidlSubtype)
-              : registryDao.findByLookupKey(lookupKey);
+      String lookupKey = registryMetadata.optString("lookupKey", "").strip();
+      if (lookupKey.isEmpty()) {
+        throw new IllegalArgumentException("lookupKey is required");
+      }
+      Optional<ApplicationRegistryEntry> existingEntry = registryDao.findByLookupKey(lookupKey);
 
       ObjectId registryId;
       if (existingEntry.isPresent()) {
-        registryId = existingEntry.get().getId();
-        registryDao.addOrgMapping(registryId, new OrgMapping(orgName, fileId));
+        ApplicationRegistryEntry entry = existingEntry.get();
+        registryId = entry.getId();
+        if (!metaTitle.isBlank()) {
+          entry.setTitle(metaTitle);
+          registryDao.update(entry);
+        }
+        registryDao.addOrgMapping(registryId, new OrgMapping(GLOBAL_ORG_MAPPING, fileId));
       } else {
         List<OrgMapping> mappings = new ArrayList<>();
-        mappings.add(new OrgMapping(orgName, fileId));
+        mappings.add(new OrgMapping(GLOBAL_ORG_MAPPING, fileId));
         ApplicationRegistryEntry entry =
             new ApplicationRegistryEntry(
-                lookupKey, idCategoryType, state, applicationSubtype, pidlSubtype, amount,
-                numWeeks, mappings);
+                lookupKey,
+                metaTitle,
+                "GENERIC",
+                "NA",
+                "STANDARD",
+                null,
+                java.math.BigDecimal.ZERO,
+                1,
+                mappings);
         registryDao.save(entry);
         registryId = entry.getId();
       }

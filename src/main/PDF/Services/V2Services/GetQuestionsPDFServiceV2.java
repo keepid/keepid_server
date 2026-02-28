@@ -67,17 +67,19 @@ public class GetQuestionsPDFServiceV2 implements Service {
     FIELD_ALIASES.put("genderAssignedAtBirth", "sex");
     FIELD_ALIASES.put("emailAddress", "email");
 
-    ORG_FIELD_ALIASES.put("name", "orgName");
-    ORG_FIELD_ALIASES.put("address", "orgAddress.line1");
-    ORG_FIELD_ALIASES.put("city", "orgAddress.city");
-    ORG_FIELD_ALIASES.put("state", "orgAddress.state");
-    ORG_FIELD_ALIASES.put("zipcode", "orgAddress.zip");
-    ORG_FIELD_ALIASES.put("zip", "orgAddress.zip");
-    ORG_FIELD_ALIASES.put("phone", "orgPhoneNumber");
-    ORG_FIELD_ALIASES.put("phoneNumber", "orgPhoneNumber");
-    ORG_FIELD_ALIASES.put("email", "orgEmail");
-    ORG_FIELD_ALIASES.put("website", "orgWebsite");
-    ORG_FIELD_ALIASES.put("ein", "orgEIN");
+    ORG_FIELD_ALIASES.put("name", "organizationName");
+    ORG_FIELD_ALIASES.put("orgName", "organizationName");
+    ORG_FIELD_ALIASES.put("organizationName", "organizationName");
+    ORG_FIELD_ALIASES.put("address", "address.line1");
+    ORG_FIELD_ALIASES.put("city", "address.city");
+    ORG_FIELD_ALIASES.put("state", "address.state");
+    ORG_FIELD_ALIASES.put("zipcode", "address.zip");
+    ORG_FIELD_ALIASES.put("zip", "address.zip");
+    ORG_FIELD_ALIASES.put("phone", "phoneNumber");
+    ORG_FIELD_ALIASES.put("phoneNumber", "phoneNumber");
+    ORG_FIELD_ALIASES.put("email", "email");
+    ORG_FIELD_ALIASES.put("website", "website");
+    ORG_FIELD_ALIASES.put("ein", "ein");
   }
 
   public GetQuestionsPDFServiceV2(
@@ -307,7 +309,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
       normalized = normalized.substring(1);
     }
     Map<String, String> sourceMap = getDirectiveSourceMap(directiveScope);
-    String value = computeDirectiveValue(normalized, sourceMap);
+    String value = computeDirectiveValue(normalized, sourceMap, directiveScope);
     if (value == null || value.isEmpty()) {
       return false;
     }
@@ -316,7 +318,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return true;
   }
 
-  private String computeDirectiveValue(String computedKey, Map<String, String> sourceMap) {
+  private String computeDirectiveValue(
+      String computedKey, Map<String, String> sourceMap, DirectiveScope directiveScope) {
     switch (computedKey) {
       case "age":
         return computeAge(sourceMap);
@@ -336,6 +339,17 @@ public class GetQuestionsPDFServiceV2 implements Service {
         return buildFullName(sourceMap);
       case "date":
         return LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+      case "fullPersonalAddress":
+        return buildAddress(sourceMap, "personalAddress");
+      case "fullMailAddress":
+        return buildAddress(sourceMap, "mailAddress");
+      case "fullAddress":
+        if (directiveScope == DirectiveScope.ORG) {
+          String orgAddress = buildAddress(sourceMap, "address");
+          if (orgAddress != null) return orgAddress;
+          return buildAddress(sourceMap, "orgAddress");
+        }
+        return buildAddress(sourceMap, "personalAddress");
       default:
         return null;
     }
@@ -436,6 +450,25 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return fullName.isEmpty() ? null : fullName.replaceAll("\\s+", " ");
   }
 
+  private String buildAddress(Map<String, String> sourceMap, String prefix) {
+    if (sourceMap == null) return null;
+    String line1 = safeValue(sourceMap.get(prefix + ".line1"));
+    String line2 = safeValue(sourceMap.get(prefix + ".line2"));
+    String city = safeValue(sourceMap.get(prefix + ".city"));
+    String state = safeValue(sourceMap.get(prefix + ".state"));
+    String zip = safeValue(sourceMap.get(prefix + ".zip"));
+
+    List<String> chunks = new LinkedList<>();
+    if (!line1.isEmpty()) chunks.add(line1);
+    if (!line2.isEmpty()) chunks.add(line2);
+
+    String cityStateZip = String.join(" ", List.of(city, state, zip)).trim().replaceAll("\\s+", " ");
+    if (!cityStateZip.isEmpty()) chunks.add(cityStateZip);
+
+    if (chunks.isEmpty()) return null;
+    return String.join(", ", chunks);
+  }
+
   private enum DirectiveScope {
     CLIENT,
     WORKER,
@@ -517,6 +550,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
       formField.put("fieldType", formQuestion.getType().toString());
       formField.put("fieldValueOptions", new JSONArray(formQuestion.getOptions()));
       formField.put("fieldDefaultValue", formQuestion.getDefaultValue());
+      formField.put("fieldDirective", formQuestion.getDirective());
       // All fields are optional in the web form -- users can skip what they can't answer.
       // Unanswered fields are left blank in the filled PDF.
       formField.put("fieldIsRequired", false);

@@ -59,12 +59,6 @@ public class GetApplicationRegistryService implements Service {
     }
 
     JSONObject json = new JSONObject();
-    json.put("idCategoryType", entry.getIdCategoryType());
-    json.put("usState", entry.getState());
-    json.put("applicationSubtype", entry.getApplicationSubtype());
-    json.put("pidlSubtype", entry.getPidlSubtype() != null ? entry.getPidlSubtype() : "");
-    json.put("amount", entry.getAmount());
-    json.put("numWeeks", entry.getNumWeeks());
     json.put("blankFormId", fileId.toHexString());
 
     this.applicationRegistry = json.toString();

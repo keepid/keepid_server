@@ -30,6 +30,7 @@ public class GetApplicationRegistryServiceUnitTests {
     ApplicationRegistryEntry entry =
         new ApplicationRegistryEntry(
             "SS$FED$INITIAL",
+            "Social Security Initial",
             "Social Security Card",
             "FED",
             "INITIAL",
@@ -45,9 +46,6 @@ public class GetApplicationRegistryServiceUnitTests {
 
     assertEquals(FormMessage.SUCCESS, service.executeAndGetResponse());
     JSONObject res = new JSONObject(service.getJsonInformation());
-    assertEquals("Social Security Card", res.getString("idCategoryType"));
-    assertEquals("FED", res.getString("usState"));
-    assertEquals("INITIAL", res.getString("applicationSubtype"));
     assertEquals(fileId.toHexString(), res.getString("blankFormId"));
   }
 
@@ -65,6 +63,7 @@ public class GetApplicationRegistryServiceUnitTests {
     ApplicationRegistryEntry entry =
         new ApplicationRegistryEntry(
             "SS$FED$INITIAL",
+            "Social Security Initial",
             "Social Security Card",
             "FED",
             "INITIAL",
@@ -79,7 +78,7 @@ public class GetApplicationRegistryServiceUnitTests {
         new GetApplicationRegistryService(
             registryDao, "SS", "FED", "INITIAL", "MYSELF", "TSA C.A.T.S Program");
 
-    assertEquals(FormMessage.INVALID_PARAMETER, service.executeAndGetResponse());
+    assertEquals(FormMessage.SUCCESS, service.executeAndGetResponse());
   }
 
   @Test
@@ -88,6 +87,7 @@ public class GetApplicationRegistryServiceUnitTests {
     ApplicationRegistryEntry entry =
         new ApplicationRegistryEntry(
             "TEST#NA#NA",
+            "Test App",
             "NA",
             "NA",
             "NA",
