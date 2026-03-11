@@ -217,6 +217,7 @@ public class PdfControllerV2 {
           ctx.result(response.toResponseString());
           return;
         }
+        ctx.header("Content-Type", "application/pdf");
         ctx.result(fillPDFServiceV2.getFilledFileStream());
       };
 
@@ -399,6 +400,7 @@ public class PdfControllerV2 {
     private JSONObject formAnswers;
     private InputStream signatureStream;
     private String fileOrgName;
+    private boolean preview;
 
     public FileParams() {}
 
@@ -429,10 +431,15 @@ public class PdfControllerV2 {
       try {
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
         this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+        this.preview = "true".equalsIgnoreCase(ctx.formParam("preview"));
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
       return null;
+    }
+
+    public boolean isPreview() {
+      return preview;
     }
 
     public Message setFileParamsUploadSignedPDF(Context ctx) {

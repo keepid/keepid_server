@@ -11,6 +11,8 @@ import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.InteractiveFormConfig.InteractiveFormConfigDao;
+import Database.InteractiveFormConfig.InteractiveFormConfigDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
 import Database.Organization.OrgDao;
@@ -89,8 +91,11 @@ public class AppConfig {
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
     ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
+    InteractiveFormConfigDao interactiveFormConfigDao =
+        InteractiveFormConfigDaoFactory.create(deploymentLevel);
     FormController formController =
-        new FormController(formDao, fileDao, userDao, encryptionController, registryDao);
+        new FormController(
+            formDao, fileDao, userDao, encryptionController, registryDao, interactiveFormConfigDao);
     FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
@@ -150,6 +155,7 @@ public class AppConfig {
 
     app.post("/get-application-registry", formController.getAppRegistry);
     app.get("/get-available-application-options", formController.getAvailableApplicationOptions);
+    app.post("/get-interactive-form-config", formController.getInteractiveFormConfigClient);
 
     /* -------------- DEVELOPER PORTAL API --------------------- */
     app.before(
@@ -169,6 +175,15 @@ public class AppConfig {
     app.delete("/api/dev/registry/:id", formController.deleteRegistryEntry);
     app.get("/api/dev/file/:fileId/pdf", formController.servePdf);
     app.post("/api/dev/promote", formController.promoteRegistry);
+    app.get(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.getInteractiveFormConfig);
+    app.put(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.upsertInteractiveFormConfig);
+    app.delete(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.deleteInteractiveFormConfig);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);

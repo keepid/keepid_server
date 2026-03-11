@@ -4,6 +4,7 @@ import Config.Message;
 import Database.ApplicationRegistry.ApplicationRegistryDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.InteractiveFormConfig.InteractiveFormConfigDao;
 import Database.User.UserDao;
 import Form.Jobs.GetWeeklyApplicationsJob;
 import Form.Services.CreateApplicationService;
@@ -44,18 +45,21 @@ public class FormController {
   private EncryptionController encryptionController;
   private UserDao userDao;
   private ApplicationRegistryDao registryDao;
+  private InteractiveFormConfigDao interactiveFormConfigDao;
 
   public FormController(
       FormDao formDao,
       FileDao fileDao,
       UserDao userDao,
       EncryptionController encryptionController,
-      ApplicationRegistryDao registryDao) {
+      ApplicationRegistryDao registryDao,
+      InteractiveFormConfigDao interactiveFormConfigDao) {
     this.formDao = formDao;
     this.fileDao = fileDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
     this.registryDao = registryDao;
+    this.interactiveFormConfigDao = interactiveFormConfigDao;
   }
 
   //  public Handler formTest =
@@ -605,6 +609,136 @@ public class FormController {
     }
     return Optional.empty();
   }
+
+  // ── Interactive Form Config endpoints ──────────────────────────────
+
+  public Handler getInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        Optional<InteractiveFormConfig> configOpt =
+            interactiveFormConfigDao.getByFileId(fileId);
+        if (configOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"No interactive form config found\"}");
+          return;
+        }
+        InteractiveFormConfig config = configOpt.get();
+        JSONObject result = new JSONObject();
+        result.put("fileId", fileId.toHexString());
+        result.put("jsonSchema", new JSONObject(config.getJsonSchema()));
+        result.put("uiSchema", new JSONObject(config.getUiSchema()));
+        if (config.getBuilderState() != null) {
+          result.put("builderState", new JSONObject(config.getBuilderState()));
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(result.toString());
+      };
+
+  public Handler upsertInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        JSONObject req = new JSONObject(ctx.body());
+        if (!req.has("jsonSchema") || !req.has("uiSchema")) {
+          ctx.status(400).result("{\"error\":\"jsonSchema and uiSchema are required\"}");
+          return;
+        }
+        String jsonSchema = req.getJSONObject("jsonSchema").toString();
+        String uiSchema = req.getJSONObject("uiSchema").toString();
+        String builderState = req.optJSONObject("builderState") != null ? req.getJSONObject("builderState").toString() : null;
+
+        Optional<InteractiveFormConfig> existingOpt = interactiveFormConfigDao.getByFileId(fileId);
+        if (existingOpt.isPresent()) {
+          InteractiveFormConfig existing = existingOpt.get();
+          existing.setJsonSchema(jsonSchema);
+          existing.setUiSchema(uiSchema);
+          existing.setBuilderState(builderState);
+          interactiveFormConfigDao.update(existing);
+        } else {
+          InteractiveFormConfig config = new InteractiveFormConfig(fileId, jsonSchema, uiSchema, builderState);
+          interactiveFormConfigDao.save(config);
+        }
+
+        // Auto-generate FormQuestion[] and update the associated Form
+        List<FormQuestion> generatedQuestions =
+            InteractiveFormConfigUtils.generateFormQuestions(jsonSchema, uiSchema);
+        Optional<Form> formOpt = formDao.getByFileId(fileId);
+        if (formOpt.isPresent()) {
+          Form form = formOpt.get();
+          FormSection newBody =
+              new FormSection(
+                  form.getBody().getTitle(),
+                  form.getBody().getDescription(),
+                  new LinkedList<>(),
+                  generatedQuestions);
+          form.setBody(newBody);
+          formDao.update(form);
+        }
+
+        ctx.header("Content-Type", "application/json");
+        ctx.result(
+            new JSONObject()
+                .put("status", "saved")
+                .put("fileId", fileId.toHexString())
+                .put("generatedQuestions", generatedQuestions.size())
+                .toString());
+      };
+
+  public Handler deleteInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        interactiveFormConfigDao.deleteByFileId(fileId);
+        ctx.header("Content-Type", "application/json");
+        ctx.result(new JSONObject().put("status", "deleted").toString());
+      };
+
+  public Handler getInteractiveFormConfigClient =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String fileIdStr = req.optString("applicationId", "");
+        if (fileIdStr.isEmpty()) {
+          ctx.status(400).result("{\"error\":\"applicationId is required\"}");
+          return;
+        }
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid applicationId\"}");
+          return;
+        }
+        Optional<InteractiveFormConfig> configOpt =
+            interactiveFormConfigDao.getByFileId(fileId);
+        if (configOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"No interactive form config found\"}");
+          return;
+        }
+        InteractiveFormConfig config = configOpt.get();
+        JSONObject result = new JSONObject();
+        result.put("jsonSchema", new JSONObject(config.getJsonSchema()));
+        result.put("uiSchema", new JSONObject(config.getUiSchema()));
+        ctx.header("Content-Type", "application/json");
+        ctx.result(result.toString());
+      };
 
   private String resolveTitleForRegistryEntry(ApplicationRegistryEntry entry) {
     try {

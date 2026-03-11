@@ -563,6 +563,17 @@ public class GetQuestionsPDFServiceV2 implements Service {
       formFields.add(formField);
     }
     applicationInformation.put("fields", formFields);
+
+    applicationInformation.put(
+        "resolvedProfiles",
+        new JSONObject()
+            .put("client", clientFlattenedFieldMap != null
+                ? new JSONObject(clientFlattenedFieldMap) : new JSONObject())
+            .put("worker", workerFlattenedFieldMap != null
+                ? new JSONObject(workerFlattenedFieldMap) : new JSONObject())
+            .put("org", orgFlattenedFieldMap != null
+                ? new JSONObject(orgFlattenedFieldMap) : new JSONObject()));
+
     return PdfMessage.SUCCESS;
   }
 }

@@ -163,6 +163,8 @@ public class CreateApplicationService implements Service {
       } else {
         List<OrgMapping> mappings = new ArrayList<>();
         mappings.add(new OrgMapping(GLOBAL_ORG_MAPPING, fileId));
+        // Use lookupKey as pidlSubtype so each dev-created app has a unique compound index
+        // (idCategoryType, state, applicationSubtype, pidlSubtype) and we avoid E11000 duplicate key
         ApplicationRegistryEntry entry =
             new ApplicationRegistryEntry(
                 lookupKey,
@@ -170,7 +172,7 @@ public class CreateApplicationService implements Service {
                 "GENERIC",
                 "NA",
                 "STANDARD",
-                null,
+                lookupKey,
                 java.math.BigDecimal.ZERO,
                 1,
                 mappings);
