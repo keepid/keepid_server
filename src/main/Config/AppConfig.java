@@ -150,6 +150,7 @@ public class AppConfig {
     app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
     app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
     app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/upload-completed-pdf-2", pdfControllerV2.uploadCompletedPDF);
     app.post("/get-questions-2", pdfControllerV2.getQuestions);
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 

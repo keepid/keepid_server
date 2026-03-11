@@ -180,6 +180,27 @@ public class PdfControllerV2 {
         ctx.result(uploadSignedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
+  public Handler uploadCompletedPDF =
+      ctx -> {
+        log.info("Starting uploadCompletedPDF handler");
+        UserParams userParams = new UserParams();
+        FileParams fileParams = new FileParams();
+        Message setUserParamsErrorMessage = userParams.setUserParamsFillAndUploadSignedPDF(ctx);
+        if (setUserParamsErrorMessage != null) {
+          ctx.result(setUserParamsErrorMessage.toResponseString());
+          return;
+        }
+        Message setFileParamsErrorMessage = fileParams.setFileParamsUploadCompletedPDF(ctx);
+        if (setFileParamsErrorMessage != null) {
+          ctx.result(setFileParamsErrorMessage.toResponseString());
+          return;
+        }
+        UploadCompletedPDFServiceV2 uploadCompletedPDFServiceV2 =
+            new UploadCompletedPDFServiceV2(
+                fileDao, formDao, activityDao, userParams, fileParams, encryptionController);
+        ctx.result(uploadCompletedPDFServiceV2.executeAndGetResponse().toResponseString());
+      };
+
   public Handler getQuestions =
       ctx -> {
         log.info("Starting getQuestions handler");
@@ -448,6 +469,23 @@ public class PdfControllerV2 {
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
         this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
         this.signatureStream = signature.getContent();
+      } catch (Exception e) {
+        return PdfMessage.INVALID_PARAMETER;
+      }
+      return null;
+    }
+
+    /** For upload-completed-pdf-2: accepts pre-filled+signed PDF, applicationId, formAnswers. */
+    public Message setFileParamsUploadCompletedPDF(Context ctx) {
+      try {
+        UploadedFile file = ctx.uploadedFile("file");
+        if (file == null) {
+          log.info("upload-completed-pdf-2: file is null");
+          return PdfMessage.INVALID_PARAMETER;
+        }
+        this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
+        this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+        this.fileStream = file.getContent();
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }

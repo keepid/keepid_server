@@ -736,6 +736,9 @@ public class FormController {
         JSONObject result = new JSONObject();
         result.put("jsonSchema", new JSONObject(config.getJsonSchema()));
         result.put("uiSchema", new JSONObject(config.getUiSchema()));
+        if (config.getBuilderState() != null && !config.getBuilderState().isBlank()) {
+          result.put("builderState", new JSONObject(config.getBuilderState()));
+        }
         ctx.header("Content-Type", "application/json");
         ctx.result(result.toString());
       };
