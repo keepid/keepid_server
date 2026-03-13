@@ -44,10 +44,12 @@ public class GetQuestionsPDFServiceV2 implements Service {
   private String fileId;
   private JSONObject applicationInformation;
   private Form form;
+  private JSONObject clientProfile;
+  private JSONObject workerProfile;
+  private JSONObject orgProfile;
   private Map<String, String> clientFlattenedFieldMap;
   private Map<String, String> workerFlattenedFieldMap;
   private Map<String, String> orgFlattenedFieldMap;
-  private FormQuestion currentFormQuestion;
 
   /** Alias map: common alternative field names -> canonical flattened map keys. */
   private static final Map<String, String> FIELD_ALIASES = new HashMap<>();
@@ -118,6 +120,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (clientResponse != UserMessage.SUCCESS) {
       return clientResponse;
     }
+    this.clientProfile = cloneJson(clientUserInfoService.getUserFields());
     this.clientFlattenedFieldMap = clientUserInfoService.getFlattenedFieldMap();
 
     String resolvedActorUsername =
@@ -125,17 +128,21 @@ public class GetQuestionsPDFServiceV2 implements Service {
     GetUserInfoService workerUserInfoService = new GetUserInfoService(userDao, resolvedActorUsername);
     Message workerResponse = workerUserInfoService.executeAndGetResponse();
     if (workerResponse == UserMessage.SUCCESS) {
+      this.workerProfile = cloneJson(workerUserInfoService.getUserFields());
       this.workerFlattenedFieldMap = workerUserInfoService.getFlattenedFieldMap();
     } else {
       // Gracefully fallback so worker.* directives still resolve to something predictable.
+      this.workerProfile = cloneJson(this.clientProfile);
       this.workerFlattenedFieldMap = this.clientFlattenedFieldMap;
     }
 
+    this.orgProfile = new JSONObject();
     this.orgFlattenedFieldMap = new HashMap<>();
-    if (organizationName != null && !organizationName.isBlank()) {
+    if (orgDao != null && organizationName != null && !organizationName.isBlank()) {
       Optional<Organization> orgOpt = orgDao.get(organizationName);
       if (orgOpt.isPresent()) {
-        flattenJSON(orgOpt.get().serialize(), "", this.orgFlattenedFieldMap);
+        this.orgProfile = buildCanonicalOrgProfile(orgOpt.get());
+        flattenJSON(this.orgProfile, "", this.orgFlattenedFieldMap);
       }
     }
 
@@ -181,7 +188,6 @@ public class GetQuestionsPDFServiceV2 implements Service {
     }
 
     if (directive == null || directive.isEmpty()) {
-      this.currentFormQuestion = fq;
       return null;
     }
 
@@ -205,7 +211,6 @@ public class GetQuestionsPDFServiceV2 implements Service {
         matchFieldFromFlattenedMap(fq, normalizedDirective, directiveScope);
       }
     }
-    this.currentFormQuestion = fq;
     return null;
   }
 
@@ -499,6 +504,32 @@ public class GetQuestionsPDFServiceV2 implements Service {
     return directiveScope == DirectiveScope.ORG ? ORG_FIELD_ALIASES : FIELD_ALIASES;
   }
 
+  private JSONObject cloneJson(JSONObject json) {
+    return json == null ? new JSONObject() : new JSONObject(json.toString());
+  }
+
+  private JSONObject buildCanonicalOrgProfile(Organization organization) {
+    JSONObject profile = new JSONObject();
+    profile.put("organizationName", organization.getOrgName());
+    profile.put("email", organization.getOrgEmail());
+    profile.put("phoneNumber", organization.getOrgPhoneNumber());
+    profile.put("website", organization.getOrgWebsite());
+    profile.put("ein", organization.getOrgEIN());
+    profile.put("creationDate", organization.getCreationDate());
+
+    JSONObject address = new JSONObject();
+    if (organization.getOrgAddress() != null) {
+      address.put("line1", organization.getOrgAddress().getLine1());
+      address.put("line2", organization.getOrgAddress().getLine2());
+      address.put("city", organization.getOrgAddress().getCity());
+      address.put("state", organization.getOrgAddress().getState());
+      address.put("zip", organization.getOrgAddress().getZip());
+      address.put("county", organization.getOrgAddress().getCounty());
+    }
+    profile.put("address", address);
+    return profile;
+  }
+
   private void flattenJSON(JSONObject json, String prefix, Map<String, String> result) {
     if (json == null) return;
     String[] names = JSONObject.getNames(json);
@@ -567,12 +598,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
     applicationInformation.put(
         "resolvedProfiles",
         new JSONObject()
-            .put("client", clientFlattenedFieldMap != null
-                ? new JSONObject(clientFlattenedFieldMap) : new JSONObject())
-            .put("worker", workerFlattenedFieldMap != null
-                ? new JSONObject(workerFlattenedFieldMap) : new JSONObject())
-            .put("org", orgFlattenedFieldMap != null
-                ? new JSONObject(orgFlattenedFieldMap) : new JSONObject()));
+            .put("client", clientProfile != null ? cloneJson(clientProfile) : new JSONObject())
+            .put("worker", workerProfile != null ? cloneJson(workerProfile) : new JSONObject())
+            .put("org", orgProfile != null ? cloneJson(orgProfile) : new JSONObject()));
 
     return PdfMessage.SUCCESS;
   }

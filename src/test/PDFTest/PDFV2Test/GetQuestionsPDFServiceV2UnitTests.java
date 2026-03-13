@@ -2,6 +2,7 @@ package PDFTest.PDFV2Test;
 
 import static PDFTest.PDFV2Test.PDFTestUtilsV2.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import Config.DeploymentLevel;
@@ -20,6 +21,7 @@ import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import PDF.Services.V2Services.GetQuestionsPDFServiceV2;
 import Security.EncryptionController;
+import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.Address;
 import User.Name;
@@ -48,7 +50,6 @@ public class GetQuestionsPDFServiceV2UnitTests {
   private UserParams developerUserParams;
   private UserParams clientUserParams;
   private FileParams blankFileParams;
-  private JSONObject formAnswers;
   private InputStream sampleAnnotatedFileStream;
   private InputStream sampleBlankFileStream1;
   private InputStream signatureStream;
@@ -95,9 +96,32 @@ public class GetQuestionsPDFServiceV2UnitTests {
               "client1",
               "clientPass123",
               UserType.Developer));
+      this.userDao.save(
+          new User(
+              new Name("workerFirstName", "workerLastName"),
+              "12-12-2012",
+              "worker@keep.id",
+              "2153334444",
+              "org2",
+              new Address("2 Keep Ave", "Keep", "PA", "11111"),
+              false,
+              "worker1",
+              "workerPass123",
+              UserType.Worker));
     } catch (ValidationException e) {
       throw new RuntimeException(e);
     }
+    EntityFactory.createOrganization()
+        .withOrgName("org2")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19107")
+        .withPhoneNumber("1234567890")
+        .withEmail("org@example.com")
+        .withWebsite("https://www.example.org")
+        .withEIN("123456789")
+        .buildAndPersist(orgDao);
     this.developerUserParams =
         new UserParams()
             .setUsername("dev1")
@@ -106,6 +130,7 @@ public class GetQuestionsPDFServiceV2UnitTests {
     this.clientUserParams =
         new UserParams()
             .setUsername("client1")
+            .setActorUsername("worker1")
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Client);
     this.blankFileParams =
@@ -167,5 +192,32 @@ public class GetQuestionsPDFServiceV2UnitTests {
     // checkBox
     assertTrue(fieldNames.contains("topmostSubform[0].Page5[0].hawaiian[0]"));
     assertEquals(70, fields.length());
+  }
+
+  @Test
+  public void getQuestionsReturnsNestedResolvedProfiles() {
+    ObjectId uploadedFileId =
+        uploadBlankSSFormAndGetFileId(
+            fileDao, formDao, userDao, developerUserParams, blankFileParams, encryptionController);
+    FileParams getQuestionsFileParams = new FileParams().setFileId(uploadedFileId.toString());
+    GetQuestionsPDFServiceV2 getService =
+        new GetQuestionsPDFServiceV2(
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
+    Message response = getService.executeAndGetResponse();
+
+    assertEquals(PdfMessage.SUCCESS, response);
+
+    JSONObject resolvedProfiles =
+        getService.getApplicationInformation().getJSONObject("resolvedProfiles");
+    JSONObject clientProfile = resolvedProfiles.getJSONObject("client");
+    JSONObject workerProfile = resolvedProfiles.getJSONObject("worker");
+    JSONObject orgProfile = resolvedProfiles.getJSONObject("org");
+
+    assertEquals("testcFirstName", clientProfile.getJSONObject("currentName").getString("first"));
+    assertFalse(clientProfile.has("currentName.first"));
+    assertEquals("workerFirstName", workerProfile.getJSONObject("currentName").getString("first"));
+    assertEquals("org2", orgProfile.getString("organizationName"));
+    assertEquals("Philadelphia", orgProfile.getJSONObject("address").getString("city"));
+    assertEquals("1234567890", orgProfile.getString("phoneNumber"));
   }
 }

@@ -207,7 +207,12 @@ public class PdfControllerV2 {
         JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
-        userParams.setUserParamsGetApplicationQuestions(ctx, req);
+        Message setUserParamsErrorMessage =
+            userParams.setUserParamsGetApplicationQuestions(ctx, req, userDao);
+        if (setUserParamsErrorMessage != null) {
+          ctx.result(setUserParamsErrorMessage.toResponseString());
+          return;
+        }
         fileParams.setFileParamsGetApplicationQuestions(req);
         GetQuestionsPDFServiceV2 getQuestionsPDFServiceV2 =
             new GetQuestionsPDFServiceV2(formDao, orgDao, userDao, userParams, fileParams);
@@ -309,14 +314,28 @@ public class PdfControllerV2 {
       this.privilegeLevel = UserType.Developer;
     }
 
-    public void setUserParamsGetApplicationQuestions(Context ctx, JSONObject req) {
+    public Message setUserParamsGetApplicationQuestions(Context ctx, JSONObject req, UserDao userDao) {
       String sessionUsername = ctx.sessionAttribute("username");
       this.actorUsername = sessionUsername;
-      String clientUsernameParameter = req.getString("clientUsername");
-      this.username =
-          clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
-      this.organizationName = ctx.sessionAttribute("orgName");
+      String sessionOrgName = ctx.sessionAttribute("orgName");
+      String clientUsernameParameter = req.optString("clientUsername", "");
+      if (clientUsernameParameter.equals("") || clientUsernameParameter.equals(sessionUsername)) {
+        this.username = sessionUsername;
+        this.organizationName = sessionOrgName;
+        return null;
+      }
+      Optional<User> targetUserOptional = getTargetUserFromUsername(clientUsernameParameter, userDao);
+      if (targetUserOptional.isEmpty()) {
+        return UserMessage.USER_NOT_FOUND;
+      }
+      User targetUser = targetUserOptional.get();
+      if (!targetUser.getOrganization().equals(sessionOrgName)) {
+        return UserMessage.CROSS_ORG_ACTION_DENIED;
+      }
+      this.username = targetUser.getUsername();
+      this.organizationName = targetUser.getOrganization();
+      return null;
     }
 
     public Message setUserParamsFromCtxReq(Context ctx, JSONObject req, UserDao userDao) {

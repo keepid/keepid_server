@@ -79,7 +79,17 @@ public class SetMatchedFieldsUnitTests {
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
 
-    EntityFactory.createOrganization().withOrgName("org2").buildAndPersist(orgDao);
+    EntityFactory.createOrganization()
+        .withOrgName("org2")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19107")
+        .withPhoneNumber("1234567890")
+        .withEmail("org@example.com")
+        .withWebsite("https://www.example.org")
+        .withEIN("123456789")
+        .buildAndPersist(orgDao);
 
     User clientUser =
         EntityFactory.createUser()
@@ -384,5 +394,23 @@ public class SetMatchedFieldsUnitTests {
     assertNull(result);
     assertTrue(fq.isMatched());
     assertEquals("org2", fq.getDefaultValue());
+  }
+
+  @Test
+  public void canonicalOrgDirectiveUsesOrgDocument() {
+    FormQuestion fq = makeQuestion("Organization Name:org.organizationName");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("org2", fq.getDefaultValue());
+  }
+
+  @Test
+  public void orgAddressDirectiveUsesCanonicalAddressShape() {
+    FormQuestion fq = makeQuestion("Organization Address:org.address.line1");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("311 Broad Street", fq.getDefaultValue());
   }
 }
