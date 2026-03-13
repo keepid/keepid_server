@@ -11,21 +11,22 @@ public class FormQuestion implements Comparable<FormQuestion> {
   ObjectId id;
   FieldType type;
   String questionName;
+  String directive;
   String text;
   String answerText;
   List<String> options;
   String defaultValue;
   boolean required;
-  int numLines; // how much space does this take up
+  int numLines;
   boolean matched;
   ObjectId conditionalOnField;
-  // true for positive, false for negative/none
   String conditionalType;
 
   public FormQuestion(
       ObjectId id,
       FieldType type,
       String questionName,
+      String directive,
       String questionText,
       String answerText,
       List<String> options,
@@ -38,6 +39,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
     this.id = id;
     this.type = type;
     this.questionName = questionName;
+    this.directive = directive;
     this.text = questionText;
     this.answerText = answerText;
     this.options = options;
@@ -63,6 +65,14 @@ public class FormQuestion implements Comparable<FormQuestion> {
 
   public String getQuestionName() {
     return questionName;
+  }
+
+  public String getDirective() {
+    return directive;
+  }
+
+  public void setDirective(String directive) {
+    this.directive = directive;
   }
 
   public String getQuestionText() {
@@ -130,6 +140,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
         new ObjectId(this.id.toString()),
         FieldType.createFromString(this.type.toString()),
         this.questionName,
+        this.directive,
         this.text,
         this.answerText,
         new ArrayList<>(this.options),
@@ -155,6 +166,7 @@ public class FormQuestion implements Comparable<FormQuestion> {
         .put("_id", id)
         .put("fieldType", type.toString())
         .put("name", questionName)
+        .put("directive", directive)
         .put("question", text)
         .put("answerText", answerText)
         .put("options", options)

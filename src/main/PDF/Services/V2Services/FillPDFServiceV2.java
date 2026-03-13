@@ -7,6 +7,7 @@ import Database.Form.FormDao;
 import File.File;
 import File.FileType;
 import File.IdCategoryType;
+import Form.FieldType;
 import Form.Form;
 import Form.FormMetadata;
 import Form.FormQuestion;
@@ -16,6 +17,7 @@ import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
+import Security.FileStorageCryptoPolicy;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
@@ -46,13 +48,13 @@ public class FillPDFServiceV2 implements Service {
   private InputStream signatureStream;
   private InputStream filledFileStream;
   private File templateFile;
-  private Form templateForm;
   private File filledFile;
   private Form filledForm;
   private FormSection filledFormBody;
   private PDDocument pdfDocument;
   private EncryptionController encryptionController;
   private ByteArrayOutputStream filledFileOutputStream;
+  private boolean preview;
 
   public FillPDFServiceV2(
       FileDao fileDao,
@@ -69,6 +71,7 @@ public class FillPDFServiceV2 implements Service {
     this.formAnswers = fileParams.getFormAnswers();
     this.signatureStream = fileParams.getSignatureStream();
     this.encryptionController = encryptionController;
+    this.preview = fileParams.isPreview();
   }
 
   // FILE STREAM MUST BE CLOSED EXTERNALLY
@@ -103,109 +106,102 @@ public class FillPDFServiceV2 implements Service {
     if (privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
-    if (privilegeLevel == UserType.Developer) {
+    if (privilegeLevel == UserType.Developer && !preview) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
     return null;
   }
 
-  public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
-      throws IOException {
+  /**
+   * Fills PDF fields directly from formAnswers. No Form/templateForm dependency.
+   * Iterates formAnswers keys, looks up each field in the PDF AcroForm, and fills it.
+   * Also builds filledFormBody (FormQuestion records) for the filledForm that gets saved on upload.
+   */
+  public void fillFieldsFromAnswers(PDAcroForm acroForm) throws IOException {
     List<FormQuestion> filledFormBodyQuestions = new LinkedList<>();
-    for (FormQuestion formQuestion : formQuestions) {
-      String fieldName = formQuestion.getQuestionName();
-      if (!formAnswers.has(fieldName)) {
-        continue;
-      }
-      String formAnswerText = String.valueOf(formAnswers.get(fieldName));
+    String sectionTitle = this.templateFile != null ? this.templateFile.getFilename() + " Form" : "Form";
+    String sectionDesc = "";
 
-      // Skip null / empty answers -- leave the PDF field untouched for fields the user didn't fill
-      if (formAnswerText == null || formAnswerText.isEmpty() || formAnswerText.equals("null")) {
-        continue;
-      }
+    for (String key : formAnswers.keySet()) {
+      if ("metadata".equals(key)) continue;
+      String answerText = String.valueOf(formAnswers.get(key));
+      if (answerText == null || answerText.isEmpty() || answerText.equals("null")) continue;
 
-      formQuestion.setAnswerText(formAnswerText);
-      FormQuestion filledFormNewQuestion = formQuestion.copyOfFormQuestion();
-      PDField field = acroForm.getField(formQuestion.getQuestionName());
+      PDField field = acroForm.getField(key);
+      if (field == null) continue;
 
-      // If the field doesn't exist in the PDF, just record the answer and move on
-      if (field == null) {
-        filledFormBodyQuestions.add(filledFormNewQuestion);
-        continue;
-      }
+      FormQuestion record = new FormQuestion(
+          new ObjectId(), FieldType.TEXT_FIELD, key, null,
+          key, "", new ArrayList<>(), "", false, 3, false,
+          new ObjectId(), "NONE");
+      record.setAnswerText(answerText);
 
       try {
-        if (field instanceof PDButton) {
-          if (field instanceof PDCheckBox) {
-            PDCheckBox checkBoxField = (PDCheckBox) field;
-            boolean fieldAnswer = Boolean.parseBoolean(formQuestion.getAnswerText());
-            filledFormNewQuestion.setAnswerText(Boolean.toString(fieldAnswer));
-            if (fieldAnswer) {
-              checkBoxField.check();
-            } else {
-              checkBoxField.unCheck();
-            }
-          } else if (field instanceof PDPushButton) {
-            // Do nothing. Maybe in the future make it clickable
-            continue;
-          } else if (field instanceof PDRadioButton) {
-            PDRadioButton radioButtonField = (PDRadioButton) field;
-            String fieldAnswer = formQuestion.getAnswerText();
-            // Skip invalid radio button values (empty, "Off", or values not in the option set)
-            if (fieldAnswer == null || fieldAnswer.isEmpty() || fieldAnswer.equals("Off")) {
-              continue;
-            }
-            filledFormNewQuestion.setAnswerText(fieldAnswer);
-            radioButtonField.setValue(fieldAnswer);
-          }
-        } else if (field instanceof PDVariableText) {
-          if (field instanceof PDChoice) {
-            if (field instanceof PDListBox) {
-              PDListBox listBoxField = (PDListBox) field;
-              String answerText = formQuestion.getAnswerText();
-              // Skip empty list box values to avoid JSONArray parse errors
-              if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
-                continue;
-              }
-              List<String> values = new LinkedList<>();
-              for (Object value : new JSONArray(answerText)) {
-                String stringValue = (String) value;
-                values.add(stringValue);
-              }
-              filledFormNewQuestion.setAnswerText(values.toString());
-              listBoxField.setValue(values);
-            } else if (field instanceof PDComboBox) {
-              PDComboBox comboBoxField = (PDComboBox) field;
-              String formAnswer = formQuestion.getAnswerText();
-              filledFormNewQuestion.setAnswerText(formAnswer);
-              comboBoxField.setValue(formAnswer);
-            }
-          } else if (field instanceof PDTextField) {
-            String value = formQuestion.getAnswerText();
-            filledFormNewQuestion.setAnswerText(value);
-            field.setValue(value);
-          }
-        } else if (field instanceof PDSignatureField) {
-          // Handled in signPDF
-          continue;
-        }
+        fillPDField(field, answerText, record);
+        filledFormBodyQuestions.add(record);
       } catch (Exception e) {
-        // Log but don't fail the whole fill for a single field
-        log.warn("Failed to set PDF field '{}': {}", fieldName, e.getMessage());
-        continue;
+        log.warn("Failed to set PDF field '{}': {}", key, e.getMessage());
       }
-      filledFormBodyQuestions.add(filledFormNewQuestion);
     }
+
     this.filledFormBody =
-        new FormSection(
-            this.templateForm.getBody().getTitle(),
-            this.templateForm.getBody().getDescription(),
-            new ArrayList<>(),
-            filledFormBodyQuestions);
+        new FormSection(sectionTitle, sectionDesc, new ArrayList<>(), filledFormBodyQuestions);
   }
 
-  public Message mergeFileAndFormQuestions(
-      InputStream templateFileStream, List<FormQuestion> formQuestions) {
+  private void fillPDField(PDField field, String answerText, FormQuestion filledQuestion)
+      throws IOException {
+    if (field instanceof PDButton) {
+      if (field instanceof PDCheckBox) {
+        PDCheckBox checkBoxField = (PDCheckBox) field;
+        boolean fieldAnswer = "true".equalsIgnoreCase(answerText)
+            || "on".equalsIgnoreCase(answerText)
+            || "yes".equalsIgnoreCase(answerText)
+            || "1".equals(answerText);
+        filledQuestion.setAnswerText(Boolean.toString(fieldAnswer));
+        if (fieldAnswer) {
+          checkBoxField.check();
+        } else {
+          checkBoxField.unCheck();
+        }
+      } else if (field instanceof PDPushButton) {
+        // Do nothing
+      } else if (field instanceof PDRadioButton) {
+        PDRadioButton radioButtonField = (PDRadioButton) field;
+        if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
+          return;
+        }
+        filledQuestion.setAnswerText(answerText);
+        radioButtonField.setValue(answerText);
+      }
+    } else if (field instanceof PDVariableText) {
+      if (field instanceof PDChoice) {
+        if (field instanceof PDListBox) {
+          PDListBox listBoxField = (PDListBox) field;
+          if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
+            return;
+          }
+          List<String> values = new LinkedList<>();
+          for (Object value : new JSONArray(answerText)) {
+            String stringValue = (String) value;
+            values.add(stringValue);
+          }
+          filledQuestion.setAnswerText(values.toString());
+          listBoxField.setValue(values);
+        } else if (field instanceof PDComboBox) {
+          PDComboBox comboBoxField = (PDComboBox) field;
+          filledQuestion.setAnswerText(answerText);
+          comboBoxField.setValue(answerText);
+        }
+      } else if (field instanceof PDTextField) {
+        filledQuestion.setAnswerText(answerText);
+        field.setValue(answerText);
+      }
+    } else if (field instanceof PDSignatureField) {
+      // Handled in signPDF
+    }
+  }
+
+  public Message mergeFileAndFormAnswers(InputStream templateFileStream) {
     try {
       this.pdfDocument = Loader.loadPDF(templateFileStream);
     } catch (IOException e) {
@@ -217,7 +213,7 @@ public class FillPDFServiceV2 implements Service {
       return PdfMessage.INVALID_PDF;
     }
     try {
-      setPDFFieldsFromFormQuestions(formQuestions, acroForm);
+      fillFieldsFromAnswers(acroForm);
       if (this.signatureStream != null) {
         signPDF();
       }
@@ -283,7 +279,11 @@ public class FillPDFServiceV2 implements Service {
     InputStream filledFileEncryptedStream;
     try {
       filledFileEncryptedStream =
-          this.encryptionController.encryptFile(this.filledFileStream, this.username);
+          FileStorageCryptoPolicy.prepareForStorage(
+              this.filledFileStream,
+              FileType.APPLICATION_PDF,
+              this.username,
+              this.encryptionController);
     } catch (GeneralSecurityException | IOException e) {
       log.error("Error encrypting filled file for user '{}': {}", this.username, e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
@@ -324,23 +324,6 @@ public class FillPDFServiceV2 implements Service {
     return PdfMessage.SUCCESS;
   }
 
-  public List<FormQuestion> getAllQuestionsFromForm(FormSection formSection) {
-    List<FormQuestion> formQuestions = new LinkedList<FormQuestion>();
-    getAllQuestionsFromFormRecursion(formSection, formQuestions);
-    return formQuestions;
-  }
-
-  public void getAllQuestionsFromFormRecursion(
-      FormSection formSection, List<FormQuestion> formQuestions) {
-    formQuestions.addAll(formSection.getQuestions());
-    if (formSection.getSubsections().size() == 0) {
-      return;
-    }
-    for (FormSection formSubsection : formSection.getSubsections()) {
-      getAllQuestionsFromFormRecursion(formSubsection, formQuestions);
-    }
-  }
-
   public Message fill() {
     ObjectId fileObjectId = new ObjectId(this.fileId);
     Optional<File> templateFileOptional = this.fileDao.get(fileObjectId);
@@ -350,17 +333,19 @@ public class FillPDFServiceV2 implements Service {
     this.templateFile = templateFileOptional.get();
     InputStream templateFileStream;
     try {
-      templateFileStream = this.fileDao.getStream(fileObjectId).get();
+      InputStream storedTemplateStream = this.fileDao.getStream(fileObjectId).get();
+      byte[] templateBytes = storedTemplateStream.readAllBytes();
+      templateFileStream =
+          FileStorageCryptoPolicy.openForRead(
+              templateBytes,
+              this.templateFile.getFileType(),
+              this.templateFile.getUsername(),
+              this.encryptionController);
     } catch (Exception e) {
-      return PdfMessage.NO_SUCH_FILE;
+      log.error("Unable to load/decrypt template file '{}': {}", fileObjectId, e.getMessage(), e);
+      return PdfMessage.SERVER_ERROR;
     }
-    Optional<Form> templateFormOptional = this.formDao.getByFileId(fileObjectId);
-    if (templateFormOptional.isEmpty()) {
-      return PdfMessage.MISSING_FORM;
-    }
-    this.templateForm = templateFormOptional.get();
-    List<FormQuestion> formQuestions = getAllQuestionsFromForm(templateForm.getBody());
-    Message mergeMessage = mergeFileAndFormQuestions(templateFileStream, formQuestions);
+    Message mergeMessage = mergeFileAndFormAnswers(templateFileStream);
     if (mergeMessage != null) {
       return mergeMessage;
     }

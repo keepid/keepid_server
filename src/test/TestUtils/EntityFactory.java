@@ -144,6 +144,7 @@ public class EntityFactory {
               new ObjectId(),
               FieldType.TEXT_FIELD,
               "question",
+              null,
               "question",
               "question answer",
               new ArrayList<>(),

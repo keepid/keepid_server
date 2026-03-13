@@ -2,10 +2,13 @@ package PDFTest.PDFV2Test;
 
 import static org.junit.Assert.assertEquals;
 
+import Config.DeploymentLevel;
 import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
 import Database.User.UserDao;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
@@ -72,16 +75,27 @@ public class PDFTestUtilsV2 {
   }
 
   public static JSONObject getQuestionsSSForm(
-      FormDao formDao, UserDao userDao, UserParams clientUserParams, ObjectId SSFileId) {
+      FormDao formDao,
+      OrgDao orgDao,
+      UserDao userDao,
+      UserParams clientUserParams,
+      ObjectId SSFileId) {
     FileParams getQuestionsFileParams = new FileParams().setFileId(SSFileId.toString());
     GetQuestionsPDFServiceV2 getService =
-        new GetQuestionsPDFServiceV2(formDao, userDao, clientUserParams, getQuestionsFileParams);
+        new GetQuestionsPDFServiceV2(
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
     Message getQuestionsResponse = getService.executeAndGetResponse();
     assertEquals(
         "getQuestionsSSForm failed: " + getQuestionsResponse,
         PdfMessage.SUCCESS,
         getQuestionsResponse);
     return getService.getApplicationInformation();
+  }
+
+  public static JSONObject getQuestionsSSForm(
+      FormDao formDao, UserDao userDao, UserParams clientUserParams, ObjectId SSFileId) {
+    OrgDao orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    return getQuestionsSSForm(formDao, orgDao, userDao, clientUserParams, SSFileId);
   }
 
   public static List<String> getFieldNamesFromFields(JSONArray fields) {
@@ -158,6 +172,7 @@ public class PDFTestUtilsV2 {
       FileDao fileDao,
       FormDao formDao,
       ActivityDao activityDao,
+      OrgDao orgDao,
       UserDao userDao,
       InputStream signatureStream,
       UserParams clientOneUserParams,
@@ -200,7 +215,7 @@ public class PDFTestUtilsV2 {
     uploadBlankTwoService.executeAndGetResponse();
 
     JSONObject formQuestions =
-        getQuestionsSSForm(formDao, userDao, clientOneUserParams, blankOneFileObjectId);
+        getQuestionsSSForm(formDao, orgDao, userDao, clientOneUserParams, blankOneFileObjectId);
     JSONObject formAnswers = getSampleFormAnswersFromSSFormQuestions(formQuestions);
     uploadAnnotatedSSFormAndGetFileId(
         fileDao,
@@ -211,5 +226,37 @@ public class PDFTestUtilsV2 {
         signatureStream,
         formAnswers,
         blankOneFileObjectId);
+  }
+
+  public static void uploadSixTestStreams(
+      FileDao fileDao,
+      FormDao formDao,
+      ActivityDao activityDao,
+      UserDao userDao,
+      InputStream signatureStream,
+      UserParams clientOneUserParams,
+      UserParams developerUserParams,
+      FileParams blankOneFileParams,
+      FileParams blankTwoFileParams,
+      FileParams uploadFileOneFileParams,
+      FileParams uploadFileTwoFileParams,
+      FileParams uploadFileThreeFileParams,
+      EncryptionController encryptionController) {
+    OrgDao orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    uploadSixTestStreams(
+        fileDao,
+        formDao,
+        activityDao,
+        orgDao,
+        userDao,
+        signatureStream,
+        clientOneUserParams,
+        developerUserParams,
+        blankOneFileParams,
+        blankTwoFileParams,
+        uploadFileOneFileParams,
+        uploadFileTwoFileParams,
+        uploadFileThreeFileParams,
+        encryptionController);
   }
 }

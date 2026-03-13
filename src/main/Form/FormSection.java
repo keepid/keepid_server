@@ -123,6 +123,9 @@ public class FormSection implements Comparable<FormSection> {
                 question -> {
                   writer.writeName("questionName");
                   writer.writeString(question.questionName);
+                  writer.writeName("directive");
+                  writer.writeString(
+                      question.getDirective() != null ? question.getDirective() : "");
                   writer.writeName("text");
                   writer.writeString(question.getQuestionText());
                   writer.writeName("answerText");
@@ -176,8 +179,16 @@ public class FormSection implements Comparable<FormSection> {
       for (int i = 0; i < questionsSize; i++) {
         reader.readName();
         String questionName = reader.readString();
-        reader.readName();
-        String text = reader.readString();
+        String nextField = reader.readName();
+        String directive = null;
+        String text;
+        if ("directive".equals(nextField)) {
+          directive = reader.readString();
+          reader.readName();
+          text = reader.readString();
+        } else {
+          text = reader.readString();
+        }
         reader.readName();
         String answerText = reader.readString();
         reader.readName();
@@ -236,11 +247,14 @@ public class FormSection implements Comparable<FormSection> {
           reader.readName();
           options.add(reader.readString());
         }
+        String resolvedDirective =
+            (directive != null && !directive.isEmpty()) ? directive : null;
         FormQuestion q =
             new FormQuestion(
                 id,
                 type,
                 questionName,
+                resolvedDirective,
                 text,
                 answerText,
                 options,

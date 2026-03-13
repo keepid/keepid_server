@@ -79,6 +79,18 @@ public class SetMatchedFieldsUnitTests {
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Developer);
 
+    EntityFactory.createOrganization()
+        .withOrgName("org2")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19107")
+        .withPhoneNumber("1234567890")
+        .withEmail("org@example.com")
+        .withWebsite("https://www.example.org")
+        .withEIN("123456789")
+        .buildAndPersist(orgDao);
+
     User clientUser =
         EntityFactory.createUser()
             .withUsername("matchclient")
@@ -101,11 +113,11 @@ public class SetMatchedFieldsUnitTests {
     User workerUser =
         EntityFactory.createUser()
             .withUsername("worker1")
-            .withFirstName("Wendy")
-            .withLastName("Worker")
+            .withFirstName("Worker")
+            .withLastName("Person")
             .withEmail("worker@example.com")
-            .withPhoneNumber("4445556666")
-            .withAddress("987 Worker St")
+            .withPhoneNumber("2153334444")
+            .withAddress("999 Worker St")
             .withCity("Camden")
             .withState("NJ")
             .withZipcode("08102")
@@ -114,22 +126,10 @@ public class SetMatchedFieldsUnitTests {
             .build();
     userDao.save(workerUser);
 
-    EntityFactory.createOrganization()
-        .withOrgName("org2")
-        .withAddress("311 Broad Street")
-        .withCity("Philadelphia")
-        .withState("PA")
-        .withZipcode("19107")
-        .withPhoneNumber("1234567890")
-        .withEmail("org@example.com")
-        .withWebsite("https://www.example.org")
-        .withEIN("123456789")
-        .buildAndPersist(orgDao);
-
     this.clientUserParams =
         new UserParams()
             .setUsername("matchclient")
-            .setWorkerUsername("worker1")
+            .setActorUsername("worker1")
             .setOrganizationName("org2")
             .setPrivilegeLevel(UserType.Client);
 
@@ -155,7 +155,7 @@ public class SetMatchedFieldsUnitTests {
     FileParams getQuestionsFileParams = new FileParams().setFileId(uploadedFileId.toString());
     this.service =
         new GetQuestionsPDFServiceV2(
-            formDao, userDao, orgDao, clientUserParams, getQuestionsFileParams);
+            formDao, orgDao, userDao, clientUserParams, getQuestionsFileParams);
     Message initResponse = service.executeAndGetResponse();
     assertEquals(PdfMessage.SUCCESS, initResponse);
   }
@@ -164,8 +164,8 @@ public class SetMatchedFieldsUnitTests {
   public void reset() {
     fileDao.clear();
     formDao.clear();
-    orgDao.clear();
     userDao.clear();
+    orgDao.clear();
   }
 
   @AfterAll
@@ -178,6 +178,7 @@ public class SetMatchedFieldsUnitTests {
         new ObjectId(),
         FieldType.TEXT_FIELD,
         questionName,
+        null,
         "",
         "",
         new ArrayList<>(),
@@ -287,56 +288,6 @@ public class SetMatchedFieldsUnitTests {
   }
 
   // =====================================================================
-  // Multi-source directives: org.* and worker.*
-  // =====================================================================
-
-  @Test
-  public void orgPrefixMatchName() {
-    FormQuestion fq = makeQuestion("Agency Name:org.name");
-    Message result = service.setMatchedFields(fq);
-    assertNull(result);
-    assertTrue(fq.isMatched());
-    assertEquals("org2", fq.getDefaultValue());
-  }
-
-  @Test
-  public void orgPrefixMatchAddressAlias() {
-    FormQuestion fq = makeQuestion("Agency Address:org.address");
-    Message result = service.setMatchedFields(fq);
-    assertNull(result);
-    assertTrue(fq.isMatched());
-    assertEquals("311 Broad Street", fq.getDefaultValue());
-  }
-
-  @Test
-  public void workerPrefixMatchCanonicalField() {
-    FormQuestion fq = makeQuestion("Completed By:worker.currentName.first");
-    Message result = service.setMatchedFields(fq);
-    assertNull(result);
-    assertTrue(fq.isMatched());
-    assertEquals("Wendy", fq.getDefaultValue());
-  }
-
-  @Test
-  public void mixedSourceFormUsesClientOrgAndWorkerMaps() {
-    FormQuestion clientField = makeQuestion("Client First Name:currentName.first");
-    FormQuestion orgField = makeQuestion("Agency City:org.address.city");
-    FormQuestion workerField = makeQuestion("Worker Email:worker.email");
-
-    assertNull(service.setMatchedFields(clientField));
-    assertNull(service.setMatchedFields(orgField));
-    assertNull(service.setMatchedFields(workerField));
-
-    assertTrue(clientField.isMatched());
-    assertTrue(orgField.isMatched());
-    assertTrue(workerField.isMatched());
-
-    assertEquals("John", clientField.getDefaultValue());
-    assertEquals("Philadelphia", orgField.getDefaultValue());
-    assertEquals("worker@example.com", workerField.getDefaultValue());
-  }
-
-  // =====================================================================
   // Unmatched field -- graceful degradation (no error)
   // =====================================================================
 
@@ -425,5 +376,41 @@ public class SetMatchedFieldsUnitTests {
     assertNull(result);
     assertFalse("No colon means no matching", fq.isMatched());
     assertEquals("Just a plain question", fq.getQuestionText());
+  }
+
+  @Test
+  public void workerDirectiveUsesWorkerProfile() {
+    FormQuestion fq = makeQuestion("Worker First Name:worker.currentName.first");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("Worker", fq.getDefaultValue());
+  }
+
+  @Test
+  public void orgDirectiveUsesOrgDocument() {
+    FormQuestion fq = makeQuestion("Organization Name:org.name");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("org2", fq.getDefaultValue());
+  }
+
+  @Test
+  public void canonicalOrgDirectiveUsesOrgDocument() {
+    FormQuestion fq = makeQuestion("Organization Name:org.organizationName");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("org2", fq.getDefaultValue());
+  }
+
+  @Test
+  public void orgAddressDirectiveUsesCanonicalAddressShape() {
+    FormQuestion fq = makeQuestion("Organization Address:org.address.line1");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("311 Broad Street", fq.getDefaultValue());
   }
 }
