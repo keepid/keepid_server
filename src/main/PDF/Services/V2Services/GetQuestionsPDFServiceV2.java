@@ -3,18 +3,22 @@ package PDF.Services.V2Services;
 import Config.Message;
 import Config.Service;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import Form.FieldType;
 import Form.Form;
 import Form.FormQuestion;
 import Form.FormSection;
+import Organization.Organization;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
+import User.Address;
 import User.Services.GetUserInfoService;
 import User.UserMessage;
 import User.UserType;
 import Validation.ValidationUtils;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,12 +34,17 @@ import org.json.JSONObject;
 public class GetQuestionsPDFServiceV2 implements Service {
   private FormDao formDao;
   private UserDao userDao;
-  private String username;
+  private OrgDao orgDao;
+  private String clientUsername;
+  private String workerUsername;
+  private String orgName;
   private UserType privilegeLevel;
   private String fileId;
   private JSONObject applicationInformation;
   private Form form;
-  private Map<String, String> flattenedFieldMap;
+  private Map<String, String> clientFieldMap;
+  private Map<String, String> workerFieldMap;
+  private Map<String, String> orgFieldMap;
   private FormQuestion currentFormQuestion;
 
   /** Alias map: common alternative field names -> canonical flattened map keys. */
@@ -58,12 +67,23 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
   public GetQuestionsPDFServiceV2(
       FormDao formDao, UserDao userDao, UserParams userParams, FileParams fileParams) {
+    this(formDao, userDao, null, userParams, fileParams);
+  }
+
+  public GetQuestionsPDFServiceV2(
+      FormDao formDao, UserDao userDao, OrgDao orgDao, UserParams userParams, FileParams fileParams) {
     this.formDao = formDao;
     this.userDao = userDao;
-    this.username = userParams.getUsername();
+    this.orgDao = orgDao;
+    this.clientUsername = userParams.getUsername();
+    this.workerUsername = userParams.getWorkerUsername();
+    this.orgName = userParams.getOrganizationName();
     this.privilegeLevel = userParams.getPrivilegeLevel();
     this.fileId = fileParams.getFileId();
     this.applicationInformation = new JSONObject();
+    this.clientFieldMap = new HashMap<>();
+    this.workerFieldMap = new HashMap<>();
+    this.orgFieldMap = new HashMap<>();
   }
 
   public JSONObject getApplicationInformation() {
@@ -76,12 +96,34 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (getQuestionsConditionsErrorMessage != null) {
       return getQuestionsConditionsErrorMessage;
     }
-    GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, username);
+    GetUserInfoService getUserInfoService = new GetUserInfoService(userDao, clientUsername);
     Message getUserInfoServiceResponse = getUserInfoService.executeAndGetResponse();
     if (getUserInfoServiceResponse != UserMessage.SUCCESS) {
       return getUserInfoServiceResponse;
     }
-    this.flattenedFieldMap = getUserInfoService.getFlattenedFieldMap();
+    this.clientFieldMap = getUserInfoService.getFlattenedFieldMap();
+
+    if (workerUsername == null || workerUsername.isBlank() || workerUsername.equals(clientUsername)) {
+      this.workerFieldMap = this.clientFieldMap;
+    } else {
+      GetUserInfoService workerInfoService = new GetUserInfoService(userDao, workerUsername);
+      Message workerInfoResponse = workerInfoService.executeAndGetResponse();
+      if (workerInfoResponse == UserMessage.SUCCESS) {
+        this.workerFieldMap = workerInfoService.getFlattenedFieldMap();
+      } else {
+        log.warn(
+            "Could not load worker profile '{}' for getQuestions; leaving worker.* unmatched",
+            workerUsername);
+        this.workerFieldMap = new HashMap<>();
+      }
+    }
+
+    this.orgFieldMap = new HashMap<>();
+    if (orgDao != null && orgName != null && !orgName.isBlank()) {
+      Optional<Organization> orgOptional = orgDao.get(orgName);
+      orgOptional.ifPresent(organization -> this.orgFieldMap = flattenOrganization(organization));
+    }
+
     return getQuestions();
   }
 
@@ -183,24 +225,48 @@ public class GetQuestionsPDFServiceV2 implements Service {
    * (graceful degradation -- never errors).
    */
   private void matchFieldFromFlattenedMap(FormQuestion fq, String directive) {
-    if (this.flattenedFieldMap == null) {
-      log.warn("Flattened field map is null; cannot match directive '{}'", directive);
-      return;
+    String source = "client";
+    String field = directive;
+
+    int dotIndex = directive.indexOf('.');
+    if (dotIndex > 0) {
+      String prefix = directive.substring(0, dotIndex);
+      if (prefix.equals("client") || prefix.equals("worker") || prefix.equals("org")) {
+        source = prefix;
+        field = directive.substring(dotIndex + 1);
+      }
+    }
+
+    Map<String, String> targetMap;
+    switch (source) {
+      case "worker":
+        targetMap = this.workerFieldMap;
+        break;
+      case "org":
+        targetMap = this.orgFieldMap;
+        break;
+      default:
+        targetMap = this.clientFieldMap;
+        break;
+    }
+
+    if (targetMap == null) {
+      targetMap = Collections.emptyMap();
     }
 
     // 1. Exact key match
-    String value = this.flattenedFieldMap.get(directive);
+    String value = targetMap.get(field);
 
     // 2. Alias lookup
-    if (value == null && FIELD_ALIASES.containsKey(directive)) {
-      String aliasedKey = FIELD_ALIASES.get(directive);
-      value = this.flattenedFieldMap.get(aliasedKey);
+    if (value == null && FIELD_ALIASES.containsKey(field)) {
+      String aliasedKey = FIELD_ALIASES.get(field);
+      value = targetMap.get(aliasedKey);
     }
 
     // 3. Case-insensitive full-key match
     if (value == null) {
-      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
-        if (entry.getKey().equalsIgnoreCase(directive)) {
+      for (Map.Entry<String, String> entry : targetMap.entrySet()) {
+        if (entry.getKey().equalsIgnoreCase(field)) {
           value = entry.getValue();
           break;
         }
@@ -209,11 +275,11 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
     // 4. Case-insensitive leaf-key match (e.g. "firstname" matches "optionalInformation.person.firstName")
     if (value == null) {
-      for (Map.Entry<String, String> entry : this.flattenedFieldMap.entrySet()) {
+      for (Map.Entry<String, String> entry : targetMap.entrySet()) {
         String key = entry.getKey();
         int lastDot = key.lastIndexOf('.');
         String leafKey = lastDot >= 0 ? key.substring(lastDot + 1) : key;
-        if (leafKey.equalsIgnoreCase(directive)) {
+        if (leafKey.equalsIgnoreCase(field)) {
           value = entry.getValue();
           break;
         }
@@ -225,12 +291,61 @@ public class GetQuestionsPDFServiceV2 implements Service {
       fq.setDefaultValue(value);
     } else {
       log.debug(
-          "Field directive '{}' not found in user profile for user '{}'; skipping autofill",
+          "Field directive '{}' not found in source '{}' for client '{}' / worker '{}' / org '{}'; skipping autofill",
           directive,
-          this.username);
+          source,
+          this.clientUsername,
+          this.workerUsername,
+          this.orgName);
       fq.setMatched(false);
       fq.setDefaultValue("");
     }
+  }
+
+  private Map<String, String> flattenOrganization(Organization org) {
+    Map<String, String> map = new HashMap<>();
+    if (org.getOrgName() != null) {
+      map.put("name", org.getOrgName());
+    }
+    if (org.getOrgPhoneNumber() != null) {
+      map.put("phone", org.getOrgPhoneNumber());
+    }
+    if (org.getOrgEmail() != null) {
+      map.put("email", org.getOrgEmail());
+    }
+    if (org.getOrgWebsite() != null) {
+      map.put("website", org.getOrgWebsite());
+    }
+    if (org.getOrgEIN() != null) {
+      map.put("ein", org.getOrgEIN());
+    }
+
+    Address addr = org.getOrgAddress();
+    if (addr != null) {
+      if (addr.getLine1() != null) {
+        map.put("address.line1", addr.getLine1());
+        map.put("address", addr.getLine1());
+      }
+      if (addr.getLine2() != null) {
+        map.put("address.line2", addr.getLine2());
+      }
+      if (addr.getCity() != null) {
+        map.put("address.city", addr.getCity());
+        map.put("city", addr.getCity());
+      }
+      if (addr.getState() != null) {
+        map.put("address.state", addr.getState());
+        map.put("state", addr.getState());
+      }
+      if (addr.getZip() != null) {
+        map.put("address.zip", addr.getZip());
+        map.put("zip", addr.getZip());
+      }
+      if (addr.getCounty() != null) {
+        map.put("address.county", addr.getCounty());
+      }
+    }
+    return map;
   }
 
   public Message getQuestions() {
