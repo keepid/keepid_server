@@ -14,10 +14,8 @@ import File.FileType;
 import File.IdCategoryType;
 import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
-import Security.EmailExceptions;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
-import Security.EmailUtil;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -356,13 +354,6 @@ public class UserController {
     if (createResponse != ENROLL_SUCCESS) {
       ctx.result(createResponse.toJSON().toString());
       return;
-    }
-
-    try {
-      String welcomeEmail = EmailUtil.getEnrollmentWelcomeEmail(firstName);
-      emailSender.sendEmail("Keep Id", email, "Welcome to Keep.id", welcomeEmail);
-    } catch (EmailExceptions e) {
-      log.warn("User enrolled but welcome email failed to send to {}: {}", email, e.getMessage());
     }
 
     ctx.result(ENROLL_SUCCESS.toJSON().toString());
