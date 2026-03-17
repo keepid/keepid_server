@@ -51,32 +51,27 @@ public class ChangeAccountSettingsIntegrationTests {
     User user = userDao.get(username).orElseThrow();
     switch (attribute) {
       case "firstName":
-        String currentFirstName = user.getFirstName();
-        return (currentFirstName.equals(possibleValue));
+        return user.getFirstName() != null && user.getFirstName().equals(possibleValue);
       case "lastName":
-        String currentLastName = user.getLastName();
-        return (currentLastName.equals(possibleValue));
+        return user.getLastName() != null && user.getLastName().equals(possibleValue);
       case "birthDate":
-        String currentBirthDate = user.getBirthDate();
-        return (currentBirthDate.equals(possibleValue));
+        return user.getBirthDate() != null && user.getBirthDate().equals(possibleValue);
       case "phone":
-        String currentPhone = user.getPhone();
-        return (currentPhone.equals(possibleValue));
+        return user.getPhone() != null && user.getPhone().equals(possibleValue);
       case "email":
-        String currentEmail = user.getEmail();
-        return (currentEmail.equals(possibleValue));
+        return user.getEmail() != null && user.getEmail().equals(possibleValue);
       case "address":
-        String currentAddress = user.getAddress();
-        return (currentAddress.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getLine1() != null
+            && user.getPersonalAddress().getLine1().equals(possibleValue);
       case "city":
-        String currentCity = user.getCity();
-        return (currentCity.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getCity() != null
+            && user.getPersonalAddress().getCity().equals(possibleValue);
       case "state":
-        String currentState = user.getState();
-        return (currentState.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getState() != null
+            && user.getPersonalAddress().getState().equals(possibleValue);
       case "zipcode":
-        String currentZipcode = user.getZipcode();
-        return (currentZipcode.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getZip() != null
+            && user.getPersonalAddress().getZip().equals(possibleValue);
       default:
         return false;
     }

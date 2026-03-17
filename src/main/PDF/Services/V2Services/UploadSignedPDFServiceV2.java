@@ -6,21 +6,27 @@ import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.User.UserDao;
 import File.File;
 import Form.Form;
 import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
+import User.Services.UpdateProfileFromFormService;
+import User.UserMessage;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.InputStream;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
+@Slf4j
 public class UploadSignedPDFServiceV2 implements Service {
   private FileDao fileDao;
   private FormDao formDao;
+  private UserDao userDao;
   ActivityDao activityDao;
   private String username;
   private String organizationName;
@@ -41,9 +47,21 @@ public class UploadSignedPDFServiceV2 implements Service {
       UserParams userParams,
       FileParams fileParams,
       EncryptionController encryptionController) {
+    this(fileDao, formDao, activityDao, null, userParams, fileParams, encryptionController);
+  }
+
+  public UploadSignedPDFServiceV2(
+      FileDao fileDao,
+      FormDao formDao,
+      ActivityDao activityDao,
+      UserDao userDao,
+      UserParams userParams,
+      FileParams fileParams,
+      EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.activityDao = activityDao;
+    this.userDao = userDao;
     this.userParams = userParams;
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
@@ -98,8 +116,26 @@ public class UploadSignedPDFServiceV2 implements Service {
   public Message upload() {
     this.fileDao.save(this.filledFile);
     this.formDao.save(this.filledForm);
+    updateClientProfileFromFormAnswers();
     recordSubmitApplicationActivity();
     return PdfMessage.SUCCESS;
+  }
+
+  private void updateClientProfileFromFormAnswers() {
+    if (this.userDao == null) {
+      return;
+    }
+    UpdateProfileFromFormService updateProfileFromFormService =
+        new UpdateProfileFromFormService(this.userDao, this.username, this.formAnswers);
+    Message updateResponse = updateProfileFromFormService.executeAndGetResponse();
+    if (updateResponse != UserMessage.SUCCESS) {
+      // Do not block application submission on profile backfill errors.
+      // Profile update is a best-effort post-submit enhancement.
+      log.warn(
+          "UpdateProfileFromFormService failed for user '{}': {}",
+          this.username,
+          updateResponse);
+    }
   }
 
   private void recordSubmitApplicationActivity() {

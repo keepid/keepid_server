@@ -1,37 +1,65 @@
 package Form;
 
 import Config.Message;
+import Database.ApplicationRegistry.ApplicationRegistryDao;
+import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.InteractiveFormConfig.InteractiveFormConfigDao;
 import Database.User.UserDao;
 import Form.Jobs.GetWeeklyApplicationsJob;
+import Form.Services.CreateApplicationService;
 import Form.Services.DeleteFormService;
 import Form.Services.GetApplicationRegistryService;
 import Form.Services.GetFormService;
 import Form.Services.ManuallyUploadFormService;
+import Form.Services.PromoteRegistryService;
 import Form.Services.UploadFormService;
+import PDF.Services.V2Services.ParsePDFFieldsService;
 import Security.EncryptionController;
-import User.Services.GetUserInfoService;
+import Security.FileStorageCryptoPolicy;
 import User.User;
 import User.UserMessage;
 import User.UserType;
 import io.javalin.http.Handler;
+import io.javalin.http.UploadedFile;
+import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 @Slf4j
 public class FormController {
   private FormDao formDao;
+  private FileDao fileDao;
   private EncryptionController encryptionController;
   private UserDao userDao;
+  private ApplicationRegistryDao registryDao;
+  private InteractiveFormConfigDao interactiveFormConfigDao;
 
   public FormController(
-      FormDao formDao, UserDao userDao, EncryptionController encryptionController) {
+      FormDao formDao,
+      FileDao fileDao,
+      UserDao userDao,
+      EncryptionController encryptionController,
+      ApplicationRegistryDao registryDao,
+      InteractiveFormConfigDao interactiveFormConfigDao) {
     this.formDao = formDao;
+    this.fileDao = fileDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
+    this.registryDao = registryDao;
+    this.interactiveFormConfigDao = interactiveFormConfigDao;
   }
 
   //  public Handler formTest =
@@ -57,8 +85,6 @@ public class FormController {
         UserType userType;
         JSONObject req = new JSONObject(ctx.body());
         Optional<User> targetUser = userCheck(ctx.body());
-        Optional<User> maybeTargetUser =
-            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
         if (targetUser.isEmpty() && req.has("targetUser")) {
           ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
         } else {
@@ -207,21 +233,372 @@ public class FormController {
         String state = req.getString("state");
         String situation = req.getString("situation");
         String person = req.getString("person");
-        String org = req.getString("org");
-        GetApplicationRegistryService getAppRegService = new GetApplicationRegistryService(type, state,
-                situation, person, org);
+        String org = ctx.sessionAttribute("orgName");
+        if (org == null || org.isBlank()) {
+          org = req.optString("org", "");
+        }
+        GetApplicationRegistryService getAppRegService =
+            new GetApplicationRegistryService(registryDao, type, state, situation, person, org);
         Message res = getAppRegService.executeAndGetResponse();
         if (res == FormMessage.SUCCESS) {
-            ctx.result(getAppRegService.getJsonInformation());
+          ctx.result(getAppRegService.getJsonInformation());
         } else {
-            ctx.result(res.toResponseString());
+          ctx.result(res.toResponseString());
         }
+      };
+
+  public Handler getAvailableApplicationOptions =
+      ctx -> {
+        JSONArray arr = new JSONArray();
+        for (ApplicationRegistryEntry entry : registryDao.getAll()) {
+          if (entry.getLookupKey() == null || entry.getLookupKey().isBlank()) {
+            continue;
+          }
+          String[] parts = entry.getLookupKey().split("\\$", 3);
+          boolean canQuickStart = parts.length >= 3;
+          String type = canQuickStart ? parts[0] : "";
+          String state = canQuickStart ? parts[1] : "";
+          String situation = canQuickStart ? parts[2] : "";
+          arr.put(
+              new JSONObject()
+                  .put("type", type)
+                  .put("state", state)
+                  .put("situation", situation)
+                  .put("canQuickStart", canQuickStart)
+                  .put("lookupKey", entry.getLookupKey()));
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(arr.toString());
+      };
+
+  public Handler listRegistry =
+      ctx -> {
+        List<ApplicationRegistryEntry> entries = registryDao.getAll();
+        JSONArray arr = new JSONArray();
+        for (ApplicationRegistryEntry entry : entries) {
+          JSONObject obj = new JSONObject();
+          obj.put("id", entry.getId().toHexString());
+          obj.put("lookupKey", entry.getLookupKey());
+          obj.put("title", resolveTitleForRegistryEntry(entry));
+          arr.put(obj);
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(arr.toString());
+      };
+
+  public Handler listOrgsForDev =
+      ctx -> {
+        HashSet<String> uniqueNames = new HashSet<>();
+        JSONArray orgs = new JSONArray();
+        for (User user : userDao.getAll()) {
+          String orgName = user.getOrganization();
+          if (orgName == null || orgName.isBlank() || uniqueNames.contains(orgName)) {
+            continue;
+          }
+          uniqueNames.add(orgName);
+          orgs.put(orgName);
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(orgs.toString());
+      };
+
+  public Handler upsertOrgMapping =
+      ctx -> {
+        String id = ctx.pathParam("id");
+        JSONObject req = new JSONObject(ctx.body());
+        String orgName = req.optString("orgName", "").strip();
+        String fileId = req.optString("fileId", "").strip();
+        if (orgName.isEmpty() || fileId.isEmpty()) {
+          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        ObjectId registryId;
+        ObjectId targetFileId;
+        try {
+          registryId = new ObjectId(id);
+          targetFileId = new ObjectId(fileId);
+        } catch (Exception e) {
+          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        if (registryDao.get(registryId).isEmpty() || fileDao.get(targetFileId).isEmpty()) {
+          ctx.status(404).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        // Replace any existing mapping for this org with the new file target.
+        registryDao.removeOrgMapping(registryId, orgName);
+        registryDao.addOrgMapping(registryId, new ApplicationRegistryEntry.OrgMapping(orgName, targetFileId));
+        ctx.header("Content-Type", "application/json");
+        ctx.result(
+            new JSONObject()
+                .put("status", "updated")
+                .put("registryId", registryId.toHexString())
+                .put("orgName", orgName)
+                .put("fileId", targetFileId.toHexString())
+                .toString());
+      };
+
+  public Handler deleteOrgMapping =
+      ctx -> {
+        String id = ctx.pathParam("id");
+        String rawOrgName = ctx.pathParam("orgName");
+        String orgName = URLDecoder.decode(rawOrgName, StandardCharsets.UTF_8);
+        if (orgName.isBlank()) {
+          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        ObjectId registryId;
+        try {
+          registryId = new ObjectId(id);
+        } catch (Exception e) {
+          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        if (registryDao.get(registryId).isEmpty()) {
+          ctx.status(404).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+        registryDao.removeOrgMapping(registryId, orgName);
+        ctx.header("Content-Type", "application/json");
+        ctx.result(
+            new JSONObject()
+                .put("status", "removed")
+                .put("registryId", registryId.toHexString())
+                .put("orgName", orgName)
+                .toString());
+      };
+
+  public Handler deleteRegistryEntry =
+      ctx -> {
+        String id = ctx.pathParam("id");
+        registryDao.delete(new ObjectId(id));
+        ctx.result(new JSONObject().put("status", "deleted").toString());
+      };
+
+  public Handler createApplication =
+      ctx -> {
+        UploadedFile uploadedFile = ctx.uploadedFile("file");
+        if (uploadedFile == null) {
+          ctx.status(400).result(FormMessage.INVALID_FORM.toResponseString());
+          return;
+        }
+        String fieldMappingsStr = ctx.formParam("fieldMappings");
+        String registryMetadataStr = ctx.formParam("registryMetadata");
+        if (fieldMappingsStr == null || registryMetadataStr == null) {
+          ctx.status(400).result(FormMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+        String username = ctx.sessionAttribute("username");
+        CreateApplicationService service =
+            new CreateApplicationService(
+                fileDao,
+                formDao,
+                registryDao,
+                encryptionController,
+                username,
+                "*",
+                uploadedFile.getFilename(),
+                uploadedFile.getContent(),
+                new JSONArray(fieldMappingsStr),
+                new JSONObject(registryMetadataStr));
+        Message res = service.executeAndGetResponse();
+        if (res == FormMessage.SUCCESS) {
+          ctx.header("Content-Type", "application/json");
+          ctx.result(service.getResult().toString());
+        } else {
+          ctx.status(500).result(service.getResult().toString());
+        }
+      };
+
+  public Handler promoteRegistry =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String registryId = req.getString("registryId");
+        PromoteRegistryService service =
+            new PromoteRegistryService(registryDao, fileDao, formDao, new ObjectId(registryId));
+        Message res = service.executeAndGetResponse();
+        if (res == FormMessage.SUCCESS) {
+          ctx.header("Content-Type", "application/json");
+          ctx.result(service.getResult().toString());
+        } else {
+          ctx.status(500).result(service.getResult().toString());
+        }
+      };
+
+  public Handler getRegistryDetail =
+      ctx -> {
+        String id = ctx.pathParam("id");
+        Optional<ApplicationRegistryEntry> entryOpt = registryDao.get(new ObjectId(id));
+        if (entryOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"Registry entry not found\"}");
+          return;
+        }
+        ApplicationRegistryEntry entry = entryOpt.get();
+
+        JSONObject registryJson = new JSONObject();
+        registryJson.put("id", entry.getId().toHexString());
+        registryJson.put("lookupKey", entry.getLookupKey());
+        registryJson.put("title", resolveTitleForRegistryEntry(entry));
+
+        String fileIdHex = null;
+        JSONArray fieldsArr = new JSONArray();
+        ObjectId fileId = entry.getFileIdForOrg(null);
+        if (fileId != null) {
+          fileIdHex = fileId.toHexString();
+          Optional<Form> formOpt = formDao.getByFileId(fileId);
+          if (formOpt.isPresent()) {
+            Form form = formOpt.get();
+            for (FormQuestion q : form.getBody().getQuestions()) {
+              JSONObject fObj = new JSONObject();
+              fObj.put("fieldName", q.getQuestionName());
+              fObj.put("displayLabel", q.getQuestionText());
+              fObj.put("directive", q.getDirective());
+              fObj.put("fieldType", q.getType().toString());
+              fObj.put("required", q.isRequired());
+              fieldsArr.put(fObj);
+            }
+          }
+
+          // Parse the stored PDF to get bounding-box data for the field overlays
+          try {
+            Optional<File.File> fileObj = fileDao.get(fileId);
+            Optional<InputStream> pdfStream = fileDao.getStream(fileId);
+            if (fileObj.isPresent() && pdfStream.isPresent()) {
+              File.File file = fileObj.get();
+              byte[] fileBytes = pdfStream.get().readAllBytes();
+              InputStream readablePdfStream =
+                  FileStorageCryptoPolicy.openForRead(
+                      fileBytes, file.getFileType(), file.getUsername(), encryptionController);
+              ParsePDFFieldsService parser = new ParsePDFFieldsService(readablePdfStream);
+              if (parser.execute()) {
+                Map<String, JSONObject> rectMap = new HashMap<>();
+                JSONArray parsed = parser.getExtractedFields();
+                for (int i = 0; i < parsed.length(); i++) {
+                  JSONObject p = parsed.getJSONObject(i);
+                  rectMap.put(p.getString("fieldName"), p);
+                }
+                for (int i = 0; i < fieldsArr.length(); i++) {
+                  JSONObject fObj = fieldsArr.getJSONObject(i);
+                  JSONObject pdfField = rectMap.get(fObj.getString("fieldName"));
+                  if (pdfField != null) {
+                    fObj.put("page", pdfField.optInt("page", 0));
+                    if (pdfField.has("rect")) {
+                      fObj.put("rect", pdfField.getJSONArray("rect"));
+                    }
+                    if (pdfField.has("widgetRects")) {
+                      fObj.put("widgetRects", pdfField.getJSONArray("widgetRects"));
+                    }
+                  }
+                }
+              }
+            }
+          } catch (Exception e) {
+            log.warn("Could not parse PDF for rect data in detail endpoint", e);
+          }
+        }
+
+        JSONObject result = new JSONObject();
+        result.put("registry", registryJson);
+        result.put("fileId", fileIdHex);
+        result.put("fields", fieldsArr);
+        ctx.header("Content-Type", "application/json");
+        ctx.result(result.toString());
+      };
+
+  public Handler servePdf =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId = new ObjectId(fileIdStr);
+        Optional<File.File> fileOpt = fileDao.get(fileId);
+        if (fileOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"File not found\"}");
+          return;
+        }
+        File.File file = fileOpt.get();
+        Optional<InputStream> streamOpt = fileDao.getStream(fileId);
+        if (streamOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"File stream not found\"}");
+          return;
+        }
+        byte[] fileBytes = streamOpt.get().readAllBytes();
+        try {
+          InputStream decrypted =
+              FileStorageCryptoPolicy.openForRead(
+                  fileBytes, file.getFileType(), file.getUsername(), encryptionController);
+          ctx.header("Content-Type", "application/pdf");
+          ctx.result(decrypted);
+        } catch (Exception e) {
+          ctx.status(500).result("{\"error\":\"Failed to open PDF\"}");
+        }
+      };
+
+  public Handler updateApplication =
+      ctx -> {
+        String id = ctx.pathParam("id");
+        JSONObject req = new JSONObject(ctx.body());
+
+        Optional<ApplicationRegistryEntry> entryOpt = registryDao.get(new ObjectId(id));
+        if (entryOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"Registry entry not found\"}");
+          return;
+        }
+        ApplicationRegistryEntry entry = entryOpt.get();
+
+        if (req.has("registryMetadata")) {
+          JSONObject meta = req.getJSONObject("registryMetadata");
+          if (meta.has("lookupKey")) entry.setLookupKey(meta.getString("lookupKey"));
+          if (meta.has("title")) entry.setTitle(meta.optString("title", ""));
+          registryDao.update(entry);
+        }
+
+        if (req.has("fieldMappings") && entry.getOrgMappings() != null && !entry.getOrgMappings().isEmpty()) {
+          ObjectId fileId = entry.getOrgMappings().get(0).getFileId();
+          Optional<Form> formOpt = formDao.getByFileId(fileId);
+          if (formOpt.isPresent()) {
+            Form form = formOpt.get();
+            JSONArray mappings = req.getJSONArray("fieldMappings");
+            List<FormQuestion> questions = new ArrayList<>();
+            for (int i = 0; i < mappings.length(); i++) {
+              JSONObject m = mappings.getJSONObject(i);
+              FormQuestion q =
+                  new FormQuestion(
+                      new ObjectId(),
+                      FieldType.createFromString(m.optString("fieldType", "textField")),
+                      m.getString("fieldName"),
+                      m.optString("directive", null),
+                      m.optString("displayLabel", m.getString("fieldName")),
+                      "",
+                      new ArrayList<>(),
+                      "",
+                      m.optBoolean("required", false),
+                      3,
+                      false,
+                      new ObjectId(),
+                      "NONE");
+              questions.add(q);
+            }
+            FormSection newBody =
+                new FormSection(
+                    form.getBody().getTitle(),
+                    form.getBody().getDescription(),
+                    new LinkedList<>(),
+                    questions);
+            form.setBody(newBody);
+            formDao.update(form);
+          }
+        }
+
+        ctx.header("Content-Type", "application/json");
+        ctx.result(new JSONObject().put("status", "updated").toString());
       };
 
   public Optional<User> userCheck(String req) {
     log.info("userCheck Helper started");
-    String username;
-    User user = null;
     try {
       JSONObject reqJson = new JSONObject(req);
       if (reqJson.has("targetUser")) {
@@ -231,5 +608,156 @@ public class FormController {
       System.out.println(e);
     }
     return Optional.empty();
+  }
+
+  // ── Interactive Form Config endpoints ──────────────────────────────
+
+  public Handler getInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        Optional<InteractiveFormConfig> configOpt =
+            interactiveFormConfigDao.getByFileId(fileId);
+        if (configOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"No interactive form config found\"}");
+          return;
+        }
+        InteractiveFormConfig config = configOpt.get();
+        JSONObject result = new JSONObject();
+        result.put("fileId", fileId.toHexString());
+        result.put("jsonSchema", new JSONObject(config.getJsonSchema()));
+        result.put("uiSchema", new JSONObject(config.getUiSchema()));
+        if (config.getBuilderState() != null) {
+          result.put("builderState", new JSONObject(config.getBuilderState()));
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(result.toString());
+      };
+
+  public Handler upsertInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        JSONObject req = new JSONObject(ctx.body());
+        if (!req.has("jsonSchema") || !req.has("uiSchema")) {
+          ctx.status(400).result("{\"error\":\"jsonSchema and uiSchema are required\"}");
+          return;
+        }
+        String jsonSchema = req.getJSONObject("jsonSchema").toString();
+        String uiSchema = req.getJSONObject("uiSchema").toString();
+        String builderState = req.optJSONObject("builderState") != null ? req.getJSONObject("builderState").toString() : null;
+
+        Optional<InteractiveFormConfig> existingOpt = interactiveFormConfigDao.getByFileId(fileId);
+        if (existingOpt.isPresent()) {
+          InteractiveFormConfig existing = existingOpt.get();
+          existing.setJsonSchema(jsonSchema);
+          existing.setUiSchema(uiSchema);
+          existing.setBuilderState(builderState);
+          interactiveFormConfigDao.update(existing);
+        } else {
+          InteractiveFormConfig config = new InteractiveFormConfig(fileId, jsonSchema, uiSchema, builderState);
+          interactiveFormConfigDao.save(config);
+        }
+
+        // Auto-generate FormQuestion[] and update the associated Form
+        List<FormQuestion> generatedQuestions =
+            InteractiveFormConfigUtils.generateFormQuestions(jsonSchema, uiSchema);
+        Optional<Form> formOpt = formDao.getByFileId(fileId);
+        if (formOpt.isPresent()) {
+          Form form = formOpt.get();
+          FormSection newBody =
+              new FormSection(
+                  form.getBody().getTitle(),
+                  form.getBody().getDescription(),
+                  new LinkedList<>(),
+                  generatedQuestions);
+          form.setBody(newBody);
+          formDao.update(form);
+        }
+
+        ctx.header("Content-Type", "application/json");
+        ctx.result(
+            new JSONObject()
+                .put("status", "saved")
+                .put("fileId", fileId.toHexString())
+                .put("generatedQuestions", generatedQuestions.size())
+                .toString());
+      };
+
+  public Handler deleteInteractiveFormConfig =
+      ctx -> {
+        String fileIdStr = ctx.pathParam("fileId");
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid fileId\"}");
+          return;
+        }
+        interactiveFormConfigDao.deleteByFileId(fileId);
+        ctx.header("Content-Type", "application/json");
+        ctx.result(new JSONObject().put("status", "deleted").toString());
+      };
+
+  public Handler getInteractiveFormConfigClient =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String fileIdStr = req.optString("applicationId", "");
+        if (fileIdStr.isEmpty()) {
+          ctx.status(400).result("{\"error\":\"applicationId is required\"}");
+          return;
+        }
+        ObjectId fileId;
+        try {
+          fileId = new ObjectId(fileIdStr);
+        } catch (Exception e) {
+          ctx.status(400).result("{\"error\":\"Invalid applicationId\"}");
+          return;
+        }
+        Optional<InteractiveFormConfig> configOpt =
+            interactiveFormConfigDao.getByFileId(fileId);
+        if (configOpt.isEmpty()) {
+          ctx.status(404).result("{\"error\":\"No interactive form config found\"}");
+          return;
+        }
+        InteractiveFormConfig config = configOpt.get();
+        JSONObject result = new JSONObject();
+        result.put("jsonSchema", new JSONObject(config.getJsonSchema()));
+        result.put("uiSchema", new JSONObject(config.getUiSchema()));
+        if (config.getBuilderState() != null && !config.getBuilderState().isBlank()) {
+          result.put("builderState", new JSONObject(config.getBuilderState()));
+        }
+        ctx.header("Content-Type", "application/json");
+        ctx.result(result.toString());
+      };
+
+  private String resolveTitleForRegistryEntry(ApplicationRegistryEntry entry) {
+    try {
+      ObjectId fileId = entry.getFileIdForOrg(null);
+      if (fileId != null) {
+        Optional<Form> formOpt = formDao.getByFileId(fileId);
+        if (formOpt.isPresent() && formOpt.get().getMetadata() != null) {
+          String metadataTitle = formOpt.get().getMetadata().getTitle();
+          if (metadataTitle != null && !metadataTitle.isBlank()) {
+            return metadataTitle;
+          }
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to resolve title from form metadata for registry {}", entry.getId(), e);
+    }
+    return entry.getLookupKey() == null ? "" : entry.getLookupKey();
   }
 }

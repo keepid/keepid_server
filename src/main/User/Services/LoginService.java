@@ -48,7 +48,6 @@ public class LoginService implements Service {
     this.userAgent = userAgent;
   }
 
-  // the execute function will handle all business logic
   public Message executeAndGetResponse() {
     String normalizedIdentifier = loginIdentifier == null ? "" : loginIdentifier.trim();
     boolean isEmailIdentifier = looksLikeEmailIdentifier(normalizedIdentifier);
@@ -80,12 +79,11 @@ public class LoginService implements Service {
       return UserMessage.AUTH_FAILURE;
     }
     user = optionalUser.get();
-    // verify password
     if (!verifyPassword(this.password, user.getPassword())) {
       return UserMessage.AUTH_FAILURE;
     }
-    recordActivityLogin(user, activityDao); // record login activity
-    recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao); // get ip location
+    recordActivityLogin(user, activityDao);
+    recordToLoginHistory(user, ip, userAgent, IP_INFO_TOKEN, userDao);
     log.info("Login Successful!");
     return UserMessage.AUTH_SUCCESS;
   }
@@ -191,7 +189,7 @@ public class LoginService implements Service {
 
   public String getFullName() {
     Objects.requireNonNull(user);
-    return user.getFirstName() + " " + user.getLastName();
+    return user.getCurrentName() != null ? user.getCurrentName().getFullName() : "";
   }
 
 }

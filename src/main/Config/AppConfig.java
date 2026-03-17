@@ -5,10 +5,14 @@ import Admin.AdminController;
 import Billing.BillingController;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.ApplicationRegistry.ApplicationRegistryDao;
+import Database.ApplicationRegistry.ApplicationRegistryDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.InteractiveFormConfig.InteractiveFormConfigDao;
+import Database.InteractiveFormConfig.InteractiveFormConfigDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
 import Database.Organization.OrgDao;
@@ -88,7 +92,12 @@ public class AppConfig {
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
-    FormController formController = new FormController(formDao, userDao, encryptionController);
+    ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
+    InteractiveFormConfigDao interactiveFormConfigDao =
+        InteractiveFormConfigDaoFactory.create(deploymentLevel);
+    FormController formController =
+        new FormController(
+            formDao, fileDao, userDao, encryptionController, registryDao, interactiveFormConfigDao);
     FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
@@ -99,9 +108,10 @@ public class AppConfig {
         new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
-        new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
+        new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
     WindmillNotificationClient notificationClient = new WindmillNotificationClient();
-    NotificationController notificationController = new NotificationController(activityDao, notificationClient);
+    NotificationController notificationController =
+        new NotificationController(activityDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -145,10 +155,41 @@ public class AppConfig {
     app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
     app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
     app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/upload-completed-pdf-2", pdfControllerV2.uploadCompletedPDF);
     app.post("/get-questions-2", pdfControllerV2.getQuestions);
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     app.post("/get-application-registry", formController.getAppRegistry);
+    app.get("/get-available-application-options", formController.getAvailableApplicationOptions);
+    app.post("/get-interactive-form-config", formController.getInteractiveFormConfigClient);
+
+    /* -------------- DEVELOPER PORTAL API --------------------- */
+    app.before(
+        "/api/dev/*",
+        ctx -> {
+          if (ctx.method().equals("OPTIONS")) return;
+          UserType level = ctx.sessionAttribute("privilegeLevel");
+          if (level == null || level != UserType.Developer) {
+            throw new HttpResponseException(403, "Developer access required", new HashMap<>());
+          }
+        });
+    app.post("/api/dev/parse-pdf", pdfControllerV2.parsePdfFields);
+    app.post("/api/dev/create-application", formController.createApplication);
+    app.get("/api/dev/registry", formController.listRegistry);
+    app.get("/api/dev/registry/:id/detail", formController.getRegistryDetail);
+    app.put("/api/dev/registry/:id", formController.updateApplication);
+    app.delete("/api/dev/registry/:id", formController.deleteRegistryEntry);
+    app.get("/api/dev/file/:fileId/pdf", formController.servePdf);
+    app.post("/api/dev/promote", formController.promoteRegistry);
+    app.get(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.getInteractiveFormConfig);
+    app.put(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.upsertInteractiveFormConfig);
+    app.delete(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.deleteInteractiveFormConfig);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
@@ -158,6 +199,7 @@ public class AppConfig {
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
+    app.post("/enroll-client", userController.enrollClient);
     app.get("/logout", userController.logout);
     app.post("/forgot-password", accountSecurityController.forgotPassword);
     app.post("/change-password", accountSecurityController.changePassword);
@@ -168,6 +210,11 @@ public class AppConfig {
     app.post("/update-user-profile", userController.updateUserProfile);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
+    // Phone book endpoints
+    app.post("/get-phone-book", userController.getPhoneBook);
+    app.post("/add-phone-book-entry", userController.addPhoneBookEntry);
+    app.post("/update-phone-book-entry", userController.updatePhoneBookEntry);
+    app.post("/delete-phone-book-entry", userController.deletePhoneBookEntry);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -180,6 +227,7 @@ public class AppConfig {
     app.post("/load-pfp", userController.loadPfp);
     app.post("/username-exists", userController.usernameExists);
     app.post("/delete-user", userController.deleteUser);
+    app.post("/remove-organization-member", userController.removeOrganizationMember);
     app.post("/set-default-id", userController.setDefaultIds);
     app.post("/get-default-id", userController.getDefaultIds);
 
@@ -339,6 +387,8 @@ public class AppConfig {
                   "https://server.keep.id",
                   "http://localhost",
                   "http://localhost:3000",
+                  "http://localhost:5173",
+                  "https://dev.keep.id",
                   "https://staging.keep.id",
                   "https://staged.keep.id",
                   "127.0.0.1:3000");

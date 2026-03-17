@@ -27,6 +27,8 @@ public class UserControllerIntegrationTest {
     TestUtils.startServer();
     userDao = UserDaoFactory.create(DeploymentLevel.TEST);
     orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    userDao.clear();
+    orgDao.clear();
 
     EntityFactory.createOrganization()
         .withOrgName("Broad Street Ministry")
@@ -149,15 +151,17 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").body(body.toString()).asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("state")).isEqualTo("PA");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test
@@ -168,15 +172,16 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").body(body.toString()).asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test
@@ -186,15 +191,16 @@ public class UserControllerIntegrationTest {
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/get-user-info").asString();
     JSONObject actualResponseJson = TestUtils.responseStringToJSON(actualResponse.getBody());
-    assertThat(actualResponseJson.get("city").toString()).isEqualTo("Philadelphia");
     assertThat(actualResponseJson.get("firstName").toString()).isEqualTo("Mike");
     assertThat(actualResponseJson.get("lastName").toString()).isEqualTo("Dahl");
-    assertThat(actualResponseJson.get("zipcode").toString()).isEqualTo("19104");
     assertThat(actualResponseJson.get("phone").toString()).isEqualTo("1234567890");
-    assertThat(actualResponseJson.get("address").toString()).isEqualTo("311 Broad Street");
     assertThat(actualResponseJson.get("birthDate").toString()).isEqualTo("06-16-1960");
     assertThat(actualResponseJson.get("email").toString())
         .isEqualTo("mikedahl@broadstreetministry.org");
+    JSONObject personalAddress = actualResponseJson.getJSONObject("personalAddress");
+    assertThat(personalAddress.getString("line1")).isEqualTo("311 Broad Street");
+    assertThat(personalAddress.getString("city")).isEqualTo("Philadelphia");
+    assertThat(personalAddress.getString("zip")).isEqualTo("19104");
   }
 
   @Test
@@ -336,6 +342,133 @@ public class UserControllerIntegrationTest {
             .asString();
     JSONObject secondResponseJSON = TestUtils.responseStringToJSON(secondResponse.getBody());
     assertThat(secondResponseJSON.getString("status")).isEqualTo("EMAIL_ALREADY_EXISTS");
+  }
+
+  @Test
+  public void enrollClientSuccessfullyTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "Jane");
+    body.put("lastname", "Smith");
+    body.put("birthDate", "03-15-1990");
+    body.put("email", "jane.smith@example.com");
+    body.put("phonenumber", "5551234567");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+  }
+
+  @Test
+  public void enrollClientWithoutPhoneSucceedsTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "Bob");
+    body.put("lastname", "Jones");
+    body.put("birthDate", "07-20-1985");
+    body.put("email", "bob.jones@example.com");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+  }
+
+  @Test
+  public void enrollClientDuplicateEmailFailsTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "First");
+    body.put("lastname", "Enrolled");
+    body.put("birthDate", "01-01-2000");
+    body.put("email", "duplicate-enroll@example.com");
+
+    HttpResponse<String> firstResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+    JSONObject firstResponseJSON = TestUtils.responseStringToJSON(firstResponse.getBody());
+    assertThat(firstResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+
+    JSONObject secondBody = new JSONObject();
+    secondBody.put("firstname", "Second");
+    secondBody.put("lastname", "Enrolled");
+    secondBody.put("birthDate", "02-02-2000");
+    secondBody.put("email", "duplicate-enroll@example.com");
+
+    HttpResponse<String> secondResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(secondBody.toString())
+            .asString();
+    JSONObject secondResponseJSON = TestUtils.responseStringToJSON(secondResponse.getBody());
+    assertThat(secondResponseJSON.getString("status")).isEqualTo("EMAIL_ALREADY_EXISTS");
+  }
+
+  @Test
+  public void enrollClientAsClientFailsTest() {
+    TestUtils.login("client1BSM", "client1BSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "Should");
+    body.put("lastname", "Fail");
+    body.put("birthDate", "05-05-1995");
+    body.put("email", "shouldfail@example.com");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("CLIENT_ENROLL_CLIENT");
+  }
+
+  @Test
+  public void enrollClientNoSessionFailsTest() {
+    TestUtils.logout();
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "No");
+    body.put("lastname", "Session");
+    body.put("birthDate", "06-06-1996");
+    body.put("email", "nosession@example.com");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("SESSION_TOKEN_FAILURE");
+  }
+
+  @Test
+  public void enrollClientAsWorkerSucceedsTest() {
+    TestUtils.login("workertffBSM", "workertffBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "WorkerEnrolled");
+    body.put("lastname", "Client");
+    body.put("birthDate", "08-08-1988");
+    body.put("email", "worker-enrolled@example.com");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
   }
 
   @Test

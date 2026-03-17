@@ -6,6 +6,7 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import File.IdCategoryType;
 import PDF.Services.V2Services.*;
@@ -29,6 +30,7 @@ public class PdfControllerV2 {
   private FileDao fileDao;
   private ActivityDao activityDao;
   private UserDao userDao;
+  private OrgDao orgDao;
 
   // Needed for EncryptionController
   private EncryptionController encryptionController;
@@ -37,11 +39,13 @@ public class PdfControllerV2 {
       FileDao fileDao,
       FormDao formDao,
       ActivityDao activityDao,
+      OrgDao orgDao,
       UserDao userDao,
       EncryptionController encryptionController) {
     this.fileDao = fileDao;
     this.formDao = formDao;
     this.activityDao = activityDao;
+    this.orgDao = orgDao;
     this.userDao = userDao;
     this.encryptionController = encryptionController;
   }
@@ -176,16 +180,42 @@ public class PdfControllerV2 {
         ctx.result(uploadSignedPDFServiceV2.executeAndGetResponse().toResponseString());
       };
 
+  public Handler uploadCompletedPDF =
+      ctx -> {
+        log.info("Starting uploadCompletedPDF handler");
+        UserParams userParams = new UserParams();
+        FileParams fileParams = new FileParams();
+        Message setUserParamsErrorMessage = userParams.setUserParamsFillAndUploadSignedPDF(ctx);
+        if (setUserParamsErrorMessage != null) {
+          ctx.result(setUserParamsErrorMessage.toResponseString());
+          return;
+        }
+        Message setFileParamsErrorMessage = fileParams.setFileParamsUploadCompletedPDF(ctx);
+        if (setFileParamsErrorMessage != null) {
+          ctx.result(setFileParamsErrorMessage.toResponseString());
+          return;
+        }
+        UploadCompletedPDFServiceV2 uploadCompletedPDFServiceV2 =
+            new UploadCompletedPDFServiceV2(
+                fileDao, formDao, activityDao, userParams, fileParams, encryptionController);
+        ctx.result(uploadCompletedPDFServiceV2.executeAndGetResponse().toResponseString());
+      };
+
   public Handler getQuestions =
       ctx -> {
         log.info("Starting getQuestions handler");
         JSONObject req = new JSONObject(ctx.body());
         UserParams userParams = new UserParams();
         FileParams fileParams = new FileParams();
-        userParams.setUserParamsGetApplicationQuestions(ctx, req);
+        Message setUserParamsErrorMessage =
+            userParams.setUserParamsGetApplicationQuestions(ctx, req, userDao);
+        if (setUserParamsErrorMessage != null) {
+          ctx.result(setUserParamsErrorMessage.toResponseString());
+          return;
+        }
         fileParams.setFileParamsGetApplicationQuestions(req);
         GetQuestionsPDFServiceV2 getQuestionsPDFServiceV2 =
-            new GetQuestionsPDFServiceV2(formDao, userDao, userParams, fileParams);
+            new GetQuestionsPDFServiceV2(formDao, orgDao, userDao, userParams, fileParams);
         Message response = getQuestionsPDFServiceV2.executeAndGetResponse();
         if (response != PdfMessage.SUCCESS) {
           ctx.result(response.toResponseString());
@@ -213,11 +243,13 @@ public class PdfControllerV2 {
           ctx.result(response.toResponseString());
           return;
         }
+        ctx.header("Content-Type", "application/pdf");
         ctx.result(fillPDFServiceV2.getFilledFileStream());
       };
 
   public static class UserParams {
     private String username;
+    private String actorUsername;
     private String organizationName;
     private UserType privilegeLevel;
 
@@ -225,6 +257,7 @@ public class PdfControllerV2 {
 
     public UserParams(String username, String organizationName, UserType privilegeLevel) {
       this.username = username;
+      this.actorUsername = username;
       this.organizationName = organizationName;
       this.privilegeLevel = privilegeLevel;
     }
@@ -262,6 +295,7 @@ public class PdfControllerV2 {
     public Message setUserParamsFillAndUploadSignedPDF(Context ctx) {
       try {
         String sessionUsername = ctx.sessionAttribute("username");
+        this.actorUsername = sessionUsername;
         String clientUsernameParameter = Objects.requireNonNull(ctx.formParam("clientUsername"));
         this.username =
             clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
@@ -275,16 +309,33 @@ public class PdfControllerV2 {
 
     public void setUserParamsUploadAnnotatedPDF(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = UserType.Developer;
     }
 
-    public void setUserParamsGetApplicationQuestions(Context ctx, JSONObject req) {
+    public Message setUserParamsGetApplicationQuestions(Context ctx, JSONObject req, UserDao userDao) {
       String sessionUsername = ctx.sessionAttribute("username");
-      String clientUsernameParameter = req.getString("clientUsername");
-      this.username =
-          clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
+      this.actorUsername = sessionUsername;
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+      String sessionOrgName = ctx.sessionAttribute("orgName");
+      String clientUsernameParameter = req.optString("clientUsername", "");
+      if (clientUsernameParameter.equals("") || clientUsernameParameter.equals(sessionUsername)) {
+        this.username = sessionUsername;
+        this.organizationName = sessionOrgName;
+        return null;
+      }
+      Optional<User> targetUserOptional = getTargetUserFromUsername(clientUsernameParameter, userDao);
+      if (targetUserOptional.isEmpty()) {
+        return UserMessage.USER_NOT_FOUND;
+      }
+      User targetUser = targetUserOptional.get();
+      if (!targetUser.getOrganization().equals(sessionOrgName)) {
+        return UserMessage.CROSS_ORG_ACTION_DENIED;
+      }
+      this.username = targetUser.getUsername();
+      this.organizationName = targetUser.getOrganization();
+      return null;
     }
 
     public Message setUserParamsFromCtxReq(Context ctx, JSONObject req, UserDao userDao) {
@@ -327,6 +378,7 @@ public class PdfControllerV2 {
         return UserMessage.CROSS_ORG_ACTION_DENIED;
       }
       this.username = targetUser.getUsername();
+      this.actorUsername = ctx.sessionAttribute("username");
       this.organizationName = targetUserOrg;
       this.privilegeLevel = targetUser.getUserType();
       return null;
@@ -334,6 +386,7 @@ public class PdfControllerV2 {
 
     public Message setUserParamsFromSessionUser(Context ctx) {
       this.username = ctx.sessionAttribute("username");
+      this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
       return null;
@@ -352,8 +405,17 @@ public class PdfControllerV2 {
       return organizationName;
     }
 
+    public String getActorUsername() {
+      return actorUsername;
+    }
+
     public UserParams setOrganizationName(String organizationName) {
       this.organizationName = organizationName;
+      return this;
+    }
+
+    public UserParams setActorUsername(String actorUsername) {
+      this.actorUsername = actorUsername;
       return this;
     }
 
@@ -378,6 +440,7 @@ public class PdfControllerV2 {
     private JSONObject formAnswers;
     private InputStream signatureStream;
     private String fileOrgName;
+    private boolean preview;
 
     public FileParams() {}
 
@@ -408,10 +471,15 @@ public class PdfControllerV2 {
       try {
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
         this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+        this.preview = "true".equalsIgnoreCase(ctx.formParam("preview"));
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
       return null;
+    }
+
+    public boolean isPreview() {
+      return preview;
     }
 
     public Message setFileParamsUploadSignedPDF(Context ctx) {
@@ -420,6 +488,23 @@ public class PdfControllerV2 {
         this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
         this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
         this.signatureStream = signature.getContent();
+      } catch (Exception e) {
+        return PdfMessage.INVALID_PARAMETER;
+      }
+      return null;
+    }
+
+    /** For upload-completed-pdf-2: accepts pre-filled+signed PDF, applicationId, formAnswers. */
+    public Message setFileParamsUploadCompletedPDF(Context ctx) {
+      try {
+        UploadedFile file = ctx.uploadedFile("file");
+        if (file == null) {
+          log.info("upload-completed-pdf-2: file is null");
+          return PdfMessage.INVALID_PARAMETER;
+        }
+        this.fileId = Objects.requireNonNull(ctx.formParam("applicationId"));
+        this.formAnswers = new JSONObject(Objects.requireNonNull(ctx.formParam("formAnswers")));
+        this.fileStream = file.getContent();
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
@@ -573,4 +658,21 @@ public class PdfControllerV2 {
       return this;
     }
   }
+
+  public Handler parsePdfFields =
+      ctx -> {
+        UploadedFile uploadedFile = ctx.uploadedFile("file");
+        if (uploadedFile == null) {
+          ctx.status(400).result("{\"error\":\"No PDF file provided\"}");
+          return;
+        }
+        ParsePDFFieldsService service = new ParsePDFFieldsService(uploadedFile.getContent());
+        boolean success = service.execute();
+        if (success) {
+          ctx.header("Content-Type", "application/json");
+          ctx.result(service.getExtractedFields().toString());
+        } else {
+          ctx.status(400).result("{\"error\":\"Failed to parse PDF form fields\"}");
+        }
+      };
 }

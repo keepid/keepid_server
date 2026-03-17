@@ -11,7 +11,9 @@ import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
+import User.Address;
 import User.IpObject;
+import User.Name;
 import User.User;
 import User.UserMessage;
 import User.UserType;
@@ -32,15 +34,11 @@ public class CreateUserService implements Service {
   UserType sessionUserLevel;
   String organizationName;
   String sessionUsername;
-  String firstName;
-  String lastName;
+  Name currentName;
   String birthDate;
   String email;
   String phone;
-  String address;
-  String city;
-  String state;
-  String zipcode;
+  Address personalAddress;
   Boolean twoFactorOn;
   String username;
   String password;
@@ -52,15 +50,11 @@ public class CreateUserService implements Service {
       UserType sessionUserLevel,
       String organizationName,
       String sessionUsername,
-      String firstName,
-      String lastName,
+      Name currentName,
       String birthDate,
       String email,
       String phone,
-      String address,
-      String city,
-      String state,
-      String zipcode,
+      Address personalAddress,
       Boolean twoFactorOn,
       String username,
       String password,
@@ -70,15 +64,11 @@ public class CreateUserService implements Service {
     this.sessionUserLevel = sessionUserLevel;
     this.organizationName = organizationName;
     this.sessionUsername = sessionUsername;
-    this.firstName = firstName;
-    this.lastName = lastName;
+    this.currentName = currentName;
     this.birthDate = birthDate;
     this.email = email;
     this.phone = phone;
-    this.address = address;
-    this.city = city;
-    this.state = state;
-    this.zipcode = zipcode;
+    this.personalAddress = personalAddress;
     this.twoFactorOn = twoFactorOn;
     this.username = username;
     this.password = password;
@@ -90,8 +80,8 @@ public class CreateUserService implements Service {
     String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     this.email = normalizedEmail;
 
-    // validations
-    if (organizationName == null) {
+    boolean requiresOrganization = userType != UserType.Developer;
+    if (requiresOrganization && organizationName == null) {
       log.info("Token failure");
       return UserMessage.SESSION_TOKEN_FAILURE;
     }
@@ -99,21 +89,17 @@ public class CreateUserService implements Service {
       log.info("Invalid privilege type");
       return UserMessage.INVALID_PRIVILEGE_TYPE;
     }
-    // create user object
+
     User user;
     try {
       user =
           new User(
-              firstName,
-              lastName,
+              currentName,
               birthDate,
               email,
               phone,
               organizationName,
-              address,
-              city,
-              state,
-              zipcode,
+              personalAddress,
               twoFactorOn,
               username,
               password,
@@ -122,7 +108,7 @@ public class CreateUserService implements Service {
       log.error("Validation exception");
       return ve;
     }
-    // check some conditions
+
     if ((user.getUserType() == UserType.Director
             || user.getUserType() == UserType.Admin
             || user.getUserType() == UserType.Worker)
@@ -137,7 +123,6 @@ public class CreateUserService implements Service {
       return UserMessage.CLIENT_ENROLL_CLIENT;
     }
 
-    // add to database
     Optional<User> optionalUser = userDao.get(username);
     if (optionalUser.isPresent()) {
       log.info("Username already exists");
@@ -151,7 +136,6 @@ public class CreateUserService implements Service {
       }
     }
 
-    // create password hash
     String hash = SecurityUtils.hashPassword(password);
     if (hash == null) {
       log.error("Could not hash password");
@@ -159,17 +143,14 @@ public class CreateUserService implements Service {
     }
     user.setPassword(hash);
 
-    // get login info
     List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
     user.setLogInHistory(logInInfo);
 
-    // insert user into database
     userDao.save(user);
     if (sessionUsername == null) {
       sessionUsername = username;
     }
 
-    // create activity
     switch (user.getUserType()) {
       case Worker:
         CreateWorkerActivity act = new CreateWorkerActivity(sessionUsername, user.getUsername());
@@ -187,6 +168,9 @@ public class CreateUserService implements Service {
       case Client:
         CreateClientActivity cli = new CreateClientActivity(sessionUsername, user.getUsername());
         activityDao.save(cli);
+        break;
+      case Developer:
+        // Developer account creation does not currently emit a dedicated activity event.
         break;
     }
     log.info("Successfully created user, {}", user.getUsername());
@@ -209,11 +193,10 @@ public class CreateUserService implements Service {
         "User "
             + username
             + " has been created for "
-            + firstName
+            + currentName.getFirst()
             + " "
-            + lastName
-            + " in "
-            + organizationName;
+            + currentName.getLast()
+            + (organizationName == null ? "" : (" in " + organizationName));
     desText.put("text", description);
     desText.put("type", "mrkdwn");
     desJson.put("text", desText);

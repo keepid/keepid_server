@@ -166,4 +166,19 @@ public class EmailUtil {
         + "<p>If you were not expecting this email, please contact your organization administrator.</p>"
         + "</body></html>";
   }
+
+  public static String getEnrollmentWelcomeEmail(String firstName) {
+    return "<html><body style=\"font-family: Arial, sans-serif; line-height: 1.5; color: #222;\">"
+        + "<h2>Welcome to Keep.id</h2>"
+        + "<p>Hi " + firstName + ",</p>"
+        + "<p>An account has been created for you on Keep.id.</p>"
+        + "<p>How to log in at <a href=\"https://keep.id\">keep.id</a>:</p>"
+        + "<ul>"
+        + "<li>If this email is a Google account, you can log in immediately using <b>Google authentication</b>.</li>"
+        + "<li>To set a password, click <b>Forgot Password</b> on the login page and enter this email address. "
+        + "You will receive a link to create your password.</li>"
+        + "</ul>"
+        + "<p>If you were not expecting this email, please contact your organization administrator.</p>"
+        + "</body></html>";
+  }
 }
