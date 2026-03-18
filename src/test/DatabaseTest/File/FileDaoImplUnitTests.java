@@ -6,6 +6,7 @@ import Database.File.FileDaoFactory;
 import File.File;
 import File.FileType;
 
+import java.io.ByteArrayInputStream;
 import java.util.Optional;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
@@ -15,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class FileDaoImplUnitTests {
@@ -101,6 +103,29 @@ public class FileDaoImplUnitTests {
     Optional<File> retrievedfile = fileDao.get(user, type);
     assertTrue(retrievedfile.isPresent());
     assertEquals(FileType.PROFILE_PICTURE, retrievedfile.get().getFileType());
+  }
+
+  @Test
+  public void updatePreservesMetadataIdAndReplacesContentReference() {
+    File original = EntityFactory.createFile()
+        .withUsername("username1")
+        .withFileType(FileType.APPLICATION_PDF)
+        .withFilename("original.pdf")
+        .buildAndPersist(fileDao);
+
+    ObjectId originalMetadataId = original.getId();
+    ObjectId originalGridFileId = original.getFileId();
+
+    original.setFilename("edited.pdf");
+    original.setFileStream(new ByteArrayInputStream("edited-pdf-content".getBytes()));
+    fileDao.update(original);
+
+    Optional<File> maybeUpdated = fileDao.get(originalMetadataId);
+    assertTrue(maybeUpdated.isPresent());
+    File updated = maybeUpdated.get();
+    assertEquals(originalMetadataId, updated.getId());
+    assertEquals("edited.pdf", updated.getFilename());
+    assertNotEquals(originalGridFileId, updated.getFileId());
   }
 
 // Requires a file to already be inserted to test_db with id
