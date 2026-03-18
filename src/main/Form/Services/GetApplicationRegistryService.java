@@ -54,6 +54,31 @@ public class GetApplicationRegistryService implements Service {
 
     ApplicationRegistryEntry entry = entryOpt.get();
     ObjectId fileId = entry.getFileIdForOrg(org);
+    ObjectId globalFileId = null;
+    ObjectId orgSpecificFileId = null;
+    if (entry.getOrgMappings() != null) {
+      for (ApplicationRegistryEntry.OrgMapping mapping : entry.getOrgMappings()) {
+        if ("*".equals(mapping.getOrgName())) {
+          globalFileId = mapping.getFileId();
+        }
+        if (org != null && org.equals(mapping.getOrgName())) {
+          orgSpecificFileId = mapping.getFileId();
+        }
+      }
+    }
+    // #region agent log
+    System.out.println(
+        "GET_APP_REGISTRY_DEBUG lookupKey='"
+            + lookupKey
+            + "', org='"
+            + this.org
+            + "', orgSpecificFileId="
+            + orgSpecificFileId
+            + ", globalFileId="
+            + globalFileId
+            + ", selectedFileId="
+            + fileId);
+    // #endregion
     if (fileId == null) {
       return FormMessage.INVALID_PARAMETER;
     }
