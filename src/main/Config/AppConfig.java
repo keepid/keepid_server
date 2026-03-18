@@ -232,7 +232,7 @@ public class AppConfig {
     app.post("/get-default-id", userController.getDefaultIds);
 
     /* -------------- ORGANIZATION SIGN UP ------------------ */
-    //    app.post("/organization-signup-validator", orgController.organizationSignupValidator);
+    app.post("/organization-signup-validator", orgController.organizationSignupValidator);
     app.post("/organization-signup", orgController.enrollOrganization);
 
     app.post("/invite-user", orgController.inviteUsers);
