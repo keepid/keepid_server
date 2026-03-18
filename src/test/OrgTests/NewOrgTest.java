@@ -1,58 +1,79 @@
 package OrgTests;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import Config.DeploymentLevel;
+import Database.Organization.OrgDao;
+import Database.Organization.OrgDaoFactory;
+import Database.User.UserDao;
+import Database.User.UserDaoFactory;
 import TestUtils.TestUtils;
-import kong.unirest.json.JSONObject;
+import java.util.UUID;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class NewOrgTest {
+  private static UserDao userDao;
+  private static OrgDao orgDao;
+
   @BeforeClass
   public static void setUp() {
     TestUtils.startServer();
+    userDao = UserDaoFactory.create(DeploymentLevel.TEST);
+    orgDao = OrgDaoFactory.create(DeploymentLevel.TEST);
+    userDao.clear();
+    orgDao.clear();
   }
 
   @AfterClass
   public static void tearDown() {
-    TestUtils.tearDownTestDB();
+    userDao.clear();
+    orgDao.clear();
   }
 
-  // Again, I commented out the part below as it would notify the slack channel about the new
-  // organization.
-  // If you wish to run the test, please change the urls in orgController to newOrgTestUrl. If you
-  // are not sure
-  // which one to put, contact me @cathy chen on slack.
   @Test
-  public void testNewOrg() {
+  public void testNewOrgSignupCreatesOrganizationAndAdminUser() {
+    String uniqueSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+    String username = "orgadmin" + uniqueSuffix;
+    String orgName = "SignupOrg" + uniqueSuffix;
+
     JSONObject body = new JSONObject();
-    body.put("firstname", "cat");
-    body.put("lastname", "chen");
+    body.put("firstname", "Cat");
+    body.put("lastname", "Chen");
     body.put("birthDate", "05-23-2002");
-    body.put("email", "cat@gmail.com");
-    body.put("phonenumber", "412-123-3456");
+    body.put("email", "");
+    body.put("phonenumber", "");
     body.put("address", "321 RandomStreet");
     body.put("city", "Philadelphia");
     body.put("state", "PA");
     body.put("zipcode", "19104");
     body.put("twoFactorOn", false);
-    body.put("username", "chen");
-    body.put("password", "09/01/00");
-    body.put("organizationName", "SlackTest1");
-    body.put("organizationWebsite", "http://keep.id");
+    body.put("username", username);
+    body.put("password", "password123");
+    body.put("organizationName", orgName);
+    body.put("organizationWebsite", "https://keep.id");
     body.put("organizationEIN", "123456789");
     body.put("organizationAddressStreet", "321 RandomStreet");
     body.put("organizationAddressCity", "Philadelphia");
     body.put("organizationAddressState", "PA");
     body.put("organizationAddressZipcode", "19104");
     body.put("organizationEmail", "test@email.com");
-    body.put("organizationPhoneNumber", "412-123-3456");
+    body.put("organizationPhoneNumber", "4121233456");
 
-    //    HttpResponse<String> submitResponse =
-    //        Unirest.post(TestUtils.getServerUrl() + "/organization-sign-up")
-    //            .body(body.toString())
-    //            .asString();
-    //    assert ("SUCCESSFUL_ENROLLMENT"
-    //
-    // .equals(TestUtils.responseStringToJSON(submitResponse.getBody()).getString("status")));
+    HttpResponse<String> submitResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/organization-signup")
+            .header("Accept", "*/*")
+            .header("Content-Type", "text/plain")
+            .body(body.toString())
+            .asString();
+
+    JSONObject responseJSON = TestUtils.responseStringToJSON(submitResponse.getBody());
+    assertThat(responseJSON.getString("status")).isEqualTo("SUCCESSFUL_ENROLLMENT");
+    assertThat(userDao.get(username)).isPresent();
+    assertThat(orgDao.get(orgName)).isPresent();
   }
 }
