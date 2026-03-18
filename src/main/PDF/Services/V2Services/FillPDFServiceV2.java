@@ -128,7 +128,9 @@ public class FillPDFServiceV2 implements Service {
       if (answerText == null || answerText.isEmpty() || answerText.equals("null")) continue;
 
       PDField field = acroForm.getField(key);
-      if (field == null) continue;
+      if (field == null) {
+        continue;
+      }
 
       FormQuestion record = new FormQuestion(
           new ObjectId(), FieldType.TEXT_FIELD, key, null,
@@ -195,10 +197,25 @@ public class FillPDFServiceV2 implements Service {
               return;
             }
           }
+          String semanticCandidate = findSemanticRadioCandidate(candidates, normalizedAnswer);
+          if (semanticCandidate != null) {
+            radioButtonField.setValue(semanticCandidate);
+            return;
+          }
           if (isTruthyValue(normalizedAnswer)) {
+            String singleCandidate = null;
             for (String candidate : candidates) {
-              if (candidate == null || candidate.isEmpty() || "Off".equalsIgnoreCase(candidate)) continue;
-              radioButtonField.setValue(candidate);
+              if (candidate == null || candidate.isEmpty() || "Off".equalsIgnoreCase(candidate)) {
+                continue;
+              }
+              if (singleCandidate != null) {
+                // Multiple choices exist; truthy fallback is ambiguous for radio groups.
+                throw ex;
+              }
+              singleCandidate = candidate;
+            }
+            if (singleCandidate != null) {
+              radioButtonField.setValue(singleCandidate);
               return;
             }
           }
@@ -239,6 +256,34 @@ public class FillPDFServiceV2 implements Service {
         || "on".equalsIgnoreCase(value)
         || "yes".equalsIgnoreCase(value)
         || "1".equals(value);
+  }
+
+  private String findSemanticRadioCandidate(List<String> candidates, String answer) {
+    if (answer == null || answer.isBlank() || candidates == null || candidates.isEmpty()) {
+      return null;
+    }
+    String normalizedAnswer = normalizeRadioToken(answer);
+    for (String candidate : candidates) {
+      if (candidate == null || candidate.isBlank() || "Off".equalsIgnoreCase(candidate)) continue;
+      if (normalizeRadioToken(candidate).equals(normalizedAnswer)) {
+        return candidate;
+      }
+      String alias = stripChoicePrefix(candidate);
+      if (!alias.equals(candidate) && normalizeRadioToken(alias).equals(normalizedAnswer)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  private String stripChoicePrefix(String value) {
+    return value == null ? "" : value.replaceFirst("(?i)^choice\\d+[-_.]*", "");
+  }
+
+  private String normalizeRadioToken(String value) {
+    if (value == null) return "";
+    String collapsed = value.toLowerCase(Locale.ROOT).replace("_", " ").replace("-", " ").trim();
+    return collapsed.replaceAll("[^a-z0-9]+", "");
   }
 
   public Message mergeFileAndFormAnswers(InputStream templateFileStream) {
