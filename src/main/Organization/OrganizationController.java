@@ -20,6 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -134,14 +135,21 @@ public class OrganizationController {
         String firstName = req.getString("firstname").toUpperCase().strip();
         String lastName = req.getString("lastname").toUpperCase().strip();
         String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("organizationEmail").toLowerCase().strip();
-        String phone = req.getString("phonenumber").strip();
-        String address = req.getString("address").toUpperCase().strip();
-        String city = req.getString("city").toUpperCase().strip();
-        String state = req.getString("state").toUpperCase().strip();
-        String zipcode = req.getString("zipcode").strip();
-        Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-        String username = req.getString("username").strip();
+        String orgEmail = req.getString("organizationEmail").toLowerCase().strip();
+        String accountEmail = req.optString("email", "").toLowerCase().strip();
+        String email = accountEmail.isEmpty() ? orgEmail : accountEmail;
+        String phone = req.optString("phonenumber", "").strip();
+        String address = req.optString("address", "").toUpperCase().strip();
+        String city = req.optString("city", "").toUpperCase().strip();
+        String state = req.optString("state", "").toUpperCase().strip();
+        String zipcode = req.optString("zipcode", "").strip();
+        Boolean twoFactorOn = req.optBoolean("twoFactorOn", false);
+        String username = req.optString("username", "").strip();
+        if (username.isEmpty()) {
+          String dobCompact = birthDate.replace("-", "");
+          String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
+          username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+        }
         String password = req.getString("password").strip();
         UserType userLevel = UserType.Admin;
 
@@ -153,7 +161,6 @@ public class OrganizationController {
         String orgState = req.getString("organizationAddressState").toUpperCase().strip();
         String orgZipcode = req.getString("organizationAddressZipcode").strip();
         Address orgAddress = new Address(orgStreetAddress, orgCity, orgState, orgZipcode);
-        String orgEmail = req.getString("organizationEmail").strip();
         String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
 
         EnrollOrganizationService eoService =
