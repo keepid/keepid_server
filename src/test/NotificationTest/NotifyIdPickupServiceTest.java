@@ -24,7 +24,9 @@ public class NotifyIdPickupServiceTest {
         activityDao = ActivityDaoFactory.create(DeploymentLevel.IN_MEMORY);
         notificationClient =
                 new WindmillNotificationClient(
-                        "http://localhost:9999", "fake-token", "+10000000000", "fake-sid", "fake-auth");
+                        "http://localhost:9999", "fake-token",
+                        "+10000000000", "fake-sid", "fake-auth",
+                        "fake_email", "fake_host", "fake_port", "fake_password");
     }
 
     @After
