@@ -220,6 +220,7 @@ public class AppConfig {
     app.post("/add-phone-book-entry", userController.addPhoneBookEntry);
     app.post("/update-phone-book-entry", userController.updatePhoneBookEntry);
     app.post("/delete-phone-book-entry", userController.deletePhoneBookEntry);
+    app.post("/save-worker-notes", userController.saveWorkerNotes);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);

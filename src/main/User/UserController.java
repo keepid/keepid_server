@@ -789,6 +789,27 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
+  public Handler saveWorkerNotes = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String targetUsername = req.optString("username", null);
+
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+    if (sessionUserType != Worker && sessionUserType != Admin && sessionUserType != Director) {
+      ctx.result(INSUFFICIENT_PRIVILEGE.toResponseString());
+      return;
+    }
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toResponseString());
+      return;
+    }
+
+    String notes = req.optString("workerNotes", "");
+    userDao.updateField(targetUsername, "workerNotes", notes);
+    ctx.result(SUCCESS.toResponseString());
+  };
+
   public Handler sendEmailLoginInstructions = ctx -> {
     JSONObject req = new JSONObject(ctx.body());
     String targetUsername = req.optString("username", null);

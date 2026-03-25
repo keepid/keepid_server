@@ -81,6 +81,9 @@ public class User {
   @BsonProperty(value = "fatherName")
   private Name fatherName;
 
+  @BsonProperty(value = "workerNotes")
+  private String workerNotes;
+
   public User() {
   }
 
@@ -239,6 +242,10 @@ public class User {
     return this.fatherName;
   }
 
+  public String getWorkerNotes() {
+    return this.workerNotes;
+  }
+
   /** *************** SETTERS ********************* */
   public User setCurrentName(Name currentName) {
     this.currentName = currentName;
@@ -361,6 +368,11 @@ public class User {
 
   public User setFatherName(Name fatherName) {
     this.fatherName = fatherName;
+    return this;
+  }
+
+  public User setWorkerNotes(String workerNotes) {
+    this.workerNotes = workerNotes;
     return this;
   }
 
@@ -523,6 +535,7 @@ public class User {
     userJSON.put("defaultIds", defaultIds);
     userJSON.put("assignedWorkerUsernames", assignedWorkerUsernames);
     userJSON.put("sex", sex);
+    userJSON.put("workerNotes", workerNotes);
 
     if (currentName != null) {
       userJSON.put("currentName", currentName.serialize());
