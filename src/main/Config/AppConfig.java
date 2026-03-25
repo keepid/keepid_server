@@ -203,6 +203,7 @@ public class AppConfig {
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
     app.post("/enroll-client", userController.enrollClient);
+    app.post("/enroll-worker", userController.enrollWorker);
     app.get("/logout", userController.logout);
     app.post("/forgot-password", accountSecurityController.forgotPassword);
     app.post("/change-password", accountSecurityController.changePassword);

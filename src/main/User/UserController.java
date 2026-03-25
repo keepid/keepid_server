@@ -16,6 +16,7 @@ import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
+import Security.EmailUtil;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -354,6 +355,64 @@ public class UserController {
     if (createResponse != ENROLL_SUCCESS) {
       ctx.result(createResponse.toJSON().toString());
       return;
+    }
+
+    ctx.result(ENROLL_SUCCESS.toJSON().toString());
+  };
+
+  public Handler enrollWorker = ctx -> {
+    log.info("Starting enrollWorker handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
+    String organizationName = ctx.sessionAttribute("orgName");
+    String sessionUsername = ctx.sessionAttribute("username");
+
+    if (sessionUserLevel == null || organizationName == null || sessionUsername == null) {
+      ctx.result(SESSION_TOKEN_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String firstName = req.getString("firstname").strip();
+    String middleName = req.optString("middlename", "").strip();
+    String lastName = req.getString("lastname").strip();
+    String suffix = req.optString("suffix", "").strip();
+    String maiden = req.optString("maiden", "").strip();
+    String birthDate = req.getString("birthDate").strip();
+    String email = req.getString("email").toLowerCase().strip();
+    String phone = req.optString("phonenumber", "").strip();
+    String personRole = req.getString("personRole").strip();
+
+    UserType userType = UserType.userTypeFromString(personRole);
+    if (userType != UserType.Worker && userType != UserType.Admin) {
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
+      return;
+    }
+
+    String dobCompact = birthDate.replace("-", "");
+    String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
+    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String password = UUID.randomUUID().toString();
+
+    Name currentName = new Name(firstName, middleName, lastName, suffix, maiden);
+
+    CreateUserService createUserService = new CreateUserService(
+        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        currentName, birthDate, email, phone, null,
+        false, username, password, userType);
+    Message createResponse = createUserService.executeAndGetResponse();
+
+    if (createResponse != ENROLL_SUCCESS) {
+      ctx.result(createResponse.toJSON().toString());
+      return;
+    }
+
+    try {
+      String emailBody = EmailUtil.getEnrollmentWelcomeEmail(firstName, organizationName);
+      emailSender.sendEmail("Keep Id", email,
+          "You've been added to " + organizationName + " on Keep.id", emailBody);
+    } catch (Exception e) {
+      log.warn("Failed to send welcome email to {}: {}", email, e.getMessage());
     }
 
     ctx.result(ENROLL_SUCCESS.toJSON().toString());
