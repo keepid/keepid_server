@@ -143,6 +143,7 @@ public class AppConfig {
     app.post("/upload-file", fileController.fileUpload);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
+    app.post("/rename-file", fileController.fileRename);
     app.post("/get-files", fileController.getFiles);
     /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     // app.post("/fill-form", fileController.fillPDFForm);

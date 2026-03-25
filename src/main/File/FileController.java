@@ -370,6 +370,52 @@ public class FileController {
       };
 
   /*
+  REQUIRES JSON Body with:
+    - "fileId": String giving id of file to be renamed
+    - "newFilename": String giving the new filename
+    - OPTIONAL- "targetUser": User whose file you want to access.
+        - If left empty, defaults to original username.
+  */
+  public Handler fileRename =
+      ctx -> {
+        String orgName;
+        UserType userType;
+        JSONObject req = new JSONObject(ctx.body());
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+        } else {
+          boolean orgFlag;
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+
+          if (orgFlag) {
+            String fileIDStr = req.getString("fileId");
+            String newFilename = req.getString("newFilename");
+
+            RenameFileService renameFileService =
+                new RenameFileService(
+                    fileDao,
+                    fileIDStr,
+                    newFilename,
+                    orgName,
+                    userType);
+            ctx.result(renameFileService.executeAndGetResponse().toResponseString());
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
+        }
+      };
+
+  /*
   REQUIRES JSON Body:
     - Body
       - "fileType": String giving File Type (See FileType enum)

@@ -74,7 +74,9 @@ public class FileDaoImpl implements FileDao {
   }
 
   @Override
-  public void update(@NonNull File file) {}
+  public void update(@NonNull File file) {
+    fileCollection.replaceOne(eq("_id", file.getId()), file);
+  }
 
   @Override
   public void save(@NonNull File file) {
