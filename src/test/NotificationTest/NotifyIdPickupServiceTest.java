@@ -7,6 +7,8 @@ import Config.DeploymentLevel;
 import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.Notification.NotificationDao;
+import Database.Notification.NotificationDaoFactory;
 import Notification.Services.NotifyIdPickupService;
 import Notification.WindmillNotificationClient;
 import User.UserMessage;
@@ -17,11 +19,13 @@ import org.junit.Test;
 
 public class NotifyIdPickupServiceTest {
     private ActivityDao activityDao;
+    private NotificationDao notificationDao;
     private WindmillNotificationClient notificationClient;
 
     @Before
     public void setUp() {
         activityDao = ActivityDaoFactory.create(DeploymentLevel.IN_MEMORY);
+        notificationDao = NotificationDaoFactory.create(DeploymentLevel.IN_MEMORY);
         notificationClient =
                 new WindmillNotificationClient(
                         "http://localhost:9999", "fake-token", "+10000000000", "fake-sid", "fake-auth");
@@ -30,6 +34,7 @@ public class NotifyIdPickupServiceTest {
     @After
     public void tearDown() {
         activityDao.clear();
+        notificationDao.clear();
     }
 
     @Test
@@ -37,6 +42,7 @@ public class NotifyIdPickupServiceTest {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
+                        notificationDao,
                         notificationClient,
                         "worker1",
                         "client1",
@@ -63,6 +69,7 @@ public class NotifyIdPickupServiceTest {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
+                        notificationDao,
                         notificationClient,
                         "worker1",
                         "client1",
@@ -80,6 +87,7 @@ public class NotifyIdPickupServiceTest {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
+                        notificationDao,
                         notificationClient,
                         "worker1",
                         "client1",
@@ -97,6 +105,7 @@ public class NotifyIdPickupServiceTest {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
+                        notificationDao,
                         notificationClient,
                         null,
                         "client1",
@@ -114,6 +123,7 @@ public class NotifyIdPickupServiceTest {
         NotifyIdPickupService service =
                 new NotifyIdPickupService(
                         activityDao,
+                        notificationDao,
                         notificationClient,
                         "worker1",
                         "client1",

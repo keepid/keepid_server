@@ -15,6 +15,8 @@ import Database.InteractiveFormConfig.InteractiveFormConfigDao;
 import Database.InteractiveFormConfig.InteractiveFormConfigDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
+import Database.Notification.NotificationDao;
+import Database.Notification.NotificationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
@@ -70,6 +72,7 @@ public class AppConfig {
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
+    NotificationDao notificationDao = NotificationDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -111,7 +114,7 @@ public class AppConfig {
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
     WindmillNotificationClient notificationClient = new WindmillNotificationClient();
     NotificationController notificationController =
-        new NotificationController(activityDao, notificationClient);
+        new NotificationController(activityDao, notificationDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -254,6 +257,7 @@ public class AppConfig {
 
     /* --------------- NOTIFICATION ROUTES ------------- */
     app.post("/notify-id-pickup", notificationController.notifyIdPickup);
+    app.post("/get-notification-history", notificationController.getNotificationHistory);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);

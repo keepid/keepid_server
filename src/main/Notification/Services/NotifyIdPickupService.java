@@ -4,6 +4,8 @@ import Activity.UserActivity.NotifyIdPickupActivity;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
+import Database.Notification.NotificationDao;
+import Notification.Notification;
 import Notification.WindmillNotificationClient;
 import User.UserMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NotifyIdPickupService implements Service {
     private final ActivityDao activityDao;
+    private final NotificationDao notificationDao;
     private final WindmillNotificationClient notificationClient;
     private final String workerUsername;
     private final String clientUsername;
@@ -20,6 +23,7 @@ public class NotifyIdPickupService implements Service {
 
     public NotifyIdPickupService(
             ActivityDao activityDao,
+            NotificationDao notificationDao,
             WindmillNotificationClient notificationClient,
             String workerUsername,
             String clientUsername,
@@ -27,6 +31,7 @@ public class NotifyIdPickupService implements Service {
             String clientPhoneNumber,
             String message) {
         this.activityDao = activityDao;
+        this.notificationDao = notificationDao;
         this.notificationClient = notificationClient;
         this.workerUsername = workerUsername;
         this.clientUsername = clientUsername;
@@ -56,6 +61,7 @@ public class NotifyIdPickupService implements Service {
 
         notificationClient.sendSms(clientPhoneNumber, message);
         recordNotifyIdPickupActivity();
+        persistNotification();
 
         log.info(
                 "ID pickup notification sent from {} to {} for ID: {}",
@@ -69,5 +75,11 @@ public class NotifyIdPickupService implements Service {
         NotifyIdPickupActivity activity =
                 new NotifyIdPickupActivity(workerUsername, clientUsername, idToPickup);
         activityDao.save(activity);
+    }
+
+    private void persistNotification() {
+        Notification notification =
+                new Notification(workerUsername, clientUsername, clientPhoneNumber, message);
+        notificationDao.save(notification);
     }
 }
