@@ -4,6 +4,7 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Notification.NotificationDao;
 import Database.Organization.OrgDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
@@ -46,6 +47,7 @@ public class UserController {
   FormDao formDao;
   FileDao fileDao;
   OrgDao orgDao;
+  NotificationDao notificationDao;
   EmailSender emailSender;
 
   public UserController(
@@ -56,7 +58,7 @@ public class UserController {
       FormDao formDao,
       OrgDao orgDao,
       MongoDatabase db) {
-    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, EmailSenderFactory.smtp());
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, null, db, EmailSenderFactory.smtp());
   }
 
   public UserController(
@@ -68,12 +70,26 @@ public class UserController {
       OrgDao orgDao,
       MongoDatabase db,
       EmailSender emailSender) {
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, null, db, emailSender);
+  }
+
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      FormDao formDao,
+      OrgDao orgDao,
+      NotificationDao notificationDao,
+      MongoDatabase db,
+      EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
     this.orgDao = orgDao;
+    this.notificationDao = notificationDao;
     this.db = db;
     this.emailSender = emailSender;
   }
@@ -937,7 +953,8 @@ public class UserController {
     String targetUsername = req.getString("username").strip();
 
     RemoveOrganizationMemberService removeService = new RemoveOrganizationMemberService(
-        db, userDao, sessionUsername, targetUsername, sessionOrgName, sessionUserType);
+        db, userDao, fileDao, formDao, activityDao, notificationDao,
+        sessionUsername, targetUsername, sessionOrgName, sessionUserType);
     Message response = removeService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };

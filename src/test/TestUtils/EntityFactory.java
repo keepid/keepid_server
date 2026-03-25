@@ -527,7 +527,11 @@ public class EntityFactory {
 
     @Override
     public Activity build() {
-      Activity newActivity = new Activity().setOccurredAt(occurredAt).setInvokerUsername(username);
+      Activity newActivity = new Activity()
+          .setId(id)
+          .setOccurredAt(occurredAt)
+          .setInvokerUsername(username)
+          .setTargetUsername(username);
       if (!type.isEmpty()) {
         newActivity.setType(type);
       }

@@ -91,7 +91,7 @@ public class AppConfig {
     EmailSender emailSender = EmailSenderFactory.forDeploymentLevel(deploymentLevel);
     OrganizationController orgController = new OrganizationController(db, activityDao, emailSender);
     UserController userController =
-        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, emailSender);
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, notificationDao, db, emailSender);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
     PdfController pdfController = new PdfController(db, userDao, encryptionController);
