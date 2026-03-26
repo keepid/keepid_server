@@ -321,7 +321,25 @@ public class FillPDFServiceV2 implements Service {
             new ObjectId(),
             "");
     this.filledForm.setFileId(filledFileObjectId);
+    this.filledForm.setApplicationMetadata(extractMetadataFromAnswers(this.formAnswers));
     return PdfMessage.SUCCESS;
+  }
+
+  private static Map<String, String> extractMetadataFromAnswers(JSONObject formAnswers) {
+    Map<String, String> metadata = new HashMap<>();
+    if (formAnswers != null && formAnswers.has("metadata")) {
+      Object raw = formAnswers.get("metadata");
+      if (raw instanceof JSONObject) {
+        JSONObject metaObj = (JSONObject) raw;
+        for (String key : metaObj.keySet()) {
+          Object val = metaObj.get(key);
+          if (val != null && !JSONObject.NULL.equals(val)) {
+            metadata.put(key, String.valueOf(val));
+          }
+        }
+      }
+    }
+    return metadata;
   }
 
   public Message fill() {

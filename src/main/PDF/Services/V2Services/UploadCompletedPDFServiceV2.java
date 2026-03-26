@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -186,6 +187,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
               new ObjectId(),
               "");
       this.filledForm.setFileId(filledFileObjectId);
+      this.filledForm.setApplicationMetadata(extractMetadataFromAnswers(this.formAnswers));
 
       fileDao.save(filledFile);
       formDao.save(filledForm);
@@ -198,6 +200,23 @@ public class UploadCompletedPDFServiceV2 implements Service {
       log.error("Failed to save completed PDF: {}", e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
     }
+  }
+
+  private static Map<String, String> extractMetadataFromAnswers(JSONObject formAnswers) {
+    Map<String, String> metadata = new HashMap<>();
+    if (formAnswers != null && formAnswers.has("metadata")) {
+      Object raw = formAnswers.get("metadata");
+      if (raw instanceof JSONObject) {
+        JSONObject metaObj = (JSONObject) raw;
+        for (String key : metaObj.keySet()) {
+          Object val = metaObj.get(key);
+          if (val != null && !JSONObject.NULL.equals(val)) {
+            metadata.put(key, String.valueOf(val));
+          }
+        }
+      }
+    }
+    return metadata;
   }
 
   private void recordSubmitApplicationActivity() {

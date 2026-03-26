@@ -28,6 +28,8 @@ import Form.FormController;
 import Issue.IssueController;
 import Mail.FileBackfillController;
 import Mail.MailController;
+import Mail.MailSender;
+import Mail.MailSenderFactory;
 import Notification.NotificationController;
 import Notification.WindmillNotificationClient;
 import Organization.Organization;
@@ -107,8 +109,9 @@ public class AppConfig {
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     BillingController billingController = new BillingController();
+    MailSender mailSender = MailSenderFactory.create(deploymentLevel);
     MailController mailController =
-        new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
+        new MailController(mailDao, fileDao, formDao, mailSender, encryptionController);
     FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
@@ -350,6 +353,10 @@ public class AppConfig {
     /* --------------- MAIL FORM FEATURES ------------- */
     app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
     app.post("/submit-mail", mailController.saveMail);
+    app.post("/get-application-mail-info", mailController.getApplicationMailInfo);
+    app.post("/get-mail-history", mailController.getMailHistory);
+    app.post("/refresh-mail-status", mailController.refreshMailStatus);
+    app.post("/get-org-mail-summary", mailController.getOrgMailSummary);
     return app;
   }
 
