@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import static Security.EnvUtil.requireEnv;
-import static Security.EnvUtil.requireEnvWithPattern;
 
 @Slf4j
 public class WindmillNotificationClient {
@@ -35,8 +34,8 @@ public class WindmillNotificationClient {
     public WindmillNotificationClient() {
         WINDMILL_URL = requireEnv("WINDMILL_URL");
         WINDMILL_TOKEN = requireEnv("WINDMILL_TOKEN");
-        TWILIO_PHONE_NUMBER = requireEnvWithPattern("TWILIO_PHONE_NUMBER", PHONE_PATTERN);
-        KEEPID_EMAIL_ADDRESS = requireEnvWithPattern("EMAIL_ADDRESS", EMAIL_PATTERN);
+        TWILIO_PHONE_NUMBER = requireEnv("TWILIO_PHONE_NUMBER");
+        KEEPID_EMAIL_ADDRESS = requireEnv("EMAIL_ADDRESS");
 
         twilioResource = Map.of(
                 "accountSid", requireEnv("ACCOUNT_SID"),
