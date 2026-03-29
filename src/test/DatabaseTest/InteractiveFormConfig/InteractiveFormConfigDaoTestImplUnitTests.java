@@ -58,6 +58,18 @@ public class InteractiveFormConfigDaoTestImplUnitTests {
   }
 
   @Test
+  public void saveAndGetByIdWithBuilderState() {
+    ObjectId fileId = new ObjectId();
+    InteractiveFormConfig config = new InteractiveFormConfig(fileId, "{}", "{}");
+    config.setBuilderState("{\"preRequirements\":\"Read carefully\",\"postRequirements\":\"Mail it in\"}");
+    dao.save(config);
+
+    Optional<InteractiveFormConfig> result = dao.get(config.getId());
+    assertTrue(result.isPresent());
+    assertEquals("{\"preRequirements\":\"Read carefully\",\"postRequirements\":\"Mail it in\"}", result.get().getBuilderState());
+  }
+
+  @Test
   public void upsertByFileIdCreatesNew() {
     ObjectId fileId = new ObjectId();
     InteractiveFormConfig config =
