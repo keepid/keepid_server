@@ -85,6 +85,12 @@ public class GetFilesInformationService implements Service {
                     eq("annotated", annotated),
                     eq("fileType", FileType.FORM.toString()));
             return getAllFiles(filter, fileType, fileDao);
+          } else if (fileType == FileType.ORG_DOCUMENT) {
+            filter =
+                and(
+                    eq("organizationName", orgName),
+                    eq("fileType", FileType.ORG_DOCUMENT.toString()));
+            return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
           }
@@ -126,6 +132,8 @@ public class GetFilesInformationService implements Service {
           }
           fileMetadata.put("annotated", file_out.isAnnotated());
         } else if (fileType == FileType.APPLICATION_PDF) {
+          fileMetadata.put("filename", file_out.getFilename());
+        } else if (fileType == FileType.ORG_DOCUMENT) {
           fileMetadata.put("filename", file_out.getFilename());
         } else if (fileType == FileType.IDENTIFICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());

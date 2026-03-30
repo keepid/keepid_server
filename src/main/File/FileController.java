@@ -185,6 +185,32 @@ public class FileController {
                           Optional.ofNullable(encryptionController));
                   response = uploadService.executeAndGetResponse();
                   break;
+                case ORG_DOCUMENT:
+                  log.info("Got Org Document to upload via standard fileUpload handler!");
+                  fileToUpload =
+                      new File(
+                          username,
+                          uploadDate,
+                          filestreamToUpload,
+                          fileType,
+                          idCategory,
+                          filenameToUpload,
+                          organizationName,
+                          annotated,
+                          file.getContentType());
+                  uploadService =
+                      new UploadFileService(
+                          fileDao,
+                          activityDao,
+                          usernameOfInvoker,
+                          fileToUpload,
+                          Optional.ofNullable(privilegeLevel),
+                          Optional.ofNullable(fileId),
+                          toSign,
+                          Optional.empty(),
+                          Optional.ofNullable(encryptionController));
+                  response = uploadService.executeAndGetResponse();
+                  break;
                 case PROFILE_PICTURE:
                   log.info("Got profile picture to upload!");
                   fileToUpload =

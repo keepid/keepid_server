@@ -86,7 +86,7 @@ public class DeleteFileService implements Service {
         fileDao.delete(id);
         return FileMessage.SUCCESS;
       }
-    } else if (fileType == FileType.FORM) {
+    } else if (fileType == FileType.FORM || fileType == FileType.ORG_DOCUMENT) {
       if (file.getOrganizationName().equals(organizationName)) {
         recordDeleteFileActivity(id, filename);
         fileDao.delete(id);

@@ -158,7 +158,7 @@ public class DownloadFileService implements Service {
           }
           return FileMessage.NO_SUCH_FILE;
         }
-      } else if (fileType == FileType.FORM) {
+      } else if (fileType == FileType.FORM || fileType == FileType.ORG_DOCUMENT) {
         if (file.getOrganizationName().equals(organizationName.get())) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
