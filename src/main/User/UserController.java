@@ -866,6 +866,34 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
+  public Handler updateProfileFromDirectives = ctx -> {
+    log.info("Started updateProfileFromDirectives handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    JSONObject directivesMap = req.getJSONObject("directives");
+
+    // Re-map format to dummy keys containing directives so UpdateProfileFromFormService accepts it seamlessly
+    JSONObject formAnswers = new JSONObject();
+    for (String directive : directivesMap.keySet()) {
+      formAnswers.put("dummy:" + directive, directivesMap.get(directive));
+    }
+
+    UpdateProfileFromFormService updateService =
+        new UpdateProfileFromFormService(userDao, username, formAnswers);
+    Message response = updateService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
   public Handler saveWorkerNotes = ctx -> {
     JSONObject req = new JSONObject(ctx.body());
     String targetUsername = req.optString("username", null);

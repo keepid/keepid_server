@@ -129,4 +129,32 @@ public class UpdateProfileFromFormServiceTest {
     assertEquals("Newtown", updated.getMailAddress().getCity());
     assertEquals("Legacy", updated.getNameHistory().get(0).getFirst());
   }
+
+  @Test
+  public void updatesClientProfileFromDirectivesPayload() {
+    EntityFactory.createUser()
+        .withUsername("client1")
+        .withFirstName("Old")
+        .withLastName("Name")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    JSONObject formAnswers = new JSONObject();
+    // This format mimics what the UserController passes to the service
+    // when receiving a directives payload from the modern interactive forms.
+    formAnswers.put("dummy:client.currentName.first", "NewFirst");
+    formAnswers.put("dummy:client.currentName.last", "NewLast");
+    formAnswers.put("dummy:client.personalAddress.line1", "789 Dummy St");
+
+    UpdateProfileFromFormService service =
+        new UpdateProfileFromFormService(userDao, "client1", formAnswers);
+    Message response = service.executeAndGetResponse();
+
+    assertEquals(UserMessage.SUCCESS, response);
+    User updated = userDao.get("client1").orElse(null);
+    assertNotNull(updated);
+    assertEquals("NewFirst", updated.getCurrentName().getFirst());
+    assertEquals("NewLast", updated.getCurrentName().getLast());
+    assertEquals("789 Dummy St", updated.getPersonalAddress().getLine1());
+  }
 }

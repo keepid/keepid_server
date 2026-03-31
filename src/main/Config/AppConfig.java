@@ -217,6 +217,7 @@ public class AppConfig {
     app.post("/update-organization-info", userController.updateOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/update-profile-from-directives", userController.updateProfileFromDirectives);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
     // Phone book endpoints
