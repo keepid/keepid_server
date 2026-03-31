@@ -350,7 +350,9 @@ public class UserController {
     }
 
     String firstName = req.getString("firstname").strip();
+    String middleName = req.optString("middlename", "").strip();
     String lastName = req.getString("lastname").strip();
+    String suffix = req.optString("suffix", "").strip();
     String birthDate = req.getString("birthDate").strip();
     String email = req.getString("email").toLowerCase().strip();
     String phone = req.optString("phonenumber", "").strip();
@@ -360,7 +362,7 @@ public class UserController {
     String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
     String password = UUID.randomUUID().toString();
 
-    Name currentName = new Name(firstName, lastName);
+    Name currentName = new Name(firstName, middleName, lastName, suffix, null);
 
     CreateUserService createUserService = new CreateUserService(
         userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,

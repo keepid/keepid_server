@@ -75,7 +75,30 @@ public class FileDaoImpl implements FileDao {
 
   @Override
   public void update(@NonNull File file) {
+    File existingFile = fileCollection.find(eq("_id", file.getId())).first();
+    if (existingFile == null) {
+      save(file);
+      return;
+    }
+
+    ObjectId previousGridFileId = existingFile.getFileId();
+    ObjectId nextGridFileId = previousGridFileId;
+
+    if (file.getFileStream() != null) {
+      GridFSUploadOptions options = new GridFSUploadOptions().chunkSizeBytes(CHUNK_SIZE_BYTES);
+      nextGridFileId = fileBucket.uploadFromStream(file.getFilename(), file.getFileStream(), options);
+      file.setFileId(nextGridFileId);
+    } else if (file.getFileId() == null) {
+      file.setFileId(previousGridFileId);
+    }
+
     fileCollection.replaceOne(eq("_id", file.getId()), file);
+
+    if (file.getFileStream() != null
+        && previousGridFileId != null
+        && !previousGridFileId.equals(nextGridFileId)) {
+      fileBucket.delete(previousGridFileId);
+    }
   }
 
   @Override

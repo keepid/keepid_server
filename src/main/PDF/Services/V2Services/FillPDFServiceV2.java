@@ -128,7 +128,9 @@ public class FillPDFServiceV2 implements Service {
       if (answerText == null || answerText.isEmpty() || answerText.equals("null")) continue;
 
       PDField field = acroForm.getField(key);
-      if (field == null) continue;
+      if (field == null) {
+        continue;
+      }
 
       FormQuestion record = new FormQuestion(
           new ObjectId(), FieldType.TEXT_FIELD, key, null,
@@ -150,13 +152,22 @@ public class FillPDFServiceV2 implements Service {
 
   private void fillPDField(PDField field, String answerText, FormQuestion filledQuestion)
       throws IOException {
+    String normalizedAnswer = answerText == null ? "" : answerText.trim();
+    if (field instanceof PDNonTerminalField) {
+      for (PDField child : ((PDNonTerminalField) field).getChildren()) {
+        fillPDField(child, normalizedAnswer, filledQuestion);
+      }
+      return;
+    }
     if (field instanceof PDButton) {
       if (field instanceof PDCheckBox) {
         PDCheckBox checkBoxField = (PDCheckBox) field;
-        boolean fieldAnswer = "true".equalsIgnoreCase(answerText)
-            || "on".equalsIgnoreCase(answerText)
-            || "yes".equalsIgnoreCase(answerText)
-            || "1".equals(answerText);
+        String onValue = checkBoxField.getOnValue();
+        boolean fieldAnswer = "true".equalsIgnoreCase(normalizedAnswer)
+            || "on".equalsIgnoreCase(normalizedAnswer)
+            || "yes".equalsIgnoreCase(normalizedAnswer)
+            || "1".equals(normalizedAnswer)
+            || (onValue != null && onValue.equalsIgnoreCase(normalizedAnswer));
         filledQuestion.setAnswerText(Boolean.toString(fieldAnswer));
         if (fieldAnswer) {
           checkBoxField.check();
@@ -167,21 +178,59 @@ public class FillPDFServiceV2 implements Service {
         // Do nothing
       } else if (field instanceof PDRadioButton) {
         PDRadioButton radioButtonField = (PDRadioButton) field;
-        if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
+        if (normalizedAnswer.isEmpty() || "off".equalsIgnoreCase(normalizedAnswer)) {
           return;
         }
-        filledQuestion.setAnswerText(answerText);
-        radioButtonField.setValue(answerText);
+        filledQuestion.setAnswerText(normalizedAnswer);
+        try {
+          radioButtonField.setValue(normalizedAnswer);
+        } catch (IllegalArgumentException ex) {
+          List<String> candidates = new ArrayList<>();
+          List<String> exportValues = radioButtonField.getExportValues();
+          if (exportValues != null) candidates.addAll(exportValues);
+          candidates.addAll(radioButtonField.getOnValues());
+
+          for (String candidate : candidates) {
+            if (candidate == null || candidate.isEmpty()) continue;
+            if (candidate.equalsIgnoreCase(normalizedAnswer)) {
+              radioButtonField.setValue(candidate);
+              return;
+            }
+          }
+          String semanticCandidate = findSemanticRadioCandidate(candidates, normalizedAnswer);
+          if (semanticCandidate != null) {
+            radioButtonField.setValue(semanticCandidate);
+            return;
+          }
+          if (isTruthyValue(normalizedAnswer)) {
+            String singleCandidate = null;
+            for (String candidate : candidates) {
+              if (candidate == null || candidate.isEmpty() || "Off".equalsIgnoreCase(candidate)) {
+                continue;
+              }
+              if (singleCandidate != null) {
+                // Multiple choices exist; truthy fallback is ambiguous for radio groups.
+                throw ex;
+              }
+              singleCandidate = candidate;
+            }
+            if (singleCandidate != null) {
+              radioButtonField.setValue(singleCandidate);
+              return;
+            }
+          }
+          throw ex;
+        }
       }
     } else if (field instanceof PDVariableText) {
       if (field instanceof PDChoice) {
         if (field instanceof PDListBox) {
           PDListBox listBoxField = (PDListBox) field;
-          if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
+          if (normalizedAnswer.isEmpty() || "off".equalsIgnoreCase(normalizedAnswer)) {
             return;
           }
           List<String> values = new LinkedList<>();
-          for (Object value : new JSONArray(answerText)) {
+          for (Object value : new JSONArray(normalizedAnswer)) {
             String stringValue = (String) value;
             values.add(stringValue);
           }
@@ -189,16 +238,52 @@ public class FillPDFServiceV2 implements Service {
           listBoxField.setValue(values);
         } else if (field instanceof PDComboBox) {
           PDComboBox comboBoxField = (PDComboBox) field;
-          filledQuestion.setAnswerText(answerText);
-          comboBoxField.setValue(answerText);
+          filledQuestion.setAnswerText(normalizedAnswer);
+          comboBoxField.setValue(normalizedAnswer);
         }
       } else if (field instanceof PDTextField) {
-        filledQuestion.setAnswerText(answerText);
-        field.setValue(answerText);
+        filledQuestion.setAnswerText(normalizedAnswer);
+        field.setValue(normalizedAnswer);
       }
     } else if (field instanceof PDSignatureField) {
       // Handled in signPDF
     }
+  }
+
+  private boolean isTruthyValue(String value) {
+    if (value == null) return false;
+    return "true".equalsIgnoreCase(value)
+        || "on".equalsIgnoreCase(value)
+        || "yes".equalsIgnoreCase(value)
+        || "1".equals(value);
+  }
+
+  private String findSemanticRadioCandidate(List<String> candidates, String answer) {
+    if (answer == null || answer.isBlank() || candidates == null || candidates.isEmpty()) {
+      return null;
+    }
+    String normalizedAnswer = normalizeRadioToken(answer);
+    for (String candidate : candidates) {
+      if (candidate == null || candidate.isBlank() || "Off".equalsIgnoreCase(candidate)) continue;
+      if (normalizeRadioToken(candidate).equals(normalizedAnswer)) {
+        return candidate;
+      }
+      String alias = stripChoicePrefix(candidate);
+      if (!alias.equals(candidate) && normalizeRadioToken(alias).equals(normalizedAnswer)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  private String stripChoicePrefix(String value) {
+    return value == null ? "" : value.replaceFirst("(?i)^choice\\d+[-_.]*", "");
+  }
+
+  private String normalizeRadioToken(String value) {
+    if (value == null) return "";
+    String collapsed = value.toLowerCase(Locale.ROOT).replace("_", " ").replace("-", " ").trim();
+    return collapsed.replaceAll("[^a-z0-9]+", "");
   }
 
   public Message mergeFileAndFormAnswers(InputStream templateFileStream) {

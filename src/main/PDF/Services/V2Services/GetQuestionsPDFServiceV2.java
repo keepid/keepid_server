@@ -325,6 +325,13 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
   private String computeDirectiveValue(
       String computedKey, Map<String, String> sourceMap, DirectiveScope directiveScope) {
+    if ("line1+2".equals(computedKey)) {
+      return buildAddressLine1And2ForScope(sourceMap, directiveScope);
+    }
+    if (computedKey.endsWith(".$line1+2")) {
+      String prefix = computedKey.substring(0, computedKey.length() - ".$line1+2".length());
+      return buildAddressLine1And2ByPrefix(sourceMap, directiveScope, prefix);
+    }
     switch (computedKey) {
       case "age":
         return computeAge(sourceMap);
@@ -358,6 +365,46 @@ public class GetQuestionsPDFServiceV2 implements Service {
       default:
         return null;
     }
+  }
+
+  private String buildAddressLine1And2ForScope(
+      Map<String, String> sourceMap, DirectiveScope directiveScope) {
+    if (directiveScope == DirectiveScope.ORG) {
+      String combined = buildAddressLine1And2(sourceMap, "address");
+      if (combined != null) return combined;
+      return buildAddressLine1And2(sourceMap, "orgAddress");
+    }
+    String combined = buildAddressLine1And2(sourceMap, "personalAddress");
+    if (combined != null) return combined;
+    return buildAddressLine1And2(sourceMap, "mailAddress");
+  }
+
+  private String buildAddressLine1And2ByPrefix(
+      Map<String, String> sourceMap, DirectiveScope directiveScope, String rawPrefix) {
+    String prefix = rawPrefix == null ? "" : rawPrefix.trim();
+    if (prefix.isEmpty()) {
+      return buildAddressLine1And2ForScope(sourceMap, directiveScope);
+    }
+    if ("personalAddress".equalsIgnoreCase(prefix)) {
+      return buildAddressLine1And2(sourceMap, "personalAddress");
+    }
+    if ("mailAddress".equalsIgnoreCase(prefix)) {
+      return buildAddressLine1And2(sourceMap, "mailAddress");
+    }
+    if ("orgAddress".equalsIgnoreCase(prefix)) {
+      return buildAddressLine1And2(sourceMap, "orgAddress");
+    }
+    if ("address".equalsIgnoreCase(prefix)) {
+      if (directiveScope == DirectiveScope.ORG) {
+        String combined = buildAddressLine1And2(sourceMap, "address");
+        if (combined != null) return combined;
+        return buildAddressLine1And2(sourceMap, "orgAddress");
+      }
+      String combined = buildAddressLine1And2(sourceMap, "personalAddress");
+      if (combined != null) return combined;
+      return buildAddressLine1And2(sourceMap, "mailAddress");
+    }
+    return null;
   }
 
   private enum Part {
@@ -472,6 +519,16 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
     if (chunks.isEmpty()) return null;
     return String.join(", ", chunks);
+  }
+
+  private String buildAddressLine1And2(Map<String, String> sourceMap, String prefix) {
+    if (sourceMap == null) return null;
+    String line1 = safeValue(sourceMap.get(prefix + ".line1"));
+    String line2 = safeValue(sourceMap.get(prefix + ".line2"));
+    if (!line1.isEmpty() && !line2.isEmpty()) return line1 + ", " + line2;
+    if (!line1.isEmpty()) return line1;
+    if (!line2.isEmpty()) return line2;
+    return null;
   }
 
   private enum DirectiveScope {

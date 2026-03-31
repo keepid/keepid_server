@@ -51,6 +51,8 @@ public class UploadCompletedPDFServiceV2 implements Service {
   private FileDao fileDaoRef;
   private File filledFile;
   private Form filledForm;
+  private boolean replacingExistingApplication;
+  private ObjectId existingApplicationObjectId;
 
   public UploadCompletedPDFServiceV2(
       FileDao fileDao,
@@ -70,6 +72,8 @@ public class UploadCompletedPDFServiceV2 implements Service {
     this.pdfFileStream = fileParams.getFileStream();
     this.encryptionController = encryptionController;
     this.fileDaoRef = fileDao;
+    this.replacingExistingApplication = false;
+    this.existingApplicationObjectId = null;
   }
 
   @Override
@@ -94,6 +98,20 @@ public class UploadCompletedPDFServiceV2 implements Service {
     if (privilegeLevel == UserType.Developer) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
+
+    Optional<File> existingFileOpt = fileDaoRef.get(new ObjectId(applicationId));
+    if (existingFileOpt.isPresent()) {
+      File existingFile = existingFileOpt.get();
+      if (existingFile.getFileType() == FileType.APPLICATION_PDF) {
+        if (!Objects.equals(existingFile.getUsername(), username)
+            || !Objects.equals(existingFile.getOrganizationName(), organizationName)) {
+          return PdfMessage.INSUFFICIENT_PRIVILEGE;
+        }
+        replacingExistingApplication = true;
+        existingApplicationObjectId = existingFile.getId();
+      }
+    }
+
     return null;
   }
 
@@ -187,7 +205,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
               new ObjectId(),
               "");
       this.filledForm.setFileId(filledFileObjectId);
-      
+
       Map<String, String> mergedMetadata = new HashMap<>();
       Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(applicationId));
       if (templateOpt.isPresent()) {
@@ -198,9 +216,26 @@ public class UploadCompletedPDFServiceV2 implements Service {
       }
       mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
       this.filledForm.setApplicationMetadata(mergedMetadata);
-      
-      fileDao.save(filledFile);
-      formDao.save(filledForm);
+
+      if (replacingExistingApplication && existingApplicationObjectId != null) {
+        this.filledFile.setId(existingApplicationObjectId);
+        this.filledForm.setFileId(existingApplicationObjectId);
+
+        Optional<Form> existingForm = formDao.getByFileId(existingApplicationObjectId);
+        if (existingForm.isPresent()) {
+          this.filledForm.setId(existingForm.get().getId());
+        }
+
+        fileDao.update(filledFile);
+        if (existingForm.isPresent()) {
+          formDao.update(filledForm);
+        } else {
+          formDao.save(filledForm);
+        }
+      } else {
+        fileDao.save(filledFile);
+        formDao.save(filledForm);
+      }
       recordSubmitApplicationActivity();
       return PdfMessage.SUCCESS;
     } catch (GeneralSecurityException e) {
