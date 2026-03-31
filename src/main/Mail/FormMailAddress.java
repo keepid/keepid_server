@@ -66,7 +66,7 @@ public class FormMailAddress {
   }
 
   public BigDecimal getMaybeCheckAmount() {
-    return maybeCheckAmount;
+    return maybeCheckAmount != null ? maybeCheckAmount : BigDecimal.ZERO;
   }
 
   public void setMaybeCheckAmount(BigDecimal maybeCheckAmount) {

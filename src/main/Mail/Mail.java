@@ -61,7 +61,7 @@ public class Mail {
     this.mailingAddress = mailingAddress;
     this.mailStatus = MailStatus.CREATED;
     this.lobId = null;
-    this.lobCreatedAt = new Date();
+    this.lobCreatedAt = null;
     this.targetUsername = targetUsername;
     this.requesterUsername = requesterUsername;
     this.trackingEvents = new ArrayList<>();
