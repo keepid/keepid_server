@@ -19,7 +19,7 @@ public class NoOpMailSenderUnitTests {
   public void sendMail_returnsSyntheticResult() throws Exception {
     Mail mail = new Mail(
         new org.bson.types.ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "targetUser",
         "requesterUser");
 

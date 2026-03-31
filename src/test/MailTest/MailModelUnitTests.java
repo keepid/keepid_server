@@ -15,7 +15,7 @@ public class MailModelUnitTests {
   public void constructor_setsCorrectDefaults() {
     Mail mail = new Mail(
         new ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "targetUser",
         "requesterUser");
 
@@ -31,7 +31,7 @@ public class MailModelUnitTests {
   public void applyResult_populatesAllFields() {
     Mail mail = new Mail(
         new ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "target",
         "requester");
 
@@ -57,7 +57,7 @@ public class MailModelUnitTests {
   public void applyRefreshResult_updatesStatusToDelivered() {
     Mail mail = new Mail(
         new ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "target",
         "requester");
     mail.setMailStatus(MailStatus.MAILED);
@@ -82,7 +82,7 @@ public class MailModelUnitTests {
   public void applyRefreshResult_updatesStatusToInTransit() {
     Mail mail = new Mail(
         new ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "target",
         "requester");
     mail.setMailStatus(MailStatus.MAILED);
@@ -104,7 +104,7 @@ public class MailModelUnitTests {
   public void applyRefreshResult_noEventsLeavesStatusUnchanged() {
     Mail mail = new Mail(
         new ObjectId(),
-        FormMailAddress.values()[0],
+        new FormMailAddress(),
         "target",
         "requester");
     mail.setMailStatus(MailStatus.MAILED);

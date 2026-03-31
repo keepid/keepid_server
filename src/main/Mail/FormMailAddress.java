@@ -1,114 +1,10 @@
 package Mail;
 
-import com.google.common.collect.ImmutableSet;
+
 import java.math.BigDecimal;
 import java.util.Set;
 
-public enum FormMailAddress {
-  PA_BIRTH_CERTIFICATE(
-      "PA Birth Certificate.pdf",
-      "Birth Certificate Address for Pennsylvania",
-      "Department of Health Division of Vital Records",
-      "VITAL RECORDS",
-      "PO Box 1528",
-      "",
-      "New Castle",
-      "PA",
-      "16103",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("ANY")),
-  PA_DRIVERS_LICENSE(
-      "PA Drivers License.pdf",
-      "Driver's License for Pennsylvania",
-      "Bureau of Driver Licensing",
-      "PennDOT",
-      "P.O. Box 68272",
-      "",
-      "Harrisburg",
-      "PA",
-      "17106",
-      new BigDecimal("40.0"),
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("ANY")),
-  PA_VOTER_REGISTRATION_PHIL(
-      "PA Voter Registration and PA Mail-In Ballot Request for Philadelphia",
-      "PA Voter Registration and PA Mail-In Ballot Request specific to county of Philadelphia",
-      "City Hall",
-      "",
-      "1400 John F Kennedy Blvd",
-      "Room 142",
-      "Philadelphia",
-      "PA",
-      "19107",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("Philadelphia")),
-  PA_VOTER_REGISTRATION_MONT(
-      "PA Voter Registration and PA Mail-In Ballot Request for Montgomery",
-      "PA Voter Registration and PA Mail-In Ballot Request specific to county of Montgomery",
-      "Montgomery County Voter Services",
-      "",
-      "425 Swede St",
-      "Suite 602",
-      "Norristown",
-      "PA",
-      "19401",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("Montgomery")),
-  PA_VOTER_REGISTRATION_BUCK(
-      "PA Voter Registration and PA Mail-In Ballot Request for Bucks",
-      "PA Voter Registration and PA Mail-In Ballot Request specific to county of Bucks",
-      "",
-      "",
-      "55 E Court St",
-      "",
-      "Doylestown",
-      "PA",
-      "18901",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("Bucks")),
-  PA_VOTER_REGISTRATION_DELA(
-      "PA Voter Registration and PA Mail-In Ballot Request for Delaware",
-      "PA Voter Registration and PA Mail-In Ballot Request specific to county of Delaware",
-      "Govt Center Bldg",
-      "",
-      "201 W Front St",
-      "",
-      "Media",
-      "PA",
-      "19063",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("Delaware")),
-  PA_VOTER_REGISTRATION_CHEST(
-      "PA Voter Registration and PA Mail-In Ballot Request for Chester",
-      "PA Voter Registration and PA Mail-In Ballot Request specific to county of Chester",
-      "",
-      "",
-      "601 Westtown Rd Ste 150",
-      "PO Box 2747",
-      "West Chester",
-      "PA",
-      "19380",
-      BigDecimal.ZERO,
-      ImmutableSet.of("PA"),
-      ImmutableSet.of("Chester")),
-  NY_VOTER_REGISTRATION_QUEENS(
-      "NY Voter Registration for Queens",
-      "NY Voter Registration specific to county of Queens",
-      "Queens County Board of Elections",
-      "",
-      "118-35 Queens Boulevard",
-      "11th Floor",
-      "Forest Hills",
-      "NY",
-      "11375",
-      BigDecimal.ZERO,
-      ImmutableSet.of("NY"),
-      ImmutableSet.of("Queens"));
+public class FormMailAddress {
 
   private String name;
   private String description;
@@ -123,7 +19,9 @@ public enum FormMailAddress {
   private Set<String> acceptable_states;
   private Set<String> acceptable_counties;
 
-  <E> FormMailAddress(
+  public FormMailAddress() {}
+
+  public FormMailAddress(
       String name,
       String description,
       String office_name,
@@ -153,11 +51,11 @@ public enum FormMailAddress {
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("FormMailAddress {");
-    sb.append(", name=").append(this.name);
+    sb.append("name=").append(this.name);
     sb.append(", description=").append(this.description);
     sb.append(", office_name=").append(this.office_name);
     sb.append(", nameForCheck=").append(this.nameForCheck);
-    sb.append(", maybeCheckAmount=").append(this.maybeCheckAmount.toString());
+    sb.append(", maybeCheckAmount=").append(this.maybeCheckAmount != null ? this.maybeCheckAmount.toString() : "null");
     sb.append(", street1=").append(this.street1);
     sb.append(", street2=").append(this.street2);
     sb.append(", city=").append(this.city);
@@ -171,47 +69,95 @@ public enum FormMailAddress {
     return maybeCheckAmount;
   }
 
+  public void setMaybeCheckAmount(BigDecimal maybeCheckAmount) {
+    this.maybeCheckAmount = maybeCheckAmount;
+  }
+
   public String getName() {
     return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
   }
 
   public String getDescription() {
     return description;
   }
 
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
   public String getOffice_name() {
     return office_name;
+  }
+
+  public void setOffice_name(String office_name) {
+    this.office_name = office_name;
+  }
+
+  public String getNameForCheck() {
+    return nameForCheck;
+  }
+
+  public void setNameForCheck(String nameForCheck) {
+    this.nameForCheck = nameForCheck;
   }
 
   public String getStreet1() {
     return street1;
   }
 
+  public void setStreet1(String street1) {
+    this.street1 = street1;
+  }
+
   public String getStreet2() {
     return street2;
+  }
+
+  public void setStreet2(String street2) {
+    this.street2 = street2;
   }
 
   public String getCity() {
     return city;
   }
 
+  public void setCity(String city) {
+    this.city = city;
+  }
+
   public String getState() {
     return state;
+  }
+
+  public void setState(String state) {
+    this.state = state;
   }
 
   public String getZipcode() {
     return zipcode;
   }
 
+  public void setZipcode(String zipcode) {
+    this.zipcode = zipcode;
+  }
+
   public Set<String> getAcceptable_states() {
     return acceptable_states;
+  }
+
+  public void setAcceptable_states(Set<String> acceptable_states) {
+    this.acceptable_states = acceptable_states;
   }
 
   public Set<String> getAcceptable_counties() {
     return acceptable_counties;
   }
 
-  public String getNameForCheck() {
-    return nameForCheck;
+  public void setAcceptable_counties(Set<String> acceptable_counties) {
+    this.acceptable_counties = acceptable_counties;
   }
 }

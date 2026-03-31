@@ -143,6 +143,17 @@ public class CreateApplicationService implements Service {
               new ObjectId(),
               "");
       form.setFileId(fileId);
+      
+      Map<String, String> appMetadata = new HashMap<>();
+      Iterator<String> keys = registryMetadata.keys();
+      while(keys.hasNext()) {
+        String key = keys.next();
+        if (key.startsWith("mailDestination")) {
+          appMetadata.put(key, registryMetadata.optString(key, ""));
+        }
+      }
+      form.setApplicationMetadata(appMetadata);
+      
       formDao.save(form);
 
       String lookupKey = registryMetadata.optString("lookupKey", "").strip();

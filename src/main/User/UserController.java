@@ -559,6 +559,83 @@ public class UserController {
     ctx.result(res.toString());
   };
 
+  public Handler updateOrganizationInfo = ctx -> {
+    log.info("Started updateOrganizationInfo handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+    UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      ctx.result(AUTH_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String requestedOrgName = req.optString("orgName", null);
+    if (requestedOrgName == null || requestedOrgName.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    if (!requestedOrgName.equals(sessionOrgName)) {
+      ctx.result(CROSS_ORG_ACTION_DENIED.toJSON().toString());
+      return;
+    }
+
+    if (privilegeLevel != UserType.Admin && privilegeLevel != UserType.Director) {
+      ctx.result(INSUFFICIENT_PRIVILEGE.toJSON().toString());
+      return;
+    }
+
+    Optional<Organization> orgOpt = orgDao.get(requestedOrgName);
+    if (orgOpt.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    Organization org = orgOpt.get();
+
+    if (req.has("address")) {
+      JSONObject addressJson = req.optJSONObject("address");
+      if (addressJson != null) {
+        Address currentAddress = org.getOrgAddress();
+        if (currentAddress == null) {
+          currentAddress = new Address("", "", "", "", "", "");
+        }
+        currentAddress.setLine1(addressJson.optString("line1", ""));
+        currentAddress.setLine2(addressJson.optString("line2", ""));
+        currentAddress.setCity(addressJson.optString("city", ""));
+        currentAddress.setState(addressJson.optString("state", ""));
+        currentAddress.setZip(addressJson.optString("zip", ""));
+        currentAddress.setCounty(addressJson.optString("county", ""));
+        org.setOrgAddress(currentAddress);
+      }
+    }
+
+    if (req.has("phone")) {
+      org.setOrgPhoneNumber(req.optString("phone", ""));
+    }
+
+    if (req.has("email")) {
+      org.setOrgEmail(req.optString("email", ""));
+    }
+
+    if (req.has("newName") && !req.getString("newName").isBlank()) {
+       String newName = req.getString("newName");
+       if (!newName.equals(org.getOrgName())) {
+           org.setOrgName(newName);
+           // Also update session attribute if they themselves changed it
+           ctx.sessionAttribute("orgName", newName);
+       }
+    }
+
+    orgDao.update(org);
+
+    JSONObject res = new JSONObject();
+    res.put("status", "SUCCESS");
+    ctx.result(res.toString());
+  };
+
   public Handler getMembers = ctx -> {
     log.info("Started getMembers handler");
     JSONObject req = new JSONObject(ctx.body());

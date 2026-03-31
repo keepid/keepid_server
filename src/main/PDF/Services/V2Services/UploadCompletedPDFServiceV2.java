@@ -187,8 +187,18 @@ public class UploadCompletedPDFServiceV2 implements Service {
               new ObjectId(),
               "");
       this.filledForm.setFileId(filledFileObjectId);
-      this.filledForm.setApplicationMetadata(extractMetadataFromAnswers(this.formAnswers));
-
+      
+      Map<String, String> mergedMetadata = new HashMap<>();
+      Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(applicationId));
+      if (templateOpt.isPresent()) {
+        Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+        if (tmplMeta != null) {
+          mergedMetadata.putAll(tmplMeta);
+        }
+      }
+      mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
+      this.filledForm.setApplicationMetadata(mergedMetadata);
+      
       fileDao.save(filledFile);
       formDao.save(filledForm);
       recordSubmitApplicationActivity();

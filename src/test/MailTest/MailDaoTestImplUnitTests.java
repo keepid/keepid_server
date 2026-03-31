@@ -31,7 +31,7 @@ public class MailDaoTestImplUnitTests {
   @Test
   public void saveAndGet() {
     ObjectId fileId = new ObjectId();
-    Mail mail = new Mail(fileId, FormMailAddress.values()[0], "targetUser", "requesterUser");
+    Mail mail = new Mail(fileId, new FormMailAddress(), "targetUser", "requesterUser");
     mailDao.save(mail);
 
     assertTrue(mailDao.get(mail.getId()).isPresent());
@@ -43,9 +43,9 @@ public class MailDaoTestImplUnitTests {
     ObjectId fileId1 = new ObjectId();
     ObjectId fileId2 = new ObjectId();
 
-    Mail mail1 = new Mail(fileId1, FormMailAddress.values()[0], "user1", "requester");
-    Mail mail2 = new Mail(fileId1, FormMailAddress.values()[0], "user1", "requester");
-    Mail mail3 = new Mail(fileId2, FormMailAddress.values()[0], "user2", "requester");
+    Mail mail1 = new Mail(fileId1, new FormMailAddress(), "user1", "requester");
+    Mail mail2 = new Mail(fileId1, new FormMailAddress(), "user1", "requester");
+    Mail mail3 = new Mail(fileId2, new FormMailAddress(), "user2", "requester");
 
     mailDao.save(mail1);
     mailDao.save(mail2);
@@ -65,11 +65,11 @@ public class MailDaoTestImplUnitTests {
   @Test
   public void getByOrganization_returnsMatchingRecords() {
     ObjectId fileId = new ObjectId();
-    Mail mail1 = new Mail(fileId, FormMailAddress.values()[0], "user", "requester");
+    Mail mail1 = new Mail(fileId, new FormMailAddress(), "user", "requester");
     mail1.setOrganizationName("OrgA");
-    Mail mail2 = new Mail(fileId, FormMailAddress.values()[0], "user", "requester");
+    Mail mail2 = new Mail(fileId, new FormMailAddress(), "user", "requester");
     mail2.setOrganizationName("OrgA");
-    Mail mail3 = new Mail(fileId, FormMailAddress.values()[0], "user", "requester");
+    Mail mail3 = new Mail(fileId, new FormMailAddress(), "user", "requester");
     mail3.setOrganizationName("OrgB");
 
     mailDao.save(mail1);
@@ -86,11 +86,11 @@ public class MailDaoTestImplUnitTests {
     ObjectId fileId = new ObjectId();
     long now = System.currentTimeMillis();
 
-    Mail mail1 = new Mail(fileId, FormMailAddress.values()[0], "user", "req");
+    Mail mail1 = new Mail(fileId, new FormMailAddress(), "user", "req");
     mail1.setOrganizationName("OrgA");
     mail1.setLobCreatedAt(new Date(now - 86400000L));
 
-    Mail mail2 = new Mail(fileId, FormMailAddress.values()[0], "user", "req");
+    Mail mail2 = new Mail(fileId, new FormMailAddress(), "user", "req");
     mail2.setOrganizationName("OrgA");
     mail2.setLobCreatedAt(new Date(now - 86400000L * 60));
 
@@ -108,7 +108,7 @@ public class MailDaoTestImplUnitTests {
   @Test
   public void update_modifiesExistingRecord() {
     ObjectId fileId = new ObjectId();
-    Mail mail = new Mail(fileId, FormMailAddress.values()[0], "user", "requester");
+    Mail mail = new Mail(fileId, new FormMailAddress(), "user", "requester");
     mailDao.save(mail);
 
     mail.setMailStatus(MailStatus.MAILED);
@@ -123,7 +123,7 @@ public class MailDaoTestImplUnitTests {
   @Test
   public void delete_removesRecord() {
     ObjectId fileId = new ObjectId();
-    Mail mail = new Mail(fileId, FormMailAddress.values()[0], "user", "requester");
+    Mail mail = new Mail(fileId, new FormMailAddress(), "user", "requester");
     mailDao.save(mail);
     assertEquals(1, mailDao.size());
 

@@ -36,28 +36,7 @@ public class MailController {
     this.encryptionController = encryptionController;
   }
 
-  public Handler getFormMailAddresses =
-      ctx -> {
-        FormMailAddress[] formMailAddresses = FormMailAddress.values();
-        JSONObject response = new JSONObject();
-        for (FormMailAddress address : formMailAddresses) {
-          JSONObject addressJson = new JSONObject();
-          addressJson.put("name", address.getName());
-          addressJson.put("description", address.getDescription());
-          addressJson.put("office_name", address.getOffice_name());
-          addressJson.put("name_for_check", address.getNameForCheck());
-          addressJson.put("street1", address.getStreet1());
-          addressJson.put("street2", address.getStreet2());
-          addressJson.put("city", address.getCity());
-          addressJson.put("state", address.getState());
-          addressJson.put("zipcode", address.getZipcode());
-          addressJson.put("check_amount", address.getMaybeCheckAmount().toString());
-          addressJson.put("acceptable_states", address.getAcceptable_states());
-          addressJson.put("acceptable_counties", address.getAcceptable_counties());
-          response.put(address.name(), addressJson);
-        }
-        ctx.result(response.toString());
-      };
+
 
   public Handler saveMail =
       ctx -> {
@@ -68,12 +47,24 @@ public class MailController {
             ctx.sessionAttribute("orgName") != null
                 ? ctx.sessionAttribute("orgName")
                 : "";
-        String formMailAddressString = request.getString("mailKey");
-        FormMailAddress formMailAddress =
-            Arrays.stream(FormMailAddress.values())
-                .filter(e -> e.name().equalsIgnoreCase(formMailAddressString))
-                .findFirst()
-                .orElseThrow();
+        JSONObject dest = request.getJSONObject("mailDestination");
+        FormMailAddress formMailAddress = new FormMailAddress();
+        formMailAddress.setName(dest.optString("name", ""));
+        formMailAddress.setDescription(dest.optString("description", ""));
+        formMailAddress.setOffice_name(dest.optString("officeName", ""));
+        formMailAddress.setNameForCheck(dest.optString("nameForCheck", ""));
+        formMailAddress.setStreet1(dest.optString("street1", ""));
+        formMailAddress.setStreet2(dest.optString("street2", ""));
+        formMailAddress.setCity(dest.optString("city", ""));
+        formMailAddress.setState(dest.optString("state", ""));
+        formMailAddress.setZipcode(dest.optString("zipcode", ""));
+        
+        String checkAmtStr = dest.optString("checkAmount", "0");
+        if (checkAmtStr.isBlank()) {
+          checkAmtStr = "0";
+        }
+        formMailAddress.setMaybeCheckAmount(new BigDecimal(checkAmtStr));
+
         String fileId = request.getString("fileId");
 
         ReturnAddress returnAddress = null;

@@ -26,7 +26,7 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
-import Mail.FileBackfillController;
+
 import Mail.MailController;
 import Mail.MailSender;
 import Mail.MailSenderFactory;
@@ -34,7 +34,7 @@ import Notification.NotificationController;
 import Notification.WindmillNotificationClient;
 import Organization.Organization;
 import Organization.OrganizationController;
-import PDF.PdfController;
+
 import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
@@ -96,7 +96,7 @@ public class AppConfig {
         new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, notificationDao, db, emailSender);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
-    PdfController pdfController = new PdfController(db, userDao, encryptionController);
+
     ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
     InteractiveFormConfigDao interactiveFormConfigDao =
         InteractiveFormConfigDaoFactory.create(deploymentLevel);
@@ -112,7 +112,7 @@ public class AppConfig {
     MailSender mailSender = MailSenderFactory.create(deploymentLevel);
     MailController mailController =
         new MailController(mailDao, fileDao, formDao, mailSender, encryptionController);
-    FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
+
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
     WindmillNotificationClient notificationClient = new WindmillNotificationClient();
@@ -214,6 +214,7 @@ public class AppConfig {
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.post("/get-user-info", userController.getUserInfo);
     app.post("/get-organization-info", userController.getOrganizationInfo);
+    app.post("/update-organization-info", userController.updateOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
@@ -351,7 +352,6 @@ public class AppConfig {
     app.get("/get-weekly-uploaded-ids", fileController.getWeeklyUploadedIds);
 
     /* --------------- MAIL FORM FEATURES ------------- */
-    app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
     app.post("/submit-mail", mailController.saveMail);
     app.post("/get-application-mail-info", mailController.getApplicationMailInfo);
     app.post("/get-mail-history", mailController.getMailHistory);
