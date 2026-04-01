@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -462,6 +463,14 @@ public class FormController {
               fObj.put("required", q.isRequired());
               fieldsArr.put(fObj);
             }
+            Map<String, String> appMeta = form.getApplicationMetadata();
+            if (appMeta != null) {
+              for (Map.Entry<String, String> e : appMeta.entrySet()) {
+                if (e.getKey().startsWith("mailDestination")) {
+                  registryJson.put(e.getKey(), e.getValue());
+                }
+              }
+            }
           }
 
           // Parse the stored PDF to get bounding-box data for the field overlays
@@ -556,40 +565,69 @@ public class FormController {
           registryDao.update(entry);
         }
 
-        if (req.has("fieldMappings") && entry.getOrgMappings() != null && !entry.getOrgMappings().isEmpty()) {
-          ObjectId fileId = entry.getOrgMappings().get(0).getFileId();
+        if (entry.getOrgMappings() != null && !entry.getOrgMappings().isEmpty()) {
+          ObjectId fileId = entry.getFileIdForOrg(null);
+          if (fileId == null) {
+              fileId = entry.getOrgMappings().get(0).getFileId();
+          }
           Optional<Form> formOpt = formDao.getByFileId(fileId);
           if (formOpt.isPresent()) {
             Form form = formOpt.get();
-            JSONArray mappings = req.getJSONArray("fieldMappings");
-            List<FormQuestion> questions = new ArrayList<>();
-            for (int i = 0; i < mappings.length(); i++) {
-              JSONObject m = mappings.getJSONObject(i);
-              FormQuestion q =
-                  new FormQuestion(
-                      new ObjectId(),
-                      FieldType.createFromString(m.optString("fieldType", "textField")),
-                      m.getString("fieldName"),
-                      m.optString("directive", null),
-                      m.optString("displayLabel", m.getString("fieldName")),
-                      "",
-                      new ArrayList<>(),
-                      "",
-                      m.optBoolean("required", false),
-                      3,
-                      false,
-                      new ObjectId(),
-                      "NONE");
-              questions.add(q);
+            boolean formUpdated = false;
+
+            if (req.has("registryMetadata")) {
+              JSONObject meta = req.getJSONObject("registryMetadata");
+              Map<String, String> existingMeta = form.getApplicationMetadata();
+              Map<String, String> appMetadata = new HashMap<>();
+              if (existingMeta != null) {
+                  appMetadata.putAll(existingMeta);
+              }
+              Iterator<String> keys = meta.keys();
+              while (keys.hasNext()) {
+                String key = keys.next();
+                if (key.startsWith("mailDestination")) {
+                  appMetadata.put(key, meta.optString(key, ""));
+                }
+              }
+              form.setApplicationMetadata(appMetadata);
+              formUpdated = true;
             }
-            FormSection newBody =
-                new FormSection(
-                    form.getBody().getTitle(),
-                    form.getBody().getDescription(),
-                    new LinkedList<>(),
-                    questions);
-            form.setBody(newBody);
-            formDao.update(form);
+
+            if (req.has("fieldMappings")) {
+              JSONArray mappings = req.getJSONArray("fieldMappings");
+              List<FormQuestion> questions = new ArrayList<>();
+              for (int i = 0; i < mappings.length(); i++) {
+                JSONObject m = mappings.getJSONObject(i);
+                FormQuestion q =
+                    new FormQuestion(
+                        new ObjectId(),
+                        FieldType.createFromString(m.optString("fieldType", "textField")),
+                        m.getString("fieldName"),
+                        m.optString("directive", null),
+                        m.optString("displayLabel", m.getString("fieldName")),
+                        "",
+                        new ArrayList<>(),
+                        "",
+                        m.optBoolean("required", false),
+                        3,
+                        false,
+                        new ObjectId(),
+                        "NONE");
+                questions.add(q);
+              }
+              FormSection newBody =
+                  new FormSection(
+                      form.getBody().getTitle(),
+                      form.getBody().getDescription(),
+                      new LinkedList<>(),
+                      questions);
+              form.setBody(newBody);
+              formUpdated = true;
+            }
+
+            if (formUpdated) {
+              formDao.update(form);
+            }
           }
         }
 

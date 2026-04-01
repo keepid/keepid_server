@@ -406,7 +406,35 @@ public class FillPDFServiceV2 implements Service {
             new ObjectId(),
             "");
     this.filledForm.setFileId(filledFileObjectId);
+    
+    Map<String, String> mergedMetadata = new HashMap<>();
+    Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(this.fileId));
+    if (templateOpt.isPresent()) {
+      Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+      if (tmplMeta != null) {
+        mergedMetadata.putAll(tmplMeta);
+      }
+    }
+    mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
+    this.filledForm.setApplicationMetadata(mergedMetadata);
     return PdfMessage.SUCCESS;
+  }
+
+  private static Map<String, String> extractMetadataFromAnswers(JSONObject formAnswers) {
+    Map<String, String> metadata = new HashMap<>();
+    if (formAnswers != null && formAnswers.has("metadata")) {
+      Object raw = formAnswers.get("metadata");
+      if (raw instanceof JSONObject) {
+        JSONObject metaObj = (JSONObject) raw;
+        for (String key : metaObj.keySet()) {
+          Object val = metaObj.get(key);
+          if (val != null && !JSONObject.NULL.equals(val)) {
+            metadata.put(key, String.valueOf(val));
+          }
+        }
+      }
+    }
+    return metadata;
   }
 
   public Message fill() {

@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -205,8 +206,18 @@ public class UploadCompletedPDFServiceV2 implements Service {
               "");
       this.filledForm.setFileId(filledFileObjectId);
 
+      Map<String, String> mergedMetadata = new HashMap<>();
+      Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(applicationId));
+      if (templateOpt.isPresent()) {
+        Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+        if (tmplMeta != null) {
+          mergedMetadata.putAll(tmplMeta);
+        }
+      }
+      mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
+      this.filledForm.setApplicationMetadata(mergedMetadata);
+
       if (replacingExistingApplication && existingApplicationObjectId != null) {
-        // Preserve application file id for edits so existing links/routes remain valid.
         this.filledFile.setId(existingApplicationObjectId);
         this.filledForm.setFileId(existingApplicationObjectId);
 
@@ -234,6 +245,23 @@ public class UploadCompletedPDFServiceV2 implements Service {
       log.error("Failed to save completed PDF: {}", e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
     }
+  }
+
+  private static Map<String, String> extractMetadataFromAnswers(JSONObject formAnswers) {
+    Map<String, String> metadata = new HashMap<>();
+    if (formAnswers != null && formAnswers.has("metadata")) {
+      Object raw = formAnswers.get("metadata");
+      if (raw instanceof JSONObject) {
+        JSONObject metaObj = (JSONObject) raw;
+        for (String key : metaObj.keySet()) {
+          Object val = metaObj.get(key);
+          if (val != null && !JSONObject.NULL.equals(val)) {
+            metadata.put(key, String.valueOf(val));
+          }
+        }
+      }
+    }
+    return metadata;
   }
 
   private void recordSubmitApplicationActivity() {

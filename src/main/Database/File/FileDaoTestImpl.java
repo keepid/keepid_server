@@ -140,5 +140,24 @@ public class FileDaoTestImpl implements FileDao {
   }
 
   @Override
-  public void update(File newFile) {}
+  public void update(File newFile) {
+    if (newFile == null || newFile.getId() == null) return;
+    File existing = objectIdFileMap.get(newFile.getId());
+    if (existing == null) return;
+
+    String oldUsername = existing.getUsername();
+    objectIdFileMap.put(newFile.getId(), newFile);
+
+    List<File> userFiles = fileMap.getOrDefault(oldUsername, new ArrayList<>());
+    userFiles.removeIf(f -> f.getId().equals(newFile.getId()));
+    if (userFiles.isEmpty()) {
+      fileMap.remove(oldUsername);
+    } else {
+      fileMap.put(oldUsername, userFiles);
+    }
+
+    List<File> newUserFiles = fileMap.getOrDefault(newFile.getUsername(), new ArrayList<>());
+    newUserFiles.add(newFile);
+    fileMap.put(newFile.getUsername(), newUserFiles);
+  }
 }

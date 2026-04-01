@@ -3,6 +3,7 @@ package Database.Mail;
 import Config.DeploymentLevel;
 import Mail.Mail;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.bson.types.ObjectId;
 
 public class MailDaoTestImpl implements MailDao {
@@ -23,7 +24,7 @@ public class MailDaoTestImpl implements MailDao {
 
   @Override
   public List<Mail> getAll() {
-    return new ArrayList<Mail>(mailMap.values());
+    return new ArrayList<>(mailMap.values());
   }
 
   @Override
@@ -38,7 +39,7 @@ public class MailDaoTestImpl implements MailDao {
 
   @Override
   public void delete(Mail mail) {
-    mailMap.remove(mailMap.get(mail.getId()));
+    mailMap.remove(mail.getId().toString());
   }
 
   @Override
@@ -61,5 +62,31 @@ public class MailDaoTestImpl implements MailDao {
   @Override
   public void save(Mail mail) {
     mailMap.put(mail.getId().toString(), mail);
+  }
+
+  @Override
+  public List<Mail> getByFileId(ObjectId fileId) {
+    return mailMap.values().stream()
+        .filter(m -> m.getFileId() != null && m.getFileId().equals(fileId))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Mail> getByOrganization(String organizationName) {
+    return mailMap.values().stream()
+        .filter(m -> organizationName.equals(m.getOrganizationName()))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Mail> getByOrganization(String organizationName, Date from, Date to) {
+    return mailMap.values().stream()
+        .filter(
+            m ->
+                organizationName.equals(m.getOrganizationName())
+                    && m.getLobCreatedAt() != null
+                    && !m.getLobCreatedAt().before(from)
+                    && !m.getLobCreatedAt().after(to))
+        .collect(Collectors.toList());
   }
 }

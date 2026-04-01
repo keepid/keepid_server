@@ -1,6 +1,6 @@
 package Database.Mail;
 
-import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.*;
 
 import Config.DeploymentLevel;
 import Config.MongoConfig;
@@ -8,6 +8,7 @@ import Mail.Mail;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import org.bson.Document;
@@ -55,6 +56,7 @@ public class MailDaoImpl implements MailDao {
     mailCollection.deleteOne(eq(MAIL_ID_KEY, new ObjectId(mailId)));
   }
 
+  @Override
   public void delete(ObjectId mail) {
     mailCollection.deleteOne(eq(MAIL_ID_KEY, mail));
   }
@@ -67,5 +69,22 @@ public class MailDaoImpl implements MailDao {
   @Override
   public void save(Mail mail) {
     mailCollection.insertOne(mail);
+  }
+
+  @Override
+  public List<Mail> getByFileId(ObjectId fileId) {
+    return mailCollection.find(eq("fileId", fileId)).into(new ArrayList<>());
+  }
+
+  @Override
+  public List<Mail> getByOrganization(String organizationName) {
+    return mailCollection.find(eq("organizationName", organizationName)).into(new ArrayList<>());
+  }
+
+  @Override
+  public List<Mail> getByOrganization(String organizationName, Date from, Date to) {
+    return mailCollection
+        .find(and(eq("organizationName", organizationName), gte("lobCreatedAt", from), lte("lobCreatedAt", to)))
+        .into(new ArrayList<>());
   }
 }

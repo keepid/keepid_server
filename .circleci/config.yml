@@ -29,6 +29,9 @@ jobs:
       ISSUE_REPORT_TESTURL: "https://httpbin.org/post"
       WEEKLY_REPORT_ACTUALURL: "https://httpbin.org/post"
       WEEKLY_REPORT_TESTURL: "https://httpbin.org/post"
+      # Lob mail (required by MailSenderFactory for TEST); CI does not call the real API.
+      LOB_API_KEY_TEST: "test_lob_api_key_ci"
+      LOB_BANK_ACCOUNT_ID_TEST: "test_lob_bank_account_id_ci"
     steps:
       - checkout
       - run:

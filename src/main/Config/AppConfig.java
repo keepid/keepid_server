@@ -15,6 +15,8 @@ import Database.InteractiveFormConfig.InteractiveFormConfigDao;
 import Database.InteractiveFormConfig.InteractiveFormConfigDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
+import Database.Notification.NotificationDao;
+import Database.Notification.NotificationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Token.TokenDao;
@@ -24,13 +26,15 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
-import Mail.FileBackfillController;
+
 import Mail.MailController;
+import Mail.MailSender;
+import Mail.MailSenderFactory;
 import Notification.NotificationController;
 import Notification.WindmillNotificationClient;
 import Organization.Organization;
 import Organization.OrganizationController;
-import PDF.PdfController;
+
 import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
@@ -70,6 +74,7 @@ public class AppConfig {
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
+    NotificationDao notificationDao = NotificationDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -88,10 +93,10 @@ public class AppConfig {
     EmailSender emailSender = EmailSenderFactory.forDeploymentLevel(deploymentLevel);
     OrganizationController orgController = new OrganizationController(db, activityDao, emailSender);
     UserController userController =
-        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, emailSender);
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, notificationDao, db, emailSender);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
-    PdfController pdfController = new PdfController(db, userDao, encryptionController);
+
     ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
     InteractiveFormConfigDao interactiveFormConfigDao =
         InteractiveFormConfigDaoFactory.create(deploymentLevel);
@@ -104,14 +109,15 @@ public class AppConfig {
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     BillingController billingController = new BillingController();
+    MailSender mailSender = MailSenderFactory.create(deploymentLevel);
     MailController mailController =
-        new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
-    FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
+        new MailController(mailDao, fileDao, formDao, mailSender, encryptionController);
+
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
     WindmillNotificationClient notificationClient = new WindmillNotificationClient();
     NotificationController notificationController =
-        new NotificationController(activityDao, notificationClient);
+        new NotificationController(activityDao, notificationDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -140,6 +146,7 @@ public class AppConfig {
     app.post("/upload-file", fileController.fileUpload);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
+    app.post("/rename-file", fileController.fileRename);
     app.post("/get-files", fileController.getFiles);
     /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     // app.post("/fill-form", fileController.fillPDFForm);
@@ -200,14 +207,17 @@ public class AppConfig {
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
     app.post("/enroll-client", userController.enrollClient);
+    app.post("/enroll-worker", userController.enrollWorker);
     app.get("/logout", userController.logout);
     app.post("/forgot-password", accountSecurityController.forgotPassword);
     app.post("/change-password", accountSecurityController.changePassword);
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.post("/get-user-info", userController.getUserInfo);
     app.post("/get-organization-info", userController.getOrganizationInfo);
+    app.post("/update-organization-info", userController.updateOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/update-profile-from-directives", userController.updateProfileFromDirectives);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
     // Phone book endpoints
@@ -215,6 +225,7 @@ public class AppConfig {
     app.post("/add-phone-book-entry", userController.addPhoneBookEntry);
     app.post("/update-phone-book-entry", userController.updatePhoneBookEntry);
     app.post("/delete-phone-book-entry", userController.deletePhoneBookEntry);
+    app.post("/save-worker-notes", userController.saveWorkerNotes);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -254,6 +265,7 @@ public class AppConfig {
 
     /* --------------- NOTIFICATION ROUTES ------------- */
     app.post("/notify-id-pickup", notificationController.notifyIdPickup);
+    app.post("/get-notification-history", notificationController.getNotificationHistory);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);
@@ -341,9 +353,24 @@ public class AppConfig {
     app.get("/get-weekly-uploaded-ids", fileController.getWeeklyUploadedIds);
 
     /* --------------- MAIL FORM FEATURES ------------- */
-    app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
     app.post("/submit-mail", mailController.saveMail);
+    app.post("/get-application-mail-info", mailController.getApplicationMailInfo);
+    app.post("/get-mail-history", mailController.getMailHistory);
+    app.post("/refresh-mail-status", mailController.refreshMailStatus);
+    app.post("/get-org-mail-summary", mailController.getOrgMailSummary);
+    app.start(portForDeployment(deploymentLevel));
     return app;
+  }
+
+  /** HTTP listen port for the given deployment level (used after routes and dependencies are wired). */
+  public static int portForDeployment(DeploymentLevel deploymentLevel) {
+    return switch (deploymentLevel) {
+      case STAGING, PRODUCTION -> SERVER_PORT;
+      case TEST -> SERVER_TEST_PORT;
+      default ->
+          throw new IllegalStateException(
+              "Remember to config your port according to: " + deploymentLevel);
+    };
   }
 
   public static void setApplicationHeaders(Javalin app) {
@@ -359,59 +386,48 @@ public class AppConfig {
   }
 
   public static Javalin createJavalinApp(DeploymentLevel deploymentLevel) {
-    int port;
-    switch (deploymentLevel) {
-      case STAGING:
-      case PRODUCTION:
-        port = SERVER_PORT;
-        break;
-      case TEST:
-        port = SERVER_TEST_PORT;
-        break;
-      default:
-        throw new IllegalStateException(
-            "Remember to config your port according to: " + deploymentLevel);
-    }
+    // Do not start the embedded server here. appFactory wires routes and dependencies first so a
+    // failure (e.g. missing env) does not leave a listening port or a started Jetty SessionHandler,
+    // which would break the next test's appFactory with IllegalStateException: STARTED.
     return Javalin.create(
-            config -> {
-              config.asyncRequestTimeout =
-                  ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
-              config.autogenerateEtags = false; // auto generate etags (default is false)
-              config.contextPath = "/"; // context path for the http servlet (default is "/")
-              config.defaultContentType =
-                  "text/plain"; // content type to use if no content type is set (default is
-              // "text/plain")
+        config -> {
+          config.asyncRequestTimeout =
+              ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
+          config.autogenerateEtags = false; // auto generate etags (default is false)
+          config.contextPath = "/"; // context path for the http servlet (default is "/")
+          config.defaultContentType =
+              "text/plain"; // content type to use if no content type is set (default is
+          // "text/plain")
 
-              config.enableCorsForOrigin(
-                  "https://keep.id",
-                  "https://server.keep.id",
-                  "http://localhost",
-                  "http://localhost:3000",
-                  "http://localhost:5173",
-                  "https://dev.keep.id",
-                  "https://staging.keep.id",
-                  "https://staged.keep.id",
-                  "127.0.0.1:3000");
+          config.enableCorsForOrigin(
+              "https://keep.id",
+              "https://server.keep.id",
+              "http://localhost",
+              "http://localhost:3000",
+              "http://localhost:5173",
+              "https://dev.keep.id",
+              "https://staging.keep.id",
+              "https://staged.keep.id",
+              "127.0.0.1:3000");
 
-              config.enableDevLogging();
-              config.enforceSsl = false;
-              // log a warning if user doesn't start javalin instance (default is true)
-              config.logIfServerNotStarted = true;
-              config.showJavalinBanner = false;
-              config.prefer405over404 =
-                  false; // send a 405 if handlers exist for different verb on the same path
-              config.sessionHandler(
-                  () -> {
-                    try {
-                      return SessionConfig.getSessionHandlerInstance(deploymentLevel);
-                    } catch (Exception e) {
-                      System.err.println("Unable to instantiate session handler.");
-                      e.printStackTrace();
-                      System.exit(1);
-                      return null;
-                    }
-                  });
-            })
-        .start(port);
+          config.enableDevLogging();
+          config.enforceSsl = false;
+          // log a warning if user doesn't start javalin instance (default is true)
+          config.logIfServerNotStarted = true;
+          config.showJavalinBanner = false;
+          config.prefer405over404 =
+              false; // send a 405 if handlers exist for different verb on the same path
+          config.sessionHandler(
+              () -> {
+                try {
+                  return SessionConfig.getSessionHandlerInstance(deploymentLevel);
+                } catch (Exception e) {
+                  System.err.println("Unable to instantiate session handler.");
+                  e.printStackTrace();
+                  System.exit(1);
+                  return null;
+                }
+              });
+        });
   }
 }

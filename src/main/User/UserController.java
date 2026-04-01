@@ -4,6 +4,7 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Notification.NotificationDao;
 import Database.Organization.OrgDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
@@ -16,6 +17,7 @@ import File.Services.DownloadFileService;
 import File.Services.UploadFileService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
+import Security.EmailUtil;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
 import static User.UserMessage.*;
@@ -45,6 +47,7 @@ public class UserController {
   FormDao formDao;
   FileDao fileDao;
   OrgDao orgDao;
+  NotificationDao notificationDao;
   EmailSender emailSender;
 
   public UserController(
@@ -55,7 +58,7 @@ public class UserController {
       FormDao formDao,
       OrgDao orgDao,
       MongoDatabase db) {
-    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, EmailSenderFactory.smtp());
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, null, db, EmailSenderFactory.smtp());
   }
 
   public UserController(
@@ -67,12 +70,26 @@ public class UserController {
       OrgDao orgDao,
       MongoDatabase db,
       EmailSender emailSender) {
+    this(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, null, db, emailSender);
+  }
+
+  public UserController(
+      UserDao userDao,
+      TokenDao tokenDao,
+      FileDao fileDao,
+      ActivityDao activityDao,
+      FormDao formDao,
+      OrgDao orgDao,
+      NotificationDao notificationDao,
+      MongoDatabase db,
+      EmailSender emailSender) {
     this.userDao = userDao;
     this.tokenDao = tokenDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
     this.orgDao = orgDao;
+    this.notificationDao = notificationDao;
     this.db = db;
     this.emailSender = emailSender;
   }
@@ -361,6 +378,64 @@ public class UserController {
     ctx.result(ENROLL_SUCCESS.toJSON().toString());
   };
 
+  public Handler enrollWorker = ctx -> {
+    log.info("Starting enrollWorker handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    UserType sessionUserLevel = ctx.sessionAttribute("privilegeLevel");
+    String organizationName = ctx.sessionAttribute("orgName");
+    String sessionUsername = ctx.sessionAttribute("username");
+
+    if (sessionUserLevel == null || organizationName == null || sessionUsername == null) {
+      ctx.result(SESSION_TOKEN_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String firstName = req.getString("firstname").strip();
+    String middleName = req.optString("middlename", "").strip();
+    String lastName = req.getString("lastname").strip();
+    String suffix = req.optString("suffix", "").strip();
+    String maiden = req.optString("maiden", "").strip();
+    String birthDate = req.getString("birthDate").strip();
+    String email = req.getString("email").toLowerCase().strip();
+    String phone = req.optString("phonenumber", "").strip();
+    String personRole = req.getString("personRole").strip();
+
+    UserType userType = UserType.userTypeFromString(personRole);
+    if (userType != UserType.Worker && userType != UserType.Admin) {
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
+      return;
+    }
+
+    String dobCompact = birthDate.replace("-", "");
+    String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
+    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String password = UUID.randomUUID().toString();
+
+    Name currentName = new Name(firstName, middleName, lastName, suffix, maiden);
+
+    CreateUserService createUserService = new CreateUserService(
+        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        currentName, birthDate, email, phone, null,
+        false, username, password, userType);
+    Message createResponse = createUserService.executeAndGetResponse();
+
+    if (createResponse != ENROLL_SUCCESS) {
+      ctx.result(createResponse.toJSON().toString());
+      return;
+    }
+
+    try {
+      String emailBody = EmailUtil.getEnrollmentWelcomeEmail(firstName, organizationName);
+      emailSender.sendEmail("Keep Id", email,
+          "You've been added to " + organizationName + " on Keep.id", emailBody);
+    } catch (Exception e) {
+      log.warn("Failed to send welcome email to {}: {}", email, e.getMessage());
+    }
+
+    ctx.result(ENROLL_SUCCESS.toJSON().toString());
+  };
+
   public Handler deleteUser = ctx -> {
     log.info("Starting deleteUser handler");
     JSONObject req = new JSONObject(ctx.body());
@@ -483,6 +558,83 @@ public class UserController {
     res.put("orgAddress", orgAddr != null ? orgAddr.serialize() : JSONObject.NULL);
     res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
     res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
+    ctx.result(res.toString());
+  };
+
+  public Handler updateOrganizationInfo = ctx -> {
+    log.info("Started updateOrganizationInfo handler");
+    JSONObject req = new JSONObject(ctx.body());
+    String sessionUsername = ctx.sessionAttribute("username");
+    String sessionOrgName = ctx.sessionAttribute("orgName");
+    UserType privilegeLevel = ctx.sessionAttribute("privilegeLevel");
+
+    if (sessionUsername == null || sessionUsername.isEmpty()) {
+      ctx.result(AUTH_FAILURE.toJSON().toString());
+      return;
+    }
+
+    String requestedOrgName = req.optString("orgName", null);
+    if (requestedOrgName == null || requestedOrgName.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    if (!requestedOrgName.equals(sessionOrgName)) {
+      ctx.result(CROSS_ORG_ACTION_DENIED.toJSON().toString());
+      return;
+    }
+
+    if (privilegeLevel != UserType.Admin && privilegeLevel != UserType.Director) {
+      ctx.result(INSUFFICIENT_PRIVILEGE.toJSON().toString());
+      return;
+    }
+
+    Optional<Organization> orgOpt = orgDao.get(requestedOrgName);
+    if (orgOpt.isEmpty()) {
+      ctx.result(USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+
+    Organization org = orgOpt.get();
+
+    if (req.has("address")) {
+      JSONObject addressJson = req.optJSONObject("address");
+      if (addressJson != null) {
+        Address currentAddress = org.getOrgAddress();
+        if (currentAddress == null) {
+          currentAddress = new Address("", "", "", "", "", "");
+        }
+        currentAddress.setLine1(addressJson.optString("line1", ""));
+        currentAddress.setLine2(addressJson.optString("line2", ""));
+        currentAddress.setCity(addressJson.optString("city", ""));
+        currentAddress.setState(addressJson.optString("state", ""));
+        currentAddress.setZip(addressJson.optString("zip", ""));
+        currentAddress.setCounty(addressJson.optString("county", ""));
+        org.setOrgAddress(currentAddress);
+      }
+    }
+
+    if (req.has("phone")) {
+      org.setOrgPhoneNumber(req.optString("phone", ""));
+    }
+
+    if (req.has("email")) {
+      org.setOrgEmail(req.optString("email", ""));
+    }
+
+    if (req.has("newName") && !req.getString("newName").isBlank()) {
+       String newName = req.getString("newName");
+       if (!newName.equals(org.getOrgName())) {
+           org.setOrgName(newName);
+           // Also update session attribute if they themselves changed it
+           ctx.sessionAttribute("orgName", newName);
+       }
+    }
+
+    orgDao.update(org);
+
+    JSONObject res = new JSONObject();
+    res.put("status", "SUCCESS");
     ctx.result(res.toString());
   };
 
@@ -716,6 +868,55 @@ public class UserController {
     ctx.result(response.toJSON().toString());
   };
 
+  public Handler updateProfileFromDirectives = ctx -> {
+    log.info("Started updateProfileFromDirectives handler");
+    JSONObject req = new JSONObject(ctx.body());
+
+    String targetUsername = req.optString("username", null);
+    if (targetUsername != null && targetUsername.isEmpty()) targetUsername = null;
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
+    JSONObject directivesMap = req.getJSONObject("directives");
+
+    // Re-map format to dummy keys containing directives so UpdateProfileFromFormService accepts it seamlessly
+    JSONObject formAnswers = new JSONObject();
+    for (String directive : directivesMap.keySet()) {
+      formAnswers.put("dummy:" + directive, directivesMap.get(directive));
+    }
+
+    UpdateProfileFromFormService updateService =
+        new UpdateProfileFromFormService(userDao, username, formAnswers);
+    Message response = updateService.executeAndGetResponse();
+    ctx.result(response.toJSON().toString());
+  };
+
+  public Handler saveWorkerNotes = ctx -> {
+    JSONObject req = new JSONObject(ctx.body());
+    String targetUsername = req.optString("username", null);
+
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+    if (sessionUserType != Worker && sessionUserType != Admin && sessionUserType != Director) {
+      ctx.result(INSUFFICIENT_PRIVILEGE.toResponseString());
+      return;
+    }
+
+    Message authCheck = checkProfileAuthorization(ctx, targetUsername);
+    if (authCheck != null) {
+      ctx.result(authCheck.toResponseString());
+      return;
+    }
+
+    String notes = req.optString("workerNotes", "");
+    userDao.updateField(targetUsername, "workerNotes", notes);
+    ctx.result(SUCCESS.toResponseString());
+  };
+
   public Handler sendEmailLoginInstructions = ctx -> {
     JSONObject req = new JSONObject(ctx.body());
     String targetUsername = req.optString("username", null);
@@ -880,7 +1081,8 @@ public class UserController {
     String targetUsername = req.getString("username").strip();
 
     RemoveOrganizationMemberService removeService = new RemoveOrganizationMemberService(
-        db, userDao, sessionUsername, targetUsername, sessionOrgName, sessionUserType);
+        db, userDao, fileDao, formDao, activityDao, notificationDao,
+        sessionUsername, targetUsername, sessionOrgName, sessionUserType);
     Message response = removeService.executeAndGetResponse();
     ctx.result(response.toJSON().toString());
   };

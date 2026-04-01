@@ -185,6 +185,32 @@ public class FileController {
                           Optional.ofNullable(encryptionController));
                   response = uploadService.executeAndGetResponse();
                   break;
+                case ORG_DOCUMENT:
+                  log.info("Got Org Document to upload via standard fileUpload handler!");
+                  fileToUpload =
+                      new File(
+                          username,
+                          uploadDate,
+                          filestreamToUpload,
+                          fileType,
+                          idCategory,
+                          filenameToUpload,
+                          organizationName,
+                          annotated,
+                          file.getContentType());
+                  uploadService =
+                      new UploadFileService(
+                          fileDao,
+                          activityDao,
+                          usernameOfInvoker,
+                          fileToUpload,
+                          Optional.ofNullable(privilegeLevel),
+                          Optional.ofNullable(fileId),
+                          toSign,
+                          Optional.empty(),
+                          Optional.ofNullable(encryptionController));
+                  response = uploadService.executeAndGetResponse();
+                  break;
                 case PROFILE_PICTURE:
                   log.info("Got profile picture to upload!");
                   fileToUpload =
@@ -337,7 +363,7 @@ public class FileController {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
             orgName = maybeTargetUser.get().getOrganization();
-            userType = maybeTargetUser.get().getUserType();
+            userType = ctx.sessionAttribute("privilegeLevel");
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
@@ -363,6 +389,52 @@ public class FileController {
                     fileType,
                     fileIDStr);
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
+          } else {
+            ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          }
+        }
+      };
+
+  /*
+  REQUIRES JSON Body with:
+    - "fileId": String giving id of file to be renamed
+    - "newFilename": String giving the new filename
+    - OPTIONAL- "targetUser": User whose file you want to access.
+        - If left empty, defaults to original username.
+  */
+  public Handler fileRename =
+      ctx -> {
+        String orgName;
+        UserType userType;
+        JSONObject req = new JSONObject(ctx.body());
+        Optional<User> maybeTargetUser =
+            GetUserInfoService.getUserFromRequest(this.userDao, ctx.body());
+        if (maybeTargetUser.isEmpty() && req.has("targetUser")) {
+          ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+        } else {
+          boolean orgFlag;
+          if (maybeTargetUser.isPresent() && req.has("targetUser")) {
+            orgName = maybeTargetUser.get().getOrganization();
+            userType = maybeTargetUser.get().getUserType();
+            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+          } else {
+            orgName = ctx.sessionAttribute("orgName");
+            userType = ctx.sessionAttribute("privilegeLevel");
+            orgFlag = true;
+          }
+
+          if (orgFlag) {
+            String fileIDStr = req.getString("fileId");
+            String newFilename = req.getString("newFilename");
+
+            RenameFileService renameFileService =
+                new RenameFileService(
+                    fileDao,
+                    fileIDStr,
+                    newFilename,
+                    orgName,
+                    userType);
+            ctx.result(renameFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
           }
