@@ -182,9 +182,30 @@ public class LobMailSender implements MailSender {
     return result;
   }
 
+  private static final int LOB_FIELD_MAX_LENGTH = 40;
+
   private AddressEditable buildToAddress(FormMailAddress mailAddress, boolean isCheck) {
     AddressEditable toAddress = new AddressEditable();
-    toAddress.setName(isCheck ? mailAddress.getNameForCheck() : mailAddress.getName());
+
+    String name = isCheck ? mailAddress.getNameForCheck() : mailAddress.getName();
+    String company = mailAddress.getOffice_name();
+
+    if (name != null && name.length() > LOB_FIELD_MAX_LENGTH
+        && (company == null || company.isEmpty())) {
+      company = name;
+      name = null;
+    }
+
+    name = truncateToLobLimit(name);
+    company = truncateToLobLimit(company);
+
+    if (name != null && !name.isEmpty()) {
+      toAddress.setName(name);
+    }
+    if (company != null && !company.isEmpty()) {
+      toAddress.setCompany(company);
+    }
+
     toAddress.setAddressLine1(mailAddress.getStreet1());
     if (mailAddress.getStreet2() != null && !mailAddress.getStreet2().isEmpty()) {
       toAddress.setAddressLine2(mailAddress.getStreet2());
@@ -192,9 +213,20 @@ public class LobMailSender implements MailSender {
     toAddress.setAddressState(mailAddress.getState());
     toAddress.setAddressCity(mailAddress.getCity());
     toAddress.setAddressZip(mailAddress.getZipcode());
-    toAddress.setDescription(mailAddress.getDescription());
-    toAddress.setCompany(mailAddress.getOffice_name());
+    if (mailAddress.getDescription() != null && !mailAddress.getDescription().isEmpty()) {
+      toAddress.setDescription(mailAddress.getDescription());
+    }
     return toAddress;
+  }
+
+  private String truncateToLobLimit(String value) {
+    if (value == null || value.length() <= LOB_FIELD_MAX_LENGTH) return value;
+    String truncated = value.substring(0, LOB_FIELD_MAX_LENGTH);
+    int lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > LOB_FIELD_MAX_LENGTH / 2) {
+      return truncated.substring(0, lastSpace);
+    }
+    return truncated;
   }
 
   private String resolveFromAddress(ApiClient lobClient, ReturnAddress returnAddress)

@@ -363,7 +363,7 @@ public class FileController {
             log.info("Target user found");
             username = maybeTargetUser.get().getUsername();
             orgName = maybeTargetUser.get().getOrganization();
-            userType = maybeTargetUser.get().getUserType();
+            userType = ctx.sessionAttribute("privilegeLevel");
             orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
           } else {
             username = ctx.sessionAttribute("username");
