@@ -358,7 +358,19 @@ public class AppConfig {
     app.post("/get-mail-history", mailController.getMailHistory);
     app.post("/refresh-mail-status", mailController.refreshMailStatus);
     app.post("/get-org-mail-summary", mailController.getOrgMailSummary);
+    app.start(portForDeployment(deploymentLevel));
     return app;
+  }
+
+  /** HTTP listen port for the given deployment level (used after routes and dependencies are wired). */
+  public static int portForDeployment(DeploymentLevel deploymentLevel) {
+    return switch (deploymentLevel) {
+      case STAGING, PRODUCTION -> SERVER_PORT;
+      case TEST -> SERVER_TEST_PORT;
+      default ->
+          throw new IllegalStateException(
+              "Remember to config your port according to: " + deploymentLevel);
+    };
   }
 
   public static void setApplicationHeaders(Javalin app) {
@@ -374,59 +386,48 @@ public class AppConfig {
   }
 
   public static Javalin createJavalinApp(DeploymentLevel deploymentLevel) {
-    int port;
-    switch (deploymentLevel) {
-      case STAGING:
-      case PRODUCTION:
-        port = SERVER_PORT;
-        break;
-      case TEST:
-        port = SERVER_TEST_PORT;
-        break;
-      default:
-        throw new IllegalStateException(
-            "Remember to config your port according to: " + deploymentLevel);
-    }
+    // Do not start the embedded server here. appFactory wires routes and dependencies first so a
+    // failure (e.g. missing env) does not leave a listening port or a started Jetty SessionHandler,
+    // which would break the next test's appFactory with IllegalStateException: STARTED.
     return Javalin.create(
-            config -> {
-              config.asyncRequestTimeout =
-                  ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
-              config.autogenerateEtags = false; // auto generate etags (default is false)
-              config.contextPath = "/"; // context path for the http servlet (default is "/")
-              config.defaultContentType =
-                  "text/plain"; // content type to use if no content type is set (default is
-              // "text/plain")
+        config -> {
+          config.asyncRequestTimeout =
+              ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
+          config.autogenerateEtags = false; // auto generate etags (default is false)
+          config.contextPath = "/"; // context path for the http servlet (default is "/")
+          config.defaultContentType =
+              "text/plain"; // content type to use if no content type is set (default is
+          // "text/plain")
 
-              config.enableCorsForOrigin(
-                  "https://keep.id",
-                  "https://server.keep.id",
-                  "http://localhost",
-                  "http://localhost:3000",
-                  "http://localhost:5173",
-                  "https://dev.keep.id",
-                  "https://staging.keep.id",
-                  "https://staged.keep.id",
-                  "127.0.0.1:3000");
+          config.enableCorsForOrigin(
+              "https://keep.id",
+              "https://server.keep.id",
+              "http://localhost",
+              "http://localhost:3000",
+              "http://localhost:5173",
+              "https://dev.keep.id",
+              "https://staging.keep.id",
+              "https://staged.keep.id",
+              "127.0.0.1:3000");
 
-              config.enableDevLogging();
-              config.enforceSsl = false;
-              // log a warning if user doesn't start javalin instance (default is true)
-              config.logIfServerNotStarted = true;
-              config.showJavalinBanner = false;
-              config.prefer405over404 =
-                  false; // send a 405 if handlers exist for different verb on the same path
-              config.sessionHandler(
-                  () -> {
-                    try {
-                      return SessionConfig.getSessionHandlerInstance(deploymentLevel);
-                    } catch (Exception e) {
-                      System.err.println("Unable to instantiate session handler.");
-                      e.printStackTrace();
-                      System.exit(1);
-                      return null;
-                    }
-                  });
-            })
-        .start(port);
+          config.enableDevLogging();
+          config.enforceSsl = false;
+          // log a warning if user doesn't start javalin instance (default is true)
+          config.logIfServerNotStarted = true;
+          config.showJavalinBanner = false;
+          config.prefer405over404 =
+              false; // send a 405 if handlers exist for different verb on the same path
+          config.sessionHandler(
+              () -> {
+                try {
+                  return SessionConfig.getSessionHandlerInstance(deploymentLevel);
+                } catch (Exception e) {
+                  System.err.println("Unable to instantiate session handler.");
+                  e.printStackTrace();
+                  System.exit(1);
+                  return null;
+                }
+              });
+        });
   }
 }
