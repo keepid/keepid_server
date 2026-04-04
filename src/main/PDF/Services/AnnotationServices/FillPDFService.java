@@ -14,10 +14,16 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.form.*;
 import org.json.JSONObject;
 
 public class FillPDFService implements Service {
+  private static final int DEFAULT_FONT_SIZE = 14;
+  private static final int MIN_FONT_SIZE = 8;
+  private static final float FIELD_HEIGHT_FONT_RATIO = 0.58f;
+
   UserType privilegeLevel;
   InputStream fileStream;
   JSONObject formAnswers;
@@ -67,7 +73,6 @@ public class FillPDFService implements Service {
     if (acroForm == null) {
       return PdfMessage.INVALID_PDF;
     }
-
     for (String fieldName : formAnswers.keySet()) {
       PDField field = acroForm.getField(fieldName);
       if (field instanceof PDButton) {
@@ -88,6 +93,7 @@ public class FillPDFService implements Service {
           radioButtonField.setValue(formAnswer);
         }
       } else if (field instanceof PDVariableText) {
+        setFieldFontSize((PDVariableText) field, DEFAULT_FONT_SIZE);
         if (field instanceof PDChoice) {
           if (field instanceof PDListBox) {
             PDListBox listBoxField = (PDListBox) field;
@@ -112,11 +118,43 @@ public class FillPDFService implements Service {
         // Do nothing, implemented separately in pdfSignedUpload
       }
     }
+    acroForm.setNeedAppearances(false);
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     pdfDocument.save(outputStream);
     pdfDocument.close();
 
     this.completedForm = new ByteArrayInputStream(outputStream.toByteArray());
     return PdfMessage.SUCCESS;
+  }
+
+  private static int resolveFontSizeForWidget(PDVariableText field, int targetPt) {
+    try {
+      List<PDAnnotationWidget> widgets = field.getWidgets();
+      if (widgets != null && !widgets.isEmpty()) {
+        PDRectangle rect = widgets.get(0).getRectangle();
+        if (rect != null) {
+          float h = Math.abs(rect.getHeight());
+          if (h > 0) {
+            int cap = (int) Math.floor(h * FIELD_HEIGHT_FONT_RATIO);
+            return Math.max(MIN_FONT_SIZE, Math.min(targetPt, cap));
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return targetPt;
+  }
+
+  private void setFieldFontSize(PDVariableText field, int fontSize) {
+    int resolvedPt = resolveFontSizeForWidget(field, fontSize);
+    String daBefore = field.getDefaultAppearance();
+    String da;
+    if (daBefore != null && !daBefore.isEmpty()) {
+      String replaced = daBefore.replaceFirst("(/\\S+\\s+)[\\d.]+\\s+Tf", "$1" + resolvedPt + " Tf");
+      da = replaced.equals(daBefore) ? "/Helv " + resolvedPt + " Tf 0 g" : replaced;
+    } else {
+      da = "/Helv " + resolvedPt + " Tf 0 g";
+    }
+    field.setDefaultAppearance(da);
   }
 }

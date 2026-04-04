@@ -24,9 +24,14 @@ import java.io.*;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
@@ -38,6 +43,43 @@ import org.json.JSONObject;
 
 @Slf4j
 public class FillPDFServiceV2 implements Service {
+  /** Target pt size when the field box is tall enough; capped per-widget to avoid clipping. */
+  private static final int DEFAULT_FONT_SIZE = 14;
+  private static final int MIN_FONT_SIZE = 8;
+  /** Fraction of widget height used as max font size (ascenders + PDFBox baseline leave little margin). */
+  private static final float FIELD_HEIGHT_FONT_RATIO = 0.58f;
+  private static final String AGENT_DEBUG_LOG =
+      "/Users/danieljoo/Code/KeepID/keepid_workspace/keepid_server/.cursor/debug-08d1d5.log";
+  private static final Logger AGENT_LOGGER = LoggerFactory.getLogger(FillPDFServiceV2.class);
+
+  // #region agent log
+  private transient int debugAnswerKeysIterated;
+  private transient int debugAcroFieldNull;
+  private transient int debugFontCalls;
+  private transient int debugDaRegexNoop;
+  private transient boolean debugPostSetValueLogged;
+  private transient int debugSetFontDetailSamples;
+
+  private static void agentDebugLog(String hypothesisId, String location, String message, JSONObject data) {
+    try {
+      JSONObject line = new JSONObject();
+      line.put("sessionId", "08d1d5");
+      line.put("hypothesisId", hypothesisId);
+      line.put("location", location);
+      line.put("message", message);
+      line.put("data", data != null ? data : new JSONObject());
+      line.put("timestamp", System.currentTimeMillis());
+      try (FileWriter fw = new FileWriter(AGENT_DEBUG_LOG, StandardCharsets.UTF_8, true)) {
+        fw.write(line.toString());
+        fw.write('\n');
+      }
+      AGENT_LOGGER.info("AGENT_DEBUG {}", line.toString());
+    } catch (Exception ignored) {
+    }
+  }
+
+  // #endregion
+
   private FileDao fileDao;
   private FormDao formDao;
   private String username;
@@ -89,6 +131,15 @@ public class FillPDFServiceV2 implements Service {
 
   @Override
   public Message executeAndGetResponse() {
+    // #region agent log
+    agentDebugLog(
+        "A",
+        "FillPDFServiceV2.executeAndGetResponse",
+        "service entry",
+        new JSONObject()
+            .put("preview", preview)
+            .put("fileIdLen", fileId != null ? fileId.length() : 0));
+    // #endregion
     Message FillPDFConditionsErrorMessage = checkFillConditions();
     if (FillPDFConditionsErrorMessage != null) {
       return FillPDFConditionsErrorMessage;
@@ -118,6 +169,13 @@ public class FillPDFServiceV2 implements Service {
    * Also builds filledFormBody (FormQuestion records) for the filledForm that gets saved on upload.
    */
   public void fillFieldsFromAnswers(PDAcroForm acroForm) throws IOException {
+    debugAnswerKeysIterated = 0;
+    debugAcroFieldNull = 0;
+    debugFontCalls = 0;
+    debugDaRegexNoop = 0;
+    debugPostSetValueLogged = false;
+    debugSetFontDetailSamples = 0;
+
     List<FormQuestion> filledFormBodyQuestions = new LinkedList<>();
     String sectionTitle = this.templateFile != null ? this.templateFile.getFilename() + " Form" : "Form";
     String sectionDesc = "";
@@ -127,8 +185,10 @@ public class FillPDFServiceV2 implements Service {
       String answerText = String.valueOf(formAnswers.get(key));
       if (answerText == null || answerText.isEmpty() || answerText.equals("null")) continue;
 
+      debugAnswerKeysIterated++;
       PDField field = acroForm.getField(key);
       if (field == null) {
+        debugAcroFieldNull++;
         continue;
       }
 
@@ -223,6 +283,7 @@ public class FillPDFServiceV2 implements Service {
         }
       }
     } else if (field instanceof PDVariableText) {
+      setFieldFontSize((PDVariableText) field, DEFAULT_FONT_SIZE);
       if (field instanceof PDChoice) {
         if (field instanceof PDListBox) {
           PDListBox listBoxField = (PDListBox) field;
@@ -243,11 +304,98 @@ public class FillPDFServiceV2 implements Service {
         }
       } else if (field instanceof PDTextField) {
         filledQuestion.setAnswerText(normalizedAnswer);
+        PDVariableText vtField = (PDVariableText) field;
+        String daBeforeSet = vtField.getDefaultAppearance();
         field.setValue(normalizedAnswer);
+        // #region agent log
+        if (!debugPostSetValueLogged) {
+          debugPostSetValueLogged = true;
+          String daAfterSet = vtField.getDefaultAppearance();
+          agentDebugLog(
+              "E",
+              "FillPDFServiceV2.fillPDField",
+              "DA after first PDTextField.setValue",
+              new JSONObject()
+                  .put("daUnchanged", Objects.equals(daBeforeSet, daAfterSet))
+                  .put(
+                      "afterHead",
+                      daAfterSet != null
+                          ? daAfterSet.substring(0, Math.min(80, daAfterSet.length()))
+                          : ""));
+        }
+        // #endregion
       }
     } else if (field instanceof PDSignatureField) {
       // Handled in signPDF
     }
+  }
+
+  private static int resolveFontSizeForWidget(PDVariableText field, int targetPt) {
+    try {
+      List<PDAnnotationWidget> widgets = field.getWidgets();
+      if (widgets != null && !widgets.isEmpty()) {
+        PDRectangle rect = widgets.get(0).getRectangle();
+        if (rect != null) {
+          float h = Math.abs(rect.getHeight());
+          if (h > 0) {
+            int cap = (int) Math.floor(h * FIELD_HEIGHT_FONT_RATIO);
+            return Math.max(MIN_FONT_SIZE, Math.min(targetPt, cap));
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return targetPt;
+  }
+
+  private void setFieldFontSize(PDVariableText field, int fontSize) {
+    debugFontCalls++;
+    int resolvedPt = resolveFontSizeForWidget(field, fontSize);
+    String daBefore = field.getDefaultAppearance();
+    boolean hadDa = daBefore != null && !daBefore.isEmpty();
+    String da;
+    boolean regexChanged = false;
+    boolean forcedHelvFallback = false;
+    if (hadDa) {
+      String replaced = daBefore.replaceFirst("(/\\S+\\s+)[\\d.]+\\s+Tf", "$1" + resolvedPt + " Tf");
+      if (!replaced.equals(daBefore)) {
+        da = replaced;
+        regexChanged = true;
+      } else {
+        // CID/TrueType PDFs (e.g. ArialMT) often use DA shapes that do not match the regex; PDFBox
+        // then keeps auto font size. Force a standard Type1 DA so appearance generation uses N pt.
+        da = "/Helv " + resolvedPt + " Tf 0 g";
+        forcedHelvFallback = true;
+        debugDaRegexNoop++;
+      }
+    } else {
+      da = "/Helv " + resolvedPt + " Tf 0 g";
+    }
+    field.setDefaultAppearance(da);
+    // #region agent log
+    if (debugSetFontDetailSamples < 2) {
+      debugSetFontDetailSamples++;
+      agentDebugLog(
+          "B",
+          "FillPDFServiceV2.setFieldFontSize",
+          "font DA mutation",
+          new JSONObject()
+              .put("sampleIndex", debugSetFontDetailSamples)
+              .put("hadDa", hadDa)
+              .put("regexChanged", regexChanged)
+              .put("forcedHelvFallback", forcedHelvFallback)
+              .put("targetPt", fontSize)
+              .put("resolvedPt", resolvedPt)
+              .put(
+                  "daBeforeHead",
+                  hadDa
+                      ? daBefore.substring(0, Math.min(80, daBefore.length())).replace("\r", " ")
+                      : "")
+              .put(
+                  "daAfterHead",
+                  da.substring(0, Math.min(80, da.length())).replace("\r", " ")));
+    }
+    // #endregion
   }
 
   private boolean isTruthyValue(String value) {
@@ -299,6 +447,22 @@ public class FillPDFServiceV2 implements Service {
     }
     try {
       fillFieldsFromAnswers(acroForm);
+      boolean needAppBefore = acroForm.getNeedAppearances();
+      acroForm.setNeedAppearances(false);
+      // #region agent log
+      agentDebugLog(
+          "C",
+          "FillPDFServiceV2.mergeFileAndFormAnswers",
+          "post-fill acroform state",
+          new JSONObject()
+              .put("needAppearancesBefore", needAppBefore)
+              .put("needAppearancesAfterSetFalse", acroForm.getNeedAppearances())
+              .put("answerKeysIterated", debugAnswerKeysIterated)
+              .put("acroFieldNull", debugAcroFieldNull)
+              .put("fontCalls", debugFontCalls)
+              .put("daRegexNoop", debugDaRegexNoop)
+              .put("recordsAdded", filledFormBody != null ? filledFormBody.getQuestions().size() : -1));
+      // #endregion
       if (this.signatureStream != null) {
         signPDF();
       }
