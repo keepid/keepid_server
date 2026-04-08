@@ -384,6 +384,43 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
+  public void enrollClientWithoutEmailSucceedsTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "No");
+    body.put("lastname", "EmailClient");
+    body.put("birthDate", "09-09-1999");
+    body.put("email", "");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+  }
+
+  @Test
+  public void enrollClientOmittedEmailSucceedsTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "Omit");
+    body.put("lastname", "EmailKey");
+    body.put("birthDate", "10-10-1988");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+  }
+
+  @Test
   public void enrollClientDuplicateEmailFailsTest() {
     TestUtils.login("adminBSM", "adminBSM");
 

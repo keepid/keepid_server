@@ -174,6 +174,117 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
+  public void updateUserProfileWorkerUpdatesClientBirthDateInSameOrgSuccess() {
+    String workerUsername = "profile-worker-birth";
+    String clientUsername = "profile-client-birth";
+    String password = "shared-password";
+
+    EntityFactory.createUser()
+        .withUsername(workerUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Worker)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withUsername(clientUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(workerUsername, password);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("username", clientUsername);
+    updateRequest.put("birthDate", "03-15-1990");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedClient = userDao.get(clientUsername).orElseThrow();
+    assertThat(updatedClient.getBirthDate()).isEqualTo("03-15-1990");
+  }
+
+  @Test
+  public void updateUserProfileAdminUpdatesClientBirthDateInsufficientPrivilege() {
+    String adminUsername = "profile-admin-birth";
+    String clientUsername = "profile-client-admin-birth";
+    String password = "shared-password";
+
+    EntityFactory.createUser()
+        .withUsername(adminUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withUsername(clientUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(adminUsername, password);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("username", clientUsername);
+    updateRequest.put("birthDate", "03-15-1990");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+  }
+
+  @Test
+  public void updateUserProfileAdminUpdatesClientCurrentNameInsufficientPrivilege() {
+    String adminUsername = "profile-admin-name";
+    String clientUsername = "profile-client-name";
+    String password = "shared-password";
+
+    EntityFactory.createUser()
+        .withUsername(adminUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withUsername(clientUsername)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(adminUsername, password);
+
+    JSONObject nameObj = new JSONObject();
+    nameObj.put("first", "NewFirst");
+    nameObj.put("last", "NewLast");
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("username", clientUsername);
+    updateRequest.put("currentName", nameObj);
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+  }
+
+  @Test
   public void updateUserProfileClientTriesToUpdateAnotherClientInsufficientPrivilege() {
     String client1Username = "client-one";
     String client2Username = "client-two";

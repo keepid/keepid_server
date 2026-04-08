@@ -354,7 +354,10 @@ public class UserController {
     String lastName = req.getString("lastname").strip();
     String suffix = req.optString("suffix", "").strip();
     String birthDate = req.getString("birthDate").strip();
-    String email = req.getString("email").toLowerCase().strip();
+    String email = "";
+    if (req.has("email") && !req.isNull("email")) {
+      email = req.optString("email", "").strip().toLowerCase(Locale.ROOT);
+    }
     String phone = req.optString("phonenumber", "").strip();
 
     String dobCompact = birthDate.replace("-", "");
@@ -844,6 +847,36 @@ public class UserController {
     return null;
   }
 
+  /**
+   * When a staff member updates another user's profile, changing legal name or birth date for a
+   * {@link UserType#Client} is limited to {@link UserType#Worker} (not Admin/Director).
+   */
+  private Message checkWorkerOnlyClientIdentityEdits(
+      io.javalin.http.Context ctx, String targetUsername, JSONObject updateRequest) {
+    String sessionUsername = ctx.sessionAttribute("username");
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+
+    if (targetUsername == null
+        || targetUsername.isEmpty()
+        || targetUsername.equals(sessionUsername)) {
+      return null;
+    }
+    if (!updateRequest.has("currentName") && !updateRequest.has("birthDate")) {
+      return null;
+    }
+    Optional<User> targetOpt = userDao.get(targetUsername);
+    if (targetOpt.isEmpty()) {
+      return USER_NOT_FOUND;
+    }
+    if (targetOpt.get().getUserType() != Client) {
+      return null;
+    }
+    if (sessionUserType != Worker) {
+      return INSUFFICIENT_PRIVILEGE;
+    }
+    return null;
+  }
+
   public Handler updateUserProfile = ctx -> {
     log.info("Started updateUserProfile handler");
     JSONObject req = new JSONObject(ctx.body());
@@ -857,10 +890,16 @@ public class UserController {
       return;
     }
 
-    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
-
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
+
+    Message identityAuth = checkWorkerOnlyClientIdentityEdits(ctx, targetUsername, updateRequest);
+    if (identityAuth != null) {
+      ctx.result(identityAuth.toJSON().toString());
+      return;
+    }
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
     UpdateUserProfileService updateService =
         new UpdateUserProfileService(userDao, username, updateRequest, emailSender);
