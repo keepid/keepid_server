@@ -8,6 +8,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class ValidationUtils {
   public static final int MIN_PASSWORD_LENGTH = 8;
@@ -140,4 +141,20 @@ public class ValidationUtils {
 //  }
 
   public static boolean hasValue(String input) { return input != null && !input.strip().isBlank(); }
+
+  /**
+   * Normalizes a name segment for auto-generated enrollment usernames. Legal display names may
+   * include spaces, apostrophes, and periods that {@link #isValidUsername} rejects.
+   */
+  public static String slugForEnrollmentUsernameSegment(String namePart) {
+    if (namePart == null || namePart.strip().isEmpty()) {
+      return "x";
+    }
+    String s = namePart.strip().toLowerCase(Locale.ROOT);
+    s = s.replaceAll("[\\s\\u00A0]+", "-");
+    s = s.replaceAll("[,.'’]+", "");
+    s = s.replaceAll("-{2,}", "-");
+    s = s.replaceAll("^-+|-+$", "");
+    return s.isEmpty() ? "x" : s;
+  }
 }

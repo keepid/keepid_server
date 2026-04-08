@@ -1,5 +1,6 @@
 package UserTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
@@ -13,6 +14,7 @@ import Database.User.UserDaoFactory;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
+import User.UserType;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import kong.unirest.HttpResponse;
@@ -149,6 +151,7 @@ public class ChangeAccountSettingsIntegrationTests {
         .withUsername(username)
         .withPasswordToHash(password)
         .withBirthDate("01-25-1965")
+        .withUserType(UserType.Worker)
         .buildAndPersist(userDao);
 
     String newBirthDate = "05-23-2002";
@@ -173,6 +176,34 @@ public class ChangeAccountSettingsIntegrationTests {
         .toString()
         .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "birthDate", newBirthDate));
+  }
+
+  @Test
+  public void changeBirthDateRejectedForClient() {
+    String username = "account-settings-client-birth";
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withBirthDate("01-25-1965")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(username, password);
+
+    JSONObject requestPayload =
+        new JSONObject()
+            .put("password", password)
+            .put("key", "birthDate")
+            .put("value", "05-23-2002");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
   }
 
   @Test

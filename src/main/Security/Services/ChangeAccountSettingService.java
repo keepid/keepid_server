@@ -10,6 +10,7 @@ import User.Address;
 import User.Name;
 import User.User;
 import User.UserMessage;
+import User.UserType;
 import Validation.ValidationUtils;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,6 +52,9 @@ public class ChangeAccountSettingService implements Service {
       return UserMessage.USER_NOT_FOUND;
     }
     User user = userResult.get();
+    if ("birthDate".equals(key) && user.getUserType() == UserType.Client) {
+      return UserMessage.INSUFFICIENT_PRIVILEGE;
+    }
     JSONObject userAsJson = user.serialize();
     String old = userAsJson.has(key) ? userAsJson.get(key).toString() : "";
 

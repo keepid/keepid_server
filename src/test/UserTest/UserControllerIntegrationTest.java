@@ -365,6 +365,26 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
+  public void enrollClientSpacedMultiWordNameSucceedsTest() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("firstname", "Mary Ann");
+    body.put("lastname", "Van Der Berg");
+    body.put("birthDate", "04-08-1991");
+    body.put("email", "spaced.enroll." + System.currentTimeMillis() + "@example.com");
+    body.put("phonenumber", "5559876543");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/enroll-client")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("ENROLL_SUCCESS");
+  }
+
+  @Test
   public void enrollClientWithoutPhoneSucceedsTest() {
     TestUtils.login("adminBSM", "adminBSM");
 

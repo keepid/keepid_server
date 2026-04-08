@@ -20,6 +20,7 @@ import Security.EmailSenderFactory;
 import Security.EmailUtil;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
+import Validation.ValidationUtils;
 import static User.UserMessage.*;
 import static User.UserType.*;
 import com.google.gson.Gson;
@@ -362,7 +363,14 @@ public class UserController {
 
     String dobCompact = birthDate.replace("-", "");
     String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
-    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String username =
+        ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+            + "-"
+            + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+            + "-"
+            + dobCompact
+            + "-"
+            + randomSuffix;
     String password = UUID.randomUUID().toString();
 
     Name currentName = new Name(firstName, middleName, lastName, suffix, null);
@@ -412,7 +420,14 @@ public class UserController {
 
     String dobCompact = birthDate.replace("-", "");
     String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
-    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String username =
+        ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+            + "-"
+            + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+            + "-"
+            + dobCompact
+            + "-"
+            + randomSuffix;
     String password = UUID.randomUUID().toString();
 
     Name currentName = new Name(firstName, middleName, lastName, suffix, maiden);
@@ -847,6 +862,17 @@ public class UserController {
     return null;
   }
 
+  /** Clients may not change birth date via profile update (workers handle corrections). */
+  private Message checkClientCannotChangeBirthDate(UserType sessionUserType, JSONObject updateRequest) {
+    if (!updateRequest.has("birthDate")) {
+      return null;
+    }
+    if (sessionUserType == Client) {
+      return INSUFFICIENT_PRIVILEGE;
+    }
+    return null;
+  }
+
   /**
    * When a staff member updates another user's profile, changing legal name or birth date for a
    * {@link UserType#Client} is limited to {@link UserType#Worker} (not Admin/Director).
@@ -893,6 +919,13 @@ public class UserController {
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
 
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+    Message clientBirthAuth = checkClientCannotChangeBirthDate(sessionUserType, updateRequest);
+    if (clientBirthAuth != null) {
+      ctx.result(clientBirthAuth.toJSON().toString());
+      return;
+    }
+
     Message identityAuth = checkWorkerOnlyClientIdentityEdits(ctx, targetUsername, updateRequest);
     if (identityAuth != null) {
       ctx.result(identityAuth.toJSON().toString());
@@ -920,8 +953,9 @@ public class UserController {
       return;
     }
 
-    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
     JSONObject directivesMap = req.getJSONObject("directives");
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
     // Re-map format to dummy keys containing directives so UpdateProfileFromFormService accepts it seamlessly
     JSONObject formAnswers = new JSONObject();
