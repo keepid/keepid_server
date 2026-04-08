@@ -11,6 +11,7 @@ import File.FileMessage;
 import File.FileType;
 import Form.Form;
 import Security.EncryptionController;
+import Security.OrganizationCryptoAad;
 import User.UserType;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +35,7 @@ public class DownloadFileService implements Service {
   private InputStream inputStream;
   private Optional<EncryptionController> encryptionController;
   private FormDao formDao;
+  private Optional<ObjectId> sessionOrganizationId;
 
   public DownloadFileService(
       FileDao fileDao,
@@ -45,6 +47,7 @@ public class DownloadFileService implements Service {
       FileType fileType,
       Optional<String> fileId,
       Optional<EncryptionController> encryptionController,
+      Optional<ObjectId> sessionOrganizationId,
       FormDao formDao) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
@@ -56,6 +59,7 @@ public class DownloadFileService implements Service {
     this.fileId = fileId;
     this.formDao = formDao;
     this.encryptionController = encryptionController;
+    this.sessionOrganizationId = sessionOrganizationId;
   }
 
   @Override
@@ -133,7 +137,7 @@ public class DownloadFileService implements Service {
               || privilegeLevelType == UserType.Admin
               || privilegeLevelType == UserType.Worker
               || privilegeLevelType == UserType.Client)) {
-        if (file.getOrganizationName().equals(organizationName.get())) {
+        if (sameOrganizationAccess(file)) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
             this.inputStream =
@@ -159,11 +163,15 @@ public class DownloadFileService implements Service {
           return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.FORM || fileType == FileType.ORG_DOCUMENT) {
-        if (file.getOrganizationName().equals(organizationName.get())) {
+        if (sameOrganizationAccess(file)) {
           Optional<InputStream> optionalStream = fileDao.getStream(id);
           if (optionalStream.isPresent()) {
+            String decryptAad =
+                file.getOrganizationId() != null
+                    ? OrganizationCryptoAad.fromOrganizationId(file.getOrganizationId())
+                    : file.getUsername();
             this.inputStream =
-                encryptionController.get().decryptFile(optionalStream.get(), this.username);
+                encryptionController.get().decryptFile(optionalStream.get(), decryptAad);
             this.contentType = "application/pdf";
             recordViewFileActivity(id, filename);
             return FileMessage.SUCCESS;
@@ -207,6 +215,16 @@ public class DownloadFileService implements Service {
       return FileMessage.NO_SUCH_FILE;
     }
     return FileMessage.NO_SUCH_FILE;
+  }
+
+  private boolean sameOrganizationAccess(File file) {
+    if (organizationName.isEmpty()) {
+      return false;
+    }
+    return sessionOrganizationId
+        .filter(oid -> file.getOrganizationId() != null)
+        .map(oid -> file.getOrganizationId().equals(oid))
+        .orElseGet(() -> file.getOrganizationName().equals(organizationName.get()));
   }
 
   private void recordViewFileActivity(ObjectId id, String filename) {

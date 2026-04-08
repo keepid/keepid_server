@@ -9,6 +9,7 @@ import File.File;
 import File.FileMessage;
 import File.FileType;
 import Security.EncryptionController;
+import Security.OrganizationCryptoAad;
 import User.UserType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -135,8 +136,14 @@ public class UploadFileService implements Service {
       return FileMessage.SERVER_ERROR;
     }
     EncryptionController controller = encryptionController.get();
+    FileType ft = this.fileToUpload.getFileType();
+    String encryptionContext =
+        ((ft == FileType.ORG_DOCUMENT || ft == FileType.FORM)
+                && this.fileToUpload.getOrganizationId() != null)
+            ? OrganizationCryptoAad.fromOrganizationId(this.fileToUpload.getOrganizationId())
+            : this.fileToUpload.getUsername();
     this.fileToUpload.setFileStream(
-        controller.encryptFile(this.fileToUpload.getFileStream(), this.fileToUpload.getUsername()));
+        controller.encryptFile(this.fileToUpload.getFileStream(), encryptionContext));
     this.fileDao.save(fileToUpload);
     recordUploadFileActivity(false);
     return FileMessage.SUCCESS;

@@ -16,18 +16,21 @@ public class RenameFileService implements Service {
   private final String newFilename;
   private final String orgName;
   private final UserType userType;
+  private final Optional<ObjectId> sessionOrganizationId;
 
   public RenameFileService(
       FileDao fileDao,
       String fileId,
       String newFilename,
       String orgName,
-      UserType userType) {
+      UserType userType,
+      Optional<ObjectId> sessionOrganizationId) {
     this.fileDao = fileDao;
     this.fileId = fileId;
     this.newFilename = newFilename;
     this.orgName = orgName;
     this.userType = userType;
+    this.sessionOrganizationId = sessionOrganizationId;
   }
 
   @Override
@@ -53,7 +56,12 @@ public class RenameFileService implements Service {
 
     File file = maybeFile.get();
 
-    if (!file.getOrganizationName().equals(orgName)) {
+    boolean sameTenant =
+        sessionOrganizationId
+            .filter(oid -> file.getOrganizationId() != null)
+            .map(oid -> file.getOrganizationId().equals(oid))
+            .orElseGet(() -> file.getOrganizationName().equals(orgName));
+    if (!sameTenant) {
       return FileMessage.INSUFFICIENT_PRIVILEGE;
     }
 

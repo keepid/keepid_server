@@ -22,6 +22,7 @@ public class DeleteFileService implements Service {
   private UserType userType;
   private FileType fileType;
   private String fileId;
+  private Optional<ObjectId> sessionOrganizationId;
 
   public DeleteFileService(
       FileDao fileDao,
@@ -31,7 +32,8 @@ public class DeleteFileService implements Service {
       String orgName,
       UserType userType,
       FileType fileType,
-      String fileId) {
+      String fileId,
+      Optional<ObjectId> sessionOrganizationId) {
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.usernameOfInvoker = usernameOfInvoker;
@@ -40,6 +42,7 @@ public class DeleteFileService implements Service {
     this.userType = userType;
     this.fileType = fileType;
     this.fileId = fileId;
+    this.sessionOrganizationId = sessionOrganizationId;
   }
 
   @Override
@@ -48,7 +51,7 @@ public class DeleteFileService implements Service {
       return FileMessage.INVALID_PARAMETER;
     }
     ObjectId fileID = new ObjectId(fileId);
-    return delete(username, orgName, fileType, userType, fileID, fileDao);
+    return delete(username, orgName, fileType, userType, fileID, fileDao, sessionOrganizationId);
   }
 
   private void recordDeleteFileActivity(ObjectId id, String filename) {
@@ -63,7 +66,8 @@ public class DeleteFileService implements Service {
       FileType fileType,
       UserType privilegeLevel,
       ObjectId id,
-      FileDao fileDao) {
+      FileDao fileDao,
+      Optional<ObjectId> sessionOrganizationId) {
     Optional<File> fileFromDB = fileDao.get(id);
     if (fileFromDB.isEmpty()) {
       return FileMessage.NO_SUCH_FILE;
@@ -74,7 +78,7 @@ public class DeleteFileService implements Service {
         && (privilegeLevel == UserType.Admin
             || privilegeLevel == UserType.Director
             || privilegeLevel == UserType.Worker)) {
-      if (file.getOrganizationName().equals(organizationName)) {
+      if (sameTenant(file, organizationName, sessionOrganizationId)) {
         recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
@@ -87,7 +91,7 @@ public class DeleteFileService implements Service {
         return FileMessage.SUCCESS;
       }
     } else if (fileType == FileType.FORM || fileType == FileType.ORG_DOCUMENT) {
-      if (file.getOrganizationName().equals(organizationName)) {
+      if (sameTenant(file, organizationName, sessionOrganizationId)) {
         recordDeleteFileActivity(id, filename);
         fileDao.delete(id);
         return FileMessage.SUCCESS;
@@ -100,5 +104,13 @@ public class DeleteFileService implements Service {
       }
     } // no deleting of profile pic files (only replacing)
     return FileMessage.INSUFFICIENT_PRIVILEGE;
+  }
+
+  private static boolean sameTenant(
+      File file, String organizationName, Optional<ObjectId> sessionOrganizationId) {
+    return sessionOrganizationId
+        .filter(oid -> file.getOrganizationId() != null)
+        .map(oid -> file.getOrganizationId().equals(oid))
+        .orElseGet(() -> file.getOrganizationName().equals(organizationName));
   }
 }

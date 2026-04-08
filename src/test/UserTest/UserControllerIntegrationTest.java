@@ -7,9 +7,11 @@ import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.User.UserDao;
 import Database.User.UserDaoFactory;
+import Security.SecurityUtils;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.UserType;
+import java.io.IOException;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import org.json.JSONObject;
@@ -21,6 +23,19 @@ public class UserControllerIntegrationTest {
 
   private static UserDao userDao;
   private static OrgDao orgDao;
+
+  private static String mintInviteJwt(String orgName, String role) throws IOException {
+    return SecurityUtils.createOrgJWT(
+        SecurityUtils.generateRandomStringId(),
+        "integration-test",
+        "Invite",
+        "User",
+        role,
+        "Invite User to Org",
+        orgName,
+        orgDao.get(orgName).orElseThrow().getId().toHexString(),
+        7L * 24 * 3600 * 1000);
+  }
 
   @BeforeClass
   public static void setUp() {
@@ -236,7 +251,6 @@ public class UserControllerIntegrationTest {
     body.put("username", "testUser123");
     body.put("password", "testUser123");
     body.put("personRole", "Worker");
-    body.put("orgName", "");
 
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
@@ -250,22 +264,49 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
-  public void createInvitedUserSuccessfullyTest() {
+  public void createInvitedUserInvalidJwtFailsTest() {
     JSONObject body = new JSONObject();
     body.put("firstname", "mel");
     body.put("lastname", "car");
     body.put("birthDate", "02-16-1998");
-    body.put("email", "email@email");
+    body.put("email", "invalid-jwt-user@keep.id");
     body.put("phonenumber", "1234567890");
     body.put("address", "123 park ave");
     body.put("city", "new york");
     body.put("state", "NY");
     body.put("zipcode", "10003");
     body.put("twoFactorOn", false);
-    body.put("username", "testUser123");
-    body.put("password", "testUser123");
+    body.put("username", "invalidJwtUser");
+    body.put("password", "invalidJwtUser");
+    body.put("inviteJwt", "not.a.valid.jwt");
     body.put("personRole", "Worker");
-    body.put("orgName", "Test Org");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
+            .body(body.toString())
+            .asString();
+
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("INVALID_PARAMETER");
+  }
+
+  @Test
+  public void createInvitedUserSuccessfullyTest() throws IOException {
+    JSONObject body = new JSONObject();
+    body.put("firstname", "mel");
+    body.put("lastname", "car");
+    body.put("birthDate", "02-16-1998");
+    body.put("email", "invited-enroll-success@keep.id");
+    body.put("phonenumber", "1234567890");
+    body.put("address", "123 park ave");
+    body.put("city", "new york");
+    body.put("state", "NY");
+    body.put("zipcode", "10003");
+    body.put("twoFactorOn", false);
+    body.put("username", "invitedEnrollSuccessUser");
+    body.put("password", "invitedEnrollSuccessUser");
+    body.put("personRole", "Worker");
+    body.put("inviteJwt", mintInviteJwt("Test Org", "Worker"));
 
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
@@ -279,22 +320,22 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
-  public void createUserWithNullRoleTest() {
+  public void createUserWithNullRoleTest() throws IOException {
     JSONObject body = new JSONObject();
     body.put("firstname", "mel");
     body.put("lastname", "car");
     body.put("birthDate", "02-16-1998");
-    body.put("email", "email@email");
+    body.put("email", "null-role-invite@keep.id");
     body.put("phonenumber", "1234567890");
     body.put("address", "123 park ave");
     body.put("city", "new york");
     body.put("state", "NY");
     body.put("zipcode", "10003");
     body.put("twoFactorOn", false);
-    body.put("username", "testUser123");
-    body.put("password", "testUser123");
-    body.put("personRole", "");
-    body.put("orgName", "Test Org");
+    body.put("username", "nullRoleInviteUser");
+    body.put("password", "nullRoleInviteUser");
+    body.put("personRole", "Admin");
+    body.put("inviteJwt", mintInviteJwt("Test Org", ""));
 
     HttpResponse<String> actualResponse =
         Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
@@ -307,7 +348,8 @@ public class UserControllerIntegrationTest {
   }
 
   @Test
-  public void createInvitedUserDuplicateEmailFailsTest() {
+  public void createInvitedUserDuplicateEmailFailsTest() throws IOException {
+    String jwt = mintInviteJwt("Test Org", "Worker");
     JSONObject firstBody = new JSONObject();
     firstBody.put("firstname", "first");
     firstBody.put("lastname", "user");
@@ -322,7 +364,7 @@ public class UserControllerIntegrationTest {
     firstBody.put("username", "dupeEmailUserA");
     firstBody.put("password", "dupeEmailUserA");
     firstBody.put("personRole", "Worker");
-    firstBody.put("orgName", "Test Org");
+    firstBody.put("inviteJwt", jwt);
 
     HttpResponse<String> firstResponse =
         Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")
@@ -335,6 +377,7 @@ public class UserControllerIntegrationTest {
     secondBody.put("firstname", "second");
     secondBody.put("username", "dupeEmailUserB");
     secondBody.put("password", "dupeEmailUserB");
+    secondBody.put("inviteJwt", jwt);
 
     HttpResponse<String> secondResponse =
         Unirest.post(TestUtils.getServerUrl() + "/create-invited-user")

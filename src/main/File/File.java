@@ -21,6 +21,7 @@ public class File {
   @Getter @Setter private Date uploadedAt;
   @Getter @Setter private String username;
   @Getter @Setter private String organizationName;
+  @Getter @Setter private ObjectId organizationId;
 
   @Getter
   @Setter
@@ -86,7 +87,8 @@ public class File {
         && idCategory == file.idCategory
         && uploadedAt.equals(file.uploadedAt)
         && username.equals(file.username)
-        && organizationName.equals(file.organizationName)
+        && java.util.Objects.equals(organizationName, file.organizationName)
+        && java.util.Objects.equals(organizationId, file.organizationId)
         && contentType.equals(file.contentType);
   }
 
@@ -101,6 +103,7 @@ public class File {
         uploadedAt,
         username,
         organizationName,
+        organizationId,
         isAnnotated,
         contentType);
   }

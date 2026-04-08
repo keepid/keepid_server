@@ -10,6 +10,8 @@ public interface OrgDao extends Dao<Organization> {
 
   Optional<Organization> get(String orgName);
 
+  Optional<Organization> get(ObjectId organizationId);
+
   void delete(String orgName);
 
   void delete(ObjectId objectId);

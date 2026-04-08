@@ -148,11 +148,12 @@ public class EnrollOrganizationService implements Service {
 
       log.info("Setting password and inserting user and org into Mongo");
       user.setPassword(passwordHash);
+      user.setOrganizationId(org.getId());
 
       List<IpObject> logInInfo = new ArrayList<>(1000);
       user.setLogInHistory(logInInfo);
-      userCollection.insertOne(user);
       orgCollection.insertOne(org);
+      userCollection.insertOne(user);
       log.info("Notifying Slack about new org");
       HttpResponse<?> posted = makeBotMessage(org);
       if (!posted.isSuccess()) {

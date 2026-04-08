@@ -241,7 +241,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfileAdminUpdatesClientBirthDateInsufficientPrivilege() {
+  public void updateUserProfileAdminUpdatesClientBirthDateInSameOrgSuccess() {
     String adminUsername = "profile-admin-birth";
     String clientUsername = "profile-client-admin-birth";
     String password = "shared-password";
@@ -272,11 +272,14 @@ public class UserInformationIntegrationTests {
             .asString();
 
     JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
-    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedClient = userDao.get(clientUsername).orElseThrow();
+    assertThat(updatedClient.getBirthDate()).isEqualTo("03-15-1990");
   }
 
   @Test
-  public void updateUserProfileAdminUpdatesClientCurrentNameInsufficientPrivilege() {
+  public void updateUserProfileAdminUpdatesClientCurrentNameInSameOrgSuccess() {
     String adminUsername = "profile-admin-name";
     String clientUsername = "profile-client-name";
     String password = "shared-password";
@@ -310,7 +313,11 @@ public class UserInformationIntegrationTests {
             .asString();
 
     JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
-    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedClient = userDao.get(clientUsername).orElseThrow();
+    assertThat(updatedClient.getFirstName()).isEqualTo("NewFirst");
+    assertThat(updatedClient.getLastName()).isEqualTo("NewLast");
   }
 
   @Test

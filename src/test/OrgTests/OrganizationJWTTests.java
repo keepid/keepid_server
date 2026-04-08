@@ -26,8 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class OrganizationJWTTests {
-  private SecurityUtils securityUtils = new SecurityUtils();
-
   private static UserDao userDao;
   private static OrgDao orgDao;
 
@@ -92,10 +90,12 @@ public class OrganizationJWTTests {
     String org = "testOrg";
     int time = 72000;
 
+    String orgIdHex = "507f1f77bcf86cd799439011";
     String orgJWT =
-        securityUtils.createOrgJWT(id, issuer, firstName, lastName, role, subject, org, time);
+        SecurityUtils.createOrgJWT(
+            id, issuer, firstName, lastName, role, subject, org, orgIdHex, time);
 
-    Claims decodedClaims = securityUtils.decodeJWT(orgJWT);
+    Claims decodedClaims = SecurityUtils.decodeJWT(orgJWT);
 
     // Testing
     assertEquals(decodedClaims.getId(), id);
@@ -104,6 +104,7 @@ public class OrganizationJWTTests {
     assertEquals(decodedClaims.get("firstName"), firstName);
     assertEquals(decodedClaims.get("lastName"), lastName);
     assertEquals(decodedClaims.get("role"), role);
+    assertEquals(decodedClaims.get("organizationId"), orgIdHex);
   }
 
   @Test

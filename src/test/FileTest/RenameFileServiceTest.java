@@ -32,7 +32,8 @@ public class RenameFileServiceTest {
 
   private RenameFileService createService(
       String fileId, String newFilename, String orgName, UserType userType) {
-    return new RenameFileService(fileDao, fileId, newFilename, orgName, userType);
+    return new RenameFileService(
+        fileDao, fileId, newFilename, orgName, userType, java.util.Optional.empty());
   }
 
   @Test
