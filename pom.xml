@@ -63,6 +63,8 @@
                     <runOrder>alphabetical</runOrder>
                     <systemPropertyVariables>
                         <java.awt.headless>true</java.awt.headless>
+                        <junit.jupiter.execution.parallel.enabled>false</junit.jupiter.execution.parallel.enabled>
+                        <junit.vintage.execution.parallel.enabled>false</junit.vintage.execution.parallel.enabled>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

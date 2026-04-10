@@ -36,7 +36,7 @@ jobs:
       - checkout
       - run:
           name: Run tests
-          command: mvn verify
+          command: mvn verify -Djunit.jupiter.execution.parallel.enabled=false -Djunit.vintage.execution.parallel.enabled=false
 workflows:
   maven_test:
     jobs:
