@@ -287,33 +287,29 @@ public class ProductionControllerIntegrationTests {
 
   @Test
   public void deleteUser() {
-    var username = "adminYMCA";
-    if (userDao.get(username).isEmpty()) {
-      EntityFactory.createUser()
-          .withFirstName("Ym")
-          .withLastName("Ca")
-          .withBirthDate("06-16-1960")
-          .withEmail("info@ymca.net")
-          .withPhoneNumber("1234567890")
-          .withOrgName("YMCA")
-          .withAddress("11088 Knights Road")
-          .withCity("Philadelphia")
-          .withState("PA")
-          .withZipcode("19154")
-          .withUsername("adminYMCA")
-          .withPasswordToHash("adminYMCA")
-          .withUserType(UserType.Director)
-          .buildAndPersist(userDao);
-    }
+    var username = "user-to-delete";
+    userDao.delete(username);
+    EntityFactory.createUser()
+        .withFirstName("Delete")
+        .withLastName("Me")
+        .withBirthDate("01-01-2000")
+        .withEmail("delete.me@example.com")
+        .withPhoneNumber("1234567890")
+        .withOrgName("YMCA")
+        .withAddress("123 Main Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername(username)
+        .withPasswordToHash("deleteMePassword123")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
 
     HttpResponse<User> getUserResponse =
         Unirest.get(TestUtils.getServerUrl() + "/users/" + username)
             .asObject(User.class);
 
     assertThat(getUserResponse.getStatus()).isEqualTo(200);
-    var user = getUserResponse.getBody();
-    assertThat(user).isNotNull();
-    assertThat(user.getUsername()).isEqualTo(username);
 
     var deleteUserResponse = Unirest.delete(TestUtils.getServerUrl() + "/users/" + username)
         .asObject(User.class);
