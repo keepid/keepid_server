@@ -9,6 +9,7 @@ import static User.UserController.newUserActualURL;
 import Config.Message;
 import Config.Service;
 import Database.Activity.ActivityDao;
+import Database.Organization.OrgDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
 import User.Address;
@@ -31,6 +32,7 @@ import org.json.JSONObject;
 public class CreateUserService implements Service {
   UserDao userDao;
   ActivityDao activityDao;
+  OrgDao orgDao;
   UserType sessionUserLevel;
   String organizationName;
   String sessionUsername;
@@ -47,6 +49,7 @@ public class CreateUserService implements Service {
   public CreateUserService(
       UserDao userDao,
       ActivityDao activityDao,
+      OrgDao orgDao,
       UserType sessionUserLevel,
       String organizationName,
       String sessionUsername,
@@ -61,6 +64,7 @@ public class CreateUserService implements Service {
       UserType userType) {
     this.userDao = userDao;
     this.activityDao = activityDao;
+    this.orgDao = orgDao;
     this.sessionUserLevel = sessionUserLevel;
     this.organizationName = organizationName;
     this.sessionUsername = sessionUsername;
@@ -142,6 +146,13 @@ public class CreateUserService implements Service {
       return UserMessage.HASH_FAILURE;
     }
     user.setPassword(hash);
+
+    if (requiresOrganization
+        && orgDao != null
+        && organizationName != null
+        && !organizationName.isBlank()) {
+      orgDao.get(organizationName).ifPresent(o -> user.setOrganizationId(o.getId()));
+    }
 
     List<IpObject> logInInfo = new ArrayList<IpObject>(1000);
     user.setLogInHistory(logInInfo);

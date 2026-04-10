@@ -27,10 +27,21 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
 @Slf4j
 public class FileController {
+
+  private static void setFileOrganizationId(
+      File file, io.javalin.http.Context ctx, Optional<User> targetOrgUser) {
+    if (targetOrgUser.isPresent() && targetOrgUser.get().getOrganizationId() != null) {
+      file.setOrganizationId(targetOrgUser.get().getOrganizationId());
+      return;
+    }
+    SessionOrganizationId.fromContext(ctx).ifPresent(file::setOrganizationId);
+  }
+
   private UserDao userDao;
   private FileDao fileDao;
   private ActivityDao activityDao;
@@ -94,10 +105,16 @@ public class FileController {
           usernameOfInvoker = ctx.sessionAttribute("username");
           if (req != null && req.has("targetUser") && maybeTargetUser.isPresent()) {
             log.info("Target user found, setting parameters.");
-            username = maybeTargetUser.get().getUsername();
-            organizationName = maybeTargetUser.get().getOrganization();
-            privilegeLevel = maybeTargetUser.get().getUserType();
-            orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
+            User target = maybeTargetUser.get();
+            username = target.getUsername();
+            organizationName = target.getOrganization();
+            privilegeLevel = target.getUserType();
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            if (sessionOid.isPresent() && target.getOrganizationId() != null) {
+              orgFlag = sessionOid.get().equals(target.getOrganizationId());
+            } else {
+              orgFlag = organizationName.equals(ctx.sessionAttribute("orgName"));
+            }
           } else {
             log.info("Checking session for user.");
             username = ctx.sessionAttribute("username");
@@ -170,6 +187,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  setFileOrganizationId(fileToUpload, ctx, maybeTargetUser);
                   UploadFileService uploadService =
                       new UploadFileService(
                           fileDao,
@@ -198,6 +216,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  setFileOrganizationId(fileToUpload, ctx, maybeTargetUser);
                   uploadService =
                       new UploadFileService(
                           fileDao,
@@ -297,11 +316,16 @@ public class FileController {
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = maybeTargetUser.get().getUsername();
-            orgName = maybeTargetUser.get().getOrganization();
-            userType = maybeTargetUser.get().getUserType();
-            //            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
-            orgFlag = true;
+            User target = maybeTargetUser.get();
+            username = target.getUsername();
+            orgName = target.getOrganization();
+            userType = target.getUserType();
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            if (sessionOid.isPresent() && target.getOrganizationId() != null) {
+              orgFlag = sessionOid.get().equals(target.getOrganizationId());
+            } else {
+              orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            }
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -324,6 +348,7 @@ public class FileController {
                     fileType,
                     Optional.ofNullable(fileIDStr),
                     Optional.ofNullable(encryptionController),
+                    SessionOrganizationId.fromContext(ctx),
                     formDao);
             Message response = downloadFileService.executeAndGetResponse();
             if (response == FileMessage.SUCCESS) {
@@ -361,10 +386,16 @@ public class FileController {
           usernameOfInvoker = ctx.sessionAttribute("username");
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = maybeTargetUser.get().getUsername();
-            orgName = maybeTargetUser.get().getOrganization();
+            User target = maybeTargetUser.get();
+            username = target.getUsername();
+            orgName = target.getOrganization();
             userType = ctx.sessionAttribute("privilegeLevel");
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            if (sessionOid.isPresent() && target.getOrganizationId() != null) {
+              orgFlag = sessionOid.get().equals(target.getOrganizationId());
+            } else {
+              orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            }
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -387,7 +418,8 @@ public class FileController {
                     orgName,
                     userType,
                     fileType,
-                    fileIDStr);
+                    fileIDStr,
+                    SessionOrganizationId.fromContext(ctx));
             ctx.result(deleteFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -414,9 +446,15 @@ public class FileController {
         } else {
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
-            orgName = maybeTargetUser.get().getOrganization();
-            userType = maybeTargetUser.get().getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            User target = maybeTargetUser.get();
+            orgName = target.getOrganization();
+            userType = target.getUserType();
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            if (sessionOid.isPresent() && target.getOrganizationId() != null) {
+              orgFlag = sessionOid.get().equals(target.getOrganizationId());
+            } else {
+              orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            }
           } else {
             orgName = ctx.sessionAttribute("orgName");
             userType = ctx.sessionAttribute("privilegeLevel");
@@ -433,7 +471,8 @@ public class FileController {
                     fileIDStr,
                     newFilename,
                     orgName,
-                    userType);
+                    userType,
+                    SessionOrganizationId.fromContext(ctx));
             ctx.result(renameFileService.executeAndGetResponse().toResponseString());
           } else {
             ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
@@ -470,10 +509,16 @@ public class FileController {
           boolean orgFlag;
           if (maybeTargetUser.isPresent() && req.has("targetUser")) {
             log.info("Target user found");
-            username = maybeTargetUser.get().getUsername();
-            orgName = maybeTargetUser.get().getOrganization();
-            userType = maybeTargetUser.get().getUserType();
-            orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            User target = maybeTargetUser.get();
+            username = target.getUsername();
+            orgName = target.getOrganization();
+            userType = target.getUserType();
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            if (sessionOid.isPresent() && target.getOrganizationId() != null) {
+              orgFlag = sessionOid.get().equals(target.getOrganizationId());
+            } else {
+              orgFlag = orgName.equals(ctx.sessionAttribute("orgName"));
+            }
           } else {
             username = ctx.sessionAttribute("username");
             orgName = ctx.sessionAttribute("orgName");
@@ -486,9 +531,13 @@ public class FileController {
             if (fileType == FileType.FORM) {
               annotated = Objects.requireNonNull(req.getBoolean("annotated"));
             }
+            ObjectId organizationIdForQuery =
+                maybeTargetUser.isPresent() && req.has("targetUser")
+                    ? maybeTargetUser.get().getOrganizationId()
+                    : SessionOrganizationId.fromContext(ctx).orElse(null);
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    fileDao, username, orgName, userType, fileType, annotated);
+                    fileDao, username, orgName, organizationIdForQuery, userType, fileType, annotated);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
@@ -524,6 +573,7 @@ public class FileController {
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
                 Optional.ofNullable(encryptionController),
+                SessionOrganizationId.fromContext(ctx),
                 formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {
@@ -572,6 +622,7 @@ public class FileController {
                 FileType.FORM,
                 Optional.ofNullable(applicationId),
                 Optional.ofNullable(encryptionController),
+                SessionOrganizationId.fromContext(ctx),
                 formDao);
         Message responseDownload = downloadFileService.executeAndGetResponse();
         if (responseDownload == FileMessage.SUCCESS) {

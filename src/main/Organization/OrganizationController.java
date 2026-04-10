@@ -12,6 +12,7 @@ import Security.EncryptionUtils;
 import User.Address;
 import User.UserType;
 import Validation.ValidationException;
+import Validation.ValidationUtils;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
@@ -148,7 +149,14 @@ public class OrganizationController {
         if (username.isEmpty()) {
           String dobCompact = birthDate.replace("-", "");
           String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
-          username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+          username =
+              ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+                  + "-"
+                  + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+                  + "-"
+                  + dobCompact
+                  + "-"
+                  + randomSuffix;
         }
         String password = req.getString("password").strip();
         UserType userLevel = UserType.Admin;

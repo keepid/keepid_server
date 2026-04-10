@@ -12,6 +12,7 @@ import File.FileType;
 import User.UserType;
 import java.util.Objects;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -19,6 +20,7 @@ public class GetFilesInformationService implements Service {
   private FileDao fileDao;
   private String username;
   private String orgName;
+  private ObjectId organizationId;
   private UserType userType;
   private FileType fileType;
   private JSONArray files;
@@ -28,12 +30,14 @@ public class GetFilesInformationService implements Service {
       FileDao fileDao,
       String username,
       String orgName,
+      ObjectId organizationId,
       UserType userType,
       FileType fileType,
       boolean annotated) {
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
+    this.organizationId = organizationId;
     this.userType = userType;
     this.fileType = fileType;
     this.annotated = annotated;
@@ -52,9 +56,13 @@ public class GetFilesInformationService implements Service {
                   || userType == UserType.Admin
                   || userType == UserType.Worker)) {
             filter =
-                and(
-                    eq("organizationName", orgName),
-                    eq("fileType", FileType.APPLICATION_PDF.toString()));
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("fileType", FileType.APPLICATION_PDF.toString()))
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("fileType", FileType.APPLICATION_PDF.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.APPLICATION_PDF
               && userType == UserType.Client) {
@@ -80,16 +88,25 @@ public class GetFilesInformationService implements Service {
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.FORM) {
             filter =
-                and(
-                    eq("organizationName", orgName),
-                    eq("annotated", annotated),
-                    eq("fileType", FileType.FORM.toString()));
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("annotated", annotated),
+                        eq("fileType", FileType.FORM.toString()))
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("annotated", annotated),
+                        eq("fileType", FileType.FORM.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.ORG_DOCUMENT) {
             filter =
-                and(
-                    eq("organizationName", orgName),
-                    eq("fileType", FileType.ORG_DOCUMENT.toString()));
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()))
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;

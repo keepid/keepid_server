@@ -124,7 +124,24 @@ public class UpdateProfileFromFormService implements Service {
     return FIELD_ALIASES.getOrDefault(directive, directive);
   }
 
+  /**
+   * Legal name, DOB, and name history are not synced from PDF/interactive forms; workers update those
+   * via profile endpoints instead.
+   */
+  private boolean isExcludedFromInteractiveFormSync(String directive) {
+    if ("birthDate".equals(directive)) {
+      return true;
+    }
+    if (directive.startsWith("currentName.")) {
+      return true;
+    }
+    return NAME_HISTORY_PATTERN.matcher(directive).matches();
+  }
+
   private boolean applyDirective(User user, String directive, String value) {
+    if (isExcludedFromInteractiveFormSync(directive)) {
+      return false;
+    }
     switch (directive) {
       case "currentName.first":
       case "currentName.middle":

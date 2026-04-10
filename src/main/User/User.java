@@ -35,6 +35,9 @@ public class User {
   @BsonProperty(value = "organization")
   private String organization;
 
+  @BsonProperty(value = "organizationId")
+  private ObjectId organizationId;
+
   @BsonProperty(value = "personalAddress")
   private Address personalAddress;
 
@@ -180,6 +183,15 @@ public class User {
 
   public String getOrganization() {
     return this.organization;
+  }
+
+  public ObjectId getOrganizationId() {
+    return this.organizationId;
+  }
+
+  public User setOrganizationId(ObjectId organizationId) {
+    this.organizationId = organizationId;
+    return this;
   }
 
   public Address getPersonalAddress() {
@@ -529,6 +541,9 @@ public class User {
     userJSON.put("email", email);
     userJSON.put("phone", getPhone());
     userJSON.put("organization", organization);
+    if (organizationId != null) {
+      userJSON.put("organizationId", organizationId.toHexString());
+    }
     userJSON.put("logInHistory", logInHistory);
     userJSON.put("creationDate", creationDate);
     userJSON.put("twoFactorOn", twoFactorOn);

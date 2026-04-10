@@ -122,6 +122,35 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
+  public void updateUserProfileClientCannotUpdateOwnBirthDate() {
+    String username = "profile-client-no-birth-edit";
+    String password = "profile-update-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withOrgName(TEST_ORG)
+        .withUserType(UserType.Client)
+        .withBirthDate("01-15-1990")
+        .buildAndPersist(userDao);
+
+    TestUtils.login(username, password);
+
+    JSONObject updateRequest = new JSONObject();
+    updateRequest.put("birthDate", "02-20-1991");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/update-user-profile")
+            .body(updateRequest.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+
+    User user = userDao.get(username).orElseThrow();
+    assertThat(user.getBirthDate()).isEqualTo("01-15-1990");
+  }
+
+  @Test
   public void updateUserProfileWithoutSessionAuthFailure() {
     JSONObject updateRequest = new JSONObject();
     updateRequest.put("email", "new@example.com");
@@ -212,7 +241,7 @@ public class UserInformationIntegrationTests {
   }
 
   @Test
-  public void updateUserProfileAdminUpdatesClientBirthDateInsufficientPrivilege() {
+  public void updateUserProfileAdminUpdatesClientBirthDateInSameOrgSuccess() {
     String adminUsername = "profile-admin-birth";
     String clientUsername = "profile-client-admin-birth";
     String password = "shared-password";
@@ -243,11 +272,14 @@ public class UserInformationIntegrationTests {
             .asString();
 
     JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
-    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedClient = userDao.get(clientUsername).orElseThrow();
+    assertThat(updatedClient.getBirthDate()).isEqualTo("03-15-1990");
   }
 
   @Test
-  public void updateUserProfileAdminUpdatesClientCurrentNameInsufficientPrivilege() {
+  public void updateUserProfileAdminUpdatesClientCurrentNameInSameOrgSuccess() {
     String adminUsername = "profile-admin-name";
     String clientUsername = "profile-client-name";
     String password = "shared-password";
@@ -281,7 +313,11 @@ public class UserInformationIntegrationTests {
             .asString();
 
     JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
-    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+    assertThat(responseJson.getString("status")).isEqualTo("SUCCESS");
+
+    User updatedClient = userDao.get(clientUsername).orElseThrow();
+    assertThat(updatedClient.getFirstName()).isEqualTo("NewFirst");
+    assertThat(updatedClient.getLastName()).isEqualTo("NewLast");
   }
 
   @Test

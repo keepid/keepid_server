@@ -8,9 +8,13 @@ import Security.EmailExceptions;
 import Security.EmailMessages;
 import Security.EmailUtil;
 import Security.SecurityUtils;
+import Organization.Organization;
 import User.UserMessage;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
+
+import static com.mongodb.client.model.Filters.eq;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -45,6 +49,14 @@ public class InviteUserService implements Service {
       log.error("Empty organization field");
       return UserMessage.EMPTY_FIELD;
     }
+
+    MongoCollection<Organization> orgCollection = db.getCollection("organization", Organization.class);
+    Organization organization = orgCollection.find(eq("orgName", orgName)).first();
+    if (organization == null) {
+      log.error("Organization not found for invite: {}", orgName);
+      return UserMessage.USER_NOT_FOUND;
+    }
+    String organizationIdHex = organization.getId().toHexString();
 
     log.info("Checking for empty fields");
     // Checking for any empty entries before sending out any emails
@@ -101,6 +113,7 @@ public class InviteUserService implements Service {
                 role,
                 "Invite User to Org",
                 orgName,
+                organizationIdHex,
                 expirationTime);
         String emailJWT =
             EmailUtil.getOrganizationInviteEmail(

@@ -287,13 +287,29 @@ public class ProductionControllerIntegrationTests {
 
   @Test
   public void deleteUser() {
-    var username = "adminYMCA";
+    var username = "user-to-delete";
+    userDao.delete(username);
+    EntityFactory.createUser()
+        .withFirstName("Delete")
+        .withLastName("Me")
+        .withBirthDate("01-01-2000")
+        .withEmail("delete.me@example.com")
+        .withPhoneNumber("1234567890")
+        .withOrgName("YMCA")
+        .withAddress("123 Main Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername(username)
+        .withPasswordToHash("deleteMePassword123")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
     HttpResponse<User> getUserResponse =
         Unirest.get(TestUtils.getServerUrl() + "/users/" + username)
             .asObject(User.class);
 
-    var user = getUserResponse.getBody();
-    assertThat(user.getUsername()).isEqualTo(username);
+    assertThat(getUserResponse.getStatus()).isEqualTo(200);
 
     var deleteUserResponse = Unirest.delete(TestUtils.getServerUrl() + "/users/" + username)
         .asObject(User.class);

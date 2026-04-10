@@ -9,6 +9,7 @@ import Database.Organization.OrgDao;
 import Database.Token.TokenDao;
 import Database.User.UserDao;
 import Organization.Organization;
+import io.jsonwebtoken.Claims;
 import File.File;
 import File.FileMessage;
 import File.FileType;
@@ -18,8 +19,10 @@ import File.Services.UploadFileService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
 import Security.EmailUtil;
+import Security.SecurityUtils;
 import User.Onboarding.OnboardingStatus;
 import User.Services.*;
+import Validation.ValidationUtils;
 import static User.UserMessage.*;
 import static User.UserType.*;
 import com.google.gson.Gson;
@@ -36,6 +39,7 @@ import java.time.ZoneId;
 import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.json.JSONObject;
 
 @Slf4j
@@ -140,9 +144,9 @@ public class UserController {
       Address clientAddress = new Address(faceToFaceAddress, faceToFaceCity, faceToFaceState, faceToFaceZip);
 
       CreateUserService createUserService = new CreateUserService(
-          userDao, activityDao, UserType.Admin, orgName, creatorUsername,
+          userDao, activityDao, orgDao, Admin, orgName, creatorUsername,
           clientName, defaultBirthdate, clientEmail, clientPhoneNumber,
-          clientAddress, false, clientUsername, clientPassword, UserType.Client);
+          clientAddress, false, clientUsername, clientPassword, Client);
       Message response = createUserService.executeAndGetResponse();
       System.out.println(response.toResponseString());
     }
@@ -174,6 +178,13 @@ public class UserController {
       ctx.sessionAttribute("orgName", loginService.getOrganization());
       ctx.sessionAttribute("username", loginService.getUsername());
       ctx.sessionAttribute("fullName", loginService.getFullName());
+      userDao
+          .get(loginService.getUsername())
+          .ifPresent(
+              u -> {
+                OrganizationIdResolver.resolveAndPersistIfMissing(u, orgDao, userDao)
+                    .ifPresent(oid -> ctx.sessionAttribute("organizationId", oid.toHexString()));
+              });
     } else {
       responseJSON.put("username", "");
       responseJSON.put("userRole", "");
@@ -231,6 +242,13 @@ public class UserController {
       ctx.sessionAttribute("username", processGoogleLoginResponseService.getUsername());
       ctx.sessionAttribute("fullName", processGoogleLoginResponseService.getFullName());
       ctx.sessionAttribute("googleLoginError", null);
+      userDao
+          .get(processGoogleLoginResponseService.getUsername())
+          .ifPresent(
+              u -> {
+                OrganizationIdResolver.resolveAndPersistIfMissing(u, orgDao, userDao)
+                    .ifPresent(oid -> ctx.sessionAttribute("organizationId", oid.toHexString()));
+              });
     } else {
       ctx.sessionAttribute("googleLoginError", response.getErrorName());
       if (response == GoogleLoginResponseMessage.USER_NOT_FOUND) {
@@ -255,6 +273,8 @@ public class UserController {
     String googleLoginError = ctx.sessionAttribute("googleLoginError");
 
     responseJSON.put("organization", org == null ? "" : org);
+    String organizationIdHex = ctx.sessionAttribute("organizationId");
+    responseJSON.put("organizationId", organizationIdHex == null ? "" : organizationIdHex);
     responseJSON.put("username", username == null ? "" : username);
     responseJSON.put("fullName", fullName == null ? "" : fullName);
     responseJSON.put("userRole", role == null ? "" : role);
@@ -329,7 +349,7 @@ public class UserController {
     Address personalAddress = new Address(addressLine1, city, state, zipcode);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        userDao, activityDao, orgDao, sessionUserLevel, organizationName, sessionUsername,
         currentName, birthDate, email, phone, personalAddress,
         twoFactorOn, username, password, userType);
     Message response = createUserService.executeAndGetResponse();
@@ -362,13 +382,20 @@ public class UserController {
 
     String dobCompact = birthDate.replace("-", "");
     String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
-    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String username =
+        ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+            + "-"
+            + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+            + "-"
+            + dobCompact
+            + "-"
+            + randomSuffix;
     String password = UUID.randomUUID().toString();
 
     Name currentName = new Name(firstName, middleName, lastName, suffix, null);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        userDao, activityDao, orgDao, sessionUserLevel, organizationName, sessionUsername,
         currentName, birthDate, email, phone, null,
         false, username, password, UserType.Client);
     Message createResponse = createUserService.executeAndGetResponse();
@@ -412,13 +439,20 @@ public class UserController {
 
     String dobCompact = birthDate.replace("-", "");
     String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
-    String username = (firstName + "-" + lastName + "-" + dobCompact + "-" + randomSuffix).toLowerCase();
+    String username =
+        ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+            + "-"
+            + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+            + "-"
+            + dobCompact
+            + "-"
+            + randomSuffix;
     String password = UUID.randomUUID().toString();
 
     Name currentName = new Name(firstName, middleName, lastName, suffix, maiden);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao, activityDao, sessionUserLevel, organizationName, sessionUsername,
+        userDao, activityDao, orgDao, sessionUserLevel, organizationName, sessionUsername,
         currentName, birthDate, email, phone, null,
         false, username, password, userType);
     Message createResponse = createUserService.executeAndGetResponse();
@@ -454,6 +488,46 @@ public class UserController {
     log.info("Starting createNewInvitedUser handler");
     JSONObject req = new JSONObject(ctx.body());
 
+    String inviteJwt = req.optString("inviteJwt", "").strip();
+    if (inviteJwt.isEmpty()) {
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
+      return;
+    }
+
+    final Claims claims;
+    try {
+      claims = SecurityUtils.decodeJWT(inviteJwt);
+    } catch (Exception e) {
+      log.warn("Invalid invite JWT", e);
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
+      return;
+    }
+
+    String roleStr = claims.get("role", String.class);
+    UserType userType = userTypeFromString(roleStr == null ? "" : roleStr.strip());
+    if (userType == null) {
+      ctx.result(INVALID_PRIVILEGE_TYPE.toJSON().toString());
+      return;
+    }
+
+    String orgIdHex = claims.get("organizationId", String.class);
+    Optional<Organization> organizationOpt;
+    if (orgIdHex != null && ObjectId.isValid(orgIdHex.strip())) {
+      organizationOpt = orgDao.get(new ObjectId(orgIdHex.strip()));
+    } else {
+      String orgNameClaim = claims.get("organization", String.class);
+      if (orgNameClaim == null || orgNameClaim.isBlank()) {
+        ctx.result(INVALID_PARAMETER.toJSON().toString());
+        return;
+      }
+      organizationOpt = orgDao.get(orgNameClaim.strip());
+    }
+    if (organizationOpt.isEmpty()) {
+      ctx.result(UserMessage.USER_NOT_FOUND.toJSON().toString());
+      return;
+    }
+    String organizationName = organizationOpt.get().getOrgName();
+
     String firstName = req.getString("firstname").strip();
     String lastName = req.getString("lastname").strip();
     String birthDate = req.getString("birthDate").strip();
@@ -466,14 +540,12 @@ public class UserController {
     Boolean twoFactorOn = req.getBoolean("twoFactorOn");
     String username = req.getString("username").strip();
     String password = req.getString("password").strip();
-    UserType userType = UserType.userTypeFromString(req.getString("personRole").strip());
-    String organizationName = req.getString("orgName").strip();
 
     Name currentName = new Name(firstName, lastName);
     Address personalAddress = new Address(addressLine1, city, state, zipcode);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao, activityDao, UserType.Director, organizationName, null,
+        userDao, activityDao, orgDao, Director, organizationName, null,
         currentName, birthDate, email, phone, personalAddress,
         twoFactorOn, username, password, userType);
     Message response = createUserService.executeAndGetResponse();
@@ -714,6 +786,9 @@ public class UserController {
     File fileToUpload = new File(
         username, uploadDate, file.getContent(), FileType.PROFILE_PICTURE,
         IdCategoryType.NONE, file.getFilename(), user.getOrganization(), false, file.getContentType());
+    if (user.getOrganizationId() != null) {
+      fileToUpload.setOrganizationId(user.getOrganizationId());
+    }
     UploadFileService service = new UploadFileService(
         fileDao, activityDao, username, fileToUpload,
         Optional.empty(), Optional.empty(), false, Optional.empty(), Optional.empty());
@@ -727,7 +802,7 @@ public class UserController {
     DownloadFileService serv = new DownloadFileService(
         fileDao, activityDao, username, username,
         Optional.empty(), Optional.empty(), FileType.PROFILE_PICTURE,
-        Optional.empty(), Optional.empty(), formDao);
+        Optional.empty(), Optional.empty(), Optional.empty(), formDao);
     Message mes = serv.executeAndGetResponse();
     JSONObject responseJSON = mes.toJSON();
     if (mes == FileMessage.SUCCESS) {
@@ -847,11 +922,23 @@ public class UserController {
     return null;
   }
 
+  /** Clients may not change birth date via profile update (workers handle corrections). */
+  private Message checkClientCannotChangeBirthDate(UserType sessionUserType, JSONObject updateRequest) {
+    if (!updateRequest.has("birthDate")) {
+      return null;
+    }
+    if (sessionUserType == Client) {
+      return INSUFFICIENT_PRIVILEGE;
+    }
+    return null;
+  }
+
   /**
    * When a staff member updates another user's profile, changing legal name or birth date for a
-   * {@link UserType#Client} is limited to {@link UserType#Worker} (not Admin/Director).
+   * {@link UserType#Client} is limited to {@link UserType#Worker}, {@link UserType#Admin}, and
+   * {@link UserType#Director}.
    */
-  private Message checkWorkerOnlyClientIdentityEdits(
+  private Message checkStaffClientIdentityEdits(
       io.javalin.http.Context ctx, String targetUsername, JSONObject updateRequest) {
     String sessionUsername = ctx.sessionAttribute("username");
     UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
@@ -871,7 +958,9 @@ public class UserController {
     if (targetOpt.get().getUserType() != Client) {
       return null;
     }
-    if (sessionUserType != Worker) {
+    if (sessionUserType != Worker
+        && sessionUserType != Admin
+        && sessionUserType != Director) {
       return INSUFFICIENT_PRIVILEGE;
     }
     return null;
@@ -893,7 +982,14 @@ public class UserController {
     JSONObject updateRequest = new JSONObject(req.toString());
     updateRequest.remove("username");
 
-    Message identityAuth = checkWorkerOnlyClientIdentityEdits(ctx, targetUsername, updateRequest);
+    UserType sessionUserType = ctx.sessionAttribute("privilegeLevel");
+    Message clientBirthAuth = checkClientCannotChangeBirthDate(sessionUserType, updateRequest);
+    if (clientBirthAuth != null) {
+      ctx.result(clientBirthAuth.toJSON().toString());
+      return;
+    }
+
+    Message identityAuth = checkStaffClientIdentityEdits(ctx, targetUsername, updateRequest);
     if (identityAuth != null) {
       ctx.result(identityAuth.toJSON().toString());
       return;
@@ -920,8 +1016,9 @@ public class UserController {
       return;
     }
 
-    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
     JSONObject directivesMap = req.getJSONObject("directives");
+
+    String username = targetUsername != null ? targetUsername : ctx.sessionAttribute("username");
 
     // Re-map format to dummy keys containing directives so UpdateProfileFromFormService accepts it seamlessly
     JSONObject formAnswers = new JSONObject();

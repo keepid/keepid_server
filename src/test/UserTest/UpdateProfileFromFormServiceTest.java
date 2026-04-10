@@ -57,9 +57,9 @@ public class UpdateProfileFromFormServiceTest {
     assertEquals(UserMessage.SUCCESS, response);
     User updated = userDao.get("client1").orElse(null);
     assertNotNull(updated);
-    assertEquals("Jane", updated.getCurrentName().getFirst());
-    assertEquals("Doe", updated.getCurrentName().getLast());
-    assertEquals("01-25-1990", updated.getBirthDate());
+    assertEquals("Old", updated.getCurrentName().getFirst());
+    assertEquals("Name", updated.getCurrentName().getLast());
+    assertEquals("12-14-1997", updated.getBirthDate());
     assertEquals("2155551212", updated.getPhone());
     assertEquals("456 New St", updated.getPersonalAddress().getLine1());
     assertEquals("Philadelphia", updated.getPersonalAddress().getCity());
@@ -94,7 +94,7 @@ public class UpdateProfileFromFormServiceTest {
     assertEquals(UserMessage.SUCCESS, response);
     User updated = userDao.get("client1").orElse(null);
     assertNotNull(updated);
-    assertEquals("Updated", updated.getCurrentName().getFirst());
+    assertEquals("Existing", updated.getCurrentName().getFirst());
     assertEquals("existing@example.com", updated.getEmail());
     assertEquals("Keep City", updated.getPersonalAddress().getCity());
   }
@@ -127,7 +127,7 @@ public class UpdateProfileFromFormServiceTest {
     assertEquals("Smith", updated.getMotherName().getMaiden());
     assertEquals("Robert", updated.getFatherName().getFirst());
     assertEquals("Newtown", updated.getMailAddress().getCity());
-    assertEquals("Legacy", updated.getNameHistory().get(0).getFirst());
+    assertEquals(null, updated.getNameHistory());
   }
 
   @Test
@@ -153,8 +153,8 @@ public class UpdateProfileFromFormServiceTest {
     assertEquals(UserMessage.SUCCESS, response);
     User updated = userDao.get("client1").orElse(null);
     assertNotNull(updated);
-    assertEquals("NewFirst", updated.getCurrentName().getFirst());
-    assertEquals("NewLast", updated.getCurrentName().getLast());
+    assertEquals("Old", updated.getCurrentName().getFirst());
+    assertEquals("Name", updated.getCurrentName().getLast());
     assertEquals("789 Dummy St", updated.getPersonalAddress().getLine1());
   }
 }
