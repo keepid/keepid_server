@@ -34,7 +34,7 @@ import org.json.JSONObject;
 public class FileController {
 
   private static void setFileOrganizationId(
-      File file, io.javalin.http.Context ctx, java.util.Optional<User> targetOrgUser) {
+      File file, io.javalin.http.Context ctx, Optional<User> targetOrgUser) {
     if (targetOrgUser.isPresent() && targetOrgUser.get().getOrganizationId() != null) {
       file.setOrganizationId(targetOrgUser.get().getOrganizationId());
       return;
@@ -109,7 +109,7 @@ public class FileController {
             username = target.getUsername();
             organizationName = target.getOrganization();
             privilegeLevel = target.getUserType();
-            java.util.Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
             if (sessionOid.isPresent() && target.getOrganizationId() != null) {
               orgFlag = sessionOid.get().equals(target.getOrganizationId());
             } else {
@@ -320,7 +320,7 @@ public class FileController {
             username = target.getUsername();
             orgName = target.getOrganization();
             userType = target.getUserType();
-            java.util.Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
             if (sessionOid.isPresent() && target.getOrganizationId() != null) {
               orgFlag = sessionOid.get().equals(target.getOrganizationId());
             } else {
@@ -390,7 +390,7 @@ public class FileController {
             username = target.getUsername();
             orgName = target.getOrganization();
             userType = ctx.sessionAttribute("privilegeLevel");
-            java.util.Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
             if (sessionOid.isPresent() && target.getOrganizationId() != null) {
               orgFlag = sessionOid.get().equals(target.getOrganizationId());
             } else {
@@ -449,7 +449,7 @@ public class FileController {
             User target = maybeTargetUser.get();
             orgName = target.getOrganization();
             userType = target.getUserType();
-            java.util.Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
             if (sessionOid.isPresent() && target.getOrganizationId() != null) {
               orgFlag = sessionOid.get().equals(target.getOrganizationId());
             } else {
@@ -513,7 +513,7 @@ public class FileController {
             username = target.getUsername();
             orgName = target.getOrganization();
             userType = target.getUserType();
-            java.util.Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
+            Optional<ObjectId> sessionOid = SessionOrganizationId.fromContext(ctx);
             if (sessionOid.isPresent() && target.getOrganizationId() != null) {
               orgFlag = sessionOid.get().equals(target.getOrganizationId());
             } else {

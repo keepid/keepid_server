@@ -144,9 +144,9 @@ public class UserController {
       Address clientAddress = new Address(faceToFaceAddress, faceToFaceCity, faceToFaceState, faceToFaceZip);
 
       CreateUserService createUserService = new CreateUserService(
-          userDao, activityDao, orgDao, UserType.Admin, orgName, creatorUsername,
+          userDao, activityDao, orgDao, Admin, orgName, creatorUsername,
           clientName, defaultBirthdate, clientEmail, clientPhoneNumber,
-          clientAddress, false, clientUsername, clientPassword, UserType.Client);
+          clientAddress, false, clientUsername, clientPassword, Client);
       Message response = createUserService.executeAndGetResponse();
       System.out.println(response.toResponseString());
     }
@@ -490,7 +490,7 @@ public class UserController {
 
     String inviteJwt = req.optString("inviteJwt", "").strip();
     if (inviteJwt.isEmpty()) {
-      ctx.result(UserMessage.INVALID_PARAMETER.toJSON().toString());
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
       return;
     }
 
@@ -499,14 +499,14 @@ public class UserController {
       claims = SecurityUtils.decodeJWT(inviteJwt);
     } catch (Exception e) {
       log.warn("Invalid invite JWT", e);
-      ctx.result(UserMessage.INVALID_PARAMETER.toJSON().toString());
+      ctx.result(INVALID_PARAMETER.toJSON().toString());
       return;
     }
 
     String roleStr = claims.get("role", String.class);
-    UserType userType = UserType.userTypeFromString(roleStr == null ? "" : roleStr.strip());
+    UserType userType = userTypeFromString(roleStr == null ? "" : roleStr.strip());
     if (userType == null) {
-      ctx.result(UserMessage.INVALID_PRIVILEGE_TYPE.toJSON().toString());
+      ctx.result(INVALID_PRIVILEGE_TYPE.toJSON().toString());
       return;
     }
 
@@ -517,7 +517,7 @@ public class UserController {
     } else {
       String orgNameClaim = claims.get("organization", String.class);
       if (orgNameClaim == null || orgNameClaim.isBlank()) {
-        ctx.result(UserMessage.INVALID_PARAMETER.toJSON().toString());
+        ctx.result(INVALID_PARAMETER.toJSON().toString());
         return;
       }
       organizationOpt = orgDao.get(orgNameClaim.strip());
@@ -545,7 +545,7 @@ public class UserController {
     Address personalAddress = new Address(addressLine1, city, state, zipcode);
 
     CreateUserService createUserService = new CreateUserService(
-        userDao, activityDao, orgDao, UserType.Director, organizationName, null,
+        userDao, activityDao, orgDao, Director, organizationName, null,
         currentName, birthDate, email, phone, personalAddress,
         twoFactorOn, username, password, userType);
     Message response = createUserService.executeAndGetResponse();

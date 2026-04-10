@@ -163,19 +163,18 @@ public class DownloadFileService implements Service {
           return FileMessage.NO_SUCH_FILE;
         }
       } else if (fileType == FileType.FORM || fileType == FileType.ORG_DOCUMENT) {
+        Optional<InputStream> optionalStream = fileDao.getStream(id);
+        if (sameOrganizationAccess(file) && optionalStream.isPresent()) {
+          String decryptAad =
+              file.getOrganizationId() != null
+                  ? OrganizationCryptoAad.fromOrganizationId(file.getOrganizationId())
+                  : file.getUsername();
+          this.inputStream = encryptionController.get().decryptFile(optionalStream.get(), decryptAad);
+          this.contentType = "application/pdf";
+          recordViewFileActivity(id, filename);
+          return FileMessage.SUCCESS;
+        }
         if (sameOrganizationAccess(file)) {
-          Optional<InputStream> optionalStream = fileDao.getStream(id);
-          if (optionalStream.isPresent()) {
-            String decryptAad =
-                file.getOrganizationId() != null
-                    ? OrganizationCryptoAad.fromOrganizationId(file.getOrganizationId())
-                    : file.getUsername();
-            this.inputStream =
-                encryptionController.get().decryptFile(optionalStream.get(), decryptAad);
-            this.contentType = "application/pdf";
-            recordViewFileActivity(id, filename);
-            return FileMessage.SUCCESS;
-          }
           return FileMessage.NO_SUCH_FILE;
         }
       }

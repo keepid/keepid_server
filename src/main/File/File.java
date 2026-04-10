@@ -87,8 +87,8 @@ public class File {
         && idCategory == file.idCategory
         && uploadedAt.equals(file.uploadedAt)
         && username.equals(file.username)
-        && java.util.Objects.equals(organizationName, file.organizationName)
-        && java.util.Objects.equals(organizationId, file.organizationId)
+        && Objects.equals(organizationName, file.organizationName)
+        && Objects.equals(organizationId, file.organizationId)
         && contentType.equals(file.contentType);
   }
 
