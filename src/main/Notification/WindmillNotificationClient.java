@@ -4,7 +4,9 @@ import okhttp3.*;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -29,10 +31,10 @@ public class WindmillNotificationClient {
     private final String TWILIO_PHONE_NUMBER;
     private final String KEEPID_EMAIL_ADDRESS;
     private final Map<String, String> twilioResource;
-    private final Map<String, String> smtpResource;
+    private final Map<String, String> sendgridResource;
 
     public WindmillNotificationClient() {
-        WINDMILL_URL = requireEnv("WINDMILL_URL");
+        WINDMILL_URL = requireEnv("WINDMILL_URL").replaceAll("^\"|\"$", "").trim();
         WINDMILL_TOKEN = requireEnv("WINDMILL_TOKEN");
         TWILIO_PHONE_NUMBER = requireEnv("TWILIO_PHONE_NUMBER");
         KEEPID_EMAIL_ADDRESS = requireEnv("EMAIL_ADDRESS");
@@ -42,18 +44,15 @@ public class WindmillNotificationClient {
                 "token", requireEnv("AUTH_TOKEN_TWILIO")
         );
 
-        smtpResource = Map.of(
-                "host", requireEnv("EMAIL_HOST"),
-                "port", requireEnv("EMAIL_PORT"),
-                "user", KEEPID_EMAIL_ADDRESS,
-                "password", requireEnv("EMAIL_PASSWORD")
+        sendgridResource = Map.of(
+                "token", requireEnv("SENDGRID_API_KEY")
         );
     }
 
     // constructor for testing
     public WindmillNotificationClient(String windmillUrl, String windmillToken,
                                       String twilioPhoneNumber, String twilioAccountSid, String twilioAuthToken,
-                                      String keepidEmailAddress, String emailHost, String emailPort, String emailPassword) {
+                                      String keepidEmailAddress, String sendgridToken) {
         this.WINDMILL_URL = windmillUrl;
         this.WINDMILL_TOKEN = windmillToken;
         this.TWILIO_PHONE_NUMBER = twilioPhoneNumber;
@@ -64,11 +63,8 @@ public class WindmillNotificationClient {
                 "token", twilioAuthToken
         );
 
-        this.smtpResource = Map.of(
-                "host", emailHost,
-                "password", emailPassword,
-                "port", emailPort,
-                "user", keepidEmailAddress
+        this.sendgridResource = Map.of(
+                "token", sendgridToken
         );
     }
 
@@ -129,30 +125,34 @@ public class WindmillNotificationClient {
         executeRequest(request);
     }
 
-    public void sendEmail(String toEmailAddress, String message, String subjectLine) {
+    public void sendEmail(String toEmailAddress, String subject, String message, Optional<String> html) {
         if (!isValidEmail(toEmailAddress)) {
             log.error("sendEmail failed: invalid to email address provided");
+            return;
+        }
+        if (subject == null || subject.isBlank()) {
+            log.error("sendEmail failed: empty subject provided");
             return;
         }
         if (message == null || message.isBlank()) {
             log.error("sendEmail failed: empty message provided");
             return;
         }
-        if (subjectLine == null || subjectLine.isBlank()) {
-            log.error("sendEmail failed: empty subject line provided");
-            return;
+
+        Map<String, Object>  emailConfig = new HashMap<>();
+        emailConfig.put("sendgrid_auth", sendgridResource);
+        emailConfig.put("from_email", this.KEEPID_EMAIL_ADDRESS);
+        emailConfig.put("to_email", toEmailAddress);
+        emailConfig.put("subject", subject);
+        if (html != null && html.isPresent()) {
+            emailConfig.put("html", html.get());
         }
 
         Map<String, Object> payload = Map.of(
                 "method", "email",
                 "message", message,
-                "email_config", Map.of(
-                        "email_auth", smtpResource,
-                        "to_email_address", toEmailAddress,
-                        "from_email_address", this.KEEPID_EMAIL_ADDRESS,
-                        "subject", subjectLine
-                ),
-                "sms_config", Map.of()
+                "sms_config", Map.of(),
+                "email_config", emailConfig
         );
 
         Request request = new Request.Builder()

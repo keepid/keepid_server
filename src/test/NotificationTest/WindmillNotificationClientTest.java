@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.junit.Test;
 
+import java.util.Optional;
+
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
@@ -15,7 +17,7 @@ public class WindmillNotificationClientTest {
         var testClient = new WindmillNotificationClient(
                 "http://localhost", "test_windmill_token",
                 "test_twilio_phone_number", "test_twilio_account_sid", "test_twilio_auth_token",
-                "fake_email", "fake_host", "fake_port", "fake_password") {
+                "fake_email", "fake_sendgrid_token") {
             @Override
             public void executeRequest(Request request) {
                 // Don't actually send, just verify the request looks right
@@ -32,7 +34,7 @@ public class WindmillNotificationClientTest {
         var testClient = new WindmillNotificationClient(
                 "http://localhost", "test_windmill_token",
                 "test_twilio_phone_number", "test_twilio_account_sid", "test_twilio_auth_token",
-                "fake_email", "fake_host", "fake_port", "fake_password") {
+                "fake_email", "fake_sendgrid_token") {
             @Override
             public void executeRequest(Request request) {
                 // Don't actually send, just verify the request looks right
@@ -41,7 +43,11 @@ public class WindmillNotificationClientTest {
             }
         };
 
-        assertDoesNotThrow(() -> testClient.sendEmail("foo@example.com", "Test", "Test"));
+        assertDoesNotThrow(() -> testClient.sendEmail(
+                "foo@example.com",
+                "Test",
+                "Test",
+                Optional.of("<strong>Test</strong>")));
     }
 
     @Test
