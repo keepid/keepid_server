@@ -211,6 +211,8 @@ public class AppConfig {
     app.post("/login", userController.loginUser);
     app.post("/googleLoginRequest", userController.googleLoginRequestHandler);
     app.get("/googleLoginResponse", userController.googleLoginResponseHandler);
+    app.post("/microsoftLoginRequest", userController.microsoftLoginRequestHandler);
+    app.get("/microsoftLoginResponse", userController.microsoftLoginResponseHandler);
     app.get("/get-session-user", userController.getSessionUser);
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);

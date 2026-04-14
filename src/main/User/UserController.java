@@ -264,6 +264,83 @@ public class UserController {
     ctx.redirect(processGoogleLoginResponseService.getOrigin() + "/login");
   };
 
+  public Handler microsoftLoginRequestHandler = ctx -> {
+    ctx.req.getSession().invalidate();
+    JSONObject req = new JSONObject(ctx.body());
+    String redirectUri = req.optString("redirectUri", null);
+    String originUri = req.optString("originUri", null);
+    log.info("Processing Microsoft login request with redirect URI: {}, origin URI: {}", redirectUri, originUri);
+
+    ProcessMicrosoftLoginRequestService processMicrosoftLoginRequestService =
+        new ProcessMicrosoftLoginRequestService(redirectUri, originUri);
+    Message response = processMicrosoftLoginRequestService.executeAndGetResponse();
+    JSONObject responseJSON = response.toJSON();
+    log.info("Microsoft login request processed with status: {}", response.getErrorName());
+
+    if (response == MicrosoftLoginRequestMessage.REQUEST_SUCCESS) {
+      ctx.sessionAttribute("origin_uri", originUri);
+      ctx.sessionAttribute("redirect_uri", redirectUri);
+      ctx.sessionAttribute("PKCECodeVerifier", processMicrosoftLoginRequestService.getCodeVerifier());
+      ctx.sessionAttribute("state", processMicrosoftLoginRequestService.getCsrfToken());
+      responseJSON.put("codeChallenge", processMicrosoftLoginRequestService.getCodeChallenge());
+      responseJSON.put("state", processMicrosoftLoginRequestService.getCsrfToken());
+    }
+    ctx.result(responseJSON.toString());
+  };
+
+  public Handler microsoftLoginResponseHandler = ctx -> {
+    String authCode = ctx.queryParam("code");
+    String state = ctx.queryParam("state");
+    String ip = ctx.ip();
+    String userAgent = ctx.userAgent();
+    String codeVerifier = ctx.sessionAttribute("PKCECodeVerifier");
+    String originUri = ctx.sessionAttribute("origin_uri");
+    String redirectUri = ctx.sessionAttribute("redirect_uri");
+    String storedCsrfToken = ctx.sessionAttribute("state");
+
+    ProcessMicrosoftLoginResponseService processMicrosoftLoginResponseService =
+        new ProcessMicrosoftLoginResponseService(
+            userDao,
+            activityDao,
+            state,
+            storedCsrfToken,
+            authCode,
+            codeVerifier,
+            originUri,
+            redirectUri,
+            ip,
+            userAgent);
+    Message response = processMicrosoftLoginResponseService.executeAndGetResponse();
+
+    if (response == MicrosoftLoginResponseMessage.AUTH_SUCCESS) {
+      ctx.sessionAttribute("privilegeLevel", processMicrosoftLoginResponseService.getUserRole());
+      ctx.sessionAttribute("orgName", processMicrosoftLoginResponseService.getOrganization());
+      ctx.sessionAttribute("username", processMicrosoftLoginResponseService.getUsername());
+      ctx.sessionAttribute("fullName", processMicrosoftLoginResponseService.getFullName());
+      ctx.sessionAttribute("microsoftLoginError", null);
+      userDao
+          .get(processMicrosoftLoginResponseService.getUsername())
+          .ifPresent(
+              u -> {
+                OrganizationIdResolver.resolveAndPersistIfMissing(u, orgDao, userDao)
+                    .ifPresent(oid -> ctx.sessionAttribute("organizationId", oid.toHexString()));
+              });
+    } else {
+      ctx.sessionAttribute("microsoftLoginError", response.getErrorName());
+      if (response == MicrosoftLoginResponseMessage.USER_NOT_FOUND) {
+        ctx.sessionAttribute("microsoftEmail", processMicrosoftLoginResponseService.getMicrosoftEmail());
+        ctx.sessionAttribute("microsoftFirstName", processMicrosoftLoginResponseService.getMicrosoftFirstName());
+        ctx.sessionAttribute("microsoftLastName", processMicrosoftLoginResponseService.getMicrosoftLastName());
+      }
+    }
+
+    ctx.sessionAttribute("PKCECodeVerifier", null);
+    ctx.sessionAttribute("origin_uri", null);
+    ctx.sessionAttribute("redirect_uri", null);
+    ctx.sessionAttribute("state", null);
+    ctx.redirect(processMicrosoftLoginResponseService.getOrigin() + "/login");
+  };
+
   public Handler getSessionUser = ctx -> {
     JSONObject responseJSON = new JSONObject();
     String org = ctx.sessionAttribute("orgName");
@@ -271,6 +348,7 @@ public class UserController {
     String fullName = ctx.sessionAttribute("fullName");
     UserType role = ctx.sessionAttribute("privilegeLevel");
     String googleLoginError = ctx.sessionAttribute("googleLoginError");
+    String microsoftLoginError = ctx.sessionAttribute("microsoftLoginError");
 
     responseJSON.put("organization", org == null ? "" : org);
     String organizationIdHex = ctx.sessionAttribute("organizationId");
@@ -291,6 +369,21 @@ public class UserController {
         ctx.sessionAttribute("googleEmail", null);
         ctx.sessionAttribute("googleFirstName", null);
         ctx.sessionAttribute("googleLastName", null);
+      }
+    }
+    if (microsoftLoginError != null) {
+      responseJSON.put("microsoftLoginError", microsoftLoginError);
+      ctx.sessionAttribute("microsoftLoginError", null);
+      String microsoftEmail = ctx.sessionAttribute("microsoftEmail");
+      String microsoftFirstName = ctx.sessionAttribute("microsoftFirstName");
+      String microsoftLastName = ctx.sessionAttribute("microsoftLastName");
+      if (microsoftEmail != null) {
+        responseJSON.put("microsoftEmail", microsoftEmail);
+        responseJSON.put("microsoftFirstName", microsoftFirstName != null ? microsoftFirstName : "");
+        responseJSON.put("microsoftLastName", microsoftLastName != null ? microsoftLastName : "");
+        ctx.sessionAttribute("microsoftEmail", null);
+        ctx.sessionAttribute("microsoftFirstName", null);
+        ctx.sessionAttribute("microsoftLastName", null);
       }
     }
     ctx.result(responseJSON.toString());
