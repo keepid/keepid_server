@@ -144,4 +144,134 @@ public class FileControllerIntegrationTests {
 
     TestUtils.logout();
   }
+
+  @Test
+  public void attachPacketPartLazilyCreatesPacketAndPreventsDuplicatesTest() {
+    String orgName = "Packet Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    JSONObject appReq = new JSONObject().put("fileType", "APPLICATION_PDF");
+    HttpResponse<String> appListResp =
+        Unirest.post(TestUtils.getServerUrl() + "/get-files").body(appReq.toString()).asString();
+    JSONArray appDocs = TestUtils.responseStringToJSON(appListResp.getBody()).getJSONArray("documents");
+    String applicationId = appDocs.getJSONObject(0).getString("id");
+
+    JSONObject orgReq = new JSONObject().put("fileType", "ORG_DOCUMENT");
+    HttpResponse<String> orgListResp =
+        Unirest.post(TestUtils.getServerUrl() + "/get-files").body(orgReq.toString()).asString();
+    JSONArray orgDocs = TestUtils.responseStringToJSON(orgListResp.getBody()).getJSONArray("documents");
+    String orgDocId = orgDocs.getJSONObject(0).getString("id");
+
+    JSONObject attachReq =
+        new JSONObject().put("applicationId", applicationId).put("fileId", orgDocId);
+    HttpResponse<String> attachResp =
+        Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part").body(attachReq.toString()).asString();
+    JSONObject attachJson = TestUtils.responseStringToJSON(attachResp.getBody());
+    assertThat(attachJson.getString("status")).isEqualTo("SUCCESS");
+    JSONObject packet = attachJson.getJSONObject("packet");
+    assertThat(packet.getJSONArray("parts").length()).isEqualTo(2);
+    assertThat(attachJson.getBoolean("alreadyAttached")).isFalse();
+
+    HttpResponse<String> attachAgainResp =
+        Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part").body(attachReq.toString()).asString();
+    JSONObject attachAgainJson = TestUtils.responseStringToJSON(attachAgainResp.getBody());
+    assertThat(attachAgainJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(attachAgainJson.getBoolean("alreadyAttached")).isTrue();
+    assertThat(attachAgainJson.getJSONObject("packet").getJSONArray("parts").length()).isEqualTo(2);
+
+    JSONObject packetFetchReq = new JSONObject().put("applicationId", applicationId);
+    HttpResponse<String> packetFetchResp =
+        Unirest.post(TestUtils.getServerUrl() + "/get-packet-for-application")
+            .body(packetFetchReq.toString())
+            .asString();
+    JSONObject packetFetchJson = TestUtils.responseStringToJSON(packetFetchResp.getBody());
+    assertThat(packetFetchJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(packetFetchJson.getJSONObject("packet").getJSONArray("parts").length()).isEqualTo(2);
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void detachAndReorderPacketPartsUpdatePersistedPacketTest() throws Exception {
+    String orgName = "Packet Org Two";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetAdminTwo";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+    uploadOrgDocumentPDF("CIS_401_Final_Progress_Report_two.pdf");
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    JSONArray orgDocuments =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents");
+    String firstOrgDocId = orgDocuments.getJSONObject(0).getString("id");
+    String secondOrgDocId = orgDocuments.getJSONObject(1).getString("id");
+
+    Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+        .body(new JSONObject().put("applicationId", applicationId).put("fileId", firstOrgDocId).toString())
+        .asString();
+    Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+        .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondOrgDocId).toString())
+        .asString();
+
+    JSONArray reordered = new JSONArray().put(secondOrgDocId).put(firstOrgDocId);
+    HttpResponse<String> reorderResp =
+        Unirest.post(TestUtils.getServerUrl() + "/reorder-packet-parts")
+            .body(new JSONObject().put("applicationId", applicationId).put("orderedFileIds", reordered).toString())
+            .asString();
+    JSONObject reorderJson = TestUtils.responseStringToJSON(reorderResp.getBody());
+    assertThat(reorderJson.getString("status")).isEqualTo("SUCCESS");
+    JSONArray reorderedParts = reorderJson.getJSONObject("packet").getJSONArray("parts");
+    assertThat(reorderedParts.getJSONObject(1).getString("fileId")).isEqualTo(secondOrgDocId);
+
+    HttpResponse<String> detachResp =
+        Unirest.post(TestUtils.getServerUrl() + "/detach-packet-part")
+            .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondOrgDocId).toString())
+            .asString();
+    JSONObject detachJson = TestUtils.responseStringToJSON(detachResp.getBody());
+    assertThat(detachJson.getString("status")).isEqualTo("SUCCESS");
+    JSONArray detachedParts = detachJson.getJSONObject("packet").getJSONArray("parts");
+    assertThat(detachedParts.length()).isEqualTo(2);
+    assertThat(detachedParts.getJSONObject(1).getString("fileId")).isEqualTo(firstOrgDocId);
+
+    TestUtils.logout();
+  }
 }

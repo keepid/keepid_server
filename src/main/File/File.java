@@ -22,6 +22,7 @@ public class File {
   @Getter @Setter private String username;
   @Getter @Setter private String organizationName;
   @Getter @Setter private ObjectId organizationId;
+  @Getter @Setter private ObjectId packetId;
 
   @Getter
   @Setter
@@ -89,6 +90,7 @@ public class File {
         && username.equals(file.username)
         && Objects.equals(organizationName, file.organizationName)
         && Objects.equals(organizationId, file.organizationId)
+        && Objects.equals(packetId, file.packetId)
         && contentType.equals(file.contentType);
   }
 
@@ -104,6 +106,7 @@ public class File {
         username,
         organizationName,
         organizationId,
+        packetId,
         isAnnotated,
         contentType);
   }
@@ -132,6 +135,8 @@ public class File {
         + '\''
         + ", isAnnotated="
         + isAnnotated
+        + ", packetId="
+        + packetId
         + ", contentType='"
         + contentType
         + '\''

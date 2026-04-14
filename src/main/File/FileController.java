@@ -6,9 +6,13 @@ import Config.Message;
 import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.Packet.PacketDao;
 import Database.User.UserDao;
 import File.Jobs.GetWeeklyUploadedIdsJob;
 import File.Services.*;
+import Packet.Packet;
+import Packet.PacketMessage;
+import Packet.PacketPart;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
@@ -22,9 +26,14 @@ import io.javalin.http.UploadedFile;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.bson.types.ObjectId;
@@ -46,6 +55,7 @@ public class FileController {
   private FileDao fileDao;
   private ActivityDao activityDao;
   private FormDao formDao;
+  private PacketDao packetDao;
   private EncryptionController encryptionController;
 
   public FileController(
@@ -54,11 +64,13 @@ public class FileController {
       FileDao fileDao,
       ActivityDao activityDao,
       FormDao formDao,
+      PacketDao packetDao,
       EncryptionController encryptionController) {
     this.userDao = userDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
+    this.packetDao = packetDao;
     this.encryptionController = encryptionController;
   }
 
@@ -549,6 +561,287 @@ public class FileController {
           }
         }
         ctx.result(responseJSON.toString());
+      };
+
+  private Optional<File> getApplicationFileForPacket(
+      JSONObject req, String orgName, Optional<ObjectId> sessionOrganizationId) {
+    if (!req.has("applicationId")) {
+      return Optional.empty();
+    }
+    String applicationId = req.getString("applicationId");
+    if (!ObjectId.isValid(applicationId)) {
+      return Optional.empty();
+    }
+
+    Optional<File> applicationFileOpt = fileDao.get(new ObjectId(applicationId));
+    if (applicationFileOpt.isEmpty()) {
+      return Optional.empty();
+    }
+    File applicationFile = applicationFileOpt.get();
+    if (applicationFile.getFileType() != FileType.APPLICATION_PDF) {
+      return Optional.empty();
+    }
+    if (sessionOrganizationId.isPresent() && applicationFile.getOrganizationId() != null) {
+      if (!sessionOrganizationId.get().equals(applicationFile.getOrganizationId())) {
+        return Optional.empty();
+      }
+      return Optional.of(applicationFile);
+    }
+    if (!Objects.equals(orgName, applicationFile.getOrganizationName())) {
+      return Optional.empty();
+    }
+    return Optional.of(applicationFile);
+  }
+
+  private Packet buildLazyPacket(File applicationFile, String username, Optional<ObjectId> sessionOrganizationId) {
+    Packet packet =
+        new Packet(
+            sessionOrganizationId.orElse(applicationFile.getOrganizationId()),
+            applicationFile.getId(),
+            username);
+    List<PacketPart> parts = new ArrayList<>();
+    parts.add(new PacketPart(applicationFile.getId(), "APPLICATION_BASE", 0, true));
+    packet.setParts(parts);
+    return packet;
+  }
+
+  private Packet sortAndNormalizeParts(Packet packet) {
+    List<PacketPart> sourceParts = packet.getParts() == null ? new ArrayList<>() : packet.getParts();
+    List<PacketPart> sorted = new ArrayList<>(sourceParts);
+    sorted.sort(Comparator.comparingInt(PacketPart::getOrder));
+    for (int i = 0; i < sorted.size(); i += 1) {
+      sorted.get(i).setOrder(i);
+    }
+    packet.setParts(sorted);
+    packet.setUpdatedAt(new Date());
+    return packet;
+  }
+
+  public Handler getPacketForApplication =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        String orgName = ctx.sessionAttribute("orgName");
+        Optional<ObjectId> sessionOrganizationId = SessionOrganizationId.fromContext(ctx);
+        Optional<File> applicationFileOpt =
+            getApplicationFileForPacket(req, orgName, sessionOrganizationId);
+        if (applicationFileOpt.isEmpty()) {
+          ctx.result(PacketMessage.NO_SUCH_FILE.toResponseString());
+          return;
+        }
+
+        File applicationFile = applicationFileOpt.get();
+        if (applicationFile.getPacketId() == null) {
+          JSONObject response = PacketMessage.SUCCESS.toJSON();
+          response.put("packet", JSONObject.NULL);
+          ctx.result(response.toString());
+          return;
+        }
+
+        Optional<Packet> packetOpt = packetDao.get(applicationFile.getPacketId());
+        if (packetOpt.isEmpty()) {
+          JSONObject response = PacketMessage.SUCCESS.toJSON();
+          response.put("packet", JSONObject.NULL);
+          ctx.result(response.toString());
+          return;
+        }
+
+        JSONObject response = PacketMessage.SUCCESS.toJSON();
+        response.put("packet", sortAndNormalizeParts(packetOpt.get()).toJson());
+        ctx.result(response.toString());
+      };
+
+  public Handler attachPacketPart =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        if (!req.has("applicationId") || !req.has("fileId")) {
+          ctx.result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+        if (!ObjectId.isValid(req.getString("fileId"))) {
+          ctx.result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        String username = ctx.sessionAttribute("username");
+        String orgName = ctx.sessionAttribute("orgName");
+        Optional<ObjectId> sessionOrganizationId = SessionOrganizationId.fromContext(ctx);
+        Optional<File> applicationFileOpt =
+            getApplicationFileForPacket(req, orgName, sessionOrganizationId);
+        if (applicationFileOpt.isEmpty()) {
+          ctx.result(PacketMessage.NO_SUCH_FILE.toResponseString());
+          return;
+        }
+
+        ObjectId fileIdToAttach = new ObjectId(req.getString("fileId"));
+        Optional<File> partFileOpt = fileDao.get(fileIdToAttach);
+        if (partFileOpt.isEmpty() || partFileOpt.get().getFileType() != FileType.ORG_DOCUMENT) {
+          ctx.result(PacketMessage.INVALID_FILE_TYPE.toResponseString());
+          return;
+        }
+        File partFile = partFileOpt.get();
+        if (sessionOrganizationId.isPresent() && partFile.getOrganizationId() != null) {
+          if (!sessionOrganizationId.get().equals(partFile.getOrganizationId())) {
+            ctx.result(PacketMessage.INSUFFICIENT_PRIVILEGE.toResponseString());
+            return;
+          }
+        } else if (!Objects.equals(orgName, partFile.getOrganizationName())) {
+          ctx.result(PacketMessage.INSUFFICIENT_PRIVILEGE.toResponseString());
+          return;
+        }
+
+        File applicationFile = applicationFileOpt.get();
+        Packet packet;
+        if (applicationFile.getPacketId() == null) {
+          packet = buildLazyPacket(applicationFile, username, sessionOrganizationId);
+        } else {
+          Optional<Packet> existingPacketOpt = packetDao.get(applicationFile.getPacketId());
+          packet = existingPacketOpt.orElseGet(() -> buildLazyPacket(applicationFile, username, sessionOrganizationId));
+        }
+
+        boolean alreadyAttached =
+            packet.getParts().stream().anyMatch(part -> part.getFileId().equals(fileIdToAttach));
+        if (!alreadyAttached) {
+          int nextOrder = packet.getParts().stream().mapToInt(PacketPart::getOrder).max().orElse(-1) + 1;
+          packet.getParts().add(new PacketPart(fileIdToAttach, "ORG_ATTACHMENT", nextOrder, true));
+        }
+
+        packet = sortAndNormalizeParts(packet);
+        if (applicationFile.getPacketId() == null || packetDao.get(packet.getId()).isEmpty()) {
+          packetDao.save(packet);
+        } else {
+          packetDao.update(packet);
+        }
+
+        applicationFile.setPacketId(packet.getId());
+        fileDao.update(applicationFile);
+
+        JSONObject response = PacketMessage.SUCCESS.toJSON();
+        response.put("packet", packet.toJson());
+        response.put("alreadyAttached", alreadyAttached);
+        ctx.result(response.toString());
+      };
+
+  public Handler detachPacketPart =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        if (!req.has("applicationId") || !req.has("fileId")) {
+          ctx.result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+        String orgName = ctx.sessionAttribute("orgName");
+        Optional<ObjectId> sessionOrganizationId = SessionOrganizationId.fromContext(ctx);
+        Optional<File> applicationFileOpt =
+            getApplicationFileForPacket(req, orgName, sessionOrganizationId);
+        if (applicationFileOpt.isEmpty()) {
+          ctx.result(PacketMessage.NO_SUCH_FILE.toResponseString());
+          return;
+        }
+        File applicationFile = applicationFileOpt.get();
+        if (applicationFile.getPacketId() == null) {
+          JSONObject response = PacketMessage.SUCCESS.toJSON();
+          response.put("packet", JSONObject.NULL);
+          ctx.result(response.toString());
+          return;
+        }
+
+        Optional<Packet> packetOpt = packetDao.get(applicationFile.getPacketId());
+        if (packetOpt.isEmpty()) {
+          JSONObject response = PacketMessage.SUCCESS.toJSON();
+          response.put("packet", JSONObject.NULL);
+          ctx.result(response.toString());
+          return;
+        }
+
+        Packet packet = packetOpt.get();
+        String fileIdToDetach = req.getString("fileId");
+        packet
+            .getParts()
+            .removeIf(
+                part ->
+                    part.getFileId().toString().equals(fileIdToDetach)
+                        && !"APPLICATION_BASE".equals(part.getPartType()));
+
+        packet = sortAndNormalizeParts(packet);
+        packetDao.update(packet);
+        JSONObject response = PacketMessage.SUCCESS.toJSON();
+        response.put("packet", packet.toJson());
+        ctx.result(response.toString());
+      };
+
+  public Handler reorderPacketParts =
+      ctx -> {
+        JSONObject req = new JSONObject(ctx.body());
+        if (!req.has("applicationId") || !req.has("orderedFileIds")) {
+          ctx.result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        String orgName = ctx.sessionAttribute("orgName");
+        Optional<ObjectId> sessionOrganizationId = SessionOrganizationId.fromContext(ctx);
+        Optional<File> applicationFileOpt =
+            getApplicationFileForPacket(req, orgName, sessionOrganizationId);
+        if (applicationFileOpt.isEmpty()) {
+          ctx.result(PacketMessage.NO_SUCH_FILE.toResponseString());
+          return;
+        }
+
+        File applicationFile = applicationFileOpt.get();
+        if (applicationFile.getPacketId() == null) {
+          ctx.result(PacketMessage.NO_SUCH_PACKET.toResponseString());
+          return;
+        }
+
+        Optional<Packet> packetOpt = packetDao.get(applicationFile.getPacketId());
+        if (packetOpt.isEmpty()) {
+          ctx.result(PacketMessage.NO_SUCH_PACKET.toResponseString());
+          return;
+        }
+
+        Packet packet = packetOpt.get();
+        org.json.JSONArray orderedFileIds = req.getJSONArray("orderedFileIds");
+        List<PacketPart> parts = new ArrayList<>(packet.getParts());
+        List<PacketPart> baseParts = new ArrayList<>();
+        List<PacketPart> attachmentParts = new ArrayList<>();
+        for (PacketPart part : parts) {
+          if ("APPLICATION_BASE".equals(part.getPartType())) {
+            baseParts.add(part);
+          } else {
+            attachmentParts.add(part);
+          }
+        }
+
+        Set<String> requested = new HashSet<>();
+        for (int i = 0; i < orderedFileIds.length(); i += 1) {
+          requested.add(orderedFileIds.getString(i));
+        }
+        Set<String> existing =
+            attachmentParts.stream().map(part -> part.getFileId().toString()).collect(java.util.stream.Collectors.toSet());
+        if (!requested.equals(existing)) {
+          ctx.result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        List<PacketPart> reordered = new ArrayList<>();
+        reordered.addAll(baseParts);
+        int order = baseParts.size();
+        for (int i = 0; i < orderedFileIds.length(); i += 1) {
+          String fileId = orderedFileIds.getString(i);
+          for (PacketPart part : attachmentParts) {
+            if (part.getFileId().toString().equals(fileId)) {
+              part.setOrder(order);
+              reordered.add(part);
+              order += 1;
+              break;
+            }
+          }
+        }
+        packet.setParts(reordered);
+        packet = sortAndNormalizeParts(packet);
+        packetDao.update(packet);
+
+        JSONObject response = PacketMessage.SUCCESS.toJSON();
+        response.put("packet", packet.toJson());
+        ctx.result(response.toString());
       };
 
   /*

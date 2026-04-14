@@ -150,6 +150,9 @@ public class GetFilesInformationService implements Service {
           fileMetadata.put("annotated", file_out.isAnnotated());
         } else if (fileType == FileType.APPLICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());
+          if (file_out.getPacketId() != null) {
+            fileMetadata.put("packetId", file_out.getPacketId().toString());
+          }
         } else if (fileType == FileType.ORG_DOCUMENT) {
           fileMetadata.put("filename", file_out.getFilename());
         } else if (fileType == FileType.IDENTIFICATION_PDF) {

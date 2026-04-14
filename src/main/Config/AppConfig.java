@@ -19,6 +19,8 @@ import Database.Notification.NotificationDao;
 import Database.Notification.NotificationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
+import Database.Packet.PacketDao;
+import Database.Packet.PacketDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -72,6 +74,7 @@ public class AppConfig {
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
+    PacketDao packetDao = PacketDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
     NotificationDao notificationDao = NotificationDaoFactory.create(deploymentLevel);
@@ -103,7 +106,9 @@ public class AppConfig {
     FormController formController =
         new FormController(
             formDao, fileDao, userDao, encryptionController, registryDao, interactiveFormConfigDao);
-    FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
+    FileController fileController =
+        new FileController(
+            db, userDao, fileDao, activityDao, formDao, packetDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
@@ -148,6 +153,10 @@ public class AppConfig {
     app.post("/delete-file/", fileController.fileDelete);
     app.post("/rename-file", fileController.fileRename);
     app.post("/get-files", fileController.getFiles);
+    app.post("/get-packet-for-application", fileController.getPacketForApplication);
+    app.post("/attach-packet-part", fileController.attachPacketPart);
+    app.post("/detach-packet-part", fileController.detachPacketPart);
+    app.post("/reorder-packet-parts", fileController.reorderPacketParts);
     /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     // app.post("/fill-form", fileController.fillPDFForm);
 

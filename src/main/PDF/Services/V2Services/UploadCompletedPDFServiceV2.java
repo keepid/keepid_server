@@ -53,6 +53,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
   private Form filledForm;
   private boolean replacingExistingApplication;
   private ObjectId existingApplicationObjectId;
+  private ObjectId existingPacketObjectId;
 
   public UploadCompletedPDFServiceV2(
       FileDao fileDao,
@@ -74,6 +75,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
     this.fileDaoRef = fileDao;
     this.replacingExistingApplication = false;
     this.existingApplicationObjectId = null;
+    this.existingPacketObjectId = null;
   }
 
   @Override
@@ -109,6 +111,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
         }
         replacingExistingApplication = true;
         existingApplicationObjectId = existingFile.getId();
+        existingPacketObjectId = existingFile.getPacketId();
       }
     }
 
@@ -219,6 +222,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
 
       if (replacingExistingApplication && existingApplicationObjectId != null) {
         this.filledFile.setId(existingApplicationObjectId);
+        this.filledFile.setPacketId(existingPacketObjectId);
         this.filledForm.setFileId(existingApplicationObjectId);
 
         Optional<Form> existingForm = formDao.getByFileId(existingApplicationObjectId);
