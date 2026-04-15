@@ -82,6 +82,38 @@ public class UserControllerIntegrationTest {
         .withUserType(UserType.Director)
         .buildAndPersist(userDao);
 
+    EntityFactory.createUser()
+        .withFirstName("Org")
+        .withLastName("Admin")
+        .withBirthDate("05-05-1985")
+        .withEmail("orgadmin@broadstreetministry.org")
+        .withPhoneNumber("2157771111")
+        .withOrgName("Broad Street Ministry")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername("orgAdminBSM")
+        .withPasswordToHash("orgAdminBSM")
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    EntityFactory.createUser()
+        .withFirstName("Second")
+        .withLastName("Admin")
+        .withBirthDate("07-07-1987")
+        .withEmail("secondadmin@broadstreetministry.org")
+        .withPhoneNumber("2157772222")
+        .withOrgName("Broad Street Ministry")
+        .withAddress("311 Broad Street")
+        .withCity("Philadelphia")
+        .withState("PA")
+        .withZipcode("19104")
+        .withUsername("secondAdminBSM")
+        .withPasswordToHash("secondAdminBSM")
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
     // Workers and clients for getClients/getMembers tests
     EntityFactory.createUser()
         .withFirstName("Worker")
@@ -776,5 +808,83 @@ public class UserControllerIntegrationTest {
     assert (actualResponseJSON.has("numPeople"));
     assertThat(actualResponseJSON.getInt("numPeople")).isGreaterThan(0);
     assert (actualResponseJSON.has("people"));
+  }
+
+  @Test
+  public void updateOrganizationInfoDirectorCannotSetDesignatedDirector() {
+    TestUtils.login("adminBSM", "adminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("orgName", "Broad Street Ministry");
+    body.put("designatedDirectorUsername", "secondAdminBSM");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/update-organization-info")
+            .body(body.toString())
+            .asString();
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+  }
+
+  @Test
+  public void updateOrganizationInfoAdminCanSetDesignatedDirectorAdmin() {
+    TestUtils.login("orgAdminBSM", "orgAdminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("orgName", "Broad Street Ministry");
+    body.put("designatedDirectorUsername", "secondAdminBSM");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/update-organization-info")
+            .body(body.toString())
+            .asString();
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("SUCCESS");
+
+    assertThat(orgDao.get("Broad Street Ministry").orElseThrow().getDesignatedDirectorUsername())
+        .isEqualTo("secondAdminBSM");
+  }
+
+  @Test
+  public void updateOrganizationInfoRejectsNonAdminDesignatedDirector() {
+    TestUtils.login("orgAdminBSM", "orgAdminBSM");
+
+    JSONObject body = new JSONObject();
+    body.put("orgName", "Broad Street Ministry");
+    body.put("designatedDirectorUsername", "workertffBSM");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/update-organization-info")
+            .body(body.toString())
+            .asString();
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("INVALID_PARAMETER");
+  }
+
+  @Test
+  public void getOrganizationInfoIncludesDesignatedDirectorUsername() {
+    orgDao
+        .get("Broad Street Ministry")
+        .ifPresent(
+            organization -> {
+              organization.setDesignatedDirectorUsername("secondAdminBSM");
+              orgDao.update(organization);
+            });
+
+    TestUtils.login("orgAdminBSM", "orgAdminBSM");
+    JSONObject body = new JSONObject();
+    body.put("orgName", "Broad Street Ministry");
+
+    HttpResponse<String> actualResponse =
+        Unirest.post(TestUtils.getServerUrl() + "/get-organization-info")
+            .body(body.toString())
+            .asString();
+    JSONObject actualResponseJSON = TestUtils.responseStringToJSON(actualResponse.getBody());
+
+    assertThat(actualResponseJSON.getString("status")).isEqualTo("SUCCESS");
+    assertThat(actualResponseJSON.getString("designatedDirectorUsername"))
+        .isEqualTo("secondAdminBSM");
   }
 }

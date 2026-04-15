@@ -726,6 +726,9 @@ public class UserController {
     res.put("orgAddress", orgAddr != null ? orgAddr.serialize() : JSONObject.NULL);
     res.put("phone", org.getOrgPhoneNumber() != null ? org.getOrgPhoneNumber() : "");
     res.put("email", org.getOrgEmail() != null ? org.getOrgEmail() : "");
+    res.put(
+        "designatedDirectorUsername",
+        org.getDesignatedDirectorUsername() != null ? org.getDesignatedDirectorUsername() : JSONObject.NULL);
     ctx.result(res.toString());
   };
 
@@ -752,7 +755,7 @@ public class UserController {
       return;
     }
 
-    if (privilegeLevel != UserType.Admin && privilegeLevel != UserType.Director) {
+    if (privilegeLevel != UserType.Admin) {
       ctx.result(INSUFFICIENT_PRIVILEGE.toJSON().toString());
       return;
     }
@@ -788,6 +791,30 @@ public class UserController {
 
     if (req.has("email")) {
       org.setOrgEmail(req.optString("email", ""));
+    }
+
+    if (req.has("designatedDirectorUsername")) {
+      if (req.isNull("designatedDirectorUsername")) {
+        org.setDesignatedDirectorUsername(null);
+      } else {
+        String designatedDirectorUsername = req.optString("designatedDirectorUsername", "").strip();
+        if (designatedDirectorUsername.isEmpty()) {
+          org.setDesignatedDirectorUsername(null);
+        } else {
+          Optional<User> designatedDirectorOpt = userDao.get(designatedDirectorUsername);
+          if (designatedDirectorOpt.isEmpty()) {
+            ctx.result(INVALID_PARAMETER.toJSON().toString());
+            return;
+          }
+          User designatedDirector = designatedDirectorOpt.get();
+          if (!requestedOrgName.equals(designatedDirector.getOrganization())
+              || designatedDirector.getUserType() != UserType.Admin) {
+            ctx.result(INVALID_PARAMETER.toJSON().toString());
+            return;
+          }
+          org.setDesignatedDirectorUsername(designatedDirectorUsername);
+        }
+      }
     }
 
     if (req.has("newName") && !req.getString("newName").isBlank()) {

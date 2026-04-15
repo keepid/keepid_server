@@ -47,9 +47,11 @@ public class GetQuestionsPDFServiceV2 implements Service {
   private JSONObject clientProfile;
   private JSONObject workerProfile;
   private JSONObject orgProfile;
+  private JSONObject directorProfile;
   private Map<String, String> clientFlattenedFieldMap;
   private Map<String, String> workerFlattenedFieldMap;
   private Map<String, String> orgFlattenedFieldMap;
+  private Map<String, String> directorFlattenedFieldMap;
 
   /** Alias map: common alternative field names -> canonical flattened map keys. */
   private static final Map<String, String> FIELD_ALIASES = new HashMap<>();
@@ -138,11 +140,26 @@ public class GetQuestionsPDFServiceV2 implements Service {
 
     this.orgProfile = new JSONObject();
     this.orgFlattenedFieldMap = new HashMap<>();
+    this.directorProfile = new JSONObject();
+    this.directorFlattenedFieldMap = new HashMap<>();
     if (orgDao != null && organizationName != null && !organizationName.isBlank()) {
       Optional<Organization> orgOpt = orgDao.get(organizationName);
       if (orgOpt.isPresent()) {
-        this.orgProfile = buildCanonicalOrgProfile(orgOpt.get());
+        Organization organization = orgOpt.get();
+        this.orgProfile = buildCanonicalOrgProfile(organization);
         flattenJSON(this.orgProfile, "", this.orgFlattenedFieldMap);
+        String designatedDirectorUsername = organization.getDesignatedDirectorUsername();
+        if (designatedDirectorUsername != null && !designatedDirectorUsername.isBlank()) {
+          GetUserInfoService designatedDirectorUserInfoService =
+              new GetUserInfoService(userDao, designatedDirectorUsername);
+          Message designatedDirectorResponse =
+              designatedDirectorUserInfoService.executeAndGetResponse();
+          if (designatedDirectorResponse == UserMessage.SUCCESS) {
+            this.directorProfile = cloneJson(designatedDirectorUserInfoService.getUserFields());
+            this.directorFlattenedFieldMap =
+                designatedDirectorUserInfoService.getFlattenedFieldMap();
+          }
+        }
       }
     }
 
@@ -304,6 +321,9 @@ public class GetQuestionsPDFServiceV2 implements Service {
     if (normalized.startsWith("client.")) normalized = normalized.substring("client.".length());
     else if (normalized.startsWith("worker.")) normalized = normalized.substring("worker.".length());
     else if (normalized.startsWith("org.")) normalized = normalized.substring("org.".length());
+    else if (normalized.startsWith("director.")) {
+      normalized = normalized.substring("director.".length());
+    }
     return normalized;
   }
 
@@ -339,6 +359,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
         return getBirthPart(Part.YEAR, sourceMap);
       case "birthMonth":
         return getBirthPart(Part.MONTH, sourceMap);
+      case "dobMonthNumber":
+        return getBirthPart(Part.MONTH, sourceMap);
       case "birthDay":
         return getBirthPart(Part.DAY, sourceMap);
       case "primaryPhoneAreaCode":
@@ -347,6 +369,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
         return getPrimaryPhonePart(Part.PREFIX, sourceMap);
       case "primaryPhoneLineNumber":
         return getPrimaryPhonePart(Part.LINE_NUMBER, sourceMap);
+      case "phoneLast7":
+        return getPhoneLast7(sourceMap);
       case "fullName":
         return buildFullName(sourceMap);
       case "date":
@@ -474,6 +498,15 @@ public class GetQuestionsPDFServiceV2 implements Service {
     }
   }
 
+  private String getPhoneLast7(Map<String, String> sourceMap) {
+    String phone = getPrimaryPhoneNumber(sourceMap);
+    if (phone == null) return null;
+    String digitsOnly = phone.replaceAll("\\D", "");
+    if (digitsOnly.length() < 7) return null;
+    String lastSeven = digitsOnly.substring(digitsOnly.length() - 7);
+    return lastSeven.substring(0, 3) + "-" + lastSeven.substring(3);
+  }
+
   private String getPrimaryPhoneNumber(Map<String, String> sourceMap) {
     if (sourceMap == null) return null;
     // Preferred lookup: find phoneBook.N.label == "primary", then get phoneBook.N.phoneNumber
@@ -534,7 +567,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
   private enum DirectiveScope {
     CLIENT,
     WORKER,
-    ORG
+    ORG,
+    DIRECTOR
   }
 
   private DirectiveScope getDirectiveScope(String directive) {
@@ -542,6 +576,7 @@ public class GetQuestionsPDFServiceV2 implements Service {
     String trimmed = directive.trim();
     if (trimmed.startsWith("worker.")) return DirectiveScope.WORKER;
     if (trimmed.startsWith("org.")) return DirectiveScope.ORG;
+    if (trimmed.startsWith("director.")) return DirectiveScope.DIRECTOR;
     return DirectiveScope.CLIENT;
   }
 
@@ -551,6 +586,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
         return this.workerFlattenedFieldMap;
       case ORG:
         return this.orgFlattenedFieldMap;
+      case DIRECTOR:
+        return this.directorFlattenedFieldMap;
       case CLIENT:
       default:
         return this.clientFlattenedFieldMap;
@@ -657,7 +694,8 @@ public class GetQuestionsPDFServiceV2 implements Service {
         new JSONObject()
             .put("client", clientProfile != null ? cloneJson(clientProfile) : new JSONObject())
             .put("worker", workerProfile != null ? cloneJson(workerProfile) : new JSONObject())
-            .put("org", orgProfile != null ? cloneJson(orgProfile) : new JSONObject()));
+            .put("org", orgProfile != null ? cloneJson(orgProfile) : new JSONObject())
+            .put("director", directorProfile != null ? cloneJson(directorProfile) : new JSONObject()));
 
     return PdfMessage.SUCCESS;
   }

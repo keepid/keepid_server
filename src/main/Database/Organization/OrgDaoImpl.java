@@ -69,6 +69,13 @@ public class OrgDaoImpl implements OrgDao {
 
   @Override
   public void update(Organization organization) {
+    if (organization.getId() != null) {
+      var updateResult = orgCollection.replaceOne(eq(ORG_ID_KEY, organization.getId()), organization);
+      if (updateResult.getMatchedCount() > 0) {
+        return;
+      }
+    }
+    // Fallback for legacy/edge cases where id is missing.
     orgCollection.replaceOne(eq(ORG_NAME_KEY, organization.getOrgName()), organization);
 
     //    Map<String, Object> keyValueMap = organization.toMap();
