@@ -23,6 +23,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.bson.types.ObjectId;
 
 @Slf4j
 public class PdfControllerV2 {
@@ -198,7 +199,18 @@ public class PdfControllerV2 {
         UploadCompletedPDFServiceV2 uploadCompletedPDFServiceV2 =
             new UploadCompletedPDFServiceV2(
                 fileDao, formDao, activityDao, userParams, fileParams, encryptionController);
-        ctx.result(uploadCompletedPDFServiceV2.executeAndGetResponse().toResponseString());
+        Message response = uploadCompletedPDFServiceV2.executeAndGetResponse();
+        if (response != PdfMessage.SUCCESS) {
+          ctx.result(response.toResponseString());
+          return;
+        }
+        JSONObject responseJSON = response.toJSON();
+        String persistedApplicationId = uploadCompletedPDFServiceV2.getPersistedApplicationId();
+        if (persistedApplicationId != null) {
+          responseJSON.put("applicationId", persistedApplicationId);
+          responseJSON.put("fileId", persistedApplicationId);
+        }
+        ctx.result(responseJSON.toString());
       };
 
   public Handler getQuestions =
@@ -251,6 +263,7 @@ public class PdfControllerV2 {
     private String username;
     private String actorUsername;
     private String organizationName;
+    private ObjectId organizationId;
     private UserType privilegeLevel;
 
     public UserParams() {}
@@ -299,6 +312,8 @@ public class PdfControllerV2 {
         String clientUsernameParameter = Objects.requireNonNull(ctx.formParam("clientUsername"));
         this.username =
             clientUsernameParameter.equals("") ? sessionUsername : clientUsernameParameter;
+      String organizationIdHex = ctx.sessionAttribute("organizationId");
+      this.organizationId = ObjectId.isValid(organizationIdHex) ? new ObjectId(organizationIdHex) : null;
       } catch (Exception e) {
         return PdfMessage.INVALID_PARAMETER;
       }
@@ -311,6 +326,8 @@ public class PdfControllerV2 {
       this.username = ctx.sessionAttribute("username");
       this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
+      String organizationIdHex = ctx.sessionAttribute("organizationId");
+      this.organizationId = ObjectId.isValid(organizationIdHex) ? new ObjectId(organizationIdHex) : null;
       this.privilegeLevel = UserType.Developer;
     }
 
@@ -380,6 +397,7 @@ public class PdfControllerV2 {
       this.username = targetUser.getUsername();
       this.actorUsername = ctx.sessionAttribute("username");
       this.organizationName = targetUserOrg;
+      this.organizationId = targetUser.getOrganizationId();
       this.privilegeLevel = targetUser.getUserType();
       return null;
     }
@@ -388,6 +406,8 @@ public class PdfControllerV2 {
       this.username = ctx.sessionAttribute("username");
       this.actorUsername = this.username;
       this.organizationName = ctx.sessionAttribute("orgName");
+      String organizationIdHex = ctx.sessionAttribute("organizationId");
+      this.organizationId = ObjectId.isValid(organizationIdHex) ? new ObjectId(organizationIdHex) : null;
       this.privilegeLevel = ctx.sessionAttribute("privilegeLevel");
       return null;
     }
@@ -405,12 +425,21 @@ public class PdfControllerV2 {
       return organizationName;
     }
 
+    public ObjectId getOrganizationId() {
+      return organizationId;
+    }
+
     public String getActorUsername() {
       return actorUsername;
     }
 
     public UserParams setOrganizationName(String organizationName) {
       this.organizationName = organizationName;
+      return this;
+    }
+
+    public UserParams setOrganizationId(ObjectId organizationId) {
+      this.organizationId = organizationId;
       return this;
     }
 

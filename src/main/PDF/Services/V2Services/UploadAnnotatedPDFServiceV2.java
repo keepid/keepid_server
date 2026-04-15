@@ -210,7 +210,12 @@ public class UploadAnnotatedPDFServiceV2 implements Service {
 
   public FormQuestion getChoiceFieldFormQuestion(PDChoice field) {
     ObjectId id = new ObjectId();
-    FieldType type = (field instanceof PDComboBox) ? FieldType.COMBOBOX : FieldType.LISTBOX;
+    FieldType type;
+    if (field instanceof PDComboBox) {
+      type = FieldType.COMBOBOX;
+    } else {
+      type = FieldType.LISTBOX;
+    }
     String questionName = field.getFullyQualifiedName();
     String[] parsed = parseDirectiveFromFieldName(questionName);
     String questionText = parsed[0];
