@@ -11,6 +11,7 @@ import User.UserType;
 import java.nio.charset.StandardCharsets;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -536,6 +537,165 @@ public class FileControllerIntegrationTests {
     assertThat(replaceJson.getString("status")).isEqualTo("SUCCESS");
     assertThat(replaceJson.getString("applicationId")).isEqualTo(persistedApplicationId);
     assertThat(replaceJson.getString("fileId")).isEqualTo(persistedApplicationId);
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void packetStartsAbsentAndIsPersistedOnFirstAttachTest() {
+    String orgName = "Packet Bootstrap Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetBootstrapAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+    String orgDocId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    JSONObject beforeAttachPacketJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-packet-for-application")
+                    .body(new JSONObject().put("applicationId", applicationId).toString())
+                    .asString()
+                    .getBody());
+    assertThat(beforeAttachPacketJson.getString("status")).isEqualTo("SUCCESS");
+    boolean hasAttachmentPartBefore = false;
+    if (!beforeAttachPacketJson.isNull("packet")) {
+      JSONArray beforeParts = beforeAttachPacketJson.getJSONObject("packet").getJSONArray("parts");
+      for (int i = 0; i < beforeParts.length(); i += 1) {
+        if ("ORG_ATTACHMENT".equals(beforeParts.getJSONObject(i).getString("partType"))) {
+          hasAttachmentPartBefore = true;
+        }
+      }
+    }
+    assertThat(hasAttachmentPartBefore).isFalse();
+
+    JSONObject attachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(new JSONObject().put("applicationId", applicationId).put("fileId", orgDocId).toString())
+                    .asString()
+                    .getBody());
+    assertThat(attachJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(attachJson.getJSONObject("packet").getJSONArray("parts").length()).isEqualTo(2);
+
+    JSONObject afterAttachPacketJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-packet-for-application")
+                    .body(new JSONObject().put("applicationId", applicationId).toString())
+                    .asString()
+                    .getBody());
+    assertThat(afterAttachPacketJson.getString("status")).isEqualTo("SUCCESS");
+    JSONArray parts = afterAttachPacketJson.getJSONObject("packet").getJSONArray("parts");
+    assertThat(parts.length()).isEqualTo(2);
+    assertThat(parts.getJSONObject(1).getString("sourceFileId")).isEqualTo(orgDocId);
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void attachPacketPartFailsForUnknownApplicationWithoutCreatingPacketTest() {
+    String orgName = "Packet Attach Failure Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetAttachFailureAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    String realApplicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+    String orgDocId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    String unknownApplicationId = new ObjectId().toString();
+    JSONObject failedAttachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(
+                        new JSONObject()
+                            .put("applicationId", unknownApplicationId)
+                            .put("fileId", orgDocId)
+                            .toString())
+                    .asString()
+                    .getBody());
+    assertThat(failedAttachJson.getString("status")).isEqualTo("NO_SUCH_FILE");
+
+    JSONObject realApplicationPacketJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-packet-for-application")
+                    .body(new JSONObject().put("applicationId", realApplicationId).toString())
+                    .asString()
+                    .getBody());
+    assertThat(realApplicationPacketJson.getString("status")).isEqualTo("SUCCESS");
+    boolean hasAttachmentPart = false;
+    if (!realApplicationPacketJson.isNull("packet")) {
+      JSONArray realApplicationParts =
+          realApplicationPacketJson.getJSONObject("packet").getJSONArray("parts");
+      for (int i = 0; i < realApplicationParts.length(); i += 1) {
+        if ("ORG_ATTACHMENT".equals(realApplicationParts.getJSONObject(i).getString("partType"))) {
+          hasAttachmentPart = true;
+        }
+      }
+    }
+    assertThat(hasAttachmentPart).isFalse();
 
     TestUtils.logout();
   }
