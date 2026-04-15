@@ -184,12 +184,25 @@ public class FileControllerIntegrationTests {
     JSONObject packet = attachJson.getJSONObject("packet");
     assertThat(packet.getJSONArray("parts").length()).isEqualTo(2);
     assertThat(attachJson.getBoolean("alreadyAttached")).isFalse();
+    String attachedCloneId = attachJson.getString("attachedFileId");
+    JSONObject attachmentPartJson = packet.getJSONArray("parts").getJSONObject(1);
+    assertThat(attachmentPartJson.getString("fileId")).isNotEqualTo(orgDocId);
+    assertThat(attachmentPartJson.getString("sourceFileId")).isEqualTo(orgDocId);
+    JSONObject orgListAfterAttachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody());
+    assertThat(orgListAfterAttachJson.getJSONArray("documents").length()).isEqualTo(1);
 
     HttpResponse<String> attachAgainResp =
         Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part").body(attachReq.toString()).asString();
     JSONObject attachAgainJson = TestUtils.responseStringToJSON(attachAgainResp.getBody());
     assertThat(attachAgainJson.getString("status")).isEqualTo("SUCCESS");
     assertThat(attachAgainJson.getBoolean("alreadyAttached")).isTrue();
+    assertThat(attachAgainJson.getString("attachedFileId")).isEqualTo(attachedCloneId);
     assertThat(attachAgainJson.getJSONObject("packet").getJSONArray("parts").length()).isEqualTo(2);
 
     JSONObject packetFetchReq = new JSONObject().put("applicationId", applicationId);
@@ -245,14 +258,24 @@ public class FileControllerIntegrationTests {
     String firstOrgDocId = orgDocuments.getJSONObject(0).getString("id");
     String secondOrgDocId = orgDocuments.getJSONObject(1).getString("id");
 
-    Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
-        .body(new JSONObject().put("applicationId", applicationId).put("fileId", firstOrgDocId).toString())
-        .asString();
-    Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
-        .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondOrgDocId).toString())
-        .asString();
+    JSONObject attachFirstJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(new JSONObject().put("applicationId", applicationId).put("fileId", firstOrgDocId).toString())
+                    .asString()
+                    .getBody());
+    JSONObject attachSecondJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondOrgDocId).toString())
+                    .asString()
+                    .getBody());
+    String firstAttachedCloneId = attachFirstJson.getString("attachedFileId");
+    String secondAttachedCloneId = attachSecondJson.getString("attachedFileId");
 
-    JSONArray reordered = new JSONArray().put(secondOrgDocId).put(firstOrgDocId);
+    JSONArray reordered = new JSONArray().put(secondAttachedCloneId).put(firstAttachedCloneId);
     HttpResponse<String> reorderResp =
         Unirest.post(TestUtils.getServerUrl() + "/reorder-packet-parts")
             .body(new JSONObject().put("applicationId", applicationId).put("orderedFileIds", reordered).toString())
@@ -260,17 +283,259 @@ public class FileControllerIntegrationTests {
     JSONObject reorderJson = TestUtils.responseStringToJSON(reorderResp.getBody());
     assertThat(reorderJson.getString("status")).isEqualTo("SUCCESS");
     JSONArray reorderedParts = reorderJson.getJSONObject("packet").getJSONArray("parts");
-    assertThat(reorderedParts.getJSONObject(1).getString("fileId")).isEqualTo(secondOrgDocId);
+    assertThat(reorderedParts.getJSONObject(1).getString("fileId")).isEqualTo(secondAttachedCloneId);
+    assertThat(reorderedParts.getJSONObject(1).getString("sourceFileId")).isEqualTo(secondOrgDocId);
 
     HttpResponse<String> detachResp =
         Unirest.post(TestUtils.getServerUrl() + "/detach-packet-part")
-            .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondOrgDocId).toString())
+            .body(new JSONObject().put("applicationId", applicationId).put("fileId", secondAttachedCloneId).toString())
             .asString();
     JSONObject detachJson = TestUtils.responseStringToJSON(detachResp.getBody());
     assertThat(detachJson.getString("status")).isEqualTo("SUCCESS");
     JSONArray detachedParts = detachJson.getJSONObject("packet").getJSONArray("parts");
     assertThat(detachedParts.length()).isEqualTo(2);
-    assertThat(detachedParts.getJSONObject(1).getString("fileId")).isEqualTo(firstOrgDocId);
+    assertThat(detachedParts.getJSONObject(1).getString("fileId")).isEqualTo(firstAttachedCloneId);
+    assertThat(detachedParts.getJSONObject(1).getString("sourceFileId")).isEqualTo(firstOrgDocId);
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void updateApplicationAttachmentPdfAllowsCloneAndRejectsSourceOrgDocumentTest() {
+    String orgName = "Packet Org Edit";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetEditor";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    String sourceOrgDocId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    JSONObject attachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(new JSONObject().put("applicationId", applicationId).put("fileId", sourceOrgDocId).toString())
+                    .asString()
+                    .getBody());
+    String cloneAttachmentId = attachJson.getString("attachedFileId");
+
+    java.io.File examplePDF =
+        new java.io.File(
+            java.nio.file.Paths.get("").toAbsolutePath().toString()
+                + java.io.File.separator
+                + "src"
+                + java.io.File.separator
+                + "test"
+                + java.io.File.separator
+                + "resources"
+                + java.io.File.separator
+                + "CIS_401_Final_Progress_Report.pdf");
+
+    HttpResponse<String> updateCloneResp =
+        Unirest.post(TestUtils.getServerUrl() + "/update-application-attachment-pdf")
+            .header("Content-Disposition", "attachment")
+            .field("applicationId", applicationId)
+            .field("fileId", cloneAttachmentId)
+            .field("file", examplePDF, "application/pdf")
+            .asString();
+    JSONObject updateCloneJson = TestUtils.responseStringToJSON(updateCloneResp.getBody());
+    assertThat(updateCloneJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(updateCloneJson.getString("fileId")).isEqualTo(cloneAttachmentId);
+
+    HttpResponse<String> updateSourceResp =
+        Unirest.post(TestUtils.getServerUrl() + "/update-application-attachment-pdf")
+            .header("Content-Disposition", "attachment")
+            .field("applicationId", applicationId)
+            .field("fileId", sourceOrgDocId)
+            .field("file", examplePDF, "application/pdf")
+            .asString();
+    JSONObject updateSourceJson = TestUtils.responseStringToJSON(updateSourceResp.getBody());
+    assertThat(updateSourceJson.getString("status")).isEqualTo("NO_SUCH_FILE");
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void updateApplicationAttachmentPdfRejectsClientRoleTest() {
+    String orgName = "Packet Org Client Denied";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "packetAdminEditor";
+    String client = "packetClientEditor";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+    EntityFactory.createUser()
+        .withUsername(client)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    String sourceOrgDocId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    JSONObject attachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(new JSONObject().put("applicationId", applicationId).put("fileId", sourceOrgDocId).toString())
+                    .asString()
+                    .getBody());
+    String cloneAttachmentId = attachJson.getString("attachedFileId");
+    TestUtils.logout();
+
+    TestUtils.login(client, pass);
+    java.io.File examplePDF =
+        new java.io.File(
+            java.nio.file.Paths.get("").toAbsolutePath().toString()
+                + java.io.File.separator
+                + "src"
+                + java.io.File.separator
+                + "test"
+                + java.io.File.separator
+                + "resources"
+                + java.io.File.separator
+                + "CIS_401_Final_Progress_Report.pdf");
+
+    HttpResponse<String> updateCloneResp =
+        Unirest.post(TestUtils.getServerUrl() + "/update-application-attachment-pdf")
+            .header("Content-Disposition", "attachment")
+            .field("applicationId", applicationId)
+            .field("fileId", cloneAttachmentId)
+            .field("file", examplePDF, "application/pdf")
+            .asString();
+    JSONObject updateCloneJson = TestUtils.responseStringToJSON(updateCloneResp.getBody());
+    assertThat(updateCloneJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
+
+    TestUtils.logout();
+  }
+
+  @Test
+  public void uploadCompletedPdfReturnsPersistedApplicationIdForCreateAndReplaceTest() {
+    String orgName = "Completed Upload Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "completedUploadAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadOrgDocumentPDF();
+
+    String nonApplicationFileId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    java.io.File examplePDF =
+        new java.io.File(
+            java.nio.file.Paths.get("").toAbsolutePath().toString()
+                + java.io.File.separator
+                + "src"
+                + java.io.File.separator
+                + "test"
+                + java.io.File.separator
+                + "resources"
+                + java.io.File.separator
+                + "CIS_401_Final_Progress_Report.pdf");
+
+    HttpResponse<String> createResp =
+        Unirest.post(TestUtils.getServerUrl() + "/upload-completed-pdf-2")
+            .header("Content-Disposition", "attachment")
+            .field("applicationId", nonApplicationFileId)
+            .field("formAnswers", new JSONObject().put("fieldA", "valueA").toString())
+            .field("clientUsername", "")
+            .field("file", examplePDF, "application/pdf")
+            .asString();
+    JSONObject createJson = TestUtils.responseStringToJSON(createResp.getBody());
+    assertThat(createJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(createJson.has("applicationId")).isTrue();
+    assertThat(createJson.has("fileId")).isTrue();
+    String persistedApplicationId = createJson.getString("applicationId");
+    assertThat(createJson.getString("fileId")).isEqualTo(persistedApplicationId);
+    assertThat(persistedApplicationId).isNotEqualTo(nonApplicationFileId);
+
+    HttpResponse<String> replaceResp =
+        Unirest.post(TestUtils.getServerUrl() + "/upload-completed-pdf-2")
+            .header("Content-Disposition", "attachment")
+            .field("applicationId", persistedApplicationId)
+            .field("formAnswers", new JSONObject().put("fieldA", "valueB").toString())
+            .field("clientUsername", "")
+            .field("file", examplePDF, "application/pdf")
+            .asString();
+    JSONObject replaceJson = TestUtils.responseStringToJSON(replaceResp.getBody());
+    assertThat(replaceJson.getString("status")).isEqualTo("SUCCESS");
+    assertThat(replaceJson.getString("applicationId")).isEqualTo(persistedApplicationId);
+    assertThat(replaceJson.getString("fileId")).isEqualTo(persistedApplicationId);
 
     TestUtils.logout();
   }

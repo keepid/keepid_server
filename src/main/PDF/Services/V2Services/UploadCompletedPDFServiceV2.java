@@ -23,6 +23,8 @@ import Security.FileStorageCryptoPolicy;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,6 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 
 /**
  * Saves a pre-filled and pre-signed PDF (completed in the browser) as an application.
@@ -43,6 +48,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
   private ActivityDao activityDao;
   private String username;
   private String organizationName;
+  private ObjectId organizationId;
   private UserType privilegeLevel;
   private String applicationId;
   private JSONObject formAnswers;
@@ -54,6 +60,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
   private boolean replacingExistingApplication;
   private ObjectId existingApplicationObjectId;
   private ObjectId existingPacketObjectId;
+  private ObjectId persistedApplicationObjectId;
 
   public UploadCompletedPDFServiceV2(
       FileDao fileDao,
@@ -67,6 +74,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
     this.activityDao = activityDao;
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
+    this.organizationId = userParams.getOrganizationId();
     this.privilegeLevel = userParams.getPrivilegeLevel();
     this.applicationId = fileParams.getFileId();
     this.formAnswers = fileParams.getFormAnswers();
@@ -76,6 +84,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
     this.replacingExistingApplication = false;
     this.existingApplicationObjectId = null;
     this.existingPacketObjectId = null;
+    this.persistedApplicationObjectId = null;
   }
 
   @Override
@@ -104,6 +113,9 @@ public class UploadCompletedPDFServiceV2 implements Service {
     Optional<File> existingFileOpt = fileDaoRef.get(new ObjectId(applicationId));
     if (existingFileOpt.isPresent()) {
       File existingFile = existingFileOpt.get();
+      if (this.organizationId == null) {
+        this.organizationId = existingFile.getOrganizationId();
+      }
       if (existingFile.getFileType() == FileType.APPLICATION_PDF) {
         if (!Objects.equals(existingFile.getUsername(), username)
             || !Objects.equals(existingFile.getOrganizationName(), organizationName)) {
@@ -167,9 +179,10 @@ public class UploadCompletedPDFServiceV2 implements Service {
 
   private Message saveCompletedPdf() {
     try {
+      InputStream completedPdfStream = pdfFileStream;
       InputStream encryptedStream =
           FileStorageCryptoPolicy.prepareForStorage(
-              pdfFileStream, FileType.APPLICATION_PDF, username, encryptionController);
+              completedPdfStream, FileType.APPLICATION_PDF, username, encryptionController);
 
       String filename = getTemplateFilename();
       this.filledFile =
@@ -183,6 +196,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
               organizationName,
               true,
               "application/pdf");
+      this.filledFile.setOrganizationId(organizationId);
 
       ObjectId filledFileObjectId = filledFile.getId();
       FormSection formBody = buildFormBodyFromAnswers();
@@ -231,6 +245,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
         }
 
         fileDao.update(filledFile);
+        this.persistedApplicationObjectId = existingApplicationObjectId;
         if (existingForm.isPresent()) {
           formDao.update(filledForm);
         } else {
@@ -238,6 +253,7 @@ public class UploadCompletedPDFServiceV2 implements Service {
         }
       } else {
         fileDao.save(filledFile);
+        this.persistedApplicationObjectId = filledFile.getId();
         formDao.save(filledForm);
       }
       recordSubmitApplicationActivity();
@@ -248,6 +264,29 @@ public class UploadCompletedPDFServiceV2 implements Service {
     } catch (Exception e) {
       log.error("Failed to save completed PDF: {}", e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
+    }
+  }
+
+  private InputStream flattenInteractiveFields(InputStream sourcePdfStream) {
+    byte[] pdfBytes;
+    try {
+      pdfBytes = sourcePdfStream.readAllBytes();
+    } catch (Exception e) {
+      log.warn("Could not read completed PDF for flattening, storing original stream: {}", e.getMessage());
+      return sourcePdfStream;
+    }
+
+    try (PDDocument document = Loader.loadPDF(new ByteArrayInputStream(pdfBytes));
+        ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+      PDAcroForm form = document.getDocumentCatalog().getAcroForm();
+      if (form != null) {
+        form.flatten();
+      }
+      document.save(output);
+      return new ByteArrayInputStream(output.toByteArray());
+    } catch (Exception e) {
+      log.warn("Could not flatten completed PDF, storing original bytes: {}", e.getMessage());
+      return new ByteArrayInputStream(pdfBytes);
     }
   }
 
@@ -269,9 +308,20 @@ public class UploadCompletedPDFServiceV2 implements Service {
   }
 
   private void recordSubmitApplicationActivity() {
+    String activityApplicationId =
+        persistedApplicationObjectId != null
+            ? persistedApplicationObjectId.toString()
+            : applicationId;
     SubmitApplicationActivity activity =
         new SubmitApplicationActivity(
-            username, username, applicationId, filledFile.getFilename());
+            username, username, activityApplicationId, filledFile.getFilename());
     activityDao.save(activity);
+  }
+
+  public String getPersistedApplicationId() {
+    if (persistedApplicationObjectId == null) {
+      return null;
+    }
+    return persistedApplicationObjectId.toString();
   }
 }

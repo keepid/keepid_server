@@ -2,6 +2,8 @@ package File.Services;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.or;
 
 import Config.Message;
 import Config.Service;
@@ -99,14 +101,18 @@ public class GetFilesInformationService implements Service {
                         eq("fileType", FileType.FORM.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.ORG_DOCUMENT) {
+            Bson applicationScopeFilter =
+                or(eq("applicationScopedAttachment", false), exists("applicationScopedAttachment", false));
             filter =
                 organizationId != null
                     ? and(
                         eq("organizationId", organizationId),
-                        eq("fileType", FileType.ORG_DOCUMENT.toString()))
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()),
+                        applicationScopeFilter)
                     : and(
                         eq("organizationName", orgName),
-                        eq("fileType", FileType.ORG_DOCUMENT.toString()));
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()),
+                        applicationScopeFilter);
             return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
