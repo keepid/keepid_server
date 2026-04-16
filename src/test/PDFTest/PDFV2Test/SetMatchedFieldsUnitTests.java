@@ -96,6 +96,7 @@ public class SetMatchedFieldsUnitTests {
             .withUsername("matchclient")
             .withFirstName("John")
             .withLastName("Doe")
+            .withBirthDate("06-16-1960")
             .withEmail("john@example.com")
             .withPhoneNumber("5551234567")
             .withAddress("123 Main St")
@@ -385,6 +386,24 @@ public class SetMatchedFieldsUnitTests {
     assertNull(result);
     assertTrue(fq.isMatched());
     assertEquals("Worker", fq.getDefaultValue());
+  }
+
+  @Test
+  public void computedPhoneLast7UsesPrimaryPhone() {
+    FormQuestion fq = makeQuestion("Phone Last 7:client.$phoneLast7");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("123-4567", fq.getDefaultValue());
+  }
+
+  @Test
+  public void computedDobMonthNumberUsesNumericMonth() {
+    FormQuestion fq = makeQuestion("DOB Month Number:client.$dobMonthNumber");
+    Message result = service.setMatchedFields(fq);
+    assertNull(result);
+    assertTrue(fq.isMatched());
+    assertEquals("6", fq.getDefaultValue());
   }
 
   @Test

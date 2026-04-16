@@ -50,6 +50,10 @@ public class Organization implements Serializable {
   @BsonProperty(value = "creationDate")
   private Date creationDate;
 
+  @BsonProperty(value = "designatedDirectorUsername")
+  @JsonProperty("designatedDirectorUsername")
+  private String designatedDirectorUsername;
+
   public Organization() {}
 
   public Organization(
@@ -85,6 +89,7 @@ public class Organization implements Serializable {
   public String getOrgEmail() { return this.orgEmail; }
   public String getOrgPhoneNumber() { return this.orgPhoneNumber; }
   public Date getCreationDate() { return this.creationDate; }
+  public String getDesignatedDirectorUsername() { return this.designatedDirectorUsername; }
 
   public Organization setOrgName(String orgName) { this.orgName = orgName; return this; }
   public Organization setOrgWebsite(String website) { this.orgWebsite = website; return this; }
@@ -93,6 +98,10 @@ public class Organization implements Serializable {
   public Organization setOrgEmail(String email) { this.orgEmail = email; return this; }
   public Organization setOrgPhoneNumber(String phoneNumber) { this.orgPhoneNumber = phoneNumber; return this; }
   public Organization setCreationDate(Date creationDate) { this.creationDate = creationDate; return this; }
+  public Organization setDesignatedDirectorUsername(String designatedDirectorUsername) {
+    this.designatedDirectorUsername = designatedDirectorUsername;
+    return this;
+  }
 
   private static OrganizationValidationMessage isValid(
       String orgName,
@@ -155,6 +164,7 @@ public class Organization implements Serializable {
     sb.append(", orgAddress=").append(this.orgAddress);
     sb.append(", orgEmail=").append(this.orgEmail);
     sb.append(", orgPhoneNumber=").append(this.orgPhoneNumber);
+    sb.append(", designatedDirectorUsername=").append(this.designatedDirectorUsername);
     sb.append("}");
     return sb.toString();
   }
@@ -170,14 +180,15 @@ public class Organization implements Serializable {
         && Objects.equals(this.orgEIN, org.orgEIN)
         && Objects.equals(this.orgAddress, org.orgAddress)
         && Objects.equals(this.orgEmail, org.orgEmail)
-        && Objects.equals(this.orgPhoneNumber, org.orgPhoneNumber);
+        && Objects.equals(this.orgPhoneNumber, org.orgPhoneNumber)
+        && Objects.equals(this.designatedDirectorUsername, org.designatedDirectorUsername);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         this.id, this.orgName, this.orgWebsite, this.orgEIN,
-        this.orgAddress, this.orgEmail, this.orgPhoneNumber);
+        this.orgAddress, this.orgEmail, this.orgPhoneNumber, this.designatedDirectorUsername);
   }
 
   public Map<String, Object> toMap() {
@@ -196,6 +207,9 @@ public class Organization implements Serializable {
     orgJSON.put("orgAddress", orgAddress != null ? orgAddress.serialize() : JSONObject.NULL);
     orgJSON.put("orgEmail", orgEmail);
     orgJSON.put("orgPhoneNumber", orgPhoneNumber);
+    orgJSON.put(
+        "designatedDirectorUsername",
+        designatedDirectorUsername != null ? designatedDirectorUsername : JSONObject.NULL);
     orgJSON.put("creationDate", creationDate);
     return orgJSON;
   }
@@ -218,6 +232,9 @@ public class Organization implements Serializable {
     }
     if (updateRequest.getOrgPhoneNumber() != null && updateRequest.getOrgPhoneNumber().isPresent()) {
       this.setOrgPhoneNumber(updateRequest.getOrgPhoneNumber().get());
+    }
+    if (updateRequest.getDesignatedDirectorUsername() != null) {
+      this.setDesignatedDirectorUsername(updateRequest.getDesignatedDirectorUsername().orElse(null));
     }
     return this;
   }

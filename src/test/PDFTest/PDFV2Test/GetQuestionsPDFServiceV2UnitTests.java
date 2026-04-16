@@ -108,6 +108,18 @@ public class GetQuestionsPDFServiceV2UnitTests {
               "worker1",
               "workerPass123",
               UserType.Worker));
+      this.userDao.save(
+          new User(
+              new Name("adminFirstName", "adminLastName"),
+              "12-12-2012",
+              "admin@keep.id",
+              "2154445555",
+              "org2",
+              new Address("3 Keep Ave", "Keep", "PA", "11111"),
+              false,
+              "admin1",
+              "adminPass123",
+              UserType.Admin));
     } catch (ValidationException e) {
       throw new RuntimeException(e);
     }
@@ -122,6 +134,13 @@ public class GetQuestionsPDFServiceV2UnitTests {
         .withWebsite("https://www.example.org")
         .withEIN("123456789")
         .buildAndPersist(orgDao);
+    orgDao
+        .get("org2")
+        .ifPresent(
+            organization -> {
+              organization.setDesignatedDirectorUsername("admin1");
+              orgDao.update(organization);
+            });
     this.developerUserParams =
         new UserParams()
             .setUsername("dev1")
@@ -212,6 +231,7 @@ public class GetQuestionsPDFServiceV2UnitTests {
     JSONObject clientProfile = resolvedProfiles.getJSONObject("client");
     JSONObject workerProfile = resolvedProfiles.getJSONObject("worker");
     JSONObject orgProfile = resolvedProfiles.getJSONObject("org");
+    JSONObject directorProfile = resolvedProfiles.getJSONObject("director");
 
     assertEquals("testcFirstName", clientProfile.getJSONObject("currentName").getString("first"));
     assertFalse(clientProfile.has("currentName.first"));
@@ -219,5 +239,6 @@ public class GetQuestionsPDFServiceV2UnitTests {
     assertEquals("org2", orgProfile.getString("organizationName"));
     assertEquals("Philadelphia", orgProfile.getJSONObject("address").getString("city"));
     assertEquals("1234567890", orgProfile.getString("phoneNumber"));
+    assertEquals("adminFirstName", directorProfile.getJSONObject("currentName").getString("first"));
   }
 }
