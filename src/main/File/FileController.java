@@ -682,6 +682,25 @@ public class FileController {
     return Optional.of(clonedFile);
   }
 
+  private boolean refreshAttachmentCloneFromSource(
+      File sourceFile, File existingClone, String orgName, Optional<ObjectId> sessionOrganizationId) {
+    Optional<InputStream> sourceStreamOpt = fileDao.getStream(sourceFile.getId());
+    if (sourceStreamOpt.isEmpty()) {
+      return false;
+    }
+    if (!isSameOrganization(existingClone, orgName, sessionOrganizationId)) {
+      return false;
+    }
+    existingClone.setFileStream(sourceStreamOpt.get());
+    existingClone.setFilename(sourceFile.getFilename());
+    existingClone.setContentType(sourceFile.getContentType());
+    existingClone.setIdCategory(sourceFile.getIdCategory());
+    existingClone.setAnnotated(sourceFile.isAnnotated());
+    existingClone.setUploadedAt(Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+    fileDao.update(existingClone);
+    return true;
+  }
+
   private JSONObject packetToJsonWithAttachmentMetadata(Packet packet) {
     JSONObject packetJson = packet.toJson();
     org.json.JSONArray partsJson = packetJson.getJSONArray("parts");
@@ -794,6 +813,11 @@ public class FileController {
               findExistingAttachmentClone(applicationFile, partFile.getId(), orgName, sessionOrganizationId);
           if (existingCloneOpt.isPresent()) {
             attachmentFileForPacket = existingCloneOpt.get();
+            if (!refreshAttachmentCloneFromSource(
+                partFile, attachmentFileForPacket, orgName, sessionOrganizationId)) {
+              ctx.result(PacketMessage.SERVER_ERROR.toResponseString());
+              return;
+            }
           } else {
             Optional<File> clonedFileOpt =
                 cloneAttachmentForApplication(partFile, applicationFile, orgName, sessionOrganizationId);

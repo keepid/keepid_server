@@ -18,6 +18,7 @@ import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
 import Security.FileStorageCryptoPolicy;
+import Security.OrganizationCryptoAad;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
@@ -97,6 +98,7 @@ public class FillPDFServiceV2 implements Service {
   private EncryptionController encryptionController;
   private ByteArrayOutputStream filledFileOutputStream;
   private boolean preview;
+  private ObjectId requesterOrganizationId;
 
   public FillPDFServiceV2(
       FileDao fileDao,
@@ -109,6 +111,7 @@ public class FillPDFServiceV2 implements Service {
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
     this.privilegeLevel = userParams.getPrivilegeLevel();
+    this.requesterOrganizationId = userParams.getOrganizationId();
     this.fileId = fileParams.getFileId();
     this.formAnswers = fileParams.getFormAnswers();
     this.signatureStream = fileParams.getSignatureStream();
@@ -612,12 +615,7 @@ public class FillPDFServiceV2 implements Service {
     try {
       InputStream storedTemplateStream = this.fileDao.getStream(fileObjectId).get();
       byte[] templateBytes = storedTemplateStream.readAllBytes();
-      templateFileStream =
-          FileStorageCryptoPolicy.openForRead(
-              templateBytes,
-              this.templateFile.getFileType(),
-              this.templateFile.getUsername(),
-              this.encryptionController);
+      templateFileStream = openTemplateForRead(templateBytes);
     } catch (Exception e) {
       log.error("Unable to load/decrypt template file '{}': {}", fileObjectId, e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
@@ -627,5 +625,41 @@ public class FillPDFServiceV2 implements Service {
       return mergeMessage;
     }
     return createNewFileAndForm();
+  }
+
+  private InputStream openTemplateForRead(byte[] templateBytes)
+      throws GeneralSecurityException, IOException {
+    try {
+      return FileStorageCryptoPolicy.openForRead(
+          templateBytes,
+          this.templateFile.getFileType(),
+          this.templateFile.getUsername(),
+          this.encryptionController);
+    } catch (GeneralSecurityException ex) {
+      if (this.templateFile.getOrganizationId() != null) {
+        try {
+          String orgAad = OrganizationCryptoAad.fromOrganizationId(this.templateFile.getOrganizationId());
+          return this.encryptionController.decryptFile(new ByteArrayInputStream(templateBytes), orgAad);
+        } catch (GeneralSecurityException orgDecryptException) {
+          log.warn(
+              "Template decrypt with file organization AAD failed for file '{}': {}",
+              this.templateFile.getId(),
+              orgDecryptException.getMessage());
+        }
+      }
+      if (this.requesterOrganizationId != null) {
+        try {
+          String requesterOrgAad = OrganizationCryptoAad.fromOrganizationId(this.requesterOrganizationId);
+          return this.encryptionController.decryptFile(
+              new ByteArrayInputStream(templateBytes), requesterOrgAad);
+        } catch (GeneralSecurityException requesterOrgDecryptException) {
+          log.warn(
+              "Template decrypt with requester organization AAD failed for file '{}': {}",
+              this.templateFile.getId(),
+              requesterOrgDecryptException.getMessage());
+        }
+      }
+      throw ex;
+    }
   }
 }
