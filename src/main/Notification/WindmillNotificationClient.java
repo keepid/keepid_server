@@ -4,6 +4,9 @@ import okhttp3.*;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,9 +24,9 @@ public class WindmillNotificationClient {
     private static final Pattern EMAIL_PATTERN
             = Pattern.compile("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9]([a-zA-Z0-9.\\-]*[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$");
     private final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
             .build();
     private final Gson gson = new Gson();
     private final String WINDMILL_URL;
@@ -34,7 +37,12 @@ public class WindmillNotificationClient {
     private final Map<String, String> sendgridResource;
 
     public WindmillNotificationClient() {
-        WINDMILL_URL = requireEnv("WINDMILL_URL").replaceAll("^\"|\"$", "").trim();
+        try {
+            WINDMILL_URL = new URI(requireEnv("WINDMILL_URL")).toURL().toString();
+        } catch (URISyntaxException | MalformedURLException e) {
+            throw new IllegalStateException("WINDMILL_URL is not a valid URL");
+        }
+
         WINDMILL_TOKEN = requireEnv("WINDMILL_TOKEN");
         TWILIO_PHONE_NUMBER = requireEnv("TWILIO_PHONE_NUMBER");
         KEEPID_EMAIL_ADDRESS = requireEnv("EMAIL_ADDRESS");
