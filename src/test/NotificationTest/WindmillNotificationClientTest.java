@@ -16,8 +16,8 @@ public class WindmillNotificationClientTest {
     public void sendSMSSuccess() {
         var testClient = new WindmillNotificationClient(
                 "http://localhost", "test_windmill_token",
-                "test_twilio_phone_number", "test_twilio_account_sid", "test_twilio_auth_token",
-                "fake_email", "fake_sendgrid_token") {
+                "test_twilio_phone_number", "fake_twilio_resource",
+                "fake_email", "fake_sendgrid_resource") {
             @Override
             public void executeRequest(Request request) {
                 // Don't actually send, just verify the request looks right
@@ -33,8 +33,8 @@ public class WindmillNotificationClientTest {
     public void sendEmailSuccess() {
         var testClient = new WindmillNotificationClient(
                 "http://localhost", "test_windmill_token",
-                "test_twilio_phone_number", "test_twilio_account_sid", "test_twilio_auth_token",
-                "fake_email", "fake_sendgrid_token") {
+                "test_twilio_phone_number", "fake_twilio_resource",
+                "fake_email", "fake_sendgrid_resource") {
             @Override
             public void executeRequest(Request request) {
                 // Don't actually send, just verify the request looks right

@@ -25,8 +25,8 @@ public class NotifyIdPickupServiceTest {
         notificationClient =
                 new WindmillNotificationClient(
                         "http://localhost:9999", "fake-token",
-                        "+10000000000", "fake-sid", "fake-auth",
-                        "fake_email", "fake_sendgrid_token");
+                        "+10000000000", "fake_twilio_resource",
+                        "fake_email", "fake_sendgrid_resource");
     }
 
     @After

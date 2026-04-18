@@ -33,8 +33,8 @@ public class WindmillNotificationClient {
     private final String WINDMILL_TOKEN;
     private final String TWILIO_PHONE_NUMBER;
     private final String KEEPID_EMAIL_ADDRESS;
-    private final Map<String, String> twilioResource;
-    private final Map<String, String> sendgridResource;
+    private final String twilioResource;
+    private final String sendgridResource;
 
     public WindmillNotificationClient() {
         try {
@@ -47,33 +47,22 @@ public class WindmillNotificationClient {
         TWILIO_PHONE_NUMBER = requireEnv("TWILIO_PHONE_NUMBER");
         KEEPID_EMAIL_ADDRESS = requireEnv("EMAIL_ADDRESS");
 
-        twilioResource = Map.of(
-                "accountSid", requireEnv("ACCOUNT_SID"),
-                "token", requireEnv("AUTH_TOKEN_TWILIO")
-        );
+        twilioResource = "$res:" + requireEnv("WINDMILL_TWILIO_RESOURCE_PATH");
 
-        sendgridResource = Map.of(
-                "token", requireEnv("SENDGRID_API_KEY")
-        );
+        sendgridResource = "$res:" + requireEnv("WINDMILL_SENDGRID_RESOURCE_PATH");
     }
 
     // constructor for testing
     public WindmillNotificationClient(String windmillUrl, String windmillToken,
-                                      String twilioPhoneNumber, String twilioAccountSid, String twilioAuthToken,
-                                      String keepidEmailAddress, String sendgridToken) {
+                                      String twilioPhoneNumber, String twilioResource,
+                                      String keepidEmailAddress, String sendgridResource) {
         this.WINDMILL_URL = windmillUrl;
         this.WINDMILL_TOKEN = windmillToken;
         this.TWILIO_PHONE_NUMBER = twilioPhoneNumber;
         this.KEEPID_EMAIL_ADDRESS = keepidEmailAddress;
 
-        this.twilioResource = Map.of(
-                "accountSid", twilioAccountSid,
-                "token", twilioAuthToken
-        );
-
-        this.sendgridResource = Map.of(
-                "token", sendgridToken
-        );
+        this.twilioResource = twilioResource;
+        this.sendgridResource = sendgridResource;
     }
 
     public static boolean isValidPhoneNumber(String phoneNumber) {
