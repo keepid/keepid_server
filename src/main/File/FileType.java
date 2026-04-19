@@ -5,6 +5,7 @@ public enum FileType {
   IDENTIFICATION_PDF("IDENTIFICATION_PDF"),
   FORM("FORM"),
   PROFILE_PICTURE("PROFILE_PICTURE"),
+  ORG_DOCUMENT("ORG_DOCUMENT"),
   MISC("MISC");
 
   private final String fileType;
@@ -29,6 +30,8 @@ public enum FileType {
         return FileType.FORM;
       case "PROFILE_PIC":
         return FileType.PROFILE_PICTURE;
+      case "ORG_DOCUMENT":
+        return FileType.ORG_DOCUMENT;
       case "MISC":
         return FileType.MISC;
       default:
@@ -37,7 +40,7 @@ public enum FileType {
   }
 
   public boolean isPDF() {
-    return this == APPLICATION_PDF || this == IDENTIFICATION_PDF || this == FORM;
+    return this == APPLICATION_PDF || this == IDENTIFICATION_PDF || this == FORM || this == ORG_DOCUMENT;
   }
 
   public boolean isProfilePic() {

@@ -5,14 +5,22 @@ import Admin.AdminController;
 import Billing.BillingController;
 import Database.Activity.ActivityDao;
 import Database.Activity.ActivityDaoFactory;
+import Database.ApplicationRegistry.ApplicationRegistryDao;
+import Database.ApplicationRegistry.ApplicationRegistryDaoFactory;
 import Database.File.FileDao;
 import Database.File.FileDaoFactory;
 import Database.Form.FormDao;
 import Database.Form.FormDaoFactory;
+import Database.InteractiveFormConfig.InteractiveFormConfigDao;
+import Database.InteractiveFormConfig.InteractiveFormConfigDaoFactory;
 import Database.Mail.MailDao;
 import Database.Mail.MailDaoFactory;
+import Database.Notification.NotificationDao;
+import Database.Notification.NotificationDaoFactory;
 import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
+import Database.Packet.PacketDao;
+import Database.Packet.PacketDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -20,13 +28,15 @@ import Database.User.UserDaoFactory;
 import File.FileController;
 import Form.FormController;
 import Issue.IssueController;
-import Mail.FileBackfillController;
+
 import Mail.MailController;
+import Mail.MailSender;
+import Mail.MailSenderFactory;
 import Notification.NotificationController;
 import Notification.WindmillNotificationClient;
 import Organization.Organization;
 import Organization.OrganizationController;
-import PDF.PdfController;
+
 import PDF.PdfControllerV2;
 import Production.ProductionController;
 import Security.AccountSecurityController;
@@ -64,8 +74,10 @@ public class AppConfig {
     OrgDao orgDao = OrgDaoFactory.create(deploymentLevel);
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
+    PacketDao packetDao = PacketDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
+    NotificationDao notificationDao = NotificationDaoFactory.create(deploymentLevel);
     MongoDatabase db = MongoConfig.getDatabase(deploymentLevel);
     setApplicationHeaders(app);
     EncryptionTools tools = new EncryptionTools(db);
@@ -84,24 +96,33 @@ public class AppConfig {
     EmailSender emailSender = EmailSenderFactory.forDeploymentLevel(deploymentLevel);
     OrganizationController orgController = new OrganizationController(db, activityDao, emailSender);
     UserController userController =
-        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, db, emailSender);
+        new UserController(userDao, tokenDao, fileDao, activityDao, formDao, orgDao, notificationDao, db, emailSender);
     AccountSecurityController accountSecurityController =
         new AccountSecurityController(userDao, tokenDao, activityDao, emailSender);
-    PdfController pdfController = new PdfController(db, userDao, encryptionController);
-    FormController formController = new FormController(formDao, userDao, encryptionController);
-    FileController fileController = new FileController(db, userDao, fileDao, activityDao, formDao, encryptionController);
+
+    ApplicationRegistryDao registryDao = ApplicationRegistryDaoFactory.create(deploymentLevel);
+    InteractiveFormConfigDao interactiveFormConfigDao =
+        InteractiveFormConfigDaoFactory.create(deploymentLevel);
+    FormController formController =
+        new FormController(
+            formDao, fileDao, userDao, encryptionController, registryDao, interactiveFormConfigDao);
+    FileController fileController =
+        new FileController(
+            db, userDao, fileDao, activityDao, formDao, packetDao, encryptionController);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
     ProductionController productionController = new ProductionController(orgDao, userDao);
     BillingController billingController = new BillingController();
+    MailSender mailSender = MailSenderFactory.create(deploymentLevel);
     MailController mailController =
-        new MailController(mailDao, fileDao, encryptionController, deploymentLevel);
-    FileBackfillController backfillController = new FileBackfillController(db, fileDao, userDao);
+        new MailController(mailDao, fileDao, formDao, mailSender, encryptionController);
+
     PdfControllerV2 pdfControllerV2 =
-        new PdfControllerV2(fileDao, formDao, activityDao, userDao, encryptionController);
+        new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
     WindmillNotificationClient notificationClient = new WindmillNotificationClient();
-    NotificationController notificationController = new NotificationController(activityDao, notificationClient);
+    NotificationController notificationController =
+        new NotificationController(activityDao, notificationDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -130,7 +151,13 @@ public class AppConfig {
     app.post("/upload-file", fileController.fileUpload);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
+    app.post("/rename-file", fileController.fileRename);
     app.post("/get-files", fileController.getFiles);
+    app.post("/get-packet-for-application", fileController.getPacketForApplication);
+    app.post("/attach-packet-part", fileController.attachPacketPart);
+    app.post("/detach-packet-part", fileController.detachPacketPart);
+    app.post("/reorder-packet-parts", fileController.reorderPacketParts);
+    app.post("/update-application-attachment-pdf", fileController.updateApplicationAttachmentPdf);
     /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     // app.post("/fill-form", fileController.fillPDFForm);
 
@@ -145,29 +172,72 @@ public class AppConfig {
     app.post("/upload-pdf-2", pdfControllerV2.uploadPDF);
     app.post("/upload-annotated-pdf-2", pdfControllerV2.uploadAnnotatedPDF);
     app.post("/upload-signed-pdf-2", pdfControllerV2.uploadSignedPDF);
+    app.post("/upload-completed-pdf-2", pdfControllerV2.uploadCompletedPDF);
     app.post("/get-questions-2", pdfControllerV2.getQuestions);
     app.post("/fill-pdf-2", pdfControllerV2.fillPDF);
 
     app.post("/get-application-registry", formController.getAppRegistry);
+    app.get("/get-available-application-options", formController.getAvailableApplicationOptions);
+    app.post("/get-interactive-form-config", formController.getInteractiveFormConfigClient);
+
+    /* -------------- DEVELOPER PORTAL API --------------------- */
+    app.before(
+        "/api/dev/*",
+        ctx -> {
+          if (ctx.method().equals("OPTIONS")) return;
+          UserType level = ctx.sessionAttribute("privilegeLevel");
+          if (level == null || level != UserType.Developer) {
+            throw new HttpResponseException(403, "Developer access required", new HashMap<>());
+          }
+        });
+    app.post("/api/dev/parse-pdf", pdfControllerV2.parsePdfFields);
+    app.post("/api/dev/create-application", formController.createApplication);
+    app.get("/api/dev/registry", formController.listRegistry);
+    app.get("/api/dev/registry/:id/detail", formController.getRegistryDetail);
+    app.put("/api/dev/registry/:id", formController.updateApplication);
+    app.delete("/api/dev/registry/:id", formController.deleteRegistryEntry);
+    app.get("/api/dev/file/:fileId/pdf", formController.servePdf);
+    app.post("/api/dev/promote", formController.promoteRegistry);
+    app.get(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.getInteractiveFormConfig);
+    app.put(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.upsertInteractiveFormConfig);
+    app.delete(
+        "/api/dev/interactive-form-config/:fileId",
+        formController.deleteInteractiveFormConfig);
 
     /* -------------- USER AUTHENTICATION/USER RELATED ROUTES-------------- */
     app.post("/login", userController.loginUser);
     app.post("/googleLoginRequest", userController.googleLoginRequestHandler);
     app.get("/googleLoginResponse", userController.googleLoginResponseHandler);
+    app.post("/microsoftLoginRequest", userController.microsoftLoginRequestHandler);
+    app.get("/microsoftLoginResponse", userController.microsoftLoginResponseHandler);
     app.get("/get-session-user", userController.getSessionUser);
     app.post("/authenticate", userController.authenticateUser);
     app.post("/create-user", userController.createNewUser);
     app.post("/create-invited-user", userController.createNewInvitedUser);
+    app.post("/enroll-client", userController.enrollClient);
+    app.post("/enroll-worker", userController.enrollWorker);
     app.get("/logout", userController.logout);
     app.post("/forgot-password", accountSecurityController.forgotPassword);
     app.post("/change-password", accountSecurityController.changePassword);
     app.post("/reset-password", accountSecurityController.resetPassword);
     app.post("/get-user-info", userController.getUserInfo);
     app.post("/get-organization-info", userController.getOrganizationInfo);
+    app.post("/update-organization-info", userController.updateOrganizationInfo);
     // New unified profile endpoints
     app.post("/update-user-profile", userController.updateUserProfile);
+    app.post("/update-profile-from-directives", userController.updateProfileFromDirectives);
     app.post("/send-email-login-instructions", userController.sendEmailLoginInstructions);
     app.post("/delete-profile-field", userController.deleteProfileField);
+    // Phone book endpoints
+    app.post("/get-phone-book", userController.getPhoneBook);
+    app.post("/add-phone-book-entry", userController.addPhoneBookEntry);
+    app.post("/update-phone-book-entry", userController.updatePhoneBookEntry);
+    app.post("/delete-phone-book-entry", userController.deletePhoneBookEntry);
+    app.post("/save-worker-notes", userController.saveWorkerNotes);
     app.post("/get-organization-members", userController.getMembers);
     app.post("/get-all-members-by-role", userController.getAllMembersByRole);
     app.post("/get-login-history", userController.getLogInHistory);
@@ -180,11 +250,12 @@ public class AppConfig {
     app.post("/load-pfp", userController.loadPfp);
     app.post("/username-exists", userController.usernameExists);
     app.post("/delete-user", userController.deleteUser);
+    app.post("/remove-organization-member", userController.removeOrganizationMember);
     app.post("/set-default-id", userController.setDefaultIds);
     app.post("/get-default-id", userController.getDefaultIds);
 
     /* -------------- ORGANIZATION SIGN UP ------------------ */
-    //    app.post("/organization-signup-validator", orgController.organizationSignupValidator);
+    app.post("/organization-signup-validator", orgController.organizationSignupValidator);
     app.post("/organization-signup", orgController.enrollOrganization);
 
     app.post("/invite-user", orgController.inviteUsers);
@@ -206,6 +277,7 @@ public class AppConfig {
 
     /* --------------- NOTIFICATION ROUTES ------------- */
     app.post("/notify-id-pickup", notificationController.notifyIdPickup);
+    app.post("/get-notification-history", notificationController.getNotificationHistory);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);
@@ -293,9 +365,24 @@ public class AppConfig {
     app.get("/get-weekly-uploaded-ids", fileController.getWeeklyUploadedIds);
 
     /* --------------- MAIL FORM FEATURES ------------- */
-    app.get("/get-form-mail-addresses", mailController.getFormMailAddresses);
     app.post("/submit-mail", mailController.saveMail);
+    app.post("/get-application-mail-info", mailController.getApplicationMailInfo);
+    app.post("/get-mail-history", mailController.getMailHistory);
+    app.post("/refresh-mail-status", mailController.refreshMailStatus);
+    app.post("/get-org-mail-summary", mailController.getOrgMailSummary);
+    app.start(portForDeployment(deploymentLevel));
     return app;
+  }
+
+  /** HTTP listen port for the given deployment level (used after routes and dependencies are wired). */
+  public static int portForDeployment(DeploymentLevel deploymentLevel) {
+    return switch (deploymentLevel) {
+      case STAGING, PRODUCTION -> SERVER_PORT;
+      case TEST -> SERVER_TEST_PORT;
+      default ->
+          throw new IllegalStateException(
+              "Remember to config your port according to: " + deploymentLevel);
+    };
   }
 
   public static void setApplicationHeaders(Javalin app) {
@@ -311,57 +398,48 @@ public class AppConfig {
   }
 
   public static Javalin createJavalinApp(DeploymentLevel deploymentLevel) {
-    int port;
-    switch (deploymentLevel) {
-      case STAGING:
-      case PRODUCTION:
-        port = SERVER_PORT;
-        break;
-      case TEST:
-        port = SERVER_TEST_PORT;
-        break;
-      default:
-        throw new IllegalStateException(
-            "Remember to config your port according to: " + deploymentLevel);
-    }
+    // Do not start the embedded server here. appFactory wires routes and dependencies first so a
+    // failure (e.g. missing env) does not leave a listening port or a started Jetty SessionHandler,
+    // which would break the next test's appFactory with IllegalStateException: STARTED.
     return Javalin.create(
-            config -> {
-              config.asyncRequestTimeout =
-                  ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
-              config.autogenerateEtags = false; // auto generate etags (default is false)
-              config.contextPath = "/"; // context path for the http servlet (default is "/")
-              config.defaultContentType =
-                  "text/plain"; // content type to use if no content type is set (default is
-              // "text/plain")
+        config -> {
+          config.asyncRequestTimeout =
+              ASYNC_TIME_OUT; // timeout for async requests (default is 0, no timeout)
+          config.autogenerateEtags = false; // auto generate etags (default is false)
+          config.contextPath = "/"; // context path for the http servlet (default is "/")
+          config.defaultContentType =
+              "text/plain"; // content type to use if no content type is set (default is
+          // "text/plain")
 
-              config.enableCorsForOrigin(
-                  "https://keep.id",
-                  "https://server.keep.id",
-                  "http://localhost",
-                  "http://localhost:3000",
-                  "https://staging.keep.id",
-                  "https://staged.keep.id",
-                  "127.0.0.1:3000");
+          config.enableCorsForOrigin(
+              "https://keep.id",
+              "https://server.keep.id",
+              "http://localhost",
+              "http://localhost:3000",
+              "http://localhost:5173",
+              "https://dev.keep.id",
+              "https://staging.keep.id",
+              "https://staged.keep.id",
+              "127.0.0.1:3000");
 
-              config.enableDevLogging();
-              config.enforceSsl = false;
-              // log a warning if user doesn't start javalin instance (default is true)
-              config.logIfServerNotStarted = true;
-              config.showJavalinBanner = false;
-              config.prefer405over404 =
-                  false; // send a 405 if handlers exist for different verb on the same path
-              config.sessionHandler(
-                  () -> {
-                    try {
-                      return SessionConfig.getSessionHandlerInstance(deploymentLevel);
-                    } catch (Exception e) {
-                      System.err.println("Unable to instantiate session handler.");
-                      e.printStackTrace();
-                      System.exit(1);
-                      return null;
-                    }
-                  });
-            })
-        .start(port);
+          config.enableDevLogging();
+          config.enforceSsl = false;
+          // log a warning if user doesn't start javalin instance (default is true)
+          config.logIfServerNotStarted = true;
+          config.showJavalinBanner = false;
+          config.prefer405over404 =
+              false; // send a 405 if handlers exist for different verb on the same path
+          config.sessionHandler(
+              () -> {
+                try {
+                  return SessionConfig.getSessionHandlerInstance(deploymentLevel);
+                } catch (Exception e) {
+                  System.err.println("Unable to instantiate session handler.");
+                  e.printStackTrace();
+                  System.exit(1);
+                  return null;
+                }
+              });
+        });
   }
 }

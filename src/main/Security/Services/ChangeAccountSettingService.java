@@ -6,8 +6,11 @@ import Config.Service;
 import Database.Activity.ActivityDao;
 import Database.User.UserDao;
 import Security.SecurityUtils;
+import User.Address;
+import User.Name;
 import User.User;
 import User.UserMessage;
+import User.UserType;
 import Validation.ValidationUtils;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,8 +52,11 @@ public class ChangeAccountSettingService implements Service {
       return UserMessage.USER_NOT_FOUND;
     }
     User user = userResult.get();
+    if ("birthDate".equals(key) && user.getUserType() == UserType.Client) {
+      return UserMessage.INSUFFICIENT_PRIVILEGE;
+    }
     JSONObject userAsJson = user.serialize();
-    String old = userAsJson.get(key).toString();
+    String old = userAsJson.has(key) ? userAsJson.get(key).toString() : "";
 
     String hash = user.getPassword();
     SecurityUtils.PassHashEnum verifyStatus = SecurityUtils.verifyPassword(password, hash);
@@ -65,13 +71,19 @@ public class ChangeAccountSettingService implements Service {
         if (!ValidationUtils.isValidFirstName(value)) {
           return UserMessage.INVALID_PARAMETER.withMessage("Invalid First Name");
         }
-        user.setFirstName(value);
+        Name name = user.getCurrentName();
+        if (name == null) name = new Name();
+        name.setFirst(value);
+        user.setCurrentName(name);
         break;
       case "lastName":
         if (!ValidationUtils.isValidLastName(value)) {
           return UserMessage.INVALID_PARAMETER.withMessage("Invalid Last Name");
         }
-        user.setLastName(value);
+        Name nameL = user.getCurrentName();
+        if (nameL == null) nameL = new Name();
+        nameL.setLast(value);
+        user.setCurrentName(nameL);
         break;
       case "birthDate":
         if (!ValidationUtils.isValidBirthDate(value)) {
@@ -92,28 +104,32 @@ public class ChangeAccountSettingService implements Service {
         user.setEmail(value);
         break;
       case "address":
-        if (!ValidationUtils.isValidAddress(value)) {
-          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Address");
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setLine1(value);
+          user.setPersonalAddress(addr);
         }
-        user.setAddress(value);
         break;
       case "city":
-        if (!ValidationUtils.isValidCity(value)) {
-          return UserMessage.INVALID_PARAMETER.withMessage("Invalid City Name");
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setCity(value);
+          user.setPersonalAddress(addr);
         }
-        user.setCity(value);
         break;
       case "state":
-        if (!ValidationUtils.isValidUSState(value)) {
-          return UserMessage.INVALID_PARAMETER.withMessage("Invalid US State");
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setState(value);
+          user.setPersonalAddress(addr);
         }
-        user.setState(value);
         break;
       case "zipcode":
-        if (!ValidationUtils.isValidZipCode(value)) {
-          return UserMessage.INVALID_PARAMETER.withMessage("Invalid Zip Code");
+        {
+          Address addr = user.getPersonalAddress() != null ? user.getPersonalAddress() : new Address();
+          addr.setZip(value);
+          user.setPersonalAddress(addr);
         }
-        user.setZipcode(value);
         break;
       default:
         return UserMessage.INVALID_PARAMETER;

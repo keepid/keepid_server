@@ -9,7 +9,11 @@ import Organization.Services.ListOrgsService;
 import Security.EmailSender;
 import Security.EmailSenderFactory;
 import Security.EncryptionUtils;
+import User.Address;
 import User.UserType;
+import Validation.ValidationException;
+import Validation.ValidationUtils;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +21,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Objects;
+import java.util.UUID;
+
+import static com.mongodb.client.model.Filters.eq;
 
 @Slf4j
 public class OrganizationController {
@@ -41,58 +48,51 @@ public class OrganizationController {
     this.activityDao = activityDao;
     this.emailSender = emailSender;
   }
-  //
-  //  public Handler organizationSignupValidator =
-  //      ctx -> {
-  //        logger.info("Starting organizationSignupValidator");
-  //        JSONObject req = new JSONObject(ctx.body());
-  //
-  //        logger.info("Getting fields from form");
-  //        String orgName = req.getString("organizationName").strip();
-  //        String orgWebsite = req.getString("organizationWebsite").toLowerCase().strip();
-  //        String orgEIN = req.getString("organizationEIN").strip();
-  //        String orgStreetAddress =
-  // req.getString("organizationAddressStreet").toUpperCase().strip();
-  //        String orgCity = req.getString("organizationAddressCity").toUpperCase().strip();
-  //        String orgState = req.getString("organizationAddressState").toUpperCase().strip();
-  //        String orgZipcode = req.getString("organizationAddressZipcode").strip();
-  //        String orgEmail = req.getString("organizationEmail").strip();
-  //        String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
-  //
-  //        logger.info("Checking for existing organizations");
-  //        MongoCollection<Organization> orgCollection =
-  //            db.getCollection("organization", Organization.class);
-  //        Organization existingOrg = orgCollection.find(eq("orgName", orgName)).first();
-  //
-  //        if (existingOrg != null) {
-  //          logger.error("Attempted to sign-up org that already exists");
-  //          ctx.json(OrgEnrollmentStatus.ORG_EXISTS.toJSON().toString());
-  //          return;
-  //        }
-  //
-  //        logger.info("Trying to create organization");
-  //        try {
-  //          new Organization(
-  //              orgName,
-  //              orgWebsite,
-  //              orgEIN,
-  //              orgStreetAddress,
-  //              orgCity,
-  //              orgState,
-  //              orgZipcode,
-  //              orgEmail,
-  //              orgPhoneNumber);
-  //          ctx.json(
-  //              OrganizationValidationMessage.toOrganizationMessageJSON(
-  //                      OrganizationValidationMessage.VALID)
-  //                  .toString());
-  //          logger.info("Organization created");
-  //        } catch (ValidationException ve) {
-  //          logger.error("Couldn't create organization object");
-  //          ctx.json(ve.getJSON().toString());
-  //        }
-  //        logger.info("Done with organizationSignupValidator");
-  //      };
+  
+  public Handler organizationSignupValidator =
+      ctx -> {
+        log.info("Starting organizationSignupValidator");
+        JSONObject req = new JSONObject(ctx.body());
+
+        String orgName = req.getString("organizationName").strip();
+        String orgWebsite = req.getString("organizationWebsite").toLowerCase().strip();
+        String orgEIN = req.getString("organizationEIN").strip();
+        String orgStreetAddress = req.getString("organizationAddressStreet").toUpperCase().strip();
+        String orgCity = req.getString("organizationAddressCity").toUpperCase().strip();
+        String orgState = req.getString("organizationAddressState").toUpperCase().strip();
+        String orgZipcode = req.getString("organizationAddressZipcode").strip();
+        String orgEmail = req.getString("organizationEmail").strip();
+        String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
+
+        log.info("Checking for existing organizations");
+        MongoCollection<Organization> orgCollection = db.getCollection("organization", Organization.class);
+        Organization existingOrg = orgCollection.find(eq("orgName", orgName)).first();
+
+        if (existingOrg != null) {
+          log.error("Attempted to sign-up org that already exists");
+          ctx.result(OrgEnrollmentStatus.ORG_EXISTS.toJSON().toString());
+          return;
+        }
+
+        log.info("Trying to create organization");
+        try {
+          new Organization(
+              orgName,
+              orgWebsite,
+              orgEIN,
+              new Address(orgStreetAddress, orgCity, orgState, orgZipcode),
+              orgEmail,
+              orgPhoneNumber);
+          ctx.result(
+              OrganizationValidationMessage.toOrganizationMessageJSON(OrganizationValidationMessage.VALID)
+                  .toString());
+          log.info("Organization created");
+        } catch (ValidationException ve) {
+          log.error("Couldn't create organization object");
+          ctx.result(ve.getJSON().toString());
+        }
+        log.info("Done with organizationSignupValidator");
+      };
 
   // Takes in a json object specifying
   // s and orgnames
@@ -136,14 +136,28 @@ public class OrganizationController {
         String firstName = req.getString("firstname").toUpperCase().strip();
         String lastName = req.getString("lastname").toUpperCase().strip();
         String birthDate = req.getString("birthDate").strip();
-        String email = req.getString("organizationEmail").toLowerCase().strip();
-        String phone = req.getString("phonenumber").strip();
-        String address = req.getString("address").toUpperCase().strip();
-        String city = req.getString("city").toUpperCase().strip();
-        String state = req.getString("state").toUpperCase().strip();
-        String zipcode = req.getString("zipcode").strip();
-        Boolean twoFactorOn = req.getBoolean("twoFactorOn");
-        String username = req.getString("username").strip();
+        String orgEmail = req.getString("organizationEmail").toLowerCase().strip();
+        String accountEmail = req.optString("email", "").toLowerCase().strip();
+        String email = accountEmail.isEmpty() ? orgEmail : accountEmail;
+        String phone = req.optString("phonenumber", "").strip();
+        String address = req.optString("address", "").toUpperCase().strip();
+        String city = req.optString("city", "").toUpperCase().strip();
+        String state = req.optString("state", "").toUpperCase().strip();
+        String zipcode = req.optString("zipcode", "").strip();
+        Boolean twoFactorOn = req.optBoolean("twoFactorOn", false);
+        String username = req.optString("username", "").strip();
+        if (username.isEmpty()) {
+          String dobCompact = birthDate.replace("-", "");
+          String randomSuffix = UUID.randomUUID().toString().substring(0, 4);
+          username =
+              ValidationUtils.slugForEnrollmentUsernameSegment(firstName)
+                  + "-"
+                  + ValidationUtils.slugForEnrollmentUsernameSegment(lastName)
+                  + "-"
+                  + dobCompact
+                  + "-"
+                  + randomSuffix;
+        }
         String password = req.getString("password").strip();
         UserType userLevel = UserType.Admin;
 
@@ -154,7 +168,7 @@ public class OrganizationController {
         String orgCity = req.getString("organizationAddressCity").toUpperCase().strip();
         String orgState = req.getString("organizationAddressState").toUpperCase().strip();
         String orgZipcode = req.getString("organizationAddressZipcode").strip();
-        String orgEmail = req.getString("organizationEmail").strip();
+        Address orgAddress = new Address(orgStreetAddress, orgCity, orgState, orgZipcode);
         String orgPhoneNumber = req.getString("organizationPhoneNumber").strip();
 
         EnrollOrganizationService eoService =
@@ -177,10 +191,7 @@ public class OrganizationController {
                 orgName,
                 orgWebsite,
                 orgEIN,
-                orgStreetAddress,
-                orgCity,
-                orgState,
-                orgZipcode,
+                orgAddress,
                 orgEmail,
                 orgPhoneNumber);
         ctx.result(eoService.executeAndGetResponse().toJSON().toString());

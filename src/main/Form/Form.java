@@ -49,7 +49,12 @@ public class Form implements Comparable<Form> {
   @BsonProperty(value = "condition")
   private String condition;
 
-  public Form() {}
+  @BsonProperty(value = "applicationMetadata")
+  private Map<String, String> applicationMetadata;
+
+  public Form() {
+    this.applicationMetadata = new HashMap<>();
+  }
 
   @Override
   public int compareTo(@NotNull Form otherForm) {
@@ -79,6 +84,7 @@ public class Form implements Comparable<Form> {
     this.condition = condition;
     this.conditionalFieldId = conditionalFieldId;
     this.body = body;
+    this.applicationMetadata = new HashMap<>();
   }
 
   /** **************** GETTERS ********************* */
@@ -175,6 +181,14 @@ public class Form implements Comparable<Form> {
     this.condition = condition;
   }
 
+  public Map<String, String> getApplicationMetadata() {
+    return applicationMetadata != null ? applicationMetadata : new HashMap<>();
+  }
+
+  public void setApplicationMetadata(Map<String, String> applicationMetadata) {
+    this.applicationMetadata = applicationMetadata;
+  }
+
   // Create a json string from the object
   public JSONObject toJSON() {
     Gson gson = new Gson();
@@ -240,11 +254,13 @@ public class Form implements Comparable<Form> {
       //              question.getBoolean("matched"),
       //              new ObjectId(),
       //              question.getString("conditionalType"));
+      String directive = question.optString("directive", null);
       FormQuestion formQuestion =
           new FormQuestion(
               new ObjectId(),
               FieldType.createFromString(question.getString("type")),
               question.getString("questionName"),
+              directive,
               question.getString("questionText"),
               "",
               question.getJSONArray("options").toList().stream()

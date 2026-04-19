@@ -2,6 +2,8 @@ package File.Services;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.or;
 
 import Config.Message;
 import Config.Service;
@@ -12,6 +14,7 @@ import File.FileType;
 import User.UserType;
 import java.util.Objects;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -19,6 +22,7 @@ public class GetFilesInformationService implements Service {
   private FileDao fileDao;
   private String username;
   private String orgName;
+  private ObjectId organizationId;
   private UserType userType;
   private FileType fileType;
   private JSONArray files;
@@ -28,12 +32,14 @@ public class GetFilesInformationService implements Service {
       FileDao fileDao,
       String username,
       String orgName,
+      ObjectId organizationId,
       UserType userType,
       FileType fileType,
       boolean annotated) {
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
+    this.organizationId = organizationId;
     this.userType = userType;
     this.fileType = fileType;
     this.annotated = annotated;
@@ -52,9 +58,13 @@ public class GetFilesInformationService implements Service {
                   || userType == UserType.Admin
                   || userType == UserType.Worker)) {
             filter =
-                and(
-                    eq("organizationName", orgName),
-                    eq("fileType", FileType.APPLICATION_PDF.toString()));
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("fileType", FileType.APPLICATION_PDF.toString()))
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("fileType", FileType.APPLICATION_PDF.toString()));
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.APPLICATION_PDF
               && userType == UserType.Client) {
@@ -80,10 +90,29 @@ public class GetFilesInformationService implements Service {
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.FORM) {
             filter =
-                and(
-                    eq("organizationName", orgName),
-                    eq("annotated", annotated),
-                    eq("fileType", FileType.FORM.toString()));
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("annotated", annotated),
+                        eq("fileType", FileType.FORM.toString()))
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("annotated", annotated),
+                        eq("fileType", FileType.FORM.toString()));
+            return getAllFiles(filter, fileType, fileDao);
+          } else if (fileType == FileType.ORG_DOCUMENT) {
+            Bson applicationScopeFilter =
+                or(eq("applicationScopedAttachment", false), exists("applicationScopedAttachment", false));
+            filter =
+                organizationId != null
+                    ? and(
+                        eq("organizationId", organizationId),
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()),
+                        applicationScopeFilter)
+                    : and(
+                        eq("organizationName", orgName),
+                        eq("fileType", FileType.ORG_DOCUMENT.toString()),
+                        applicationScopeFilter);
             return getAllFiles(filter, fileType, fileDao);
           } else {
             return FileMessage.INSUFFICIENT_PRIVILEGE;
@@ -126,6 +155,11 @@ public class GetFilesInformationService implements Service {
           }
           fileMetadata.put("annotated", file_out.isAnnotated());
         } else if (fileType == FileType.APPLICATION_PDF) {
+          fileMetadata.put("filename", file_out.getFilename());
+          if (file_out.getPacketId() != null) {
+            fileMetadata.put("packetId", file_out.getPacketId().toString());
+          }
+        } else if (fileType == FileType.ORG_DOCUMENT) {
           fileMetadata.put("filename", file_out.getFilename());
         } else if (fileType == FileType.IDENTIFICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());

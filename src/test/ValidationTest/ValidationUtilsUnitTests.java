@@ -3,6 +3,7 @@ package ValidationTest;
 import Validation.ValidationUtils;
 import org.junit.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -174,6 +175,24 @@ public class ValidationUtilsUnitTests {
     assertFalse(ValidationUtils.isValidUsername("1234%"));
     assertFalse(ValidationUtils.isValidUsername(" "));
     assertFalse(ValidationUtils.isValidUsername(null));
+  }
+
+  @Test
+  public void slugForEnrollmentUsernameSegmentTest() {
+    assertEquals("mary-ann", ValidationUtils.slugForEnrollmentUsernameSegment("Mary Ann"));
+    assertEquals("van-der-berg", ValidationUtils.slugForEnrollmentUsernameSegment("Van Der Berg"));
+    assertEquals("obrien", ValidationUtils.slugForEnrollmentUsernameSegment("O'Brien"));
+    assertEquals("smith-jones", ValidationUtils.slugForEnrollmentUsernameSegment("Smith-Jones"));
+    assertEquals("josé", ValidationUtils.slugForEnrollmentUsernameSegment("  José  "));
+    String composed =
+        ValidationUtils.slugForEnrollmentUsernameSegment("Mary Ann")
+            + "-"
+            + ValidationUtils.slugForEnrollmentUsernameSegment("Van Der Berg")
+            + "-"
+            + "04081991"
+            + "-"
+            + "a1b2";
+    assertTrue(ValidationUtils.isValidUsername(composed));
   }
 
   @Test

@@ -90,6 +90,7 @@ public class SecurityUtils {
       String role,
       String subject,
       String org,
+      String organizationIdHex,
       long ttlMillis)
       throws IOException {
     // Using the PASSWORD_RESET_KEY for now
@@ -116,6 +117,7 @@ public class SecurityUtils {
             .claim("lastName", lastName)
             .claim("role", role)
             .claim("organization", org)
+            .claim("organizationId", organizationIdHex)
             .signWith(signatureAlgorithm, signingKey);
 
     // Set the Expiration

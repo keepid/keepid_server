@@ -1,5 +1,6 @@
 package UserTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import Activity.UserActivity.UserInformationActivity.ChangeUserAttributesActivity;
@@ -13,6 +14,7 @@ import Database.User.UserDaoFactory;
 import TestUtils.EntityFactory;
 import TestUtils.TestUtils;
 import User.User;
+import User.UserType;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import kong.unirest.HttpResponse;
@@ -51,32 +53,27 @@ public class ChangeAccountSettingsIntegrationTests {
     User user = userDao.get(username).orElseThrow();
     switch (attribute) {
       case "firstName":
-        String currentFirstName = user.getFirstName();
-        return (currentFirstName.equals(possibleValue));
+        return user.getFirstName() != null && user.getFirstName().equals(possibleValue);
       case "lastName":
-        String currentLastName = user.getLastName();
-        return (currentLastName.equals(possibleValue));
+        return user.getLastName() != null && user.getLastName().equals(possibleValue);
       case "birthDate":
-        String currentBirthDate = user.getBirthDate();
-        return (currentBirthDate.equals(possibleValue));
+        return user.getBirthDate() != null && user.getBirthDate().equals(possibleValue);
       case "phone":
-        String currentPhone = user.getPhone();
-        return (currentPhone.equals(possibleValue));
+        return user.getPhone() != null && user.getPhone().equals(possibleValue);
       case "email":
-        String currentEmail = user.getEmail();
-        return (currentEmail.equals(possibleValue));
+        return user.getEmail() != null && user.getEmail().equals(possibleValue);
       case "address":
-        String currentAddress = user.getAddress();
-        return (currentAddress.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getLine1() != null
+            && user.getPersonalAddress().getLine1().equals(possibleValue);
       case "city":
-        String currentCity = user.getCity();
-        return (currentCity.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getCity() != null
+            && user.getPersonalAddress().getCity().equals(possibleValue);
       case "state":
-        String currentState = user.getState();
-        return (currentState.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getState() != null
+            && user.getPersonalAddress().getState().equals(possibleValue);
       case "zipcode":
-        String currentZipcode = user.getZipcode();
-        return (currentZipcode.equals(possibleValue));
+        return user.getPersonalAddress() != null && user.getPersonalAddress().getZip() != null
+            && user.getPersonalAddress().getZip().equals(possibleValue);
       default:
         return false;
     }
@@ -154,6 +151,7 @@ public class ChangeAccountSettingsIntegrationTests {
         .withUsername(username)
         .withPasswordToHash(password)
         .withBirthDate("01-25-1965")
+        .withUserType(UserType.Worker)
         .buildAndPersist(userDao);
 
     String newBirthDate = "05-23-2002";
@@ -178,6 +176,34 @@ public class ChangeAccountSettingsIntegrationTests {
         .toString()
         .contains(ChangeUserAttributesActivity.class.getSimpleName()));
     assert (isCorrectAttribute(username, "birthDate", newBirthDate));
+  }
+
+  @Test
+  public void changeBirthDateRejectedForClient() {
+    String username = "account-settings-client-birth";
+    String password = "account-settings-test-password";
+    EntityFactory.createUser()
+        .withUsername(username)
+        .withPasswordToHash(password)
+        .withBirthDate("01-25-1965")
+        .withUserType(UserType.Client)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(username, password);
+
+    JSONObject requestPayload =
+        new JSONObject()
+            .put("password", password)
+            .put("key", "birthDate")
+            .put("value", "05-23-2002");
+
+    HttpResponse<String> response =
+        Unirest.post(TestUtils.getServerUrl() + "/change-account-setting")
+            .body(requestPayload.toString())
+            .asString();
+
+    JSONObject responseJson = TestUtils.responseStringToJSON(response.getBody());
+    assertThat(responseJson.getString("status")).isEqualTo("INSUFFICIENT_PRIVILEGE");
   }
 
   @Test

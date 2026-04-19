@@ -1,6 +1,8 @@
 package Mail;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.codecs.pojo.annotations.BsonProperty;
@@ -17,12 +19,37 @@ public class Mail {
   FormMailAddress mailingAddress;
 
   @BsonProperty(value = "mailStatus")
-  MailStatus mailStatus; // CREATED, FAILED, MAILED
+  MailStatus mailStatus;
 
   String lobId;
   Date lobCreatedAt;
   String targetUsername;
   String requesterUsername;
+
+  @BsonProperty(value = "expectedDeliveryDate")
+  String expectedDeliveryDate;
+
+  @BsonProperty(value = "trackingEvents")
+  List<TrackingEvent> trackingEvents;
+
+  @BsonProperty(value = "lobStatus")
+  String lobStatus;
+
+  @BsonProperty(value = "costCents")
+  int costCents;
+
+  @BsonProperty(value = "mailType")
+  String mailType;
+
+  @BsonProperty(value = "checkAmount")
+  String checkAmount;
+
+  @BsonProperty(value = "organizationName")
+  String organizationName;
+
+  public Mail() {
+    this.trackingEvents = new ArrayList<>();
+  }
 
   public Mail(
       ObjectId fileId,
@@ -37,6 +64,10 @@ public class Mail {
     this.lobCreatedAt = null;
     this.targetUsername = targetUsername;
     this.requesterUsername = requesterUsername;
+    this.trackingEvents = new ArrayList<>();
+    this.checkAmount = mailingAddress.getMaybeCheckAmount().toPlainString();
+    this.mailType =
+        mailingAddress.getMaybeCheckAmount().signum() > 0 ? "check" : "letter";
   }
 
   public ObjectId getId() {
@@ -67,36 +98,74 @@ public class Mail {
     return lobCreatedAt;
   }
 
-  public void setLobId(String id) {
-    this.lobId = id;
-  }
-
-  public void setLobCreatedAt(Date lobCreatedAt) {
-    this.lobCreatedAt = lobCreatedAt;
-  }
-
   public ObjectId getFileId() {
     return this.fileId;
   }
 
-  public void setMailStatus(MailStatus mailStatus) {
-    this.mailStatus = mailStatus;
+  public String getExpectedDeliveryDate() {
+    return expectedDeliveryDate;
   }
 
-  // First, Daniel calls this get all endpoint for all the form mail addresses
-  // he will select one and return it in the response
+  public List<TrackingEvent> getTrackingEvents() {
+    return trackingEvents != null ? trackingEvents : new ArrayList<>();
+  }
 
-  // retrieve information from frontend api
-  // then, save the information into a Mail object with the correct FormMailAddress
-  // validate this form to make sure that it matches with the possible form mail address
-  // after validated, save the Mail object and then trigger Lob api request at
-  // https://docs.lob.com/#tag/Letters/operation/letter_create
-  // once Lob api request is returned, populate respective lob fields from lob, such as lob_id and
-  // lob_created_at
-  // start first in the sandbox lob environment, we should have a lob account and Connor will send
-  // you the credentials
-  // from there, test a couple of mail forms and see if they are going to the correct address
+  public String getLobStatus() {
+    return lobStatus;
+  }
 
-  // want a delete method, hook that up to lob just in case we want to cancel/delete a mailed form
+  public int getCostCents() {
+    return costCents;
+  }
 
+  public String getMailType() {
+    return mailType;
+  }
+
+  public String getCheckAmount() {
+    return checkAmount;
+  }
+
+  public String getOrganizationName() {
+    return organizationName;
+  }
+
+  public void applyResult(MailResult result) {
+    this.lobId = result.getLobId();
+    this.lobCreatedAt = result.getLobCreatedAt();
+    this.mailStatus = MailStatus.MAILED;
+    this.expectedDeliveryDate = result.getExpectedDeliveryDate();
+    this.lobStatus = result.getLobStatus();
+    this.trackingEvents = result.getTrackingEvents();
+    if (result.getMailType() != null) {
+      this.mailType = result.getMailType();
+    }
+  }
+
+  public void applyRefreshResult(MailResult result) {
+    this.expectedDeliveryDate = result.getExpectedDeliveryDate();
+    this.lobStatus = result.getLobStatus();
+    this.trackingEvents = result.getTrackingEvents();
+    updateMailStatusFromTracking();
+  }
+
+  private void updateMailStatusFromTracking() {
+    if (trackingEvents == null || trackingEvents.isEmpty()) return;
+    for (TrackingEvent event : trackingEvents) {
+      if ("Delivered".equalsIgnoreCase(event.getType())
+          || "Delivered".equalsIgnoreCase(event.getName())) {
+        this.mailStatus = MailStatus.DELIVERED;
+        return;
+      }
+    }
+    for (TrackingEvent event : trackingEvents) {
+      String type = event.getType();
+      if ("In Transit".equalsIgnoreCase(type)
+          || "In Local Area".equalsIgnoreCase(type)
+          || "Processed for Delivery".equalsIgnoreCase(type)) {
+        this.mailStatus = MailStatus.IN_TRANSIT;
+        return;
+      }
+    }
+  }
 }

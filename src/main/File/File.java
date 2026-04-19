@@ -21,6 +21,11 @@ public class File {
   @Getter @Setter private Date uploadedAt;
   @Getter @Setter private String username;
   @Getter @Setter private String organizationName;
+  @Getter @Setter private ObjectId organizationId;
+  @Getter @Setter private ObjectId packetId;
+  @Getter @Setter private boolean applicationScopedAttachment;
+  @Getter @Setter private ObjectId sourceOrgDocumentId;
+  @Getter @Setter private ObjectId attachedApplicationId;
 
   @Getter
   @Setter
@@ -71,6 +76,7 @@ public class File {
     this.organizationName = organizationName;
     this.isAnnotated = isAnnotated;
     this.contentType = contentType;
+    this.applicationScopedAttachment = false;
   }
 
   @Override
@@ -86,7 +92,12 @@ public class File {
         && idCategory == file.idCategory
         && uploadedAt.equals(file.uploadedAt)
         && username.equals(file.username)
-        && organizationName.equals(file.organizationName)
+        && Objects.equals(organizationName, file.organizationName)
+        && Objects.equals(organizationId, file.organizationId)
+        && Objects.equals(packetId, file.packetId)
+        && applicationScopedAttachment == file.applicationScopedAttachment
+        && Objects.equals(sourceOrgDocumentId, file.sourceOrgDocumentId)
+        && Objects.equals(attachedApplicationId, file.attachedApplicationId)
         && contentType.equals(file.contentType);
   }
 
@@ -101,6 +112,11 @@ public class File {
         uploadedAt,
         username,
         organizationName,
+        organizationId,
+        packetId,
+        applicationScopedAttachment,
+        sourceOrgDocumentId,
+        attachedApplicationId,
         isAnnotated,
         contentType);
   }
@@ -129,6 +145,14 @@ public class File {
         + '\''
         + ", isAnnotated="
         + isAnnotated
+        + ", applicationScopedAttachment="
+        + applicationScopedAttachment
+        + ", sourceOrgDocumentId="
+        + sourceOrgDocumentId
+        + ", attachedApplicationId="
+        + attachedApplicationId
+        + ", packetId="
+        + packetId
         + ", contentType='"
         + contentType
         + '\''

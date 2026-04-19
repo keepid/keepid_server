@@ -64,7 +64,11 @@ public class GetMembersService implements Service {
     // Fuzzy search to rank results by threshold
     List<BoundExtractedResult<User>> users =
         FuzzySearch.extractSorted(
-            searchValue, allUsers, x -> x.getFirstName() + " " + x.getLastName());
+            searchValue, allUsers, x -> {
+              String first = x.getFirstName() != null ? x.getFirstName() : "";
+              String last = x.getLastName() != null ? x.getLastName() : "";
+              return first + " " + last;
+            });
 
     int numReturnedElements = 0;
     for (BoundExtractedResult<User> user : users) {

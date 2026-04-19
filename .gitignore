@@ -47,3 +47,30 @@ key.json
 secretkeys.properties
 
 Face to Face Birth Certificate Clinic Signups.csv
+
+# --- Agent (auto-added by setup.sh) ---
+agent-logs/
+.agent-stop
+.claude/settings.local.json
+.claude/journal.md
+.claude/session-stats.log
+
+.claude/
+BACKLOG.md
+MISSION.md
+CLAUDE.md
+start-agent.sh
+setup (1).sh
+stop-agent.sh
+scripts/
+docs/
+
+claude/
+CLAUDE.md
+BACKLOG.md
+MISSION.md
+scripts/
+agents/
+start-agent.sh
+stop-agent.sh
+WALKTHROUGH.md

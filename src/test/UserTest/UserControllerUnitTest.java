@@ -1,5 +1,7 @@
 package UserTest;
 
+import User.Address;
+import User.Name;
 import User.User;
 import User.UserType;
 import Validation.ValidationException;
@@ -22,21 +24,17 @@ public class UserControllerUnitTest {
             ValidationException.class,
             () -> {
               User user =
-                      new User(
-                              null,
-                              "Lastname",
-                              "12/14/1997",
-                              "email@email.com",
-                              "1234567890",
-                              "Broad Street Ministry",
-                              "311 Broad Street",
-                              "Philadelphia",
-                              "PA",
-                              "19104",
-                              true,
-                              "username",
-                              "password",
-                              UserType.Director);
+                  new User(
+                      null,
+                      "12/14/1997",
+                      "email@email.com",
+                      "1234567890",
+                      "Broad Street Ministry",
+                      new Address("311 Broad Street", "Philadelphia", "PA", "19104"),
+                      true,
+                      "username",
+                      "password",
+                      UserType.Director);
             });
 
     JSONObject expectedJSON =
@@ -54,21 +52,17 @@ public class UserControllerUnitTest {
             ValidationException.class,
             () -> {
               User user =
-                      new User(
-                              "",
-                              "Lastname",
-                              "12/14/1997",
-                              "email@email.com",
-                              "1234567890",
-                              "Broad Street Ministry",
-                              "311 Broad Street",
-                              "Philadelphia",
-                              "PA",
-                              "19104",
-                              true,
-                              "username",
-                              "password",
-                              UserType.Director);
+                  new User(
+                      new Name("", "Lastname"),
+                      "12/14/1997",
+                      "email@email.com",
+                      "1234567890",
+                      "Broad Street Ministry",
+                      new Address("311 Broad Street", "Philadelphia", "PA", "19104"),
+                      true,
+                      "username",
+                      "password",
+                      UserType.Director);
             });
 
     JSONObject expectedJSON =
@@ -83,21 +77,17 @@ public class UserControllerUnitTest {
   @Test
   public void checkCreationDate() throws ValidationException {
     User user =
-            new User(
-                    "Firstname",
-                    "Lastname",
-                    "12-14-1997",
-                    "email@email.com",
-                    "1234567890",
-                    "Broad Street Ministry",
-                    "311 Broad Street",
-                    "Philadelphia",
-                    "PA",
-                    "19104",
-                    true,
-                    "username",
-                    "password",
-                    UserType.Director);
+        new User(
+            new Name("Firstname", "Lastname"),
+            "12-14-1997",
+            "email@email.com",
+            "1234567890",
+            "Broad Street Ministry",
+            new Address("311 Broad Street", "Philadelphia", "PA", "19104"),
+            true,
+            "username",
+            "password",
+            UserType.Director);
 
     Date currDate = new Date();
     Calendar cal = Calendar.getInstance();

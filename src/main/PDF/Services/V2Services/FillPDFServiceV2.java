@@ -7,6 +7,7 @@ import Database.Form.FormDao;
 import File.File;
 import File.FileType;
 import File.IdCategoryType;
+import Form.FieldType;
 import Form.Form;
 import Form.FormMetadata;
 import Form.FormQuestion;
@@ -16,15 +17,22 @@ import PDF.PdfControllerV2.FileParams;
 import PDF.PdfControllerV2.UserParams;
 import PDF.PdfMessage;
 import Security.EncryptionController;
+import Security.FileStorageCryptoPolicy;
+import Security.OrganizationCryptoAad;
 import User.UserType;
 import Validation.ValidationUtils;
 import java.io.*;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.PDSignature;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.visible.PDVisibleSigProperties;
@@ -36,6 +44,43 @@ import org.json.JSONObject;
 
 @Slf4j
 public class FillPDFServiceV2 implements Service {
+  /** Target pt size when the field box is tall enough; capped per-widget to avoid clipping. */
+  private static final int DEFAULT_FONT_SIZE = 14;
+  private static final int MIN_FONT_SIZE = 8;
+  /** Fraction of widget height used as max font size (ascenders + PDFBox baseline leave little margin). */
+  private static final float FIELD_HEIGHT_FONT_RATIO = 0.58f;
+  private static final String AGENT_DEBUG_LOG =
+      "/Users/danieljoo/Code/KeepID/keepid_workspace/keepid_server/.cursor/debug-08d1d5.log";
+  private static final Logger AGENT_LOGGER = LoggerFactory.getLogger(FillPDFServiceV2.class);
+
+  // #region agent log
+  private transient int debugAnswerKeysIterated;
+  private transient int debugAcroFieldNull;
+  private transient int debugFontCalls;
+  private transient int debugDaRegexNoop;
+  private transient boolean debugPostSetValueLogged;
+  private transient int debugSetFontDetailSamples;
+
+  private static void agentDebugLog(String hypothesisId, String location, String message, JSONObject data) {
+    try {
+      JSONObject line = new JSONObject();
+      line.put("sessionId", "08d1d5");
+      line.put("hypothesisId", hypothesisId);
+      line.put("location", location);
+      line.put("message", message);
+      line.put("data", data != null ? data : new JSONObject());
+      line.put("timestamp", System.currentTimeMillis());
+      try (FileWriter fw = new FileWriter(AGENT_DEBUG_LOG, StandardCharsets.UTF_8, true)) {
+        fw.write(line.toString());
+        fw.write('\n');
+      }
+      AGENT_LOGGER.info("AGENT_DEBUG {}", line.toString());
+    } catch (Exception ignored) {
+    }
+  }
+
+  // #endregion
+
   private FileDao fileDao;
   private FormDao formDao;
   private String username;
@@ -46,13 +91,14 @@ public class FillPDFServiceV2 implements Service {
   private InputStream signatureStream;
   private InputStream filledFileStream;
   private File templateFile;
-  private Form templateForm;
   private File filledFile;
   private Form filledForm;
   private FormSection filledFormBody;
   private PDDocument pdfDocument;
   private EncryptionController encryptionController;
   private ByteArrayOutputStream filledFileOutputStream;
+  private boolean preview;
+  private ObjectId requesterOrganizationId;
 
   public FillPDFServiceV2(
       FileDao fileDao,
@@ -65,10 +111,12 @@ public class FillPDFServiceV2 implements Service {
     this.username = userParams.getUsername();
     this.organizationName = userParams.getOrganizationName();
     this.privilegeLevel = userParams.getPrivilegeLevel();
+    this.requesterOrganizationId = userParams.getOrganizationId();
     this.fileId = fileParams.getFileId();
     this.formAnswers = fileParams.getFormAnswers();
     this.signatureStream = fileParams.getSignatureStream();
     this.encryptionController = encryptionController;
+    this.preview = fileParams.isPreview();
   }
 
   // FILE STREAM MUST BE CLOSED EXTERNALLY
@@ -86,6 +134,15 @@ public class FillPDFServiceV2 implements Service {
 
   @Override
   public Message executeAndGetResponse() {
+    // #region agent log
+    agentDebugLog(
+        "A",
+        "FillPDFServiceV2.executeAndGetResponse",
+        "service entry",
+        new JSONObject()
+            .put("preview", preview)
+            .put("fileIdLen", fileId != null ? fileId.length() : 0));
+    // #endregion
     Message FillPDFConditionsErrorMessage = checkFillConditions();
     if (FillPDFConditionsErrorMessage != null) {
       return FillPDFConditionsErrorMessage;
@@ -103,109 +160,284 @@ public class FillPDFServiceV2 implements Service {
     if (privilegeLevel == null) {
       return PdfMessage.INVALID_PRIVILEGE_TYPE;
     }
-    if (privilegeLevel == UserType.Developer) {
+    if (privilegeLevel == UserType.Developer && !preview) {
       return PdfMessage.INSUFFICIENT_PRIVILEGE;
     }
     return null;
   }
 
-  public void setPDFFieldsFromFormQuestions(List<FormQuestion> formQuestions, PDAcroForm acroForm)
-      throws IOException {
+  /**
+   * Fills PDF fields directly from formAnswers. No Form/templateForm dependency.
+   * Iterates formAnswers keys, looks up each field in the PDF AcroForm, and fills it.
+   * Also builds filledFormBody (FormQuestion records) for the filledForm that gets saved on upload.
+   */
+  public void fillFieldsFromAnswers(PDAcroForm acroForm) throws IOException {
+    debugAnswerKeysIterated = 0;
+    debugAcroFieldNull = 0;
+    debugFontCalls = 0;
+    debugDaRegexNoop = 0;
+    debugPostSetValueLogged = false;
+    debugSetFontDetailSamples = 0;
+
     List<FormQuestion> filledFormBodyQuestions = new LinkedList<>();
-    for (FormQuestion formQuestion : formQuestions) {
-      String fieldName = formQuestion.getQuestionName();
-      if (!formAnswers.has(fieldName)) {
-        continue;
-      }
-      String formAnswerText = String.valueOf(formAnswers.get(fieldName));
+    String sectionTitle = this.templateFile != null ? this.templateFile.getFilename() + " Form" : "Form";
+    String sectionDesc = "";
 
-      // Skip null / empty answers -- leave the PDF field untouched for fields the user didn't fill
-      if (formAnswerText == null || formAnswerText.isEmpty() || formAnswerText.equals("null")) {
-        continue;
-      }
+    for (String key : formAnswers.keySet()) {
+      if ("metadata".equals(key)) continue;
+      String answerText = String.valueOf(formAnswers.get(key));
+      if (answerText == null || answerText.isEmpty() || answerText.equals("null")) continue;
 
-      formQuestion.setAnswerText(formAnswerText);
-      FormQuestion filledFormNewQuestion = formQuestion.copyOfFormQuestion();
-      PDField field = acroForm.getField(formQuestion.getQuestionName());
-
-      // If the field doesn't exist in the PDF, just record the answer and move on
+      debugAnswerKeysIterated++;
+      PDField field = acroForm.getField(key);
       if (field == null) {
-        filledFormBodyQuestions.add(filledFormNewQuestion);
+        debugAcroFieldNull++;
         continue;
       }
+
+      FormQuestion record = new FormQuestion(
+          new ObjectId(), FieldType.TEXT_FIELD, key, null,
+          key, "", new ArrayList<>(), "", false, 3, false,
+          new ObjectId(), "NONE");
+      record.setAnswerText(answerText);
 
       try {
-        if (field instanceof PDButton) {
-          if (field instanceof PDCheckBox) {
-            PDCheckBox checkBoxField = (PDCheckBox) field;
-            boolean fieldAnswer = Boolean.parseBoolean(formQuestion.getAnswerText());
-            filledFormNewQuestion.setAnswerText(Boolean.toString(fieldAnswer));
-            if (fieldAnswer) {
-              checkBoxField.check();
-            } else {
-              checkBoxField.unCheck();
-            }
-          } else if (field instanceof PDPushButton) {
-            // Do nothing. Maybe in the future make it clickable
-            continue;
-          } else if (field instanceof PDRadioButton) {
-            PDRadioButton radioButtonField = (PDRadioButton) field;
-            String fieldAnswer = formQuestion.getAnswerText();
-            // Skip invalid radio button values (empty, "Off", or values not in the option set)
-            if (fieldAnswer == null || fieldAnswer.isEmpty() || fieldAnswer.equals("Off")) {
-              continue;
-            }
-            filledFormNewQuestion.setAnswerText(fieldAnswer);
-            radioButtonField.setValue(fieldAnswer);
-          }
-        } else if (field instanceof PDVariableText) {
-          if (field instanceof PDChoice) {
-            if (field instanceof PDListBox) {
-              PDListBox listBoxField = (PDListBox) field;
-              String answerText = formQuestion.getAnswerText();
-              // Skip empty list box values to avoid JSONArray parse errors
-              if (answerText == null || answerText.isEmpty() || answerText.equals("Off")) {
-                continue;
-              }
-              List<String> values = new LinkedList<>();
-              for (Object value : new JSONArray(answerText)) {
-                String stringValue = (String) value;
-                values.add(stringValue);
-              }
-              filledFormNewQuestion.setAnswerText(values.toString());
-              listBoxField.setValue(values);
-            } else if (field instanceof PDComboBox) {
-              PDComboBox comboBoxField = (PDComboBox) field;
-              String formAnswer = formQuestion.getAnswerText();
-              filledFormNewQuestion.setAnswerText(formAnswer);
-              comboBoxField.setValue(formAnswer);
-            }
-          } else if (field instanceof PDTextField) {
-            String value = formQuestion.getAnswerText();
-            filledFormNewQuestion.setAnswerText(value);
-            field.setValue(value);
-          }
-        } else if (field instanceof PDSignatureField) {
-          // Handled in signPDF
-          continue;
-        }
+        fillPDField(field, answerText, record);
+        filledFormBodyQuestions.add(record);
       } catch (Exception e) {
-        // Log but don't fail the whole fill for a single field
-        log.warn("Failed to set PDF field '{}': {}", fieldName, e.getMessage());
-        continue;
+        log.warn("Failed to set PDF field '{}': {}", key, e.getMessage());
       }
-      filledFormBodyQuestions.add(filledFormNewQuestion);
     }
+
     this.filledFormBody =
-        new FormSection(
-            this.templateForm.getBody().getTitle(),
-            this.templateForm.getBody().getDescription(),
-            new ArrayList<>(),
-            filledFormBodyQuestions);
+        new FormSection(sectionTitle, sectionDesc, new ArrayList<>(), filledFormBodyQuestions);
   }
 
-  public Message mergeFileAndFormQuestions(
-      InputStream templateFileStream, List<FormQuestion> formQuestions) {
+  private void fillPDField(PDField field, String answerText, FormQuestion filledQuestion)
+      throws IOException {
+    String normalizedAnswer = answerText == null ? "" : answerText.trim();
+    if (field instanceof PDNonTerminalField) {
+      for (PDField child : ((PDNonTerminalField) field).getChildren()) {
+        fillPDField(child, normalizedAnswer, filledQuestion);
+      }
+      return;
+    }
+    if (field instanceof PDButton) {
+      if (field instanceof PDCheckBox) {
+        PDCheckBox checkBoxField = (PDCheckBox) field;
+        String onValue = checkBoxField.getOnValue();
+        boolean fieldAnswer = "true".equalsIgnoreCase(normalizedAnswer)
+            || "on".equalsIgnoreCase(normalizedAnswer)
+            || "yes".equalsIgnoreCase(normalizedAnswer)
+            || "1".equals(normalizedAnswer)
+            || (onValue != null && onValue.equalsIgnoreCase(normalizedAnswer));
+        filledQuestion.setAnswerText(Boolean.toString(fieldAnswer));
+        if (fieldAnswer) {
+          checkBoxField.check();
+        } else {
+          checkBoxField.unCheck();
+        }
+      } else if (field instanceof PDPushButton) {
+        // Do nothing
+      } else if (field instanceof PDRadioButton) {
+        PDRadioButton radioButtonField = (PDRadioButton) field;
+        if (normalizedAnswer.isEmpty() || "off".equalsIgnoreCase(normalizedAnswer)) {
+          return;
+        }
+        filledQuestion.setAnswerText(normalizedAnswer);
+        try {
+          radioButtonField.setValue(normalizedAnswer);
+        } catch (IllegalArgumentException ex) {
+          List<String> candidates = new ArrayList<>();
+          List<String> exportValues = radioButtonField.getExportValues();
+          if (exportValues != null) candidates.addAll(exportValues);
+          candidates.addAll(radioButtonField.getOnValues());
+
+          for (String candidate : candidates) {
+            if (candidate == null || candidate.isEmpty()) continue;
+            if (candidate.equalsIgnoreCase(normalizedAnswer)) {
+              radioButtonField.setValue(candidate);
+              return;
+            }
+          }
+          String semanticCandidate = findSemanticRadioCandidate(candidates, normalizedAnswer);
+          if (semanticCandidate != null) {
+            radioButtonField.setValue(semanticCandidate);
+            return;
+          }
+          if (isTruthyValue(normalizedAnswer)) {
+            String singleCandidate = null;
+            for (String candidate : candidates) {
+              if (candidate == null || candidate.isEmpty() || "Off".equalsIgnoreCase(candidate)) {
+                continue;
+              }
+              if (singleCandidate != null) {
+                // Multiple choices exist; truthy fallback is ambiguous for radio groups.
+                throw ex;
+              }
+              singleCandidate = candidate;
+            }
+            if (singleCandidate != null) {
+              radioButtonField.setValue(singleCandidate);
+              return;
+            }
+          }
+          throw ex;
+        }
+      }
+    } else if (field instanceof PDVariableText) {
+      setFieldFontSize((PDVariableText) field, DEFAULT_FONT_SIZE);
+      if (field instanceof PDChoice) {
+        if (field instanceof PDListBox) {
+          PDListBox listBoxField = (PDListBox) field;
+          if (normalizedAnswer.isEmpty() || "off".equalsIgnoreCase(normalizedAnswer)) {
+            return;
+          }
+          List<String> values = new LinkedList<>();
+          for (Object value : new JSONArray(normalizedAnswer)) {
+            String stringValue = (String) value;
+            values.add(stringValue);
+          }
+          filledQuestion.setAnswerText(values.toString());
+          listBoxField.setValue(values);
+        } else if (field instanceof PDComboBox) {
+          PDComboBox comboBoxField = (PDComboBox) field;
+          filledQuestion.setAnswerText(normalizedAnswer);
+          comboBoxField.setValue(normalizedAnswer);
+        }
+      } else if (field instanceof PDTextField) {
+        filledQuestion.setAnswerText(normalizedAnswer);
+        PDVariableText vtField = (PDVariableText) field;
+        String daBeforeSet = vtField.getDefaultAppearance();
+        field.setValue(normalizedAnswer);
+        // #region agent log
+        if (!debugPostSetValueLogged) {
+          debugPostSetValueLogged = true;
+          String daAfterSet = vtField.getDefaultAppearance();
+          agentDebugLog(
+              "E",
+              "FillPDFServiceV2.fillPDField",
+              "DA after first PDTextField.setValue",
+              new JSONObject()
+                  .put("daUnchanged", Objects.equals(daBeforeSet, daAfterSet))
+                  .put(
+                      "afterHead",
+                      daAfterSet != null
+                          ? daAfterSet.substring(0, Math.min(80, daAfterSet.length()))
+                          : ""));
+        }
+        // #endregion
+      }
+    } else if (field instanceof PDSignatureField) {
+      // Handled in signPDF
+    }
+  }
+
+  private static int resolveFontSizeForWidget(PDVariableText field, int targetPt) {
+    try {
+      List<PDAnnotationWidget> widgets = field.getWidgets();
+      if (widgets != null && !widgets.isEmpty()) {
+        PDRectangle rect = widgets.get(0).getRectangle();
+        if (rect != null) {
+          float h = Math.abs(rect.getHeight());
+          if (h > 0) {
+            int cap = (int) Math.floor(h * FIELD_HEIGHT_FONT_RATIO);
+            return Math.max(MIN_FONT_SIZE, Math.min(targetPt, cap));
+          }
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return targetPt;
+  }
+
+  private void setFieldFontSize(PDVariableText field, int fontSize) {
+    debugFontCalls++;
+    int resolvedPt = resolveFontSizeForWidget(field, fontSize);
+    String daBefore = field.getDefaultAppearance();
+    boolean hadDa = daBefore != null && !daBefore.isEmpty();
+    String da;
+    boolean regexChanged = false;
+    boolean forcedHelvFallback = false;
+    if (hadDa) {
+      String replaced = daBefore.replaceFirst("(/\\S+\\s+)[\\d.]+\\s+Tf", "$1" + resolvedPt + " Tf");
+      if (!replaced.equals(daBefore)) {
+        da = replaced;
+        regexChanged = true;
+      } else {
+        // CID/TrueType PDFs (e.g. ArialMT) often use DA shapes that do not match the regex; PDFBox
+        // then keeps auto font size. Force a standard Type1 DA so appearance generation uses N pt.
+        da = "/Helv " + resolvedPt + " Tf 0 g";
+        forcedHelvFallback = true;
+        debugDaRegexNoop++;
+      }
+    } else {
+      da = "/Helv " + resolvedPt + " Tf 0 g";
+    }
+    field.setDefaultAppearance(da);
+    // #region agent log
+    if (debugSetFontDetailSamples < 2) {
+      debugSetFontDetailSamples++;
+      agentDebugLog(
+          "B",
+          "FillPDFServiceV2.setFieldFontSize",
+          "font DA mutation",
+          new JSONObject()
+              .put("sampleIndex", debugSetFontDetailSamples)
+              .put("hadDa", hadDa)
+              .put("regexChanged", regexChanged)
+              .put("forcedHelvFallback", forcedHelvFallback)
+              .put("targetPt", fontSize)
+              .put("resolvedPt", resolvedPt)
+              .put(
+                  "daBeforeHead",
+                  hadDa
+                      ? daBefore.substring(0, Math.min(80, daBefore.length())).replace("\r", " ")
+                      : "")
+              .put(
+                  "daAfterHead",
+                  da.substring(0, Math.min(80, da.length())).replace("\r", " ")));
+    }
+    // #endregion
+  }
+
+  private boolean isTruthyValue(String value) {
+    if (value == null) return false;
+    return "true".equalsIgnoreCase(value)
+        || "on".equalsIgnoreCase(value)
+        || "yes".equalsIgnoreCase(value)
+        || "1".equals(value);
+  }
+
+  private String findSemanticRadioCandidate(List<String> candidates, String answer) {
+    if (answer == null || answer.isBlank() || candidates == null || candidates.isEmpty()) {
+      return null;
+    }
+    String normalizedAnswer = normalizeRadioToken(answer);
+    for (String candidate : candidates) {
+      if (candidate == null || candidate.isBlank() || "Off".equalsIgnoreCase(candidate)) continue;
+      if (normalizeRadioToken(candidate).equals(normalizedAnswer)) {
+        return candidate;
+      }
+      String alias = stripChoicePrefix(candidate);
+      if (!alias.equals(candidate) && normalizeRadioToken(alias).equals(normalizedAnswer)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  private String stripChoicePrefix(String value) {
+    return value == null ? "" : value.replaceFirst("(?i)^choice\\d+[-_.]*", "");
+  }
+
+  private String normalizeRadioToken(String value) {
+    if (value == null) return "";
+    String collapsed = value.toLowerCase(Locale.ROOT).replace("_", " ").replace("-", " ").trim();
+    return collapsed.replaceAll("[^a-z0-9]+", "");
+  }
+
+  public Message mergeFileAndFormAnswers(InputStream templateFileStream) {
     try {
       this.pdfDocument = Loader.loadPDF(templateFileStream);
     } catch (IOException e) {
@@ -217,7 +449,23 @@ public class FillPDFServiceV2 implements Service {
       return PdfMessage.INVALID_PDF;
     }
     try {
-      setPDFFieldsFromFormQuestions(formQuestions, acroForm);
+      fillFieldsFromAnswers(acroForm);
+      boolean needAppBefore = acroForm.getNeedAppearances();
+      acroForm.setNeedAppearances(false);
+      // #region agent log
+      agentDebugLog(
+          "C",
+          "FillPDFServiceV2.mergeFileAndFormAnswers",
+          "post-fill acroform state",
+          new JSONObject()
+              .put("needAppearancesBefore", needAppBefore)
+              .put("needAppearancesAfterSetFalse", acroForm.getNeedAppearances())
+              .put("answerKeysIterated", debugAnswerKeysIterated)
+              .put("acroFieldNull", debugAcroFieldNull)
+              .put("fontCalls", debugFontCalls)
+              .put("daRegexNoop", debugDaRegexNoop)
+              .put("recordsAdded", filledFormBody != null ? filledFormBody.getQuestions().size() : -1));
+      // #endregion
       if (this.signatureStream != null) {
         signPDF();
       }
@@ -283,7 +531,11 @@ public class FillPDFServiceV2 implements Service {
     InputStream filledFileEncryptedStream;
     try {
       filledFileEncryptedStream =
-          this.encryptionController.encryptFile(this.filledFileStream, this.username);
+          FileStorageCryptoPolicy.prepareForStorage(
+              this.filledFileStream,
+              FileType.APPLICATION_PDF,
+              this.username,
+              this.encryptionController);
     } catch (GeneralSecurityException | IOException e) {
       log.error("Error encrypting filled file for user '{}': {}", this.username, e.getMessage(), e);
       return PdfMessage.SERVER_ERROR;
@@ -321,24 +573,35 @@ public class FillPDFServiceV2 implements Service {
             new ObjectId(),
             "");
     this.filledForm.setFileId(filledFileObjectId);
+    
+    Map<String, String> mergedMetadata = new HashMap<>();
+    Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(this.fileId));
+    if (templateOpt.isPresent()) {
+      Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+      if (tmplMeta != null) {
+        mergedMetadata.putAll(tmplMeta);
+      }
+    }
+    mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
+    this.filledForm.setApplicationMetadata(mergedMetadata);
     return PdfMessage.SUCCESS;
   }
 
-  public List<FormQuestion> getAllQuestionsFromForm(FormSection formSection) {
-    List<FormQuestion> formQuestions = new LinkedList<FormQuestion>();
-    getAllQuestionsFromFormRecursion(formSection, formQuestions);
-    return formQuestions;
-  }
-
-  public void getAllQuestionsFromFormRecursion(
-      FormSection formSection, List<FormQuestion> formQuestions) {
-    formQuestions.addAll(formSection.getQuestions());
-    if (formSection.getSubsections().size() == 0) {
-      return;
+  private static Map<String, String> extractMetadataFromAnswers(JSONObject formAnswers) {
+    Map<String, String> metadata = new HashMap<>();
+    if (formAnswers != null && formAnswers.has("metadata")) {
+      Object raw = formAnswers.get("metadata");
+      if (raw instanceof JSONObject) {
+        JSONObject metaObj = (JSONObject) raw;
+        for (String key : metaObj.keySet()) {
+          Object val = metaObj.get(key);
+          if (val != null && !JSONObject.NULL.equals(val)) {
+            metadata.put(key, String.valueOf(val));
+          }
+        }
+      }
     }
-    for (FormSection formSubsection : formSection.getSubsections()) {
-      getAllQuestionsFromFormRecursion(formSubsection, formQuestions);
-    }
+    return metadata;
   }
 
   public Message fill() {
@@ -350,20 +613,53 @@ public class FillPDFServiceV2 implements Service {
     this.templateFile = templateFileOptional.get();
     InputStream templateFileStream;
     try {
-      templateFileStream = this.fileDao.getStream(fileObjectId).get();
+      InputStream storedTemplateStream = this.fileDao.getStream(fileObjectId).get();
+      byte[] templateBytes = storedTemplateStream.readAllBytes();
+      templateFileStream = openTemplateForRead(templateBytes);
     } catch (Exception e) {
-      return PdfMessage.NO_SUCH_FILE;
+      log.error("Unable to load/decrypt template file '{}': {}", fileObjectId, e.getMessage(), e);
+      return PdfMessage.SERVER_ERROR;
     }
-    Optional<Form> templateFormOptional = this.formDao.getByFileId(fileObjectId);
-    if (templateFormOptional.isEmpty()) {
-      return PdfMessage.MISSING_FORM;
-    }
-    this.templateForm = templateFormOptional.get();
-    List<FormQuestion> formQuestions = getAllQuestionsFromForm(templateForm.getBody());
-    Message mergeMessage = mergeFileAndFormQuestions(templateFileStream, formQuestions);
+    Message mergeMessage = mergeFileAndFormAnswers(templateFileStream);
     if (mergeMessage != null) {
       return mergeMessage;
     }
     return createNewFileAndForm();
+  }
+
+  private InputStream openTemplateForRead(byte[] templateBytes)
+      throws GeneralSecurityException, IOException {
+    try {
+      return FileStorageCryptoPolicy.openForRead(
+          templateBytes,
+          this.templateFile.getFileType(),
+          this.templateFile.getUsername(),
+          this.encryptionController);
+    } catch (GeneralSecurityException ex) {
+      if (this.templateFile.getOrganizationId() != null) {
+        try {
+          String orgAad = OrganizationCryptoAad.fromOrganizationId(this.templateFile.getOrganizationId());
+          return this.encryptionController.decryptFile(new ByteArrayInputStream(templateBytes), orgAad);
+        } catch (GeneralSecurityException orgDecryptException) {
+          log.warn(
+              "Template decrypt with file organization AAD failed for file '{}': {}",
+              this.templateFile.getId(),
+              orgDecryptException.getMessage());
+        }
+      }
+      if (this.requesterOrganizationId != null) {
+        try {
+          String requesterOrgAad = OrganizationCryptoAad.fromOrganizationId(this.requesterOrganizationId);
+          return this.encryptionController.decryptFile(
+              new ByteArrayInputStream(templateBytes), requesterOrgAad);
+        } catch (GeneralSecurityException requesterOrgDecryptException) {
+          log.warn(
+              "Template decrypt with requester organization AAD failed for file '{}': {}",
+              this.templateFile.getId(),
+              requesterOrgDecryptException.getMessage());
+        }
+      }
+      throw ex;
+    }
   }
 }

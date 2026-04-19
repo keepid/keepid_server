@@ -1,102 +1,75 @@
 package User.Requests;
 
-import org.bson.codecs.pojo.annotations.BsonProperty;
+import User.Address;
+import User.Name;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
 import java.util.Optional;
 
-public class UserUpdateRequest
-{
-  @BsonProperty(value = "firstName")
-  @JsonProperty("firstName")
-  private Optional<String> firstName;
+public class UserUpdateRequest {
+  @JsonProperty("currentName")
+  private Optional<Name> currentName;
 
-  @BsonProperty(value = "lastName")
-  @JsonProperty("lastName")
-  private Optional<String> lastName;
+  @JsonProperty("nameHistory")
+  private Optional<List<Name>> nameHistory;
 
-  @BsonProperty(value = "birthDate")
   @JsonProperty("birthDate")
   private Optional<String> birthDate;
 
-  @BsonProperty(value = "email")
   @JsonProperty("email")
   private Optional<String> email;
 
-  @BsonProperty(value = "phone")
-  @JsonProperty("phone")
-  private Optional<String> phone;
+  @JsonProperty("personalAddress")
+  private Optional<Address> personalAddress;
 
-  @BsonProperty(value = "address")
-  @JsonProperty("address")
-  private Optional<String> address;
+  @JsonProperty("mailAddress")
+  private Optional<Address> mailAddress;
 
-  @BsonProperty(value = "city")
-  @JsonProperty("city")
-  private Optional<String> city;
+  @JsonProperty("sex")
+  private Optional<String> sex;
 
-  @BsonProperty(value = "state")
-  @JsonProperty("state")
-  private Optional<String> state;
+  @JsonProperty("motherName")
+  private Optional<Name> motherName;
 
-  @BsonProperty(value = "zipcode")
-  @JsonProperty("zipcode")
-  private Optional<String> zipcode;
-
+  @JsonProperty("fatherName")
+  private Optional<Name> fatherName;
 
   /** **************** GETTERS ********************* */
-  public Optional<String> getFirstName() { return firstName; }
+  public Optional<Name> getCurrentName() { return currentName; }
 
-  public Optional<String> getLastName() { return lastName; }
+  public Optional<List<Name>> getNameHistory() { return nameHistory; }
 
   public Optional<String> getBirthDate() { return birthDate; }
 
   public Optional<String> getEmail() { return email; }
 
-  public Optional<String> getPhone() { return phone; }
+  public Optional<Address> getPersonalAddress() { return personalAddress; }
 
-  public Optional<String> getAddress() { return address; }
+  public Optional<Address> getMailAddress() { return mailAddress; }
 
-  public Optional<String> getCity() { return city; }
+  public Optional<String> getSex() { return sex; }
 
-  public Optional<String> getState() { return state; }
+  public Optional<Name> getMotherName() { return motherName; }
 
-  public Optional<String> getZipcode() { return zipcode; }
+  public Optional<Name> getFatherName() { return fatherName; }
 
   /** **************** SETTERS ********************* */
-  public void setFirstName(String firstName) {
-    this.firstName = Optional.ofNullable(firstName);
-  }
+  public void setCurrentName(Name currentName) { this.currentName = Optional.ofNullable(currentName); }
 
-  public void setLastName(String lastName) {
-    this.lastName = Optional.ofNullable(lastName);
-  }
+  public void setNameHistory(List<Name> nameHistory) { this.nameHistory = Optional.ofNullable(nameHistory); }
 
-  public void setBirthDate(String birthDate) {
-    this.birthDate = Optional.ofNullable(birthDate);
-  }
+  public void setBirthDate(String birthDate) { this.birthDate = Optional.ofNullable(birthDate); }
 
-  public void setEmail(String email) {
-    this.email = Optional.ofNullable(email);
-  }
+  public void setEmail(String email) { this.email = Optional.ofNullable(email); }
 
-  public void setPhone(String phone) {
-    this.phone = Optional.ofNullable(phone);
-  }
+  public void setPersonalAddress(Address personalAddress) { this.personalAddress = Optional.ofNullable(personalAddress); }
 
-  public void setAddress(String address) {
-    this.address = Optional.ofNullable(address);
-  }
+  public void setMailAddress(Address mailAddress) { this.mailAddress = Optional.ofNullable(mailAddress); }
 
-  public void setCity(String city) {
-    this.city = Optional.ofNullable(city);
-  }
+  public void setSex(String sex) { this.sex = Optional.ofNullable(sex); }
 
-  public void setState(String state) {
-    this.state = Optional.ofNullable(state);
-  }
+  public void setMotherName(Name motherName) { this.motherName = Optional.ofNullable(motherName); }
 
-  public void setZipcode(String zipcode) {
-    this.zipcode = Optional.ofNullable(zipcode);
-  }
+  public void setFatherName(Name fatherName) { this.fatherName = Optional.ofNullable(fatherName); }
 }

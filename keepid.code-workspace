@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../keepid_client"
+		},
+		{
+			"path": "../keepid_devportal"
+		}
+	],
+	"settings": {}
+}

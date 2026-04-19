@@ -64,6 +64,21 @@ public class OrgDaoTestImpl implements OrgDao {
 
   @Override
   public void update(Organization organization) {
+    String existingKey = null;
+    for (Map.Entry<String, Organization> entry : orgMap.entrySet()) {
+      Organization existingOrg = entry.getValue();
+      if (existingOrg.getId().equals(organization.getId())) {
+        existingKey = entry.getKey();
+        break;
+      }
+    }
+
+    if (existingKey != null) {
+      orgMap.remove(existingKey);
+      orgMap.put(organization.getOrgName(), organization);
+      return;
+    }
+
     if (orgMap.containsKey(organization.getOrgName())) {
       orgMap.put(organization.getOrgName(), organization);
     }
