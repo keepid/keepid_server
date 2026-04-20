@@ -120,7 +120,7 @@ public class AppConfig {
 
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);
-    WindmillNotificationClient notificationClient = new WindmillNotificationClient();
+    WindmillNotificationClient notificationClient = notificationClientFor(deploymentLevel);
     NotificationController notificationController =
         new NotificationController(activityDao, notificationDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
@@ -383,6 +383,25 @@ public class AppConfig {
           throw new IllegalStateException(
               "Remember to config your port according to: " + deploymentLevel);
     };
+  }
+
+  /**
+   * Build notification client for current environment.
+   *
+   * <p>Tests do not exercise real Windmill calls and should not require Windmill env vars to boot
+   * the app.
+   */
+  private static WindmillNotificationClient notificationClientFor(DeploymentLevel deploymentLevel) {
+    if (deploymentLevel == DeploymentLevel.TEST) {
+      return new WindmillNotificationClient(
+          "http://localhost",
+          "test-token",
+          "+10000000000",
+          "test/twilio-resource",
+          "test@example.com",
+          "test/sendgrid-resource");
+    }
+    return new WindmillNotificationClient();
   }
 
   public static void setApplicationHeaders(Javalin app) {

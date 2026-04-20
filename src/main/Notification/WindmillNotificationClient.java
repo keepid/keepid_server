@@ -4,69 +4,99 @@ import okhttp3.*;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import static Security.EnvUtil.requireEnv;
+
 @Slf4j
 public class WindmillNotificationClient {
-    private final OkHttpClient client;
-    private final Gson gson;
+    private static final Pattern PHONE_PATTERN = Pattern.compile("\\+1\\d{10}"); // +1 followed by 10 digits
+    private static final Pattern EMAIL_PATTERN
+            = Pattern.compile("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9]([a-zA-Z0-9.\\-]*[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$");
+    private final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .build();
+    private final Gson gson = new Gson();
     private final String WINDMILL_URL;
     private final String WINDMILL_TOKEN;
     private final String TWILIO_PHONE_NUMBER;
-    private final Map<String, String> twilioResource;
-    private final Pattern PHONE_PATTERN = Pattern.compile("\\+1\\d{10}"); // +1 followed by 10 digits
+    private final String KEEPID_EMAIL_ADDRESS;
+    private final String twilioResource;
+    private final String sendgridResource;
 
     public WindmillNotificationClient() {
-        this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .build();
-        this.gson = new Gson();
-        this.WINDMILL_URL = System.getenv("WINDMILL_URL");
-        this.WINDMILL_TOKEN = System.getenv("WINDMILL_TOKEN");
-        this.TWILIO_PHONE_NUMBER = System.getenv("TWILIO_PHONE_NUMBER");
-        this.twilioResource = new HashMap<>();
-        String TWILIO_ACCOUNT_SID = System.getenv("ACCOUNT_SID");
-        String TWILIO_AUTH_TOKEN = System.getenv("AUTH_TOKEN_TWILIO");
-        this.twilioResource.put("accountSid", TWILIO_ACCOUNT_SID);
-        this.twilioResource.put("token", TWILIO_AUTH_TOKEN);
+        try {
+            WINDMILL_URL = new URI(requireEnv("WINDMILL_URL")).toURL().toString();
+        } catch (URISyntaxException | MalformedURLException e) {
+            throw new IllegalStateException("WINDMILL_URL is not a valid URL");
+        }
+
+        WINDMILL_TOKEN = requireEnv("WINDMILL_TOKEN");
+        TWILIO_PHONE_NUMBER = requireEnv("TWILIO_PHONE_NUMBER");
+        KEEPID_EMAIL_ADDRESS = requireEnv("EMAIL_ADDRESS");
+
+        twilioResource = "$res:" + requireEnv("WINDMILL_TWILIO_RESOURCE_PATH");
+
+        sendgridResource = "$res:" + requireEnv("WINDMILL_SENDGRID_RESOURCE_PATH");
     }
 
-    // Constructor for testing
-    public WindmillNotificationClient(String windmillUrl, String windmillToken, String twilioPhoneNumber,
-                                      String twilioAccountSid, String twilioAuthToken) {
-        this.client = new OkHttpClient();
-        this.gson = new Gson();
+    // constructor for testing
+    public WindmillNotificationClient(String windmillUrl, String windmillToken,
+                                      String twilioPhoneNumber, String twilioResource,
+                                      String keepidEmailAddress, String sendgridResource) {
         this.WINDMILL_URL = windmillUrl;
         this.WINDMILL_TOKEN = windmillToken;
         this.TWILIO_PHONE_NUMBER = twilioPhoneNumber;
-        this.twilioResource = new HashMap<>();
-        this.twilioResource.put("accountSid", twilioAccountSid);
-        this.twilioResource.put("token", twilioAuthToken);
+        this.KEEPID_EMAIL_ADDRESS = keepidEmailAddress;
+
+        this.twilioResource = twilioResource;
+        this.sendgridResource = sendgridResource;
     }
 
-    public boolean isValidPhoneNumber(String phoneNumber) {
-        return phoneNumber != null && this.PHONE_PATTERN.matcher(phoneNumber).matches();
+    public static boolean isValidPhoneNumber(String phoneNumber) {
+        return phoneNumber != null && PHONE_PATTERN.matcher(phoneNumber).matches();
     }
 
-    public void executeRequest(Request request, Callback callback) {
+    public static boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    public void executeRequest(Request request) {
+        Callback callback = new Callback() {
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                log.error("executeRequest failed: " + e.getMessage());
+            }
+
+            public void onResponse(@NotNull Call call, @NotNull Response response) {
+                if (response.isSuccessful()) {
+                    log.info("executeRequest completed successfully. Status: {}", response.code());
+                } else {
+                    log.warn("executeRequest completed but failed. Status: {}", response.code());
+                }
+            }
+        };
         client.newCall(request).enqueue(callback);
     }
 
     public void sendSms(String to, String message) {
         if (!isValidPhoneNumber(to)) {
-            log.error("sendSms failed: invalid phone number provided: {}", to);
+            log.error("sendSms failed: invalid phone number provided");
             return;
         }
         if (message == null || message.isBlank()) {
-            log.error("sendSms failed: empty message provided: {}", message);
+            log.error("sendSms failed: empty message provided");
             return;
         }
 
@@ -87,26 +117,49 @@ public class WindmillNotificationClient {
                 .addHeader("Authorization", "Bearer " + this.WINDMILL_TOKEN)
                 .build();
 
-        log.info("Sending SMS to {} with message: {}", to, message);
+        log.info("Sending SMS notification request to windmill webhook endpoint");
 
-        Callback callback = new Callback() {
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                log.error("sendSms failed: " + e.getMessage());
-            }
+        executeRequest(request);
+    }
 
-            public void onResponse(@NotNull Call call, @NotNull Response response) {
-                try (response) {
-                    if (response.isSuccessful()) {
-                        log.info("sent SMS successfully. Status: {}", response.code());
-                    } else {
-                        log.warn("SMS request completed but failed. Status: {}, Body: {}",
-                                response.code(), response.body() != null ? response.body().string() : "");
-                    }
-                } catch (IOException e) {
-                    log.error("caught error reading SMS response: " + e.getMessage());
-                }
-            }
-        };
-        executeRequest(request, callback);
+    public void sendEmail(String toEmailAddress, String subject, String message, Optional<String> html) {
+        if (!isValidEmail(toEmailAddress)) {
+            log.error("sendEmail failed: invalid to email address provided");
+            return;
+        }
+        if (subject == null || subject.isBlank()) {
+            log.error("sendEmail failed: empty subject provided");
+            return;
+        }
+        if (message == null || message.isBlank()) {
+            log.error("sendEmail failed: empty message provided");
+            return;
+        }
+
+        Map<String, Object>  emailConfig = new HashMap<>();
+        emailConfig.put("sendgrid_auth", sendgridResource);
+        emailConfig.put("from_email", this.KEEPID_EMAIL_ADDRESS);
+        emailConfig.put("to_email", toEmailAddress);
+        emailConfig.put("subject", subject);
+        if (html != null && html.isPresent()) {
+            emailConfig.put("html", html.get());
+        }
+
+        Map<String, Object> payload = Map.of(
+                "method", "email",
+                "message", message,
+                "sms_config", Map.of(),
+                "email_config", emailConfig
+        );
+
+        Request request = new Request.Builder()
+                .url(this.WINDMILL_URL)
+                .post(RequestBody.create(gson.toJson(payload), MediaType.parse("application/json")))
+                .addHeader("Authorization", "Bearer " + this.WINDMILL_TOKEN)
+                .build();
+
+        log.info("Sending email notification request to windmill webhook endpoint");
+
+        executeRequest(request);
     }
 }

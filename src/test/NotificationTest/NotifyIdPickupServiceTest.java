@@ -29,7 +29,9 @@ public class NotifyIdPickupServiceTest {
         notificationDao = NotificationDaoFactory.create(DeploymentLevel.IN_MEMORY);
         notificationClient =
                 new WindmillNotificationClient(
-                        "http://localhost:9999", "fake-token", "+10000000000", "fake-sid", "fake-auth");
+                        "http://localhost:9999", "fake-token",
+                        "+10000000000", "fake_twilio_resource",
+                        "fake_email", "fake_sendgrid_resource");
     }
 
     @After
