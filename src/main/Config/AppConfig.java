@@ -116,7 +116,7 @@ public class AppConfig {
     BillingController billingController = new BillingController();
     MailSender mailSender = MailSenderFactory.create(deploymentLevel);
     MailController mailController =
-        new MailController(mailDao, fileDao, formDao, mailSender, encryptionController);
+        new MailController(mailDao, fileDao, formDao, packetDao, mailSender, encryptionController);
 
     PdfControllerV2 pdfControllerV2 =
         new PdfControllerV2(fileDao, formDao, activityDao, orgDao, userDao, encryptionController);

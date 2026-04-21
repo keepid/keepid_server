@@ -17,13 +17,15 @@ public class NoOpMailSenderUnitTests {
 
   @Test
   public void sendMail_returnsSyntheticResult() throws Exception {
+    FormMailAddress addr = new FormMailAddress();
+    addr.setMaybeCheckAmount(java.math.BigDecimal.ZERO);
     Mail mail = new Mail(
         new org.bson.types.ObjectId(),
-        new FormMailAddress(),
+        addr,
         "targetUser",
         "requesterUser");
 
-    MailResult result = sender.sendMail(mail, null, null, null);
+    MailResult result = sender.sendMail(mail, new byte[] {0x25, 0x50, 0x44, 0x46}, null);
 
     assertNotNull(result.getLobId());
     assertTrue(result.getLobId().startsWith("noop_"));

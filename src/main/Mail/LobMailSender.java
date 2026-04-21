@@ -1,8 +1,5 @@
 package Mail;
 
-import Database.File.FileDao;
-import File.File;
-import Security.EncryptionController;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.*;
 import com.lob.api.ApiClient;
@@ -12,13 +9,11 @@ import com.lob.api.client.AddressesApi;
 import com.lob.api.client.ChecksApi;
 import com.lob.api.client.LettersApi;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.openapitools.client.model.*;
 import org.threeten.bp.DateTimeUtils;
 
@@ -36,12 +31,11 @@ public class LobMailSender implements MailSender {
   }
 
   @Override
-  public MailResult sendMail(
-      Mail mail,
-      FileDao fileDao,
-      EncryptionController encryptionController,
-      ReturnAddress returnAddress)
+  public MailResult sendMail(Mail mail, byte[] renderedPdfBytes, ReturnAddress returnAddress)
       throws Exception {
+    if (renderedPdfBytes == null || renderedPdfBytes.length == 0) {
+      throw new IllegalArgumentException("renderedPdfBytes must be non-empty");
+    }
 
     ApiClient lobClient = Configuration.getDefaultApiClient();
     HttpBasicAuth basicAuth = (HttpBasicAuth) lobClient.getAuthentication("basicAuth");
@@ -50,12 +44,13 @@ public class LobMailSender implements MailSender {
     String fromAddressId = resolveFromAddress(lobClient, returnAddress);
     FormMailAddress mailAddress = mail.getMailingAddress();
 
+    // Upload once; both letter and check products accept a GCS signed URL as their attachment.
+    String uri = uploadFileToGCS(renderedPdfBytes, mail.getId().toString());
+
     if (mailAddress.getMaybeCheckAmount().compareTo(BigDecimal.ZERO) > 0) {
-      return sendCheck(lobClient, mail, fileDao, encryptionController, mailAddress, fromAddressId);
-    } else {
-      return sendLetter(
-          lobClient, mail, fileDao, encryptionController, mailAddress, fromAddressId);
+      return sendCheck(lobClient, mail, mailAddress, fromAddressId, uri);
     }
+    return sendLetter(lobClient, mail, mailAddress, fromAddressId, uri);
   }
 
   @Override
@@ -91,10 +86,9 @@ public class LobMailSender implements MailSender {
   private MailResult sendCheck(
       ApiClient lobClient,
       Mail mail,
-      FileDao fileDao,
-      EncryptionController encryptionController,
       FormMailAddress mailAddress,
-      String fromAddressId)
+      String fromAddressId,
+      String attachmentUri)
       throws Exception {
 
     ChecksApi checksApi = new ChecksApi(lobClient);
@@ -111,15 +105,7 @@ public class LobMailSender implements MailSender {
             "Mail ID:", mail.getId().toString()));
     checkEditable.setMemo("Application Fee");
     checkEditable.setTo(toAddress);
-
-    File file = fileDao.get(mail.getFileId()).orElseThrow();
-    InputStream decryptedStream =
-        encryptionController.decryptFile(
-            fileDao.getStream(file.getId()).orElseThrow(),
-            mail.getTargetUsername());
-    byte[] pdfData = IOUtils.toByteArray(decryptedStream);
-    String uri = uploadFileToGCS(pdfData, mail.getId().toString());
-    checkEditable.setAttachment(uri);
+    checkEditable.setAttachment(attachmentUri);
 
     Check check =
         checksApi.create(checkEditable, mail.getTargetUsername() + mail.getId().toString());
@@ -139,10 +125,9 @@ public class LobMailSender implements MailSender {
   private MailResult sendLetter(
       ApiClient lobClient,
       Mail mail,
-      FileDao fileDao,
-      EncryptionController encryptionController,
       FormMailAddress mailAddress,
-      String fromAddressId)
+      String fromAddressId,
+      String fileUri)
       throws Exception {
 
     LettersApi lettersApi = new LettersApi(lobClient);
@@ -157,15 +142,7 @@ public class LobMailSender implements MailSender {
             "Mail Requestor", mail.getRequesterUsername(),
             "Mail ID:", mail.getId().toString()));
     letterEditable.setTo(toAddress);
-
-    File file = fileDao.get(mail.getFileId()).orElseThrow();
-    InputStream decryptedStream =
-        encryptionController.decryptFile(
-            fileDao.getStream(file.getId()).orElseThrow(),
-            mail.getTargetUsername());
-    byte[] pdfData = IOUtils.toByteArray(decryptedStream);
-    String uri = uploadFileToGCS(pdfData, mail.getId().toString());
-    letterEditable.setFile(uri);
+    letterEditable.setFile(fileUri);
 
     Letter letter =
         lettersApi.create(letterEditable, mail.getTargetUsername() + mail.getId().toString());

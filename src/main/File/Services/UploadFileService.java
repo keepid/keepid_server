@@ -8,6 +8,7 @@ import Database.File.FileDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import PDF.Services.V2Services.NormalizePdfFieldAppearancesService;
 import Security.EncryptionController;
 import Security.OrganizationCryptoAad;
 import User.UserType;
@@ -89,6 +90,12 @@ public class UploadFileService implements Service {
           || privilegeLevelType == UserType.Admin
           || privilegeLevelType == UserType.Developer) {
         try {
+          // Normalize BEFORE signing: re-saving a signed PDF would invalidate the /ByteRange
+          // digest of the embedded signature. Normalizing the template first means the signature
+          // is computed over the already-normalized bytes and survives unchanged.
+          if (!normalizePdfFieldAppearancesIfApplicable()) {
+            return FileMessage.SERVER_ERROR;
+          }
           if (this.toSign) {
             if (signatureFileStream.isPresent()) this.fileToUpload.setFileStream(signFile());
             else return FileMessage.INVALID_PARAMETER;
@@ -114,6 +121,50 @@ public class UploadFileService implements Service {
         return FileMessage.SERVER_ERROR;
       }
     }
+  }
+
+  /**
+   * Runs a best-effort /DA normalization pass on uploaded AcroForm PDFs so all downstream
+   * renderers (pdf.js preview, pdfbox fill, pdf-lib flatten, native PDF viewer on print) agree on
+   * field font sizing. The normalize service itself is best-effort and returns original bytes on
+   * failure, but reading the upload stream is not: a read failure here must not be swallowed or
+   * the caller would encrypt a partially-consumed stream.
+   *
+   * @return {@code true} on success (including the no-op case for non-PDF uploads), {@code false}
+   *     if the upload stream could not be fully read and the caller should abort with SERVER_ERROR.
+   */
+  private boolean normalizePdfFieldAppearancesIfApplicable() {
+    FileType fileType = this.fileToUpload.getFileType();
+    if (fileType == null || !fileType.isPDF()) {
+      return true;
+    }
+    String contentType = this.fileToUpload.getContentType();
+    if (contentType == null || !contentType.startsWith("application/pdf")) {
+      // Image-sourced "PDFs" are converted elsewhere; only normalize when we actually have a PDF.
+      return true;
+    }
+    InputStream original = this.fileToUpload.getFileStream();
+    if (original == null) {
+      return true;
+    }
+    byte[] originalBytes;
+    try {
+      originalBytes = original.readAllBytes();
+    } catch (IOException e) {
+      // Stream is now partially consumed; we can't fall through to uploadFile() or we'd persist
+      // a truncated PDF. Surface the failure so the handler returns SERVER_ERROR.
+      log.warn("PDF upload stream read failed during /DA normalization: {}", e.getMessage());
+      return false;
+    }
+    byte[] normalized;
+    try {
+      normalized = NormalizePdfFieldAppearancesService.normalize(originalBytes);
+    } catch (Exception e) {
+      log.warn("PDF /DA normalization skipped for upload: {}", e.getMessage());
+      normalized = originalBytes;
+    }
+    this.fileToUpload.setFileStream(new ByteArrayInputStream(normalized));
+    return true;
   }
 
   private void recordUploadFileActivity(boolean isProfilePic) {

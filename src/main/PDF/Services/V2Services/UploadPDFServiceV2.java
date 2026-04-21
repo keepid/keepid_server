@@ -13,13 +13,16 @@ import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
 import User.UserType;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Date;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
+@Slf4j
 public class UploadPDFServiceV2 implements Service {
   private FileDao fileDao;
   private String username;
@@ -115,8 +118,46 @@ public class UploadPDFServiceV2 implements Service {
     return title;
   }
 
+  /**
+   * Best-effort /DA normalization pass for AcroForm PDFs uploaded through the V2 flow. Returns
+   * {@code null} on success (including the no-op case) or {@link PdfMessage#SERVER_ERROR} if the
+   * upload stream could not be fully read — in that case the stream is partially consumed and the
+   * caller must abort rather than encrypt the remaining bytes.
+   */
+  private Message normalizePdfFieldAppearancesIfApplicable() {
+    if (this.fileStream == null) {
+      return null;
+    }
+    // Image uploads reach this point as PDFs (ImageToPDFService converted them), but they have
+    // no AcroForm; the normalize service will no-op on them. Running it is cheap and keeps the
+    // "all stored PDFs were normalized" invariant simple.
+    byte[] originalBytes;
+    try {
+      originalBytes = this.fileStream.readAllBytes();
+    } catch (IOException e) {
+      log.warn("V2 PDF upload stream read failed during /DA normalization: {}", e.getMessage());
+      return PdfMessage.SERVER_ERROR;
+    }
+    byte[] normalized;
+    try {
+      normalized = NormalizePdfFieldAppearancesService.normalize(originalBytes);
+    } catch (Exception e) {
+      log.warn("V2 PDF /DA normalization skipped for upload: {}", e.getMessage());
+      normalized = originalBytes;
+    }
+    this.fileStream = new ByteArrayInputStream(normalized);
+    return null;
+  }
+
   public Message upload() {
     this.fileName = getPDFTitle(this.fileName, this.fileStream, this.pdfType);
+    // Mirror UploadFileService: normalize /DA on any AcroForm PDFs before encryption so every
+    // downstream renderer (pdf.js, pdfbox fill, pdf-lib flatten, native viewer on print) agrees on
+    // field font sizing. No-op for formless PDFs (ID scans, images-converted-to-PDF).
+    Message normalizeErr = normalizePdfFieldAppearancesIfApplicable();
+    if (normalizeErr != null) {
+      return normalizeErr;
+    }
     Date currentDate = new Date();
     FileType fileType = null;
     boolean annotated = false;
