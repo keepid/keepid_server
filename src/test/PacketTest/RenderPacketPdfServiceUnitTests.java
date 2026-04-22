@@ -38,28 +38,36 @@ import org.junit.Test;
  */
 public class RenderPacketPdfServiceUnitTests {
 
-  /** Reflection handle for the package-private testable overload. */
+  /** Reflection handle for the package-private 5-arg testable overload (no override). */
   private static Method renderOverload;
+
+  /** Reflection handle for the 6-arg overload that accepts an override for APPLICATION_BASE. */
+  private static Method renderWithOverrideOverload;
 
   private FileDao fileDao;
 
   @Before
   public void setUp() throws Exception {
     fileDao = new FileDaoTestImpl(DeploymentLevel.IN_MEMORY);
-    if (renderOverload == null) {
+    if (renderOverload == null || renderWithOverrideOverload == null) {
       for (Method m : RenderPacketPdfService.class.getDeclaredMethods()) {
         if (!m.getName().equals("render")) continue;
         Class<?>[] params = m.getParameterTypes();
-        if (params.length != 5) continue;
-        // Pick the overload whose 4th param is a PartDecryptor (name-matching is enough here).
-        if (params[3].getSimpleName().equals("PartDecryptor")) {
+        // Both testable overloads have PartDecryptor at index 3; the 5-arg one is the
+        // no-override path, the 6-arg one accepts an applicationBaseOverride byte[] at index 5.
+        if (params.length == 5 && params[3].getSimpleName().equals("PartDecryptor")) {
           renderOverload = m;
           renderOverload.setAccessible(true);
-          break;
+        } else if (params.length == 6
+            && params[3].getSimpleName().equals("PartDecryptor")
+            && params[5] == byte[].class) {
+          renderWithOverrideOverload = m;
+          renderWithOverrideOverload.setAccessible(true);
         }
       }
     }
     assertNotNull("Test seam overload not found", renderOverload);
+    assertNotNull("Override test seam overload not found", renderWithOverrideOverload);
   }
 
   @Test
@@ -151,17 +159,63 @@ public class RenderPacketPdfServiceUnitTests {
     }
   }
 
+  @Test
+  public void render_withOverride_replacesBasePartButKeepsAttachments() throws Exception {
+    // Stored base is 2 pages; override is 5 pages -- rendered output should pick the override's
+    // page count for the base slot, then concatenate the stored 3-page attachment after it.
+    File base = registerPdf("alice", FileType.APPLICATION_PDF, /*pages=*/ 2, null);
+    ObjectId orgId = new ObjectId();
+    File attach = registerPdf("alice", FileType.ORG_DOCUMENT, /*pages=*/ 3, orgId);
+
+    Packet packet = new Packet(orgId, base.getId(), "worker");
+    List<PacketPart> parts = new ArrayList<>();
+    parts.add(new PacketPart(base.getId(), "APPLICATION_BASE", 0, true));
+    parts.add(new PacketPart(attach.getId(), "ORG_ATTACHMENT", 1, true));
+    packet.setParts(parts);
+
+    byte[] override = buildPdf(5);
+    byte[] rendered = invokeRenderWithOverride(base, packet, override);
+
+    assertEquals(5 + 3, RenderPacketPdfService.countPages(rendered));
+  }
+
+  @Test
+  public void render_withNullOverride_matchesNoOverridePath() throws Exception {
+    File base = registerPdf("alice", FileType.APPLICATION_PDF, /*pages=*/ 2, null);
+
+    byte[] rendered = invokeRenderWithOverride(base, null, null);
+
+    // Passing null for the override must be equivalent to the legacy no-override call.
+    assertEquals(2, RenderPacketPdfService.countPages(rendered));
+  }
+
   // --- helpers --------------------------------------------------------------------------------
 
   /** Invokes the package-private render(..., PartDecryptor, ...) overload with passthrough decrypt. */
   private byte[] invokeRender(File applicationFile, Packet packet) throws Exception {
-    Object passthroughDecryptor =
-        java.lang.reflect.Proxy.newProxyInstance(
-            renderOverload.getParameterTypes()[3].getClassLoader(),
-            new Class<?>[] {renderOverload.getParameterTypes()[3]},
-            (proxy, method, args) -> args[0]); // return the InputStream arg as-is
+    Object passthroughDecryptor = buildPassthroughDecryptor(renderOverload);
     return (byte[])
         renderOverload.invoke(null, applicationFile, packet, fileDao, passthroughDecryptor, "alice");
+  }
+
+  /**
+   * Invokes the 6-arg render(..., PartDecryptor, ..., byte[] override) overload. Passing {@code
+   * null} for {@code override} exercises the no-override branch through the 6-arg path.
+   */
+  private byte[] invokeRenderWithOverride(File applicationFile, Packet packet, byte[] override)
+      throws Exception {
+    Object passthroughDecryptor = buildPassthroughDecryptor(renderWithOverrideOverload);
+    return (byte[])
+        renderWithOverrideOverload.invoke(
+            null, applicationFile, packet, fileDao, passthroughDecryptor, "alice", override);
+  }
+
+  private static Object buildPassthroughDecryptor(Method overload) {
+    Class<?> decryptorType = overload.getParameterTypes()[3];
+    return java.lang.reflect.Proxy.newProxyInstance(
+        decryptorType.getClassLoader(),
+        new Class<?>[] {decryptorType},
+        (proxy, method, args) -> args[0]); // return the InputStream arg as-is
   }
 
   private File registerPdf(String username, FileType type, int pages, ObjectId organizationId)

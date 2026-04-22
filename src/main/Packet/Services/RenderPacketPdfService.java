@@ -81,6 +81,33 @@ public final class RenderPacketPdfService {
   }
 
   /**
+   * Same as {@link #render(File, Packet, FileDao, EncryptionController, String)} but substitutes
+   * {@code applicationBaseOverride} for the APPLICATION_BASE part's bytes, leaving attachment
+   * parts unchanged. Used by Print/Download flows where the client's in-viewer state (live pdf.js
+   * form edits + embedded signatures) hasn't been persisted yet -- we want the rendered packet
+   * to reflect what the user sees, without committing those edits to storage.
+   *
+   * <p>Passing {@code null} for {@code applicationBaseOverride} is equivalent to calling the
+   * no-override overload.
+   */
+  public static byte[] render(
+      File applicationFile,
+      Packet packet,
+      FileDao fileDao,
+      EncryptionController encryptionController,
+      String targetUsername,
+      byte[] applicationBaseOverride)
+      throws IOException {
+    return render(
+        applicationFile,
+        packet,
+        fileDao,
+        encryptionController::decryptFile,
+        targetUsername,
+        applicationBaseOverride);
+  }
+
+  /**
    * Test seam: same as {@link #render(File, Packet, FileDao, EncryptionController, String)} but
    * accepts a lambda for decryption so unit tests can pass passthrough/plaintext fakes.
    */
@@ -90,6 +117,22 @@ public final class RenderPacketPdfService {
       FileDao fileDao,
       PartDecryptor decryptor,
       String targetUsername)
+      throws IOException {
+    return render(applicationFile, packet, fileDao, decryptor, targetUsername, null);
+  }
+
+  /**
+   * Test seam with override support. When {@code applicationBaseOverride} is non-null, its bytes
+   * are used in place of the decrypted APPLICATION_BASE part; attachment parts still go through
+   * the normal decrypt path. When null, behaves identically to the legacy 5-arg overload.
+   */
+  static byte[] render(
+      File applicationFile,
+      Packet packet,
+      FileDao fileDao,
+      PartDecryptor decryptor,
+      String targetUsername,
+      byte[] applicationBaseOverride)
       throws IOException {
     if (applicationFile == null) {
       throw new IllegalArgumentException("applicationFile must not be null");
@@ -101,15 +144,25 @@ public final class RenderPacketPdfService {
       PDFMergerUtility merger = new PDFMergerUtility();
 
       for (PacketPart part : orderedParts) {
-        File partFile = fileDao.get(part.getFileId()).orElse(null);
-        if (partFile == null) {
-          log.warn(
-              "Skipping missing packet part fileId={} for application {}",
-              part.getFileId(),
-              applicationFile.getId());
-          continue;
+        byte[] partBytes;
+        // The APPLICATION_BASE part's fileId always equals applicationFile.getId(); when the
+        // caller provided an override for that (client's in-viewer state), use it and skip the
+        // storage lookup + decrypt entirely.
+        boolean isBasePart =
+            applicationBaseOverride != null && applicationFile.getId().equals(part.getFileId());
+        if (isBasePart) {
+          partBytes = applicationBaseOverride;
+        } else {
+          File partFile = fileDao.get(part.getFileId()).orElse(null);
+          if (partFile == null) {
+            log.warn(
+                "Skipping missing packet part fileId={} for application {}",
+                part.getFileId(),
+                applicationFile.getId());
+            continue;
+          }
+          partBytes = decryptPartBytes(partFile, fileDao, decryptor, targetUsername);
         }
-        byte[] partBytes = decryptPartBytes(partFile, fileDao, decryptor, targetUsername);
         PDDocument partDoc = Loader.loadPDF(partBytes);
         partDoc.setAllSecurityToBeRemoved(true);
         openDocs.add(partDoc);

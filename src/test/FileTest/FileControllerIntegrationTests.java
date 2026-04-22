@@ -699,4 +699,164 @@ public class FileControllerIntegrationTests {
 
     TestUtils.logout();
   }
+
+  /**
+   * End-to-end smoke test for the new render endpoint. Uploads a base PDF, attaches an org doc,
+   * then verifies the merged response is real PDF bytes whose page count exceeds the base alone
+   * (proving attachments are being concatenated for the same code path the client now uses for
+   * Print/Download).
+   */
+  @Test
+  public void renderApplicationPacketReturnsMergedPdfBytesTest() throws Exception {
+    String orgName = "Render Packet Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "renderPacketAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+    uploadOrgDocumentPDF();
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+    String orgDocId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "ORG_DOCUMENT").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    // Capture page counts of the base + attachment so we can assert the merge happened.
+    HttpResponse<byte[]> baseResp =
+        Unirest.post(TestUtils.getServerUrl() + "/render-application-packet")
+            .field("applicationId", applicationId)
+            .asBytes();
+    assertThat(baseResp.getStatus()).isEqualTo(200);
+    assertThat(baseResp.getHeaders().getFirst("Content-Type")).contains("application/pdf");
+    int baseOnlyPages =
+        org.apache.pdfbox.Loader.loadPDF(baseResp.getBody()).getNumberOfPages();
+    assertThat(baseOnlyPages).isGreaterThan(0);
+
+    // Now attach the org doc and re-render. Page count must increase (attachment got merged).
+    JSONObject attachJson =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/attach-packet-part")
+                    .body(
+                        new JSONObject()
+                            .put("applicationId", applicationId)
+                            .put("fileId", orgDocId)
+                            .toString())
+                    .asString()
+                    .getBody());
+    assertThat(attachJson.getString("status")).isEqualTo("SUCCESS");
+
+    HttpResponse<byte[]> mergedResp =
+        Unirest.post(TestUtils.getServerUrl() + "/render-application-packet")
+            .field("applicationId", applicationId)
+            .asBytes();
+    assertThat(mergedResp.getStatus()).isEqualTo(200);
+    assertThat(mergedResp.getHeaders().getFirst("Content-Type")).contains("application/pdf");
+    int mergedPages =
+        org.apache.pdfbox.Loader.loadPDF(mergedResp.getBody()).getNumberOfPages();
+    assertThat(mergedPages).isGreaterThan(baseOnlyPages);
+
+    TestUtils.logout();
+  }
+
+  /**
+   * Verifies the {@code mainPdf} multipart override path: a single-page synthetic PDF passed as
+   * the override should produce a render whose first part has 1 page (override page count),
+   * regardless of how many pages the stored application PDF has.
+   */
+  @Test
+  public void renderApplicationPacketHonorsMainPdfOverrideTest() throws Exception {
+    String orgName = "Render Override Org";
+    EntityFactory.createOrganization().withOrgName(orgName).buildAndPersist(orgDao);
+
+    String admin = "renderOverrideAdmin";
+    String pass = "samePassword1!";
+    EntityFactory.createUser()
+        .withUsername(admin)
+        .withPasswordToHash(pass)
+        .withOrgName(orgName)
+        .withUserType(UserType.Admin)
+        .buildAndPersist(userDao);
+
+    TestUtils.login(admin, pass);
+    uploadTestPDF();
+
+    String applicationId =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents")
+            .getJSONObject(0)
+            .getString("id");
+
+    int storedPageCount;
+    {
+      HttpResponse<byte[]> storedResp =
+          Unirest.post(TestUtils.getServerUrl() + "/render-application-packet")
+              .field("applicationId", applicationId)
+              .asBytes();
+      assertThat(storedResp.getStatus()).isEqualTo(200);
+      storedPageCount =
+          org.apache.pdfbox.Loader.loadPDF(storedResp.getBody()).getNumberOfPages();
+    }
+
+    // Build a synthetic 1-page PDF in memory and feed it as the override.
+    byte[] overrideBytes;
+    try (org.apache.pdfbox.pdmodel.PDDocument doc = new org.apache.pdfbox.pdmodel.PDDocument()) {
+      doc.addPage(
+          new org.apache.pdfbox.pdmodel.PDPage(
+              org.apache.pdfbox.pdmodel.common.PDRectangle.LETTER));
+      java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+      doc.save(out);
+      overrideBytes = out.toByteArray();
+    }
+    java.io.File overrideFile = java.io.File.createTempFile("override-", ".pdf");
+    overrideFile.deleteOnExit();
+    java.nio.file.Files.write(overrideFile.toPath(), overrideBytes);
+
+    HttpResponse<byte[]> overrideResp =
+        Unirest.post(TestUtils.getServerUrl() + "/render-application-packet")
+            .field("applicationId", applicationId)
+            .field("mainPdf", overrideFile, "application/pdf")
+            .asBytes();
+    assertThat(overrideResp.getStatus()).isEqualTo(200);
+    int overridePageCount =
+        org.apache.pdfbox.Loader.loadPDF(overrideResp.getBody()).getNumberOfPages();
+    assertThat(overridePageCount).isEqualTo(1);
+
+    // Sanity: the override actually changed something. If the stored PDF was already 1 page this
+    // assertion is vacuous, so guard it.
+    if (storedPageCount != 1) {
+      assertThat(overridePageCount).isNotEqualTo(storedPageCount);
+    }
+
+    TestUtils.logout();
+  }
 }

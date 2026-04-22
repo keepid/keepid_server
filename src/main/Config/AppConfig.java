@@ -157,6 +157,7 @@ public class AppConfig {
     app.post("/attach-packet-part", fileController.attachPacketPart);
     app.post("/detach-packet-part", fileController.detachPacketPart);
     app.post("/reorder-packet-parts", fileController.reorderPacketParts);
+    app.post("/render-application-packet", fileController.renderApplicationPacket);
     app.post("/update-application-attachment-pdf", fileController.updateApplicationAttachmentPdf);
     /// app.post("/get-application-questions-v2", fileController.getApplicationQuestions);
     // app.post("/fill-form", fileController.fillPDFForm);

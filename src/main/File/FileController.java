@@ -15,6 +15,7 @@ import File.Services.*;
 import Packet.Packet;
 import Packet.PacketMessage;
 import Packet.PacketPart;
+import Packet.Services.RenderPacketPdfService;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
@@ -25,6 +26,7 @@ import User.UserType;
 import com.mongodb.client.MongoDatabase;
 import io.javalin.http.Handler;
 import io.javalin.http.UploadedFile;
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -1067,6 +1069,92 @@ public class FileController {
           ctx.result(response.toString());
         } catch (Exception e) {
           ctx.result(PacketMessage.SERVER_ERROR.toResponseString());
+        }
+      };
+
+  /**
+   * Renders the full application packet (base PDF + enabled attachments) into merged, flattened,
+   * normalized PDF bytes suitable for client-side Print/Download. This is the SAME code path Lob
+   * mailing uses, so Print / Download / Mail all produce byte-identical output for a given
+   * application state.
+   *
+   * <p>Multipart body:
+   *
+   * <ul>
+   *   <li>{@code applicationId} (form param, required): the application File's id.
+   *   <li>{@code mainPdf} (file, optional): current bytes of the main application PDF from the
+   *       client-side viewer. When provided, these bytes replace the stored APPLICATION_BASE
+   *       part -- this lets the user print/download their in-progress in-viewer edits (pdf.js
+   *       form widget text + embedded signatures) without having to press Save first. The
+   *       uploaded bytes are NOT persisted; the override applies only to this render call.
+   * </ul>
+   *
+   * <p>Response: {@code application/pdf} bytes on success, or a JSON error body with the
+   * appropriate HTTP status on failure.
+   */
+  public Handler renderApplicationPacket =
+      ctx -> {
+        String applicationId = ctx.formParam("applicationId");
+        if (applicationId == null || !ObjectId.isValid(applicationId)) {
+          ctx.status(400).result(PacketMessage.INVALID_PARAMETER.toResponseString());
+          return;
+        }
+
+        String orgName = ctx.sessionAttribute("orgName");
+        Optional<ObjectId> sessionOrganizationId = SessionOrganizationId.fromContext(ctx);
+        JSONObject requestJson = new JSONObject().put("applicationId", applicationId);
+        Optional<File> applicationFileOpt =
+            getApplicationFileForPacket(requestJson, orgName, sessionOrganizationId);
+        if (applicationFileOpt.isEmpty()) {
+          ctx.status(404).result(PacketMessage.NO_SUCH_FILE.toResponseString());
+          return;
+        }
+        File applicationFile = applicationFileOpt.get();
+
+        Packet packet = null;
+        if (applicationFile.getPacketId() != null) {
+          packet = packetDao.get(applicationFile.getPacketId()).orElse(null);
+        }
+
+        byte[] mainPdfOverride = null;
+        UploadedFile mainPdfUpload = ctx.uploadedFile("mainPdf");
+        if (mainPdfUpload != null) {
+          try (InputStream mainStream = mainPdfUpload.getContent()) {
+            mainPdfOverride = org.apache.commons.io.IOUtils.toByteArray(mainStream);
+          } catch (IOException e) {
+            log.warn(
+                "render-application-packet: failed to read mainPdf override for application {}: {}",
+                applicationId,
+                e.getMessage());
+            ctx.status(400).result(PacketMessage.INVALID_PARAMETER.toResponseString());
+            return;
+          }
+        }
+
+        if (encryptionController == null) {
+          ctx.status(500).result(PacketMessage.SERVER_ERROR.toResponseString());
+          return;
+        }
+
+        try {
+          byte[] renderedBytes =
+              RenderPacketPdfService.render(
+                  applicationFile,
+                  packet,
+                  fileDao,
+                  encryptionController,
+                  applicationFile.getUsername(),
+                  mainPdfOverride);
+          ctx.header("Content-Type", "application/pdf");
+          ctx.header("Content-Disposition", "inline; filename=\"application.pdf\"");
+          ctx.result(renderedBytes);
+        } catch (IOException e) {
+          log.error(
+              "render-application-packet failed for applicationId={}: {}",
+              applicationId,
+              e.getMessage(),
+              e);
+          ctx.status(500).result(PacketMessage.SERVER_ERROR.toResponseString());
         }
       };
 
