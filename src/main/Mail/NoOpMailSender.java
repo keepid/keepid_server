@@ -1,7 +1,5 @@
 package Mail;
 
-import Database.File.FileDao;
-import Security.EncryptionController;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,16 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 public class NoOpMailSender implements MailSender {
 
   @Override
-  public MailResult sendMail(
-      Mail mail,
-      FileDao fileDao,
-      EncryptionController encryptionController,
-      ReturnAddress returnAddress) {
-
+  public MailResult sendMail(Mail mail, byte[] renderedPdfBytes, ReturnAddress returnAddress) {
     log.info(
-        "NoOpMailSender: simulating mail for fileId={}, to={}",
+        "NoOpMailSender: simulating mail for fileId={}, to={}, pdfBytes={}",
         mail.getFileId(),
-        mail.getMailingAddress().getName());
+        mail.getMailingAddress().getName(),
+        renderedPdfBytes == null ? 0 : renderedPdfBytes.length);
 
     boolean isCheck =
         mail.getMailingAddress().getMaybeCheckAmount().compareTo(BigDecimal.ZERO) > 0;

@@ -4,8 +4,11 @@ import Config.Message;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.Mail.MailDao;
+import Database.Packet.PacketDao;
+import File.File;
 import Form.Form;
 import Mail.Services.SubmitToLobMailService;
+import Packet.Packet;
 import io.javalin.http.Handler;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -20,6 +23,7 @@ public class MailController {
   private MailDao mailDao;
   private FileDao fileDao;
   private FormDao formDao;
+  private PacketDao packetDao;
   private MailSender mailSender;
   private Security.EncryptionController encryptionController;
 
@@ -27,11 +31,13 @@ public class MailController {
       MailDao mailDao,
       FileDao fileDao,
       FormDao formDao,
+      PacketDao packetDao,
       MailSender mailSender,
       Security.EncryptionController encryptionController) {
     this.mailDao = mailDao;
     this.fileDao = fileDao;
     this.formDao = formDao;
+    this.packetDao = packetDao;
     this.mailSender = mailSender;
     this.encryptionController = encryptionController;
   }
@@ -67,6 +73,30 @@ public class MailController {
 
         String fileId = request.getString("fileId");
 
+        // Resolve the application PDF + (optional) packet up front so SubmitToLobMailService
+        // can render the full packet (base application + ordered enabled attachments) rather
+        // than mailing just the base PDF.
+        if (!ObjectId.isValid(fileId)) {
+          ctx.result(
+              MailMessage.FAILED_WHEN_SENDING_MAIL
+                  .toJSON("Invalid application file id")
+                  .toString());
+          return;
+        }
+        Optional<File> applicationFileOpt = fileDao.get(new ObjectId(fileId));
+        if (applicationFileOpt.isEmpty()) {
+          ctx.result(
+              MailMessage.FAILED_WHEN_SENDING_MAIL
+                  .toJSON("Application file not found")
+                  .toString());
+          return;
+        }
+        File applicationFile = applicationFileOpt.get();
+        Packet packet = null;
+        if (applicationFile.getPacketId() != null && packetDao != null) {
+          packet = packetDao.get(applicationFile.getPacketId()).orElse(null);
+        }
+
         ReturnAddress returnAddress = null;
         if (request.has("returnAddress")) {
           JSONObject ra = request.getJSONObject("returnAddress");
@@ -88,7 +118,8 @@ public class MailController {
                 mailDao,
                 mailSender,
                 formMailAddress,
-                fileId,
+                applicationFile,
+                packet,
                 username,
                 loggedInUser,
                 organizationName,
