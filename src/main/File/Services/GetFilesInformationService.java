@@ -8,11 +8,15 @@ import static com.mongodb.client.model.Filters.or;
 import Config.Message;
 import Config.Service;
 import Database.File.FileDao;
+import Database.Form.FormDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
+import Form.Form;
 import User.UserType;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.json.JSONArray;
@@ -27,6 +31,7 @@ public class GetFilesInformationService implements Service {
   private FileType fileType;
   private JSONArray files;
   private boolean annotated;
+  private FormDao formDao;
 
   public GetFilesInformationService(
       FileDao fileDao,
@@ -35,7 +40,8 @@ public class GetFilesInformationService implements Service {
       ObjectId organizationId,
       UserType userType,
       FileType fileType,
-      boolean annotated) {
+      boolean annotated,
+      FormDao formDao) {
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
@@ -43,6 +49,7 @@ public class GetFilesInformationService implements Service {
     this.userType = userType;
     this.fileType = fileType;
     this.annotated = annotated;
+    this.formDao = formDao;
   }
 
   @Override
@@ -156,6 +163,10 @@ public class GetFilesInformationService implements Service {
           fileMetadata.put("annotated", file_out.isAnnotated());
         } else if (fileType == FileType.APPLICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());
+          String applicationDisplayName = resolveApplicationDisplayName(file_out);
+          if (applicationDisplayName != null && !applicationDisplayName.isBlank()) {
+            fileMetadata.put("applicationDisplayName", applicationDisplayName);
+          }
           if (file_out.getPacketId() != null) {
             fileMetadata.put("packetId", file_out.getPacketId().toString());
           }
@@ -164,6 +175,10 @@ public class GetFilesInformationService implements Service {
         } else if (fileType == FileType.IDENTIFICATION_PDF) {
           fileMetadata.put("filename", file_out.getFilename());
           fileMetadata.put("idCategory", file_out.getIdCategory());
+          if (file_out.getIdCategory() != null) {
+            fileMetadata.put("idCategoryDisplay", file_out.getIdCategory().toString());
+          }
+          fileMetadata.put("customIdCategory", file_out.getCustomIdCategory());
         }
       } else if (fileType == FileType.MISC) {
         fileMetadata.put("filename", file_out.getFilename());
@@ -172,5 +187,37 @@ public class GetFilesInformationService implements Service {
     }
     this.files = files;
     return FileMessage.SUCCESS;
+  }
+
+  private String resolveApplicationDisplayName(File file) {
+    if (file == null || this.formDao == null) {
+      return null;
+    }
+    Optional<Form> formOpt = formDao.getByFileId(file.getId());
+    if (formOpt.isEmpty()) {
+      return null;
+    }
+    Form form = formOpt.get();
+    Map<String, String> metadata = form.getApplicationMetadata();
+    if (metadata == null || metadata.isEmpty()) {
+      String metadataTitle = form.getMetadata() != null ? form.getMetadata().getTitle() : null;
+      if (metadataTitle == null || metadataTitle.isBlank()) {
+        return null;
+      }
+      String trimmed = metadataTitle.trim();
+      if (trimmed.toLowerCase().endsWith(" form")) {
+        trimmed = trimmed.substring(0, trimmed.length() - 5).trim();
+      }
+      return trimmed.isBlank() ? null : trimmed;
+    }
+    String[] keysToTry =
+        new String[] {"applicationDisplayName", "applicationName", "applicationTitle", "title"};
+    for (String key : keysToTry) {
+      String value = metadata.get(key);
+      if (value != null && !value.isBlank()) {
+        return value.trim();
+      }
+    }
+    return null;
   }
 }

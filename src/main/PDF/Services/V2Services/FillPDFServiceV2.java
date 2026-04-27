@@ -460,9 +460,15 @@ public class FillPDFServiceV2 implements Service {
     Map<String, String> mergedMetadata = new HashMap<>();
     Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(this.fileId));
     if (templateOpt.isPresent()) {
-      Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+      Form templateForm = templateOpt.get();
+      Map<String, String> tmplMeta = templateForm.getApplicationMetadata();
       if (tmplMeta != null) {
         mergedMetadata.putAll(tmplMeta);
+      }
+      String templateTitle = templateForm.getMetadata() != null ? templateForm.getMetadata().getTitle() : null;
+      if (templateTitle != null && !templateTitle.isBlank()) {
+        mergedMetadata.putIfAbsent("applicationTitle", templateTitle.trim());
+        mergedMetadata.putIfAbsent("applicationDisplayName", templateTitle.trim());
       }
     }
     mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));

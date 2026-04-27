@@ -145,6 +145,10 @@ public class CreateApplicationService implements Service {
       form.setFileId(fileId);
       
       Map<String, String> appMetadata = new HashMap<>();
+      if (!metaTitle.isBlank()) {
+        appMetadata.put("applicationTitle", metaTitle);
+        appMetadata.put("applicationDisplayName", metaTitle);
+      }
       Iterator<String> keys = registryMetadata.keys();
       while(keys.hasNext()) {
         String key = keys.next();

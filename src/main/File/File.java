@@ -33,6 +33,7 @@ public class File {
   private boolean isAnnotated;
 
   @Getter @Setter private IdCategoryType idCategory;
+  @Getter @Setter private String customIdCategory;
 
   @Getter @Setter private String contentType;
 
@@ -90,6 +91,7 @@ public class File {
         && filename.equals(file.filename)
         && fileType == file.fileType
         && idCategory == file.idCategory
+        && Objects.equals(customIdCategory, file.customIdCategory)
         && uploadedAt.equals(file.uploadedAt)
         && username.equals(file.username)
         && Objects.equals(organizationName, file.organizationName)
@@ -109,6 +111,7 @@ public class File {
         filename,
         fileType,
         idCategory,
+        customIdCategory,
         uploadedAt,
         username,
         organizationName,
@@ -135,6 +138,9 @@ public class File {
         + fileType
         + ", idCategory="
         + idCategory
+        + ", customIdCategory='"
+        + customIdCategory
+        + '\''
         + ", uploadedAt="
         + uploadedAt
         + ", username='"
@@ -167,6 +173,7 @@ public class File {
             .put("id", this.getId().toString())
             .put("uploadDate", this.uploadedAt)
             .put("idCategory", this.idCategory)
+            .put("customIdCategory", this.customIdCategory)
             .put("filename", this.filename)
             .put("annotated", this.isAnnotated);
     return fileMetadata;

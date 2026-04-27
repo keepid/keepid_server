@@ -23,26 +23,31 @@ public enum IdCategoryType {
     }
 
     public static IdCategoryType createFromString(String idCategoryTypeString) {
-        switch (idCategoryTypeString) {
+        if (idCategoryTypeString == null) {
+            return IdCategoryType.NONE;
+        }
+        switch (idCategoryTypeString.trim()) {
             case "Drivers License / Photo ID":
+            case "DRIVERS_LICENSE_PHOTO_ID":
                 return IdCategoryType.DRIVERS_LICENSE_PHOTO_ID;
             case "Birth Certificate":
+            case "BIRTH_CERTIFICATE":
                 return IdCategoryType.BIRTH_CERTIFICATE;
             case "Social Security Card":
+            case "SOCIAL_SECURITY_CARD":
                 return IdCategoryType.SOCIAL_SECURITY_CARD;
-            case "Vaccine Card":
-                return IdCategoryType.VACCINE_CARD;
             case "Medical Insurance Card":
+            case "MEDICAID_CARD":
                 return IdCategoryType.MEDICAID_CARD;
-            case "Veteran ID Card":
-                return IdCategoryType.VETERAN_ID_CARD;
-            case "School Transcript":
-                return IdCategoryType.SCHOOL_TRANSCRIPT;
             case "ID.me Recovery Codes":
+            case "ID_ME_RECOVERY_CODES":
                 return IdCategoryType.ID_ME_RECOVERY_CODES;
             case "Other":
+            case "Other: specify":
+            case "OTHER":
                 return IdCategoryType.OTHER;
             case "None":
+            case "NONE":
                 return IdCategoryType.NONE;
             default:
                 return IdCategoryType.NONE;

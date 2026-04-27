@@ -68,9 +68,13 @@ public class SubmitToLobMailService implements Service {
           RenderPacketPdfService.render(
               applicationFile, packet, fileDao, encryptionController, mail.getTargetUsername());
 
-      int pageCount = RenderPacketPdfService.countPages(renderedBytes);
       boolean isCheck =
           mail.getMailingAddress().getMaybeCheckAmount().compareTo(BigDecimal.ZERO) > 0;
+      // Letters use Lob's address_placement=insert_blank_page (see LobMailSender) instead of
+      // mutating PDF bytes here — keeps print/download identical to the mailed file payload.
+      byte[] lobPdfBytes = renderedBytes;
+
+      int pageCount = RenderPacketPdfService.countPages(lobPdfBytes);
       try {
         assertWithinPageLimit(pageCount, isCheck);
       } catch (IllegalStateException limitExceeded) {
@@ -79,7 +83,7 @@ public class SubmitToLobMailService implements Service {
         throw limitExceeded;
       }
 
-      MailResult result = mailSender.sendMail(mail, renderedBytes, returnAddress);
+      MailResult result = mailSender.sendMail(mail, lobPdfBytes, returnAddress);
       mail.applyResult(result);
       mailDao.update(mail);
       return MailMessage.MAIL_SUCCESS;
@@ -99,7 +103,8 @@ public class SubmitToLobMailService implements Service {
    * is outside Lob's limits for the product. Public for unit-testing in isolation from the
    * render/encryption pipeline.
    *
-   * @param pageCount page count of the fully merged + flattened mail payload.
+   * @param pageCount page count of the merged packet PDF uploaded to Lob (Lob may insert an
+   *     additional address page for letters via {@code address_placement=insert_blank_page}).
    * @param isCheck {@code true} if the mailing is a check (6-page cap), {@code false} for a
    *     letter (60-page cap).
    */
