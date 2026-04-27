@@ -524,6 +524,23 @@ public class FileControllerIntegrationTests {
     String persistedApplicationId = createJson.getString("applicationId");
     assertThat(createJson.getString("fileId")).isEqualTo(persistedApplicationId);
     assertThat(persistedApplicationId).isNotEqualTo(nonApplicationFileId);
+    JSONArray createDocuments =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents");
+    String uploadDateBeforeReplace = null;
+    for (int i = 0; i < createDocuments.length(); i++) {
+      JSONObject doc = createDocuments.getJSONObject(i);
+      if (persistedApplicationId.equals(doc.optString("id"))) {
+        uploadDateBeforeReplace = doc.opt("uploadDate").toString();
+        break;
+      }
+    }
+    assertThat(uploadDateBeforeReplace).isNotNull();
 
     HttpResponse<String> replaceResp =
         Unirest.post(TestUtils.getServerUrl() + "/upload-completed-pdf-2")
@@ -537,6 +554,23 @@ public class FileControllerIntegrationTests {
     assertThat(replaceJson.getString("status")).isEqualTo("SUCCESS");
     assertThat(replaceJson.getString("applicationId")).isEqualTo(persistedApplicationId);
     assertThat(replaceJson.getString("fileId")).isEqualTo(persistedApplicationId);
+    JSONArray replaceDocuments =
+        TestUtils
+            .responseStringToJSON(
+                Unirest.post(TestUtils.getServerUrl() + "/get-files")
+                    .body(new JSONObject().put("fileType", "APPLICATION_PDF").toString())
+                    .asString()
+                    .getBody())
+            .getJSONArray("documents");
+    String uploadDateAfterReplace = null;
+    for (int i = 0; i < replaceDocuments.length(); i++) {
+      JSONObject doc = replaceDocuments.getJSONObject(i);
+      if (persistedApplicationId.equals(doc.optString("id"))) {
+        uploadDateAfterReplace = doc.opt("uploadDate").toString();
+        break;
+      }
+    }
+    assertThat(uploadDateAfterReplace).isEqualTo(uploadDateBeforeReplace);
 
     TestUtils.logout();
   }

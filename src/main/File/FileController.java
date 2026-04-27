@@ -148,6 +148,7 @@ public class FileController {
               log.info("Received file type of {}", fileType.toString());
               boolean annotated = false;
               IdCategoryType idCategory = IdCategoryType.NONE;
+              String customIdCategory = null;
               boolean toSign = false;
               if (ctx.formParam("annotated") != null) {
                 annotated = Boolean.parseBoolean(ctx.formParam("annotated"));
@@ -155,8 +156,20 @@ public class FileController {
               if (ctx.formParam("idCategory") != null) {
                 idCategory = IdCategoryType.createFromString(ctx.formParam("idCategory"));
               }
+              if (ctx.formParam("customIdCategory") != null) {
+                String customIdCategoryRaw = ctx.formParam("customIdCategory");
+                if (customIdCategoryRaw != null) {
+                  customIdCategory = customIdCategoryRaw.trim();
+                  if (customIdCategory.isEmpty()) {
+                    customIdCategory = null;
+                  }
+                }
+              }
               if (ctx.formParam("toSign") != null) {
                 toSign = Boolean.parseBoolean(ctx.formParam("toSign"));
+              }
+              if (fileType != FileType.IDENTIFICATION_PDF) {
+                customIdCategory = null;
               }
               String fileId = null;
               UploadedFile signature = null;
@@ -192,6 +205,21 @@ public class FileController {
                   if (fileType == FileType.FORM && annotated) {
                     fileId = Objects.requireNonNull(ctx.formParam("fileID"));
                   }
+                  if (fileType == FileType.IDENTIFICATION_PDF) {
+                    if (idCategory == IdCategoryType.NONE) {
+                      response = FileMessage.INVALID_PARAMETER;
+                      break;
+                    }
+                    if (idCategory == IdCategoryType.OTHER && customIdCategory == null) {
+                      response = FileMessage.INVALID_PARAMETER;
+                      break;
+                    }
+                    if (idCategory != IdCategoryType.OTHER) {
+                      customIdCategory = null;
+                    }
+                  } else {
+                    customIdCategory = null;
+                  }
                   File fileToUpload =
                       new File(
                           username,
@@ -203,6 +231,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  fileToUpload.setCustomIdCategory(customIdCategory);
                   setFileOrganizationId(fileToUpload, ctx, maybeTargetUser);
                   UploadFileService uploadService =
                       new UploadFileService(
@@ -232,6 +261,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  fileToUpload.setCustomIdCategory(customIdCategory);
                   setFileOrganizationId(fileToUpload, ctx, maybeTargetUser);
                   uploadService =
                       new UploadFileService(
@@ -259,6 +289,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  fileToUpload.setCustomIdCategory(customIdCategory);
                   uploadService =
                       new UploadFileService(
                           fileDao,
@@ -285,6 +316,7 @@ public class FileController {
                           organizationName,
                           annotated,
                           file.getContentType());
+                  fileToUpload.setCustomIdCategory(customIdCategory);
                   uploadService =
                       new UploadFileService(
                           fileDao,
@@ -553,7 +585,14 @@ public class FileController {
                     : SessionOrganizationId.fromContext(ctx).orElse(null);
             GetFilesInformationService getFilesInformationService =
                 new GetFilesInformationService(
-                    fileDao, username, orgName, organizationIdForQuery, userType, fileType, annotated);
+                    fileDao,
+                    username,
+                    orgName,
+                    organizationIdForQuery,
+                    userType,
+                    fileType,
+                    annotated,
+                    formDao);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
@@ -669,6 +708,7 @@ public class FileController {
             applicationFile.getOrganizationName(),
             sourceFile.isAnnotated(),
             sourceFile.getContentType());
+    clonedFile.setCustomIdCategory(sourceFile.getCustomIdCategory());
     clonedFile.setApplicationScopedAttachment(true);
     clonedFile.setAttachedApplicationId(applicationFile.getId());
     clonedFile.setSourceOrgDocumentId(sourceFile.getId());
@@ -697,6 +737,7 @@ public class FileController {
     existingClone.setFilename(sourceFile.getFilename());
     existingClone.setContentType(sourceFile.getContentType());
     existingClone.setIdCategory(sourceFile.getIdCategory());
+    existingClone.setCustomIdCategory(sourceFile.getCustomIdCategory());
     existingClone.setAnnotated(sourceFile.isAnnotated());
     existingClone.setUploadedAt(Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()));
     fileDao.update(existingClone);
@@ -1074,9 +1115,9 @@ public class FileController {
 
   /**
    * Renders the full application packet (base PDF + enabled attachments) into merged, flattened,
-   * normalized PDF bytes suitable for client-side Print/Download. This is the SAME code path Lob
-   * mailing uses, so Print / Download / Mail all produce byte-identical output for a given
-   * application state.
+   * normalized PDF bytes suitable for client-side Print/Download. Lob letter mail uploads these
+   * same bytes and sets {@code address_placement=insert_blank_page} so Lob prepends their address
+   * sheet at print time — Print/Download and the mailed PDF payload stay aligned.
    *
    * <p>Multipart body:
    *

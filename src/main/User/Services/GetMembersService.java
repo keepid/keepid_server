@@ -25,8 +25,6 @@ public class GetMembersService implements Service {
   private JSONArray peoplePage;
   private int numReturnedElements;
 
-  public static final int NUM_ELEMENTS_TO_RETURN = 80;
-
   public GetMembersService(
       UserDao userDao,
       String searchValue,
@@ -72,9 +70,7 @@ public class GetMembersService implements Service {
 
     int numReturnedElements = 0;
     for (BoundExtractedResult<User> user : users) {
-      if (numReturnedElements < NUM_ELEMENTS_TO_RETURN) {
-        numReturnedElements += constructUserList(user.getReferent(), listType, userList);
-      }
+      numReturnedElements += constructUserList(user.getReferent(), listType, userList);
     }
 
     this.numReturnedElements = numReturnedElements;

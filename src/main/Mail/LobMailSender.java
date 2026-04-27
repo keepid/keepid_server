@@ -135,6 +135,14 @@ public class LobMailSender implements MailSender {
 
     LetterEditable letterEditable = new LetterEditable();
     letterEditable.setColor(false);
+    // lob-java defaults double_sided=true. Duplex + an odd page count leaves an empty back on the
+    // last physical sheet (looks like a blank PDF page at the end). Single-sided matches typical
+    // mailed forms and avoids that trailing verso.
+    letterEditable.setDoubleSided(false);
+    // Default top_first_page prints the address on the customer's first PDF page. Use Lob's
+    // insert_blank_page so they prepend a dedicated address sheet; our file stays unchanged
+    // (same bytes as print/download from RenderPacketPdfService).
+    letterEditable.setAddressPlacement(LetterEditable.AddressPlacementEnum.INSERT_BLANK_PAGE);
     letterEditable.setFrom(fromAddressId);
     letterEditable.setMetadata(
         Map.of(

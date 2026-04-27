@@ -226,21 +226,35 @@ public class UploadCompletedPDFServiceV2 implements Service {
       Map<String, String> mergedMetadata = new HashMap<>();
       Optional<Form> templateOpt = formDao.getByFileId(new ObjectId(applicationId));
       if (templateOpt.isPresent()) {
-        Map<String, String> tmplMeta = templateOpt.get().getApplicationMetadata();
+        Form templateForm = templateOpt.get();
+        Map<String, String> tmplMeta = templateForm.getApplicationMetadata();
         if (tmplMeta != null) {
           mergedMetadata.putAll(tmplMeta);
+        }
+        String templateTitle =
+            templateForm.getMetadata() != null ? templateForm.getMetadata().getTitle() : null;
+        if (templateTitle != null && !templateTitle.isBlank()) {
+          mergedMetadata.putIfAbsent("applicationTitle", templateTitle.trim());
+          mergedMetadata.putIfAbsent("applicationDisplayName", templateTitle.trim());
         }
       }
       mergedMetadata.putAll(extractMetadataFromAnswers(this.formAnswers));
       this.filledForm.setApplicationMetadata(mergedMetadata);
 
       if (replacingExistingApplication && existingApplicationObjectId != null) {
+        Optional<File> existingApplicationFile = fileDao.get(existingApplicationObjectId);
         this.filledFile.setId(existingApplicationObjectId);
         this.filledFile.setPacketId(existingPacketObjectId);
         this.filledForm.setFileId(existingApplicationObjectId);
+        if (existingApplicationFile.isPresent()) {
+          // Keep original upload timestamp when replacing an existing application.
+          this.filledFile.setUploadedAt(existingApplicationFile.get().getUploadedAt());
+        }
 
         Optional<Form> existingForm = formDao.getByFileId(existingApplicationObjectId);
         if (existingForm.isPresent()) {
+          // Preserve original form upload timestamp for edited applications.
+          this.filledForm.setUploadedAt(existingForm.get().getUploadedAt());
           this.filledForm.setId(existingForm.get().getId());
         }
 

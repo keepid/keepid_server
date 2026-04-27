@@ -550,6 +550,7 @@ public class FormController {
       ctx -> {
         String id = ctx.pathParam("id");
         JSONObject req = new JSONObject(ctx.body());
+        log.info("DEV_REGISTRY_UPDATE id={} payload={}", id, req);
 
         Optional<ApplicationRegistryEntry> entryOpt = registryDao.get(new ObjectId(id));
         if (entryOpt.isEmpty()) {
@@ -563,6 +564,11 @@ public class FormController {
           if (meta.has("lookupKey")) entry.setLookupKey(meta.getString("lookupKey"));
           if (meta.has("title")) entry.setTitle(meta.optString("title", ""));
           registryDao.update(entry);
+          log.info(
+              "DEV_REGISTRY_UPDATE persisted registry id={} lookupKey={} title={}",
+              id,
+              entry.getLookupKey(),
+              entry.getTitle());
         }
 
         if (entry.getOrgMappings() != null && !entry.getOrgMappings().isEmpty()) {
@@ -587,6 +593,24 @@ public class FormController {
                 String key = keys.next();
                 if (key.startsWith("mailDestination")) {
                   appMetadata.put(key, meta.optString(key, ""));
+                }
+              }
+              String title = meta.optString("title", "").trim();
+              if (!title.isEmpty()) {
+                appMetadata.put("applicationTitle", title);
+                appMetadata.put("applicationDisplayName", title);
+                FormMetadata existingFormMetadata = form.getMetadata();
+                if (existingFormMetadata != null) {
+                  form.setMetadata(
+                      new FormMetadata(
+                          title,
+                          existingFormMetadata.getDescription(),
+                          existingFormMetadata.getState(),
+                          existingFormMetadata.getCounty(),
+                          existingFormMetadata.getPrerequisites(),
+                          existingFormMetadata.getLastRevisedAt(),
+                          existingFormMetadata.getPaymentInfo(),
+                          existingFormMetadata.getNumLines()));
                 }
               }
               form.setApplicationMetadata(appMetadata);
@@ -782,13 +806,42 @@ public class FormController {
       };
 
   private String resolveTitleForRegistryEntry(ApplicationRegistryEntry entry) {
+    String explicitTitle = entry.getTitle();
+    if (explicitTitle != null && !explicitTitle.isBlank()) {
+      log.debug(
+          "DEV_REGISTRY_TITLE_SOURCE registryId={} source=entry.title value={}",
+          entry.getId(),
+          explicitTitle);
+      return explicitTitle;
+    }
     try {
       ObjectId fileId = entry.getFileIdForOrg(null);
       if (fileId != null) {
         Optional<Form> formOpt = formDao.getByFileId(fileId);
-        if (formOpt.isPresent() && formOpt.get().getMetadata() != null) {
-          String metadataTitle = formOpt.get().getMetadata().getTitle();
+        if (formOpt.isPresent()) {
+          Form form = formOpt.get();
+          Map<String, String> appMeta = form.getApplicationMetadata();
+          if (appMeta != null) {
+            String[] preferredKeys = {"applicationDisplayName", "applicationTitle", "title"};
+            for (String key : preferredKeys) {
+              String value = appMeta.get(key);
+              if (value != null && !value.isBlank()) {
+                log.debug(
+                    "DEV_REGISTRY_TITLE_SOURCE registryId={} source=form.applicationMetadata.{} value={}",
+                    entry.getId(),
+                    key,
+                    value);
+                return value.trim();
+              }
+            }
+          }
+          String metadataTitle =
+              form.getMetadata() != null ? form.getMetadata().getTitle() : null;
           if (metadataTitle != null && !metadataTitle.isBlank()) {
+            log.debug(
+                "DEV_REGISTRY_TITLE_SOURCE registryId={} source=form.metadata.title value={}",
+                entry.getId(),
+                metadataTitle);
             return metadataTitle;
           }
         }
@@ -796,6 +849,10 @@ public class FormController {
     } catch (Exception e) {
       log.warn("Failed to resolve title from form metadata for registry {}", entry.getId(), e);
     }
+    log.debug(
+        "DEV_REGISTRY_TITLE_SOURCE registryId={} source=lookupKey value={}",
+        entry.getId(),
+        entry.getLookupKey());
     return entry.getLookupKey() == null ? "" : entry.getLookupKey();
   }
 }
