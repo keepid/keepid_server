@@ -9,11 +9,14 @@ import Config.Message;
 import Config.Service;
 import Database.File.FileDao;
 import Database.Form.FormDao;
+import Database.User.UserDao;
 import File.File;
 import File.FileMessage;
 import File.FileType;
 import Form.Form;
+import User.User;
 import User.UserType;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,6 +35,8 @@ public class GetFilesInformationService implements Service {
   private JSONArray files;
   private boolean annotated;
   private FormDao formDao;
+  private UserDao userDao;
+  private final Map<String, Optional<User>> userLookupCache = new HashMap<>();
 
   public GetFilesInformationService(
       FileDao fileDao,
@@ -41,7 +46,8 @@ public class GetFilesInformationService implements Service {
       UserType userType,
       FileType fileType,
       boolean annotated,
-      FormDao formDao) {
+      FormDao formDao,
+      UserDao userDao) {
     this.fileDao = fileDao;
     this.username = username;
     this.orgName = orgName;
@@ -50,6 +56,7 @@ public class GetFilesInformationService implements Service {
     this.fileType = fileType;
     this.annotated = annotated;
     this.formDao = formDao;
+    this.userDao = userDao;
   }
 
   @Override
@@ -170,6 +177,27 @@ public class GetFilesInformationService implements Service {
           if (file_out.getPacketId() != null) {
             fileMetadata.put("packetId", file_out.getPacketId().toString());
           }
+          // Join the uploader's name onto each application so non-client viewers
+          // (Worker/Admin/Director) can identify which client an application belongs to.
+          // Files only store the uploader's username, so we look up the User record by username.
+          Optional<User> uploaderOpt = lookupUserByUsername(uploaderUsername);
+          if (uploaderOpt.isPresent()) {
+            User uploader = uploaderOpt.get();
+            String firstName = uploader.getFirstName();
+            String lastName = uploader.getLastName();
+            if (firstName != null && !firstName.isBlank()) {
+              fileMetadata.put("clientFirstName", firstName);
+            }
+            if (lastName != null && !lastName.isBlank()) {
+              fileMetadata.put("clientLastName", lastName);
+            }
+            String fullName = uploader.getCurrentName() != null
+                ? uploader.getCurrentName().getFullName()
+                : null;
+            if (fullName != null && !fullName.isBlank()) {
+              fileMetadata.put("clientName", fullName);
+            }
+          }
         } else if (fileType == FileType.ORG_DOCUMENT) {
           fileMetadata.put("filename", file_out.getFilename());
         } else if (fileType == FileType.IDENTIFICATION_PDF) {
@@ -187,6 +215,13 @@ public class GetFilesInformationService implements Service {
     }
     this.files = files;
     return FileMessage.SUCCESS;
+  }
+
+  private Optional<User> lookupUserByUsername(String uploaderUsername) {
+    if (userDao == null || uploaderUsername == null || uploaderUsername.isBlank()) {
+      return Optional.empty();
+    }
+    return userLookupCache.computeIfAbsent(uploaderUsername, userDao::get);
   }
 
   private String resolveApplicationDisplayName(File file) {

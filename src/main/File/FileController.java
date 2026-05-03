@@ -592,7 +592,8 @@ public class FileController {
                     userType,
                     fileType,
                     annotated,
-                    formDao);
+                    formDao,
+                    userDao);
             Message response = getFilesInformationService.executeAndGetResponse();
             responseJSON = response.toJSON();
 
