@@ -9,6 +9,7 @@ import Database.Activity.ActivityDao;
 import Database.File.FileDao;
 import Database.Form.FormDao;
 import Database.Packet.PacketDao;
+import Database.PhoneUpload.PhoneUploadSessionDao;
 import Database.User.UserDao;
 import File.Jobs.GetWeeklyUploadedIdsJob;
 import File.Services.*;
@@ -16,6 +17,8 @@ import Packet.Packet;
 import Packet.PacketMessage;
 import Packet.PacketPart;
 import Packet.Services.RenderPacketPdfService;
+import PhoneUpload.PhoneUploadSession;
+import PhoneUpload.PhoneUploadTokenUtil;
 import PDF.PdfMessage;
 import PDF.Services.CrudServices.ImageToPDFService;
 import Security.EncryptionController;
@@ -61,6 +64,7 @@ public class FileController {
   private FormDao formDao;
   private PacketDao packetDao;
   private EncryptionController encryptionController;
+  private PhoneUploadSessionDao phoneUploadSessionDao;
 
   public FileController(
       MongoDatabase db,
@@ -69,13 +73,15 @@ public class FileController {
       ActivityDao activityDao,
       FormDao formDao,
       PacketDao packetDao,
-      EncryptionController encryptionController) {
+      EncryptionController encryptionController,
+      PhoneUploadSessionDao phoneUploadSessionDao) {
     this.userDao = userDao;
     this.fileDao = fileDao;
     this.activityDao = activityDao;
     this.formDao = formDao;
     this.packetDao = packetDao;
     this.encryptionController = encryptionController;
+    this.phoneUploadSessionDao = phoneUploadSessionDao;
   }
 
   /*
@@ -337,6 +343,178 @@ public class FileController {
           }
         }
 
+        ctx.result(response.toResponseString());
+      };
+
+  private Optional<PhoneUploadSession> getActivePhoneUploadSession(String rawToken) {
+    if (rawToken == null || rawToken.isBlank()) {
+      return Optional.empty();
+    }
+    String tokenHash = PhoneUploadTokenUtil.hashToken(rawToken.trim());
+    Optional<PhoneUploadSession> sessionOpt = phoneUploadSessionDao.getByTokenHash(tokenHash);
+    if (sessionOpt.isEmpty()) {
+      return Optional.empty();
+    }
+    PhoneUploadSession session = sessionOpt.get();
+    Date now = new Date();
+    if (session.isClosed() || session.isExpired(now)) {
+      return Optional.empty();
+    }
+    return Optional.of(session);
+  }
+
+  public Handler fileUploadWithToken =
+      ctx -> {
+        log.info("Uploading file with phone token...");
+        UploadedFile file = ctx.uploadedFile("file");
+        String rawToken = ctx.formParam("phoneUploadToken");
+        Optional<PhoneUploadSession> phoneSessionOpt = getActivePhoneUploadSession(rawToken);
+        if (phoneSessionOpt.isEmpty()) {
+          ctx.result(FileMessage.INVALID_PARAMETER.toJSON("Phone upload token is invalid or expired").toString());
+          return;
+        }
+        PhoneUploadSession phoneSession = phoneSessionOpt.get();
+        Optional<User> maybeTargetUser = userDao.get(phoneSession.getTargetClientUsername());
+        Optional<User> maybeActorUser = userDao.get(phoneSession.getActorUsername());
+        if (maybeTargetUser.isEmpty() || maybeActorUser.isEmpty()) {
+          ctx.result(UserMessage.USER_NOT_FOUND.toResponseString());
+          return;
+        }
+        User target = maybeTargetUser.get();
+
+        // Enforce same-org parity with existing session-based checks, but sourced from token session.
+        boolean orgFlag;
+        if (phoneSession.getOrganizationId() != null && target.getOrganizationId() != null) {
+          orgFlag = phoneSession.getOrganizationId().equals(target.getOrganizationId());
+        } else {
+          orgFlag = Objects.equals(phoneSession.getOrganizationName(), target.getOrganization());
+        }
+        if (!orgFlag) {
+          ctx.result(UserMessage.CROSS_ORG_ACTION_DENIED.toResponseString());
+          return;
+        }
+
+        String submittedCategoryRaw = ctx.formParam("idCategory");
+        IdCategoryType submittedCategory = IdCategoryType.createFromString(submittedCategoryRaw);
+        IdCategoryType tokenCategory = phoneSession.getResolvedIdCategory();
+        if (submittedCategory == IdCategoryType.NONE || submittedCategory != tokenCategory) {
+          ctx.result(FileMessage.INVALID_PARAMETER.toJSON("Submitted category does not match token scope").toString());
+          return;
+        }
+        String submittedCustomCategory = ctx.formParam("customIdCategory");
+        if (tokenCategory == IdCategoryType.OTHER) {
+          String tokenCustomCategory =
+              phoneSession.getCustomIdCategory() == null ? "" : phoneSession.getCustomIdCategory().trim();
+          String submittedCustomCategoryTrimmed =
+              submittedCustomCategory == null ? "" : submittedCustomCategory.trim();
+          if (submittedCustomCategory == null
+              || !tokenCustomCategory.equals(submittedCustomCategoryTrimmed)) {
+            ctx.result(
+                FileMessage.INVALID_PARAMETER
+                    .toJSON("Submitted custom category does not match token scope")
+                    .toString());
+            return;
+          }
+        }
+
+        Message response = null;
+        if (file == null) {
+          response = FileMessage.INVALID_FILE;
+        } else {
+          String username = target.getUsername();
+          String organizationName = target.getOrganization();
+          UserType privilegeLevel = maybeActorUser.get().getUserType();
+          String usernameOfInvoker = phoneSession.getActorUsername();
+          FileType fileType = FileType.createFromString(Objects.requireNonNull(ctx.formParam("fileType")));
+          if (fileType != FileType.IDENTIFICATION_PDF) {
+            ctx.result(
+                FileMessage.INVALID_PARAMETER
+                    .toJSON("Phone upload only supports identification documents")
+                    .toString());
+            return;
+          }
+          boolean annotated = false;
+          boolean toSign = false;
+          String fileId = null;
+          UploadedFile signature = null;
+          Date uploadDate =
+              Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+          InputStream filestreamToUpload = file.getContent();
+          String filenameToUpload = file.getFilename();
+          IdCategoryType idCategory = submittedCategory;
+          String customIdCategory = submittedCustomCategory != null ? submittedCustomCategory.trim() : null;
+
+          switch (fileType) {
+            case APPLICATION_PDF:
+            case IDENTIFICATION_PDF:
+            case FORM:
+              if (file.getContentType().startsWith("image")) {
+                ImageToPDFService imageToPDFService = new ImageToPDFService(filestreamToUpload);
+                Message imageToPdfServiceResponse = imageToPDFService.executeAndGetResponse();
+                if (imageToPdfServiceResponse == PdfMessage.INVALID_PDF) {
+                  ctx.result(imageToPdfServiceResponse.toResponseString());
+                  return;
+                }
+                filestreamToUpload = imageToPDFService.getFileStream();
+                filenameToUpload =
+                    file.getFilename().substring(0, file.getFilename().lastIndexOf(".")) + ".pdf";
+              }
+              filestreamToUpload.reset();
+
+              if (toSign) {
+                signature = Objects.requireNonNull(ctx.uploadedFile("signature"));
+              }
+              if (fileType == FileType.FORM && annotated) {
+                fileId = Objects.requireNonNull(ctx.formParam("fileID"));
+              }
+              if (fileType == FileType.IDENTIFICATION_PDF) {
+                if (idCategory == IdCategoryType.NONE) {
+                  response = FileMessage.INVALID_PARAMETER;
+                  break;
+                }
+                if (idCategory == IdCategoryType.OTHER && customIdCategory == null) {
+                  response = FileMessage.INVALID_PARAMETER;
+                  break;
+                }
+                if (idCategory != IdCategoryType.OTHER) {
+                  customIdCategory = null;
+                }
+              } else {
+                customIdCategory = null;
+              }
+              File fileToUpload =
+                  new File(
+                      username,
+                      uploadDate,
+                      filestreamToUpload,
+                      fileType,
+                      idCategory,
+                      filenameToUpload,
+                      organizationName,
+                      annotated,
+                      file.getContentType());
+              fileToUpload.setCustomIdCategory(customIdCategory);
+              if (target.getOrganizationId() != null) {
+                fileToUpload.setOrganizationId(target.getOrganizationId());
+              }
+              UploadFileService uploadService =
+                  new UploadFileService(
+                      fileDao,
+                      activityDao,
+                      usernameOfInvoker,
+                      fileToUpload,
+                      Optional.ofNullable(privilegeLevel),
+                      Optional.ofNullable(fileId),
+                      toSign,
+                      signature == null ? Optional.empty() : Optional.of(signature.getContent()),
+                      Optional.ofNullable(encryptionController));
+              response = uploadService.executeAndGetResponse();
+              break;
+            default:
+              response = FileMessage.INVALID_PARAMETER;
+              break;
+          }
+        }
         ctx.result(response.toResponseString());
       };
 
