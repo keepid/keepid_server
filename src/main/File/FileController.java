@@ -515,6 +515,12 @@ public class FileController {
               break;
           }
         }
+        // Close the session on success so the token cannot be reused within
+        // its remaining TTL window.
+        if (response == FileMessage.SUCCESS) {
+          phoneSession.setClosedAt(new Date());
+          phoneUploadSessionDao.update(phoneSession);
+        }
         ctx.result(response.toResponseString());
       };
 
