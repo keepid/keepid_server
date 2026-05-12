@@ -23,6 +23,18 @@ public class Notification implements Comparable<Notification> {
     @BsonProperty(value = "sentAt")
     private LocalDateTime sentAt;
 
+    // Email channel fields. Optional: a notification may have been sent over SMS
+    // only, in which case these are null on persisted records. Older notifications
+    // (pre-email-channel) will deserialize with these as null as well.
+    @BsonProperty(value = "clientEmail")
+    private String clientEmail;
+
+    @BsonProperty(value = "emailSubject")
+    private String emailSubject;
+
+    @BsonProperty(value = "emailBody")
+    private String emailBody;
+
     public Notification() {}
 
     public Notification(
@@ -35,6 +47,20 @@ public class Notification implements Comparable<Notification> {
         this.clientPhoneNumber = clientPhoneNumber;
         this.message = message;
         this.sentAt = LocalDateTime.now();
+    }
+
+    public Notification(
+            String workerUsername,
+            String clientUsername,
+            String clientPhoneNumber,
+            String message,
+            String clientEmail,
+            String emailSubject,
+            String emailBody) {
+        this(workerUsername, clientUsername, clientPhoneNumber, message);
+        this.clientEmail = clientEmail;
+        this.emailSubject = emailSubject;
+        this.emailBody = emailBody;
     }
 
     public ObjectId getId() {
@@ -91,6 +117,33 @@ public class Notification implements Comparable<Notification> {
         return this;
     }
 
+    public String getClientEmail() {
+        return clientEmail;
+    }
+
+    public Notification setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
+        return this;
+    }
+
+    public String getEmailSubject() {
+        return emailSubject;
+    }
+
+    public Notification setEmailSubject(String emailSubject) {
+        this.emailSubject = emailSubject;
+        return this;
+    }
+
+    public String getEmailBody() {
+        return emailBody;
+    }
+
+    public Notification setEmailBody(String emailBody) {
+        this.emailBody = emailBody;
+        return this;
+    }
+
     public JSONObject serialize() {
         JSONObject json = new JSONObject();
         json.put("_id", id != null ? id.toHexString() : null);
@@ -99,6 +152,9 @@ public class Notification implements Comparable<Notification> {
         json.put("clientPhoneNumber", clientPhoneNumber);
         json.put("message", message);
         json.put("sentAt", sentAt != null ? sentAt.toString() : null);
+        json.put("clientEmail", clientEmail);
+        json.put("emailSubject", emailSubject);
+        json.put("emailBody", emailBody);
         return json;
     }
 

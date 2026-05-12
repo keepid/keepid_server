@@ -48,8 +48,16 @@ public class NotificationController {
 
                 String clientUsername = req.getString("clientUsername");
                 String idToPickup = req.getString("idToPickup");
-                String clientPhoneNumber = req.getString("clientPhoneNumber");
-                String message = req.getString("message");
+                String clientPhoneNumber = req.optString("clientPhoneNumber", null);
+                String message = req.optString("message", null);
+
+                // Email channel is opt-in. The frontend sends these fields when
+                // the client has an email on file; the service silently skips
+                // emailing when any of them are missing or invalid.
+                String clientEmail = req.optString("clientEmail", null);
+                String emailSubject = req.optString("emailSubject", null);
+                String emailBody = req.optString("emailBody", null);
+                String emailHtml = req.optString("emailHtml", null);
 
                 NotifyIdPickupService service =
                         new NotifyIdPickupService(
@@ -60,7 +68,11 @@ public class NotificationController {
                                 clientUsername,
                                 idToPickup,
                                 clientPhoneNumber,
-                                message);
+                                message,
+                                clientEmail,
+                                emailSubject,
+                                emailBody,
+                                emailHtml);
                 Message responseMessage = service.executeAndGetResponse();
                 ctx.result(responseMessage.toResponseString());
             };

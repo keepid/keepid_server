@@ -8,6 +8,7 @@ import Database.Notification.NotificationDao;
 import Notification.Notification;
 import Notification.WindmillNotificationClient;
 import User.UserMessage;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -20,6 +21,14 @@ public class NotifyIdPickupService implements Service {
     private final String idToPickup;
     private final String clientPhoneNumber;
     private final String message;
+    // Email channel inputs are optional. When all three (email + subject + body)
+    // are valid the service will additionally send a templated email via the
+    // notification client. Any blank or invalid email skips the email send
+    // silently — same posture as SMS validation but on the optional channel.
+    private final String clientEmail;
+    private final String emailSubject;
+    private final String emailBody;
+    private final String emailHtml;
 
     public NotifyIdPickupService(
             ActivityDao activityDao,
@@ -30,6 +39,24 @@ public class NotifyIdPickupService implements Service {
             String idToPickup,
             String clientPhoneNumber,
             String message) {
+        this(activityDao, notificationDao, notificationClient,
+                workerUsername, clientUsername, idToPickup, clientPhoneNumber, message,
+                null, null, null, null);
+    }
+
+    public NotifyIdPickupService(
+            ActivityDao activityDao,
+            NotificationDao notificationDao,
+            WindmillNotificationClient notificationClient,
+            String workerUsername,
+            String clientUsername,
+            String idToPickup,
+            String clientPhoneNumber,
+            String message,
+            String clientEmail,
+            String emailSubject,
+            String emailBody,
+            String emailHtml) {
         this.activityDao = activityDao;
         this.notificationDao = notificationDao;
         this.notificationClient = notificationClient;
@@ -38,6 +65,10 @@ public class NotifyIdPickupService implements Service {
         this.idToPickup = idToPickup;
         this.clientPhoneNumber = clientPhoneNumber;
         this.message = message;
+        this.clientEmail = clientEmail;
+        this.emailSubject = emailSubject;
+        this.emailBody = emailBody;
+        this.emailHtml = emailHtml;
     }
 
     @Override
@@ -51,24 +82,60 @@ public class NotifyIdPickupService implements Service {
         if (idToPickup == null || idToPickup.isBlank()) {
             return UserMessage.INVALID_PARAMETER.withMessage("ID to pickup is required");
         }
-        if (!notificationClient.isValidPhoneNumber(clientPhoneNumber)) {
+
+        // Each channel is independently optional — but at least one must be active.
+        boolean smsEligible = isSmsEligible();
+        boolean emailEligible = isEmailEligible();
+
+        if (!smsEligible && !emailEligible) {
             return UserMessage.INVALID_PARAMETER.withMessage(
-                    "Invalid phone number format. Expected +1XXXXXXXXXX");
-        }
-        if (message == null || message.isBlank()) {
-            return UserMessage.INVALID_PARAMETER.withMessage("Message is required");
+                    "At least one notification channel (SMS or email) must be provided");
         }
 
-        notificationClient.sendSms(clientPhoneNumber, message);
+        // Validate SMS fields only when the SMS channel is being used.
+        if (smsEligible) {
+            if (!notificationClient.isValidPhoneNumber(clientPhoneNumber)) {
+                return UserMessage.INVALID_PARAMETER.withMessage(
+                        "Invalid phone number format. Expected +1XXXXXXXXXX");
+            }
+            if (message == null || message.isBlank()) {
+                return UserMessage.INVALID_PARAMETER.withMessage("Message is required for SMS");
+            }
+            notificationClient.sendSms(clientPhoneNumber, message);
+        }
+
+        if (emailEligible) {
+            notificationClient.sendEmail(
+                    clientEmail.trim(),
+                    emailSubject,
+                    emailBody,
+                    emailHtml == null || emailHtml.isBlank()
+                            ? Optional.empty()
+                            : Optional.of(emailHtml));
+        }
+
         recordNotifyIdPickupActivity();
-        persistNotification();
+        persistNotification(emailEligible);
 
         log.info(
-                "ID pickup notification sent from {} to {} for ID: {}",
+                "ID pickup notification sent from {} to {} for ID: {} (sms={}, email={})",
                 workerUsername,
                 clientUsername,
-                idToPickup);
+                idToPickup,
+                smsEligible,
+                emailEligible);
         return UserMessage.SUCCESS;
+    }
+
+    private boolean isSmsEligible() {
+        return clientPhoneNumber != null && !clientPhoneNumber.isBlank();
+    }
+
+    private boolean isEmailEligible() {
+        if (clientEmail == null || clientEmail.isBlank()) return false;
+        if (emailSubject == null || emailSubject.isBlank()) return false;
+        if (emailBody == null || emailBody.isBlank()) return false;
+        return WindmillNotificationClient.isValidEmail(clientEmail.trim());
     }
 
     private void recordNotifyIdPickupActivity() {
@@ -77,9 +144,17 @@ public class NotifyIdPickupService implements Service {
         activityDao.save(activity);
     }
 
-    private void persistNotification() {
-        Notification notification =
-                new Notification(workerUsername, clientUsername, clientPhoneNumber, message);
+    private void persistNotification(boolean emailWasSent) {
+        Notification notification = emailWasSent
+                ? new Notification(
+                        workerUsername,
+                        clientUsername,
+                        clientPhoneNumber != null ? clientPhoneNumber : "",
+                        message != null ? message : "",
+                        clientEmail.trim(),
+                        emailSubject,
+                        emailBody)
+                : new Notification(workerUsername, clientUsername, clientPhoneNumber, message);
         notificationDao.save(notification);
     }
 }

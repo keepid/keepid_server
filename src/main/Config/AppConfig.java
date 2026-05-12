@@ -21,6 +21,8 @@ import Database.Organization.OrgDao;
 import Database.Organization.OrgDaoFactory;
 import Database.Packet.PacketDao;
 import Database.Packet.PacketDaoFactory;
+import Database.PhoneUpload.PhoneUploadSessionDao;
+import Database.PhoneUpload.PhoneUploadSessionDaoFactory;
 import Database.Token.TokenDao;
 import Database.Token.TokenDaoFactory;
 import Database.User.UserDao;
@@ -34,6 +36,7 @@ import Mail.MailSender;
 import Mail.MailSenderFactory;
 import Notification.NotificationController;
 import Notification.WindmillNotificationClient;
+import PhoneUpload.PhoneUploadController;
 import Organization.Organization;
 import Organization.OrganizationController;
 
@@ -75,6 +78,7 @@ public class AppConfig {
     FormDao formDao = FormDaoFactory.create(deploymentLevel);
     FileDao fileDao = FileDaoFactory.create(deploymentLevel);
     PacketDao packetDao = PacketDaoFactory.create(deploymentLevel);
+    PhoneUploadSessionDao phoneUploadSessionDao = PhoneUploadSessionDaoFactory.create(deploymentLevel);
     ActivityDao activityDao = ActivityDaoFactory.create(deploymentLevel);
     MailDao mailDao = MailDaoFactory.create(deploymentLevel);
     NotificationDao notificationDao = NotificationDaoFactory.create(deploymentLevel);
@@ -108,7 +112,7 @@ public class AppConfig {
             formDao, fileDao, userDao, encryptionController, registryDao, interactiveFormConfigDao);
     FileController fileController =
         new FileController(
-            db, userDao, fileDao, activityDao, formDao, packetDao, encryptionController);
+            db, userDao, fileDao, activityDao, formDao, packetDao, encryptionController, phoneUploadSessionDao);
     IssueController issueController = new IssueController(db);
     ActivityController activityController = new ActivityController(activityDao);
     AdminController adminController = new AdminController(userDao, db);
@@ -123,6 +127,8 @@ public class AppConfig {
     WindmillNotificationClient notificationClient = notificationClientFor(deploymentLevel);
     NotificationController notificationController =
         new NotificationController(activityDao, notificationDao, notificationClient);
+    PhoneUploadController phoneUploadController =
+        new PhoneUploadController(userDao, phoneUploadSessionDao, notificationClient);
     //    try { do not recommend this block of code, this will delete and regenerate our encryption
     // key
     //      System.out.println("generating keyset");
@@ -149,6 +155,7 @@ public class AppConfig {
 
     /* -------------- FILE MANAGEMENT v2 --------------------- */
     app.post("/upload-file", fileController.fileUpload);
+    app.post("/upload-file-with-token", fileController.fileUploadWithToken);
     app.post("/download-file", fileController.fileDownload);
     app.post("/delete-file/", fileController.fileDelete);
     app.post("/rename-file", fileController.fileRename);
@@ -279,6 +286,9 @@ public class AppConfig {
     /* --------------- NOTIFICATION ROUTES ------------- */
     app.post("/notify-id-pickup", notificationController.notifyIdPickup);
     app.post("/get-notification-history", notificationController.getNotificationHistory);
+    app.post("/create-phone-upload-session", phoneUploadController.createPhoneUploadSession);
+    app.post("/resolve-phone-upload-token", phoneUploadController.resolvePhoneUploadToken);
+    app.post("/close-phone-upload-session", phoneUploadController.closePhoneUploadSession);
 
     /* --------------- FILE BACKFILL ROUTE ------------- */
     //    app.get("/backfill", backfillController.backfillSingleFile);

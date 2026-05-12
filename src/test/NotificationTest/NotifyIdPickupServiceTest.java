@@ -267,4 +267,110 @@ public class NotifyIdPickupServiceTest {
         List<Notification> forNobody = notificationDao.getByClientUsername("nonexistent-client");
         assertEquals(0, forNobody.size());
     }
+
+    // --- Email channel ------------------------------------------------------
+
+    @Test
+    public void validEmailPayloadPersistsEmailFields() {
+        NotifyIdPickupService service =
+                new NotifyIdPickupService(
+                        activityDao,
+                        notificationDao,
+                        notificationClient,
+                        "worker1",
+                        "clientA",
+                        "birth-cert",
+                        "+12125551234",
+                        "Hi Jane, your Birth Certificate is ready.",
+                        "jane@example.com",
+                        "Keep.id: Your Birth Certificate has arrived!",
+                        "Your Birth Certificate has arrived to ACME...",
+                        "<p>Your Birth Certificate has arrived to ACME...</p>");
+        Message result = service.executeAndGetResponse();
+
+        assertEquals(UserMessage.SUCCESS, result);
+        List<Notification> forA = notificationDao.getByClientUsername("clientA");
+        assertEquals(1, forA.size());
+        Notification n = forA.get(0);
+        assertEquals("jane@example.com", n.getClientEmail());
+        assertEquals("Keep.id: Your Birth Certificate has arrived!", n.getEmailSubject());
+        assertEquals("Your Birth Certificate has arrived to ACME...", n.getEmailBody());
+    }
+
+    @Test
+    public void invalidEmailDropsEmailFieldsButSmsStillSucceeds() {
+        NotifyIdPickupService service =
+                new NotifyIdPickupService(
+                        activityDao,
+                        notificationDao,
+                        notificationClient,
+                        "worker1",
+                        "clientA",
+                        "birth-cert",
+                        "+12125551234",
+                        "SMS body",
+                        "not-an-email",
+                        "Subject",
+                        "Body",
+                        null);
+        Message result = service.executeAndGetResponse();
+
+        assertEquals(UserMessage.SUCCESS, result);
+        Notification n = notificationDao.getByClientUsername("clientA").get(0);
+        assertNull(n.getClientEmail());
+        assertNull(n.getEmailSubject());
+        assertNull(n.getEmailBody());
+    }
+
+    @Test
+    public void blankEmailFieldsAreTreatedAsNoEmail() {
+        NotifyIdPickupService service =
+                new NotifyIdPickupService(
+                        activityDao,
+                        notificationDao,
+                        notificationClient,
+                        "worker1",
+                        "clientA",
+                        "birth-cert",
+                        "+12125551234",
+                        "SMS body",
+                        "",
+                        "",
+                        "",
+                        "");
+        Message result = service.executeAndGetResponse();
+
+        assertEquals(UserMessage.SUCCESS, result);
+        Notification n = notificationDao.getByClientUsername("clientA").get(0);
+        assertNull(n.getClientEmail());
+        assertNull(n.getEmailSubject());
+        assertNull(n.getEmailBody());
+    }
+
+    @Test
+    public void emailMissingSubjectOrBodyIsNotPersisted() {
+        // Email address is valid but subject/body are blank — should be skipped
+        // entirely, rather than persisted as a half-formed email record.
+        NotifyIdPickupService service =
+                new NotifyIdPickupService(
+                        activityDao,
+                        notificationDao,
+                        notificationClient,
+                        "worker1",
+                        "clientA",
+                        "birth-cert",
+                        "+12125551234",
+                        "SMS body",
+                        "jane@example.com",
+                        "",
+                        "",
+                        null);
+        Message result = service.executeAndGetResponse();
+
+        assertEquals(UserMessage.SUCCESS, result);
+        Notification n = notificationDao.getByClientUsername("clientA").get(0);
+        assertNull(n.getClientEmail());
+        assertNull(n.getEmailSubject());
+        assertNull(n.getEmailBody());
+    }
 }
