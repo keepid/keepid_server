@@ -71,14 +71,22 @@ public class GetFilesInformationService implements Service {
               && (userType == UserType.Director
                   || userType == UserType.Admin
                   || userType == UserType.Worker)) {
-            filter =
-                organizationId != null
-                    ? and(
-                        eq("organizationId", organizationId),
-                        eq("fileType", FileType.APPLICATION_PDF.toString()))
-                    : and(
-                        eq("organizationName", orgName),
-                        eq("fileType", FileType.APPLICATION_PDF.toString()));
+            if (organizationId != null && orgName != null && !orgName.isBlank()) {
+              filter =
+                  and(
+                      eq("fileType", FileType.APPLICATION_PDF.toString()),
+                      or(eq("organizationId", organizationId), eq("organizationName", orgName)));
+            } else if (organizationId != null) {
+              filter =
+                  and(
+                      eq("organizationId", organizationId),
+                      eq("fileType", FileType.APPLICATION_PDF.toString()));
+            } else {
+              filter =
+                  and(
+                      eq("organizationName", orgName),
+                      eq("fileType", FileType.APPLICATION_PDF.toString()));
+            }
             return getAllFiles(filter, fileType, fileDao);
           } else if (fileType == FileType.APPLICATION_PDF
               && userType == UserType.Client) {
